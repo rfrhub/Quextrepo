@@ -90,7 +90,7 @@ interface ProjectDetailViewProps {
   onUpdateProject: (updated: OperationProject) => void;
   onBackToDashboard?: () => void;
   onViewQuoteAnalysis?: (quoteId: string) => void;
-  initialTab?: 'field-bom' | 'customer-kickoff';
+  initialTab?: 'field-bom' | 'customer-comms' | 'customer-kickoff';
   onOpenProjectInPartnerAcademy?: (project: OperationProject) => void;
 }
 
@@ -104,9 +104,15 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   onOpenProjectInPartnerAcademy,
 }) => {
   const [activeTab, setActiveTab] = useState<'field-bom' | 'customer-comms' | 'customer-kickoff'>(
-    initialTab === 'customer-kickoff' ? 'customer-kickoff' : 'field-bom'
+    initialTab === 'customer-kickoff' ? 'customer-kickoff' : initialTab === 'customer-comms' ? 'customer-comms' : 'field-bom'
   );
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   useEffect(() => {
     const handleSync = () => setAcademySyncTick((prev) => prev + 1);

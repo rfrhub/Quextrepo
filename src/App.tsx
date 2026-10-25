@@ -36,6 +36,7 @@ import { FieldTechPortal, FieldTechLoginModal } from './components/FieldTechPort
 import { RightNotificationsDock } from './components/RightNotificationsDock';
 import { QuextLogo } from './components/QuextLogo';
 import { MyQuextPlatformShell, MyQuextTopTab } from './components/MyQuextPlatformShell';
+import { PMTutorialGuide, TutorialNavigationTarget } from './components/PMTutorialGuide';
 import {
   MyQuextLoginPage,
   MyQuextSignedInUser,
@@ -90,6 +91,10 @@ export default function App() {
   });
   const [standaloneKickoffProjectId, setStandaloneKickoffProjectId] = useState<string | null>(null);
   const [standaloneAcceptanceProjectId, setStandaloneAcceptanceProjectId] = useState<string | null>(null);
+
+  // PM Onboarding Tutorial Guidance Feature State
+  const [isPMTutorialOpen, setIsPMTutorialOpen] = useState<boolean>(false);
+  const [pmProjectDetailTab, setPmProjectDetailTab] = useState<'field-bom' | 'customer-comms' | 'customer-kickoff'>('field-bom');
 
   // Secret 4-Part Focus Mode / Quext Vision states
   const [focusMode, setFocusMode] = useState<FocusModeType>('none');
@@ -405,14 +410,14 @@ export default function App() {
           logDetails = `${latestLog.locationCompleted} · Verified by ${latestLog.installerName} (${latestLog.statusCheck})${
             latestLog.notes ? ` — "${latestLog.notes}"` : ''
           }`;
-          actor = latestLog.installerName;
+          actor = normalizeFieldTech(latestLog.installerName);
         } else if (nextLen < prevLen) {
           logTitle = `Installer Log Entry Removed (${updated.propertyName})`;
           logDetails = `An installer completion log entry was removed from the verification log.`;
         } else if (latestLog) {
           logTitle = `Installer Log Edited: ${latestLog.itemName}`;
           logDetails = `${latestLog.locationCompleted} (${latestLog.quantityCompleted} units · ${latestLog.statusCheck})`;
-          actor = latestLog.installerName;
+          actor = normalizeFieldTech(latestLog.installerName);
         }
 
         const installerNotif: ProjectActivityNotification = {
@@ -627,6 +632,62 @@ export default function App() {
     }
   };
 
+  // Dedicated Tutorial Navigator driving views across myquext.com, Field Tech Portal, and Partner Academy
+  const handleTutorialNavigate = (target: TutorialNavigationTarget) => {
+    if (target.portal === 'field-tech') {
+      const techName = target.fieldTechName || 'Sean Gates';
+      setLoggedInPartnerAcademy(null);
+      setLoggedInFieldTech(techName);
+      window.location.hash = `#/field-tech/${techName.toLowerCase().replace(' ', '-')}`;
+      return;
+    }
+
+    if (target.portal === 'partner-academy') {
+      const partnerShort = target.partnerShortName || 'SKBM';
+      const targetProjId = projects[0]?.id || null;
+      setLoggedInFieldTech(null);
+      setLoggedInPartnerAcademy({
+        email: 'skbm.tech@gmail.com',
+        companyId: 'skbm_systems',
+        partnerShortName: partnerShort,
+        selectedProjectId: targetProjId,
+      });
+      window.location.hash = '#/partner-academy';
+      return;
+    }
+
+    if (target.portal === 'salesHub') {
+      setLoggedInFieldTech(null);
+      setLoggedInPartnerAcademy(null);
+      setIsMyQuextShellMode(true);
+      setMyQuextTopTab('salesHub');
+      window.location.hash = '#/quotes';
+      return;
+    }
+
+    // Portal === 'operations'
+    setLoggedInFieldTech(null);
+    setLoggedInPartnerAcademy(null);
+    setIsMyQuextShellMode(true);
+    setMyQuextTopTab('operations');
+
+    if (target.operationsMainTab) {
+      setMainTab(target.operationsMainTab);
+    }
+    if (target.operationsSubTab) {
+      setOperationsSubTab(target.operationsSubTab);
+      if (projects.some((p) => p.id === target.operationsSubTab)) {
+        setFocusedProjectId(target.operationsSubTab);
+        window.location.hash = `/operations/${target.operationsSubTab}`;
+      } else {
+        window.location.hash = `/operations/${target.operationsSubTab}`;
+      }
+    }
+    if (target.projectDetailTab) {
+      setPmProjectDetailTab(target.projectDetailTab);
+    }
+  };
+
   // Check if standalone Product Acceptance Portal view should be displayed
   const standaloneAcceptanceProject = standaloneAcceptanceProjectId
     ? projects.find((p) => p.id === standaloneAcceptanceProjectId)
@@ -762,6 +823,15 @@ export default function App() {
             }
           }}
         />
+        {isPMTutorialOpen && (
+          <PMTutorialGuide
+            isOpen={isPMTutorialOpen}
+            onClose={() => setIsPMTutorialOpen(false)}
+            onNavigateToView={handleTutorialNavigate}
+            projects={projects}
+            currentPortal="partner-academy"
+          />
+        )}
       </>
     );
   }
@@ -795,6 +865,15 @@ export default function App() {
           latestNotification={latestNotification}
           autoPopTriggerKey={autoPopTriggerKey}
         />
+        {isPMTutorialOpen && (
+          <PMTutorialGuide
+            isOpen={isPMTutorialOpen}
+            onClose={() => setIsPMTutorialOpen(false)}
+            onNavigateToView={handleTutorialNavigate}
+            projects={projects}
+            currentPortal="field-tech"
+          />
+        )}
       </>
     );
   }
@@ -884,6 +963,7 @@ export default function App() {
           onUpdateProjectStatusTag={handleUpdateProjectStatusTag}
           onViewQuoteAnalysis={handleViewQuoteAnalysis}
           activeSubTab={operationsSubTab}
+          projectDetailInitialTab={pmProjectDetailTab}
           onSelectSubTab={(tabId) => {
             if (projects.some((p) => p.id === tabId)) {
               setFocusedProjectId(tabId);
@@ -1019,11 +1099,24 @@ export default function App() {
             });
             window.location.hash = '#/partner-academy';
           }}
+          onOpenPMTutorial={() => setIsPMTutorialOpen(true)}
           onResetData={handleResetData}
           onToggleStandaloneMode={() => setIsMyQuextShellMode(false)}
         >
           {operationsWorkspaceContent}
         </MyQuextPlatformShell>
+
+        {isPMTutorialOpen && (
+          <PMTutorialGuide
+            isOpen={isPMTutorialOpen}
+            onClose={() => setIsPMTutorialOpen(false)}
+            onNavigateToView={handleTutorialNavigate}
+            projects={projects}
+            currentPortal="operations"
+            currentOperationsMainTab={mainTab}
+            currentOperationsSubTab={operationsSubTab}
+          />
+        )}
 
         <RightNotificationsDock
           mode="pm"
@@ -1187,6 +1280,18 @@ export default function App() {
         }}
         projects={projects}
       />
+
+      {isPMTutorialOpen && (
+        <PMTutorialGuide
+          isOpen={isPMTutorialOpen}
+          onClose={() => setIsPMTutorialOpen(false)}
+          onNavigateToView={handleTutorialNavigate}
+          projects={projects}
+          currentPortal="operations"
+          currentOperationsMainTab={mainTab}
+          currentOperationsSubTab={operationsSubTab}
+        />
+      )}
     </div>
   );
 }

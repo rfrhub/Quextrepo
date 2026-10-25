@@ -34,6 +34,7 @@ interface OperationsViewProps {
   onSelectSubTab: (tabId: string) => void;
   externalDirectoryFilter?: ProjectStatusTag | 'all';
   onOpenProjectInPartnerAcademy?: (project: OperationProject) => void;
+  projectDetailInitialTab?: 'field-bom' | 'customer-comms' | 'customer-kickoff';
 }
 
 export const OperationsView: React.FC<OperationsViewProps> = ({
@@ -47,6 +48,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
   onSelectSubTab,
   externalDirectoryFilter = 'all',
   onOpenProjectInPartnerAcademy,
+  projectDetailInitialTab,
 }) => {
   const [directoryFilter, setDirectoryFilter] = useState<ProjectStatusTag | 'all'>(externalDirectoryFilter);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -534,6 +536,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
             onBackToDashboard={() => onSelectSubTab('dashboard')}
             onViewQuoteAnalysis={onViewQuoteAnalysis}
             onOpenProjectInPartnerAcademy={onOpenProjectInPartnerAcademy}
+            initialTab={projectDetailInitialTab}
           />
         </div>
       )}

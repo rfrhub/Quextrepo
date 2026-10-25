@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   UserCheck,
   Lightbulb,
+  GraduationCap,
 } from 'lucide-react';
 
 export type MyQuextTopTab =
@@ -99,6 +100,7 @@ interface MyQuextPlatformShellProps {
   onViewQuoteAnalysis: (quoteId: string) => void;
   onOpenLoginModal: () => void;
   onOpenPartnerAcademy: () => void;
+  onOpenPMTutorial?: () => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
   children: React.ReactNode;
@@ -141,6 +143,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onViewQuoteAnalysis,
   onOpenLoginModal,
   onOpenPartnerAcademy,
+  onOpenPMTutorial,
   onResetData,
   onToggleStandaloneMode,
   children,
@@ -603,6 +606,24 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
                     >
                       <span>Workspace</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onOpenPMTutorial?.();
+                      }}
+                      className="w-full px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50/80 flex items-center justify-between cursor-pointer transition-colors group"
+                      title="Interactive guidance tutorial for training Project Managers"
+                    >
+                      <span className="flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform shrink-0" />
+                        <span className="font-semibold text-blue-800">PM Onboarding Tutorial</span>
+                      </span>
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 rounded-full shrink-0">
+                        Training
+                      </span>
                     </button>
                   </div>
 

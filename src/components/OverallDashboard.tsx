@@ -193,7 +193,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
       );
       const installDate =
         implMilestone?.targetDate ||
-        project.installationStartDate ||
+        (project as any).installationStartDate ||
         project.targetCompletionDate;
       const status = implMilestone?.status || 'Upcoming';
       const fieldTech = normalizeFieldTech(project.assignedFieldTech);
