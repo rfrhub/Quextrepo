@@ -76,6 +76,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const allAvailableIntegrators = getAllIntegratorPartners(projects);
 
   const [showBehindTheVeil, setShowBehindTheVeil] = useState<boolean>(false);
+  const [showMitigationPlans, setShowMitigationPlans] = useState<boolean>(false);
   const [showFinancialBreakdown, setShowFinancialBreakdown] = useState<boolean>(true);
   const [upcomingCardMode, setUpcomingCardMode] = useState<'go_lives' | 'installs'>('go_lives');
   const [acknowledgedRoadblocks, setAcknowledgedRoadblocks] = useState<Record<string, boolean>>({});
@@ -595,19 +596,35 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             <div className="text-[10px] text-slate-500 mt-2 flex flex-wrap items-center justify-between gap-1.5">
               <span className="truncate">Auto-synced with dates</span>
               {atRiskAndBehindProjects.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowBehindTheVeil(!showBehindTheVeil)}
-                  className={`px-2 py-0.5 rounded font-bold inline-flex items-center gap-1 transition-all cursor-pointer border shrink-0 ${
-                    showBehindTheVeil
-                      ? 'bg-amber-200 text-amber-950 border-amber-400 shadow-2xs'
-                      : 'bg-amber-100/80 text-amber-900 border-amber-300 hover:bg-amber-200'
-                  }`}
-                  title={showBehindTheVeil ? 'Minimize Behind the Veil intelligence node' : 'Reveal Behind the Veil intelligence node'}
-                >
-                  <span>Behind the Veil</span>
-                  <Eye className="w-3 h-3 text-amber-700 shrink-0" />
-                </button>
+                <div className="flex flex-wrap items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowBehindTheVeil(!showBehindTheVeil)}
+                    className={`px-2 py-0.5 rounded font-bold inline-flex items-center gap-1 transition-all cursor-pointer border shrink-0 ${
+                      showBehindTheVeil
+                        ? 'bg-amber-200 text-amber-950 border-amber-400 shadow-2xs'
+                        : 'bg-amber-100/80 text-amber-900 border-amber-300 hover:bg-amber-200'
+                    }`}
+                    title={showBehindTheVeil ? 'Minimize Behind the Veil intelligence node' : 'Reveal Behind the Veil intelligence node'}
+                  >
+                    <span>Behind the Veil</span>
+                    <Eye className="w-3 h-3 text-amber-700 shrink-0" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowMitigationPlans(!showMitigationPlans)}
+                    className={`px-2 py-0.5 rounded font-bold inline-flex items-center gap-1 transition-all cursor-pointer border shrink-0 ${
+                      showMitigationPlans
+                        ? 'bg-indigo-200 text-indigo-950 border-indigo-400 shadow-2xs'
+                        : 'bg-indigo-100/80 text-indigo-900 border-indigo-300 hover:bg-indigo-200'
+                    }`}
+                    title={showMitigationPlans ? 'Minimize PM Mitigation Plans summary' : 'Open summary of Mitigation Plans in process by PMs'}
+                  >
+                    <span>Mitigation Plans</span>
+                    <ShieldAlert className="w-3 h-3 text-indigo-700 shrink-0" />
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -833,122 +850,376 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
         </div>
       </div>
 
-      {/* PMP Tailored Mitigation Plans Hub for Behind Schedule & High Risk Projects */}
-      {atRiskAndBehindProjects.length > 0 && (
-        <div className="bg-white border-2 border-indigo-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-slate-200">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 text-[10px] font-mono font-extrabold bg-indigo-100 text-indigo-900 rounded uppercase tracking-wider border border-indigo-300">
-                    PMBOK® / PMP® Schedule &amp; Risk Mitigation Engine
-                  </span>
-                  <span className="text-xs font-bold text-slate-700">
-                    · {atRiskAndBehindProjects.length} Active Recovery Plan
-                    {atRiskAndBehindProjects.length === 1 ? '' : 's'} ({highRiskProjects.length} High Risk,{' '}
-                    {behindScheduleProjects.length} Behind Schedule)
-                  </span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-0.5 font-['Plus_Jakarta_Sans']">
-                  Tailored PMP Mitigation Plans (Behind Schedule &amp; High Risk)
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-4xl leading-relaxed">
-                  Automatically synthesized using Project Management Professional (PMP) training methodologies—Fast Tracking, Schedule Crashing, Critical Path Decoupling, and Qualitative Risk Response—tailored around each project&apos;s BOM progress, milestones, and{' '}
-                  <strong className="text-slate-800">Project Notes</strong>. PMs can customize, add steps, or update action statuses directly below.
-                </p>
-              </div>
-            </div>
+      {/* Mitigation Plans Summary Node (Toggled by 'Mitigation Plans' button on Projects Health Status tile) */}
+      {atRiskAndBehindProjects.length > 0 && showMitigationPlans && (() => {
+        const allPlans = atRiskAndBehindProjects.map((proj) => ({
+          project: proj,
+          plan: getEffectivePMPMitigationPlan(proj),
+          health: calculateProjectScheduleHealth(
+            proj.targetCompletionDate,
+            proj.statusTag,
+            proj.notes,
+            proj.milestones
+          ),
+        }));
 
-            {/* Property Selector Pills */}
-            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+        const totalActionSteps = allPlans.reduce((acc, p) => acc + p.plan.actionItems.length, 0);
+        const inProgressSteps = allPlans.reduce(
+          (acc, p) => acc + p.plan.actionItems.filter((a) => a.status === 'In Progress').length,
+          0
+        );
+        const completedSteps = allPlans.reduce(
+          (acc, p) => acc + p.plan.actionItems.filter((a) => a.status === 'Completed').length,
+          0
+        );
+        const pendingSteps = Math.max(0, totalActionSteps - inProgressSteps - completedSteps);
+        const activeStepsPct =
+          totalActionSteps > 0
+            ? Math.round(((inProgressSteps + completedSteps) / totalActionSteps) * 100)
+            : 0;
+
+        // Group plans by PM
+        const pmSummaryMap = new Map<
+          string,
+          { pmName: string; role: string; count: number; inProgress: number; completed: number; total: number; properties: string[] }
+        >();
+        allPlans.forEach(({ project: proj, plan }) => {
+          const pmName = proj.assignedPM?.name || 'Assigned PM';
+          const existing = pmSummaryMap.get(pmName) || {
+            pmName,
+            role: proj.assignedPM?.role || 'Project Manager',
+            count: 0,
+            inProgress: 0,
+            completed: 0,
+            total: 0,
+            properties: [],
+          };
+          existing.count += 1;
+          existing.inProgress += plan.actionItems.filter((a) => a.status === 'In Progress').length;
+          existing.completed += plan.actionItems.filter((a) => a.status === 'Completed').length;
+          existing.total += plan.actionItems.length;
+          existing.properties.push(proj.propertyName);
+          pmSummaryMap.set(pmName, existing);
+        });
+        const pmSummaries = Array.from(pmSummaryMap.values());
+
+        return (
+          <div className="bg-gradient-to-br from-indigo-50/80 via-white to-sky-50/40 border-2 border-indigo-300/80 rounded-2xl p-5 sm:p-6 shadow-sm relative overflow-hidden transition-all animate-fadeIn space-y-5">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-200/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+
+            {/* Node Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-indigo-200/80">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-indigo-200 text-indigo-950 rounded uppercase tracking-wider border border-indigo-300">
+                      Active PM Mitigation Summary
+                    </span>
+                    <span className="text-xs font-bold text-indigo-900">
+                      · {atRiskAndBehindProjects.length} Mitigation Plan
+                      {atRiskAndBehindProjects.length === 1 ? '' : 's'} in Process ({highRiskProjects.length} High Risk,{' '}
+                      {behindScheduleProjects.length} Behind Schedule)
+                    </span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-0.5 font-['Plus_Jakarta_Sans']">
+                    Summary of Mitigation Plans in Process by PMs
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-700 mt-1 max-w-4xl leading-relaxed">
+                    Consolidated overview of active schedule recovery and risk mitigation plans currently being executed by Project Managers across all Behind Schedule and High Risk deployments.
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setSelectedPmpHubProjectId('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                  selectedPmpHubProjectId === 'all'
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
-                }`}
+                onClick={() => setShowMitigationPlans(false)}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-white self-start md:self-auto cursor-pointer shrink-0"
               >
-                All Flagged ({atRiskAndBehindProjects.length})
+                Minimize Node
               </button>
-              {atRiskAndBehindProjects.map((proj) => {
-                const pHealth = calculateProjectScheduleHealth(
-                  proj.targetCompletionDate,
-                  proj.statusTag,
-                  proj.notes,
-                  proj.milestones
-                );
-                const isSelected = selectedPmpHubProjectId === proj.id;
-                return (
-                  <button
-                    key={`pmp-tab-${proj.id}`}
-                    type="button"
-                    onClick={() => setSelectedPmpHubProjectId(proj.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? pHealth.effectiveTag === 'High Risk'
-                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                          : 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{pHealth.effectiveTag === 'High Risk' ? '⚠' : '⏳'}</span>
-                    <span>{proj.propertyName}</span>
-                  </button>
-                );
-              })}
             </div>
-          </div>
 
-          <div className="space-y-5">
-            {atRiskAndBehindProjects
-              .filter(
-                (proj) =>
-                  selectedPmpHubProjectId === 'all' || proj.id === selectedPmpHubProjectId
-              )
-              .map((proj) => (
-                <div key={`pmp-hub-panel-${proj.id}`} className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-slate-900">
-                        {proj.propertyName}
-                      </span>
-                      <span className="text-xs text-slate-500 font-mono">
-                        ({proj.city}, {proj.state} · {proj.unitsCount} units · PM:{' '}
-                        <strong className="text-slate-800">{proj.assignedPM.name}</strong>)
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onSelectProjectTab(proj.id)}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Open Full Project Workspace</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <PMPMitigationPlanPanel
-                    project={proj}
-                    onUpdateProject={(updated) => {
-                      if (onUpdateProject) {
-                        onUpdateProject(updated);
-                      }
-                    }}
-                    variant="full"
-                    defaultExpanded={
-                      selectedPmpHubProjectId !== 'all' || proj.statusTag === 'High Risk'
-                    }
-                  />
+            {/* High-Level Summary Strip: Overall Progress + PM Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Card 1: Plans & Action Velocity */}
+              <div className="p-4 bg-white/95 rounded-xl border border-indigo-200/90 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                    In-Process Mitigation Actions
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 font-bold border border-indigo-300">
+                    {activeStepsPct}% Active / Done
+                  </span>
                 </div>
-              ))}
+                <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                  <div className="p-2 rounded-lg bg-sky-50 border border-sky-200">
+                    <div className="text-base font-extrabold font-mono text-sky-900">{inProgressSteps}</div>
+                    <div className="text-[10px] font-bold text-sky-700 uppercase">In Process</div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <div className="text-base font-extrabold font-mono text-emerald-900">{completedSteps}</div>
+                    <div className="text-[10px] font-bold text-emerald-700 uppercase">Completed</div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+                    <div className="text-base font-extrabold font-mono text-slate-800">{pendingSteps}</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase">Queued</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-600 pt-0.5">
+                  Across <strong>{totalActionSteps}</strong> total tailored recovery steps on{' '}
+                  <strong>{atRiskAndBehindProjects.length}</strong> properties.
+                </p>
+              </div>
+
+              {/* Card 2 & 3: Active PMs Leading Mitigation Plans */}
+              <div className="md:col-span-2 p-4 bg-white/95 rounded-xl border border-indigo-200/90 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>PM Mitigation Ownership &amp; In-Process Workload</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                    {pmSummaries.length} PM{pmSummaries.length === 1 ? '' : 's'} Executing Recovery Plans
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {pmSummaries.map((pm) => (
+                    <div
+                      key={pm.pmName}
+                      className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col justify-between gap-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-extrabold text-slate-900">{pm.pmName}</div>
+                          <div className="text-[10px] text-slate-500">{pm.role}</div>
+                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-indigo-100 text-indigo-900 border border-indigo-300">
+                          {pm.count} Active Plan{pm.count === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-700 font-medium truncate">
+                        Properties: <strong className="text-slate-900">{pm.properties.join(', ')}</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 pt-1 border-t border-slate-200/80">
+                        <span className="text-sky-700 font-bold">{pm.inProgress} In Process</span>
+                        <span className="text-emerald-700 font-bold">{pm.completed} Completed</span>
+                        <span>{pm.total} Total Steps</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Pills by Property */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-indigo-200/60">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-600 mr-1">Filter Plans:</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPmpHubProjectId('all')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                    selectedPmpHubProjectId === 'all'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  All In-Process Plans ({atRiskAndBehindProjects.length})
+                </button>
+                {allPlans.map(({ project: proj, health: pHealth }) => {
+                  const isSelected = selectedPmpHubProjectId === proj.id;
+                  return (
+                    <button
+                      key={`pmp-tab-${proj.id}`}
+                      type="button"
+                      onClick={() => setSelectedPmpHubProjectId(proj.id)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? pHealth.effectiveTag === 'High Risk'
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                            : 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{pHealth.effectiveTag === 'High Risk' ? '⚠' : '⏳'}</span>
+                      <span>{proj.propertyName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Summary Cards Grid when viewing 'all', or Full Editor when a specific property is selected */}
+            {selectedPmpHubProjectId === 'all' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {allPlans.map(({ project: proj, plan, health: pHealth }) => {
+                  const isHigh = pHealth.effectiveTag === 'High Risk';
+                  const inProgCount = plan.actionItems.filter((a) => a.status === 'In Progress').length;
+                  const doneCount = plan.actionItems.filter((a) => a.status === 'Completed').length;
+
+                  return (
+                    <div
+                      key={`mitigation-summary-card-${proj.id}`}
+                      className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition-all shadow-2xs ${
+                        isHigh
+                          ? 'bg-rose-50/75 border-rose-300'
+                          : 'bg-amber-50/75 border-amber-300'
+                      }`}
+                    >
+                      <div className="space-y-2.5">
+                        {/* Card Header */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span
+                                className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
+                                  isHigh
+                                    ? 'bg-rose-200 text-rose-950 border-rose-300'
+                                    : 'bg-amber-200 text-amber-950 border-amber-300'
+                                }`}
+                              >
+                                {pHealth.effectiveTag}
+                              </span>
+                              <span className="text-[10px] font-mono font-bold text-slate-600">
+                                {pHealth.weeksBehindLabel}
+                              </span>
+                            </div>
+                            <h4 className="font-extrabold text-slate-900 text-sm mt-1">
+                              {proj.propertyName}
+                            </h4>
+                            <div className="text-[11px] text-slate-600">
+                              PM: <strong className="text-slate-900">{proj.assignedPM.name}</strong> · Tech:{' '}
+                              <strong className="text-slate-800">{normalizeFieldTech(proj.assignedFieldTech)}</strong>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => onSelectProjectTab(proj.id)}
+                            className="p-1.5 bg-white hover:bg-slate-100 rounded-lg border border-slate-300 text-slate-700 shadow-2xs transition-colors shrink-0 cursor-pointer"
+                            title="Open project workspace"
+                          >
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Recovery Approach & Target Recovery Date */}
+                        <div className="p-2.5 bg-white/95 rounded-lg border border-slate-200 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800">
+                              Recovery Approach:
+                            </span>
+                            <span className="text-[10px] font-mono font-bold text-slate-600">
+                              Target: {plan.targetRecoveryDate}
+                            </span>
+                          </div>
+                          <div className="font-bold text-slate-900 text-xs">
+                            {plan.strategyType}
+                          </div>
+                          <p className="text-[11px] text-slate-700 leading-snug line-clamp-3">
+                            {plan.scheduleCompressionPlan}
+                          </p>
+                        </div>
+
+                        {/* Active Action Steps in Process */}
+                        <div className="p-2.5 bg-white/95 rounded-lg border border-slate-200 space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            <span>PM Actions in Process</span>
+                            <span className="font-mono text-indigo-700">
+                              {inProgCount} Active · {doneCount}/{plan.actionItems.length} Done
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {plan.actionItems.slice(0, 3).map((act) => (
+                              <div
+                                key={act.id}
+                                className="text-[11px] flex items-start justify-between gap-1.5 pt-1 first:pt-0 border-t first:border-t-0 border-slate-100"
+                              >
+                                <span
+                                  className={`leading-snug line-clamp-2 ${
+                                    act.status === 'Completed'
+                                      ? 'line-through text-slate-400'
+                                      : 'text-slate-800 font-medium'
+                                  }`}
+                                >
+                                  • {act.action}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.2 rounded text-[9px] font-bold border shrink-0 ${
+                                    act.status === 'Completed'
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                      : act.status === 'In Progress'
+                                      ? 'bg-sky-100 text-sky-800 border-sky-300'
+                                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                                  }`}
+                                >
+                                  {act.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Footer: Open / Edit Full Mitigation Plan */}
+                      <div className="pt-1 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPmpHubProjectId(proj.id)}
+                          className="w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-colors cursor-pointer text-center"
+                        >
+                          View &amp; Edit Full Mitigation Plan
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {atRiskAndBehindProjects
+                  .filter((proj) => proj.id === selectedPmpHubProjectId)
+                  .map((proj) => (
+                    <div key={`pmp-hub-panel-${proj.id}`} className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPmpHubProjectId('all')}
+                          className="text-xs font-bold text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>← Back to All In-Process Mitigation Plans</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSelectProjectTab(proj.id)}
+                          className="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Open Full Project Workspace</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <PMPMitigationPlanPanel
+                        project={proj}
+                        onUpdateProject={(updated) => {
+                          if (onUpdateProject) {
+                            onUpdateProject(updated);
+                          }
+                        }}
+                        variant="full"
+                        defaultExpanded={true}
+                      />
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* REQUIREMENT: "On this same page under the project health status node when there are any projects at risk or Behind tagged create a new node called 'Behind the Veil' and highlight some of the issues roadblocks that the Project Management team is experiencing and help acknowledge that if it is something that the internal departments that work along side the Project managers cannot help with, that at the very least the summary of the roadblocks outlines where the trends are that are causing projects to be behind or at risk. This ideally should help leadership brainstorm and think of ways to prevent these roadblocks in the future using real live data." */}
       {atRiskAndBehindProjects.length > 0 && showBehindTheVeil && (
@@ -1827,7 +2098,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                             }`}
                           >
                             <ShieldAlert className="w-3 h-3 shrink-0" />
-                            <span>View / Edit PMP Plan</span>
+                            <span>View / Edit Mitigation Plan</span>
                           </button>
                         )}
                       </div>
@@ -1994,10 +2265,10 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 rounded uppercase tracking-wider">
-                    PMBOK® / PMP® Schedule &amp; Risk Mitigation
+                    Schedule Recovery &amp; Mitigation
                   </span>
                   <h3 className="text-lg font-extrabold text-slate-900 mt-1">
-                    {modalProj.propertyName} — Tailored PMP Mitigation Plan
+                    {modalProj.propertyName} — Tailored Mitigation Plan
                   </h3>
                 </div>
                 <button

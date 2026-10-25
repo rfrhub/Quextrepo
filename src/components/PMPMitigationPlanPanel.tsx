@@ -39,10 +39,10 @@ interface PMPMitigationPlanPanelProps {
 }
 
 const STRATEGY_OPTIONS: PMPMitigationStrategyType[] = [
-  'Fast Tracking (Parallel Execution)',
-  'Crashing & Resource Compression',
-  'Critical Path Decoupling & Escalation',
-  'Hybrid PMBOK Schedule Recovery',
+  'Parallel Installation (Unblocked Zones)',
+  'Crew Augmentation & Accelerated Staging',
+  'Blocker Isolation & Vendor Escalation',
+  'Phased Recovery & Parallel Execution',
 ];
 
 const PHASE_OPTIONS: PMPMitigationActionPhase[] = [
@@ -114,7 +114,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
       lastUpdated: new Date().toISOString(),
     });
     setIsEditing(false);
-    triggerToast('PMP Mitigation Plan saved & updated.');
+    triggerToast('Mitigation Plan saved & updated.');
   };
 
   // Regenerate fresh plan tailored to latest project details & project notes
@@ -127,7 +127,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
       lastUpdated: new Date().toISOString(),
     });
     setIsEditing(false);
-    triggerToast(`Re-synced PMP Mitigation Plan from project data & ${project.notes.length} project note(s).`);
+    triggerToast(`Re-synced Mitigation Plan from project data & ${project.notes.length} project note(s).`);
   };
 
   // Quick-toggle an action item's status directly in view mode
@@ -164,9 +164,9 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
   // Add a new action item in edit mode
   const handleAddActionItem = () => {
     const newItem: PMPMitigationActionItem = {
-      id: `pmp-act-custom-${Date.now()}`,
+      id: `act-custom-${Date.now()}`,
       phase: 'Immediate (24-48h)',
-      pmpTechnique: 'PMBOK Risk Mitigation',
+      pmpTechnique: 'Field Action',
       action: '',
       owner: `${project.assignedPM?.name || 'PM'}`,
       status: 'Pending',
@@ -205,7 +205,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
       .map((a, idx) => `${idx + 1}) [${a.status}] ${a.action} (${a.owner})`)
       .join(' ');
     const newNote = {
-      id: `note-pmp-${Date.now()}`,
+      id: `note-mitigation-${Date.now()}`,
       projectId: project.id,
       author: project.assignedPM?.name || 'Project Manager',
       timestamp: new Date().toLocaleString('en-US', {
@@ -215,7 +215,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
         minute: '2-digit',
       }),
       category: 'General Context' as const,
-      text: `PMP Mitigation Plan (${effectivePlan.strategyType} · Target Recovery: ${effectivePlan.targetRecoveryDate}): ${activeActionsSummary}`,
+      text: `Mitigation Plan (${effectivePlan.strategyType} · Target Recovery: ${effectivePlan.targetRecoveryDate}): ${activeActionsSummary}`,
       isPinned: true,
     };
 
@@ -228,7 +228,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
       notes: [newNote, ...(project.notes || [])],
       lastUpdated: new Date().toISOString(),
     });
-    triggerToast('Logged PMP Mitigation Plan snapshot to pinned Project Notes.');
+    triggerToast('Logged Mitigation Plan snapshot to pinned Project Notes.');
   };
 
   // Compact card view (for Dashboard Roadblock cards & All Projects directory cards)
@@ -252,7 +252,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
               />
               <div>
                 <div className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 flex-wrap">
-                  <span>PMP Mitigation Plan</span>
+                  <span>Mitigation Plan</span>
                   <span
                     className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
                       isHighRisk
@@ -338,7 +338,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
             <div className="pt-2.5 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                <span>PMBOK® Tailored Schedule &amp; Risk Mitigation</span>
+                <span>Tailored Schedule &amp; Blocker Mitigation</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {!isEditing ? (
@@ -394,7 +394,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
-                      PMP Strategy Type
+                      Recovery Approach
                     </label>
                     <select
                       value={draftPlan.strategyType}
@@ -433,7 +433,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
-                    Root Cause &amp; Project Notes Synthesis
+                    Blocker &amp; Project Notes Summary
                   </label>
                   <textarea
                     rows={3}
@@ -447,7 +447,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
-                    Schedule Compression Strategy (Fast Tracking / Crashing)
+                    Parallel Execution &amp; Schedule Recovery Plan
                   </label>
                   <textarea
                     rows={3}
@@ -461,7 +461,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
-                    Stakeholder &amp; Vendor Escalation Plan
+                    Vendor &amp; Stakeholder Coordination Plan
                   </label>
                   <textarea
                     rows={2}
@@ -480,7 +480,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] font-bold text-slate-600 uppercase">
-                      Tailored PMP Action Steps ({draftPlan.actionItems.length})
+                      Action Steps ({draftPlan.actionItems.length})
                     </label>
                     <button
                       type="button"
@@ -517,7 +517,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                           onChange={(e) =>
                             handleUpdateDraftActionItem(item.id, 'pmpTechnique', e.target.value)
                           }
-                          placeholder="PMP Technique"
+                          placeholder="Category / Focus"
                           className="px-1.5 py-0.5 text-[10px] bg-white border border-slate-300 rounded flex-1 min-w-[110px]"
                         />
                         <select
@@ -568,14 +568,14 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
               <div className="space-y-2.5 text-[11px]">
                 <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                   <div className="font-bold text-slate-700 uppercase text-[10px]">
-                    1. Root Cause &amp; Notes Synthesis
+                    1. Blocker &amp; Notes Summary
                   </div>
                   <p className="text-slate-800 leading-relaxed">{effectivePlan.rootCauseSynthesis}</p>
                 </div>
 
                 <div className="p-2.5 bg-indigo-50/60 rounded-lg border border-indigo-200 space-y-1">
                   <div className="font-bold text-indigo-950 uppercase text-[10px]">
-                    2. Schedule Compression ({effectivePlan.strategyType})
+                    2. Schedule Recovery ({effectivePlan.strategyType})
                   </div>
                   <p className="text-slate-800 leading-relaxed">
                     {effectivePlan.scheduleCompressionPlan}
@@ -674,10 +674,10 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                     : 'bg-amber-200 text-amber-950 border-amber-300'
                 }`}
               >
-                {health.effectiveTag} · PMP® Mitigation Framework
+                {health.effectiveTag} · Recovery Plan
               </span>
               <span className="px-2.5 py-0.5 text-[10px] font-bold font-mono rounded bg-indigo-100 text-indigo-900 border border-indigo-300">
-                Strategy: {effectivePlan.strategyType}
+                Approach: {effectivePlan.strategyType}
               </span>
               <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-100 text-slate-700 border border-slate-300 font-semibold">
                 Tailored from BOM &amp; {project.notes?.length || 0} Project Note
@@ -691,11 +691,10 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
             </div>
 
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 font-['Plus_Jakarta_Sans'] mt-1">
-              Project Management Professional (PMP) Tailored Mitigation &amp; Recovery Plan
+              Tailored Project Mitigation &amp; Schedule Recovery Plan
             </h3>
             <p className="text-xs text-slate-600 mt-0.5">
-              Synthesized using PMBOK® Critical Path Method (CPM), Schedule Compression (Fast Tracking / Crashing), and Risk Response strategies tailored around{' '}
-              <strong className="text-slate-800">{project.propertyName}</strong> telemetry and field notes.
+              Built around <strong className="text-slate-800">{project.propertyName}</strong> installation progress, active milestones, and field notes.
             </p>
           </div>
         </div>
@@ -721,7 +720,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                 type="button"
                 onClick={handleRegenerateFromNotes}
                 className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Re-synthesize plan from current project status and latest Project Notes"
+                title="Re-sync plan from current project status and latest Project Notes"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Re-Sync with Notes</span>
@@ -788,12 +787,12 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
         </div>
       )}
 
-      {/* KPI Strip: Schedule Variance, Action Completion, Target Recovery Date, Active Notes Analyzed */}
+      {/* KPI Strip: Schedule Status, Action Completion, Target Recovery Date, Active Notes Analyzed */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="p-3 bg-white/90 rounded-xl border border-slate-200/90 flex items-center justify-between">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Schedule Variance (SV)
+              Schedule Status
             </div>
             <div
               className={`text-sm font-extrabold font-mono mt-0.5 ${
@@ -803,7 +802,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
               {health.weeksBehindLabel}
             </div>
             <div className="text-[11px] text-slate-500">
-              Baseline Target: {project.targetCompletionDate}
+              Original Target: {project.targetCompletionDate}
             </div>
           </div>
           <Clock className={`w-5 h-5 ${isHighRisk ? 'text-rose-500' : 'text-amber-500'}`} />
@@ -812,7 +811,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
         <div className="p-3 bg-white/90 rounded-xl border border-slate-200/90 flex items-center justify-between">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              PMP Target Recovery Date
+              Target Recovery Date
             </div>
             <div className="text-sm font-extrabold font-mono text-indigo-900 mt-0.5">
               {effectivePlan.targetRecoveryDate}
@@ -853,7 +852,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
             <div className="text-[11px] text-slate-500 truncate max-w-[190px]">
               {project.notes?.[0]
                 ? `Latest: [${project.notes[0].category}]`
-                : 'Derived from PM status & BOM'}
+                : 'Derived from status & BOM'}
             </div>
           </div>
           <FileText className="w-5 h-5 text-sky-600" />
@@ -869,7 +868,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <Edit3 className="w-4 h-4 text-indigo-600" />
                   <h4 className="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
-                    Editing Tailored PMP Mitigation Plan — {project.propertyName}
+                    Editing Mitigation Plan — {project.propertyName}
                   </h4>
                 </div>
                 <span className="text-[11px] text-slate-500">
@@ -880,7 +879,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Primary PMBOK Schedule &amp; Risk Strategy
+                    Primary Recovery Approach
                   </label>
                   <select
                     value={draftPlan.strategyType}
@@ -921,7 +920,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    1. PMBOK Qualitative Risk &amp; Root Cause Synthesis (Project &amp; Notes)
+                    1. Blocker &amp; Project Notes Summary
                   </label>
                   <textarea
                     rows={4}
@@ -938,7 +937,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    2. Schedule Compression Plan (Fast Tracking, Crashing &amp; Resource Leveling)
+                    2. Parallel Execution &amp; Schedule Recovery Plan
                   </label>
                   <textarea
                     rows={4}
@@ -955,7 +954,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    3. Stakeholder Engagement &amp; Third-Party Escalation Matrix
+                    3. Vendor &amp; Stakeholder Coordination Plan
                   </label>
                   <textarea
                     rows={4}
@@ -972,7 +971,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    4. Contingency Reserve &amp; Workaround Protocol
+                    4. Contingency &amp; Phased Handover Plan
                   </label>
                   <textarea
                     rows={4}
@@ -993,10 +992,10 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                      5. Tailored PMP Action Register ({draftPlan.actionItems.length} Steps)
+                      5. Mitigation Action Plan ({draftPlan.actionItems.length} Steps)
                     </h5>
                     <p className="text-[11px] text-slate-500">
-                      Customize action descriptions, assign owners, adjust PMP techniques, or add new mitigation steps.
+                      Customize action descriptions, assign owners, or add new mitigation steps.
                     </p>
                   </div>
                   <button
@@ -1005,7 +1004,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                     className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-300 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Add PMP Action Step</span>
+                    <span>Add Action Step</span>
                   </button>
                 </div>
 
@@ -1040,7 +1039,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                             onChange={(e) =>
                               handleUpdateDraftActionItem(item.id, 'pmpTechnique', e.target.value)
                             }
-                            placeholder="PMP Technique (e.g., Fast Tracking)"
+                            placeholder="Focus area (e.g., Parallel Install, Escalation)"
                             className="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg font-semibold text-indigo-900 min-w-[200px] flex-1"
                           />
 
@@ -1108,19 +1107,19 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Save Tailored Mitigation Plan</span>
+                  <span>Save Mitigation Plan</span>
                 </button>
               </div>
             </div>
           ) : (
-            /* VIEW MODE: 4 PMP Pillars + Interactive Action Checklist */
+            /* VIEW MODE: 4 Sections + Interactive Action Checklist */
             <div className="space-y-4">
               {/* Highlighted Project Notes Context Bar */}
               {project.notes && project.notes.length > 0 && (
                 <div className="p-3 bg-white/90 rounded-xl border border-slate-200/90 space-y-1.5">
                   <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Project Notes Driving This Tailored Mitigation Plan:</span>
+                    <span>Project Notes Driving This Mitigation Plan:</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {project.notes.map((note) => (
@@ -1146,7 +1145,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                 </div>
               )}
 
-              {/* 4 PMP Knowledge Area Cards */}
+              {/* 4 Recovery Plan Cards */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 text-xs">
                 <div className="p-3.5 bg-white/95 rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
                   <div className="flex items-center justify-between">
@@ -1156,10 +1155,10 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                           isHighRisk ? 'text-rose-600' : 'text-amber-600'
                         }`}
                       />
-                      <span>1. PMBOK Qualitative Risk &amp; Root Cause Analysis</span>
+                      <span>1. Blocker &amp; Project Notes Summary</span>
                     </span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                      Identify &amp; Analyze Risks
+                      Current Impact
                     </span>
                   </div>
                   <p className="text-slate-700 leading-relaxed">
@@ -1171,10 +1170,10 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-indigo-950 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                       <GitBranch className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>2. Schedule Compression ({effectivePlan.strategyType})</span>
+                      <span>2. Schedule Recovery ({effectivePlan.strategyType})</span>
                     </span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                      Control Schedule
+                      Field Execution
                     </span>
                   </div>
                   <p className="text-slate-700 leading-relaxed">
@@ -1186,10 +1185,10 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-sky-600" />
-                      <span>3. Stakeholder &amp; Vendor Escalation Matrix</span>
+                      <span>3. Vendor &amp; Stakeholder Coordination</span>
                     </span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200">
-                      Stakeholder Engagement
+                      Escalation &amp; Sync
                     </span>
                   </div>
                   <p className="text-slate-700 leading-relaxed">
@@ -1201,10 +1200,10 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>4. Contingency Reserve &amp; Workaround Protocol</span>
+                      <span>4. Contingency &amp; Phased Handover</span>
                     </span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      Plan Risk Responses
+                      Fallback Plan
                     </span>
                   </div>
                   <p className="text-slate-700 leading-relaxed">
@@ -1213,16 +1212,16 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
                 </div>
               </div>
 
-              {/* Interactive PMP Action Register */}
+              {/* Interactive Action Plan */}
               <div className="p-4 bg-white/95 rounded-xl border border-slate-200 space-y-3 shadow-2xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
                   <div>
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
                       <Sparkles className="w-4 h-4 text-indigo-600" />
-                      <span>5. Tailored PMP Mitigation Action Register ({totalActionsCount} Steps)</span>
+                      <span>5. Tailored Mitigation Action Plan ({totalActionsCount} Steps)</span>
                     </h4>
                     <p className="text-[11px] text-slate-500">
-                      Click any status badge to toggle progress (Pending → In Progress → Completed), or click &ldquo;Edit Mitigation Plan&rdquo; to customize steps.
+                      Click any status badge to update progress (Pending → In Progress → Completed), or click &ldquo;Edit Mitigation Plan&rdquo; to customize steps.
                     </p>
                   </div>
                   <button

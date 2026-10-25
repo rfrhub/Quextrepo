@@ -721,10 +721,10 @@ export interface OperationProject {
 }
 
 export type PMPMitigationStrategyType =
-  | 'Fast Tracking (Parallel Execution)'
-  | 'Crashing & Resource Compression'
-  | 'Critical Path Decoupling & Escalation'
-  | 'Hybrid PMBOK Schedule Recovery';
+  | 'Parallel Installation (Unblocked Zones)'
+  | 'Crew Augmentation & Accelerated Staging'
+  | 'Blocker Isolation & Vendor Escalation'
+  | 'Phased Recovery & Parallel Execution';
 
 export type PMPMitigationActionPhase =
   | 'Immediate (24-48h)'
@@ -1148,14 +1148,14 @@ export function generateTailoredPMPMitigationPlan(project: OperationProject): PM
     combinedContextText.includes('kickoff') ||
     !project.customerIntake?.walkthroughCompleted;
 
-  // Choose primary PMP strategy based on project profile & notes
-  let strategyType: PMPMitigationStrategyType = 'Fast Tracking (Parallel Execution)';
+  // Choose primary strategy based on project profile & notes
+  let strategyType: PMPMitigationStrategyType = 'Parallel Installation (Unblocked Zones)';
   if (isHighRisk && hasSupplyChainOrContractorIssue) {
-    strategyType = 'Crashing & Resource Compression';
+    strategyType = 'Crew Augmentation & Accelerated Staging';
   } else if (hasInspectorOrPermitIssue) {
-    strategyType = 'Critical Path Decoupling & Escalation';
+    strategyType = 'Blocker Isolation & Vendor Escalation';
   } else if (isHighRisk) {
-    strategyType = 'Hybrid PMBOK Schedule Recovery';
+    strategyType = 'Phased Recovery & Parallel Execution';
   }
 
   // Build Note Citations String
@@ -1167,57 +1167,57 @@ export function generateTailoredPMPMitigationPlan(project: OperationProject): PM
               `[${n.category} — ${n.author}, ${n.timestamp}]: "${n.text}"`
           )
           .join(' | ')
-      : 'No field notes logged yet; analysis derived from PM status reason and BOM telemetry.';
+      : 'No field notes logged yet; plan derived from current status reason and BOM progress.';
 
-  // 1. Root Cause Synthesis (PMBOK Identify Risks & Perform Qualitative Risk Analysis)
+  // 1. Current Blocker & Project Notes Summary
   const scheduleVarianceText =
     health.diffDays > 0
-      ? `Schedule Variance (SV) is -${health.diffDays} days (${health.weeksBehindLabel} past ${project.targetCompletionDate} baseline).`
-      : `Target completion is ${project.targetCompletionDate} (${health.weeksBehindLabel}), with active critical-path friction flagged under "${health.effectiveTag}".`;
+      ? `Project is ${health.diffDays} days past its ${project.targetCompletionDate} target (${health.weeksBehindLabel}).`
+      : `Target completion is ${project.targetCompletionDate} (${health.weeksBehindLabel}), currently flagged as "${health.effectiveTag}".`;
 
   const rootCauseSynthesis = [
-    `[PMBOK Qualitative Risk & Root Cause Analysis — ${project.propertyName} (${project.unitsCount} Units, ${project.city}, ${project.state})]:`,
-    `${scheduleVarianceText} Overall BOM installation sits at ${overallBomPct}% (${totalInstalled}/${totalQuoted} devices).`,
+    `${project.propertyName} (${project.unitsCount} Units, ${project.city}, ${project.state}):`,
+    `${scheduleVarianceText} Overall BOM installation is at ${overallBomPct}% (${totalInstalled}/${totalQuoted} devices).`,
     project.statusReason
-      ? `Primary Blocker Flagged by PM (${pmName}): "${project.statusReason}"`
-      : `Primary Blocker: Schedule compression required on milestone "${activeMilestone?.title || 'Implementation'}".`,
+      ? `Primary Blocker (${pmName}): "${project.statusReason}"`
+      : `Active Focus: Recover schedule on milestone "${activeMilestone?.title || 'Implementation'}".`,
     allNotes.length > 0
-      ? `Field Note Telemetry Incorporated (${allNotes.length} Note${allNotes.length === 1 ? '' : 's'}): ${notesDigest}`
-      : `Field Note Telemetry: Awaiting additional site logs from ${fieldTech} and ${partners}.`,
+      ? `Project Notes Context (${allNotes.length} Note${allNotes.length === 1 ? '' : 's'}): ${notesDigest}`
+      : `Field Notes: Awaiting additional site updates from ${fieldTech} and ${partners}.`,
   ].join(' ');
 
-  // 2. Schedule Compression Plan (PMBOK Control Schedule: Fast Tracking & Crashing)
+  // 2. Field Execution & Schedule Recovery Plan
   const scheduleCompressionPlan = hasInspectorOrPermitIssue
-    ? `Apply PMBOK Fast Tracking (Parallel Execution) & Critical Path Decoupling: Isolate the external inspection/permit dependency on ${infraBottleneckSummary} onto a non-blocking sub-network so it does not stall unit turns. Direct Field Tech ${fieldTech} and integrator partner (${partners}) to fast-track the remaining ${inUnitRemainingSummary} across unblocked residential corridors in parallel. Once municipal/inspector clearance is granted, execute 48-hour Schedule Crashing on the held interface to recover baseline float.`
+    ? `Isolate the external inspection/permit hold on ${infraBottleneckSummary} so it does not block unit turns. Direct Field Tech ${fieldTech} and integrator partner (${partners}) to continue installing the remaining ${inUnitRemainingSummary} across unblocked residential corridors in parallel. Once inspector/municipal sign-off is cleared, prioritize completing the held interface within 48 hours.`
     : hasSupplyChainOrContractorIssue
-    ? `Apply PMBOK Schedule Crashing & Resource Leveling: While electrical/GC riser dependencies (${infraBottleneckSummary}) are expedited via daily contractor standups, reallocate ${partners} and Field Tech ${fieldTech} to complete 100% of in-unit ${inUnitRemainingSummary} and pre-terminate drop locations. Upon switch/riser gear mount, crash the commissioning phase with a dual crew shift to eliminate the ${health.weeksBehindLabel} schedule variance.`
-    : `Apply PMBOK Fast Tracking & Rolling Wave Planning: Execute parallel installation waves across ${project.propertyName} (${project.unitsCount} units) with ${fieldTech} and ${partners}, prioritizing ${inUnitRemainingSummary} while concurrently closing out ${infraBottleneckSummary} to protect the "${activeMilestone?.title || 'Implementation'}" milestone target (${activeMilestone?.targetDate || project.targetCompletionDate}).`;
+    ? `While electrical/GC riser dependencies (${infraBottleneckSummary}) are resolved through daily contractor check-ins, reallocate ${partners} and Field Tech ${fieldTech} to complete 100% of in-unit ${inUnitRemainingSummary} and pre-stage drop locations. As soon as switch/riser gear is mounted, deploy an accelerated crew shift to close the ${health.weeksBehindLabel} gap.`
+    : `Run parallel installation waves across ${project.propertyName} (${project.unitsCount} units) with ${fieldTech} and ${partners}, prioritizing ${inUnitRemainingSummary} while concurrently closing out ${infraBottleneckSummary} to stay aligned with the "${activeMilestone?.title || 'Implementation'}" milestone (${activeMilestone?.targetDate || project.targetCompletionDate}).`;
 
-  // 3. Stakeholder & Vendor Escalation Plan (PMBOK Manage Stakeholder Engagement)
+  // 3. Stakeholder & Vendor Coordination Plan
   const latestNote = allNotes[0];
   const stakeholderEscalationPlan = [
-    `PMBOK Stakeholder & Communications Matrix for ${project.clientName}:`,
-    `1) Internal & Field Alignment: ${pmName} (PM) and ${fieldTech} (Field Tech) hold ${isHighRisk ? 'daily 15-minute standup' : '48-hour checkpoint'} with ${partners} tracking unit velocity.`,
+    `Coordination Plan for ${project.clientName}:`,
+    `1) Field Sync: ${pmName} (PM) and ${fieldTech} (Field Tech) hold a ${isHighRisk ? 'daily 15-minute check-in' : '48-hour sync'} with ${partners} to track daily unit completion.`,
     latestNote
-      ? `2) Note-Driven Action Follow-Up: Directly track ${latestNote.author}'s [${latestNote.category}] note ("${latestNote.text}") with written owner sign-off and escalation to ${project.clientName} regional leadership if SLA slips >24 hours.`
-      : `2) Third-Party Blocker Escalation: Issue formal PMBOK Issue Log notice to ${project.clientName} site representative regarding "${project.statusReason || 'schedule recovery'}" to clear site/vendor dependencies.`,
-    `3) Customer Success Continuity: Sync revised schedule baseline with assigned CSM (${csmName}) so resident onboarding and staff training at ${project.propertyName} align seamlessly with physical completion.`,
+      ? `2) Project Note Follow-Up: Track ${latestNote.author}'s [${latestNote.category}] note ("${latestNote.text}") to completion and escalate to ${project.clientName} regional leadership if delayed >24 hours.`
+      : `2) Vendor & Site Escalation: Coordinate directly with ${project.clientName} site leadership regarding "${project.statusReason || 'schedule recovery'}" to clear outstanding dependencies.`,
+    `3) CSM Alignment: Keep assigned CSM (${csmName}) updated on the revised completion timeline so staff training and resident onboarding at ${project.propertyName} match physical readiness.`,
   ].join(' ');
 
-  // 4. Contingency & Fallback Reserve Plan (PMBOK Plan Risk Responses)
+  // 4. Contingency & Phased Handover Plan
   const contingencyReserveNotes = isHighRisk
-    ? `PMBOK Contingency Fallback (High Risk Protocol): Establish a Phased Beneficial Occupancy Handover for ${project.propertyName}. Complete and sign off all commissioned residential buildings/floors first so ${project.clientName} can begin resident portal usage with CSM ${csmName}, while isolating blocked riser/common-area items (${infraBottleneckSummary}) into a 5-day ring-fenced punch-list reserve.`
-    : `PMBOK Management Reserve & Workaround: Maintain buffer capacity with ${partners} for a weekend catch-up sprint if "${activeMilestone?.title || 'Implementation'}" slips more than 3 business days, and pre-stage spare hardware on-site (${project.bomItems.reduce((acc, i) => acc + (i.sparesCount || 0), 0)} spares allocated) to prevent RMA rework delays.`;
+    ? `Phased Handover Option: Complete and sign off all finished residential buildings/floors first so ${project.clientName} can begin resident portal onboarding with CSM ${csmName}, while ring-fencing blocked riser/common-area items (${infraBottleneckSummary}) into a dedicated 5-day closeout punch list.`
+    : `Schedule Buffer & Spares: Hold weekend catch-up availability with ${partners} if "${activeMilestone?.title || 'Implementation'}" slips more than 3 business days, and stage on-site spare hardware (${project.bomItems.reduce((acc, i) => acc + (i.sparesCount || 0), 0)} spares allocated) to avoid replacement delays.`;
 
-  // 5. Tailored Action Items Register
+  // 5. Tailored Action Items
   const actionItems: PMPMitigationActionItem[] = [
     {
       id: `pmp-act-${project.id}-1`,
       phase: 'Immediate (24-48h)',
-      pmpTechnique: isHighRisk ? 'Risk Response: Escalate & Mitigate' : 'Risk Response: Mitigate',
+      pmpTechnique: isHighRisk ? 'Blocker Escalation' : 'Blocker Resolution',
       action: project.statusReason
         ? `Resolve primary blocker on ${project.propertyName}: ${project.statusReason}`
-        : `Conduct immediate critical-path blocker audit on ${project.propertyName} (${activeMilestone?.title || 'Implementation'} milestone).`,
+        : `Complete immediate blocker review on ${project.propertyName} (${activeMilestone?.title || 'Implementation'} milestone).`,
       owner: `${pmName} (PM)`,
       status: 'In Progress',
     },
@@ -1225,8 +1225,8 @@ export function generateTailoredPMPMitigationPlan(project: OperationProject): PM
       ? allNotes.slice(0, 2).map((note, idx) => ({
           id: `pmp-act-${project.id}-note-${idx + 1}`,
           phase: (idx === 0 ? 'Immediate (24-48h)' : 'Short-Term (7 Days)') as PMPMitigationActionPhase,
-          pmpTechnique: `Note Action (${note.category})`,
-          action: `Execute follow-through on ${note.author}'s field note: "${note.text}" — verify clearance and log updated telemetry timestamp.`,
+          pmpTechnique: `Project Note (${note.category})`,
+          action: `Follow up on ${note.author}'s note: "${note.text}" — confirm resolution and log updated status.`,
           owner: `${pmName} & ${fieldTech}`,
           status: 'In Progress' as const,
         }))
@@ -1234,8 +1234,8 @@ export function generateTailoredPMPMitigationPlan(project: OperationProject): PM
           {
             id: `pmp-act-${project.id}-note-fallback`,
             phase: 'Immediate (24-48h)' as PMPMitigationActionPhase,
-            pmpTechnique: 'Control Communications: Field Log',
-            action: `Capture detailed site blocker & inspection telemetry in Project Notes with ${fieldTech} and ${partners}.`,
+            pmpTechnique: 'Field Status Log',
+            action: `Log current site blocker & inspection details in Project Notes with ${fieldTech} and ${partners}.`,
             owner: `${fieldTech} (Field Tech)`,
             status: 'Pending' as const,
           },
@@ -1243,26 +1243,26 @@ export function generateTailoredPMPMitigationPlan(project: OperationProject): PM
     {
       id: `pmp-act-${project.id}-2`,
       phase: 'Short-Term (7 Days)',
-      pmpTechnique: 'Schedule Compression: Fast Tracking',
-      action: `Fast-track unblocked installation of ${inUnitRemainingSummary} in parallel via ${partners} & ${fieldTech} (lifting BOM from ${overallBomPct}% toward 85%+).`,
+      pmpTechnique: 'Parallel Installation',
+      action: `Continue unblocked installation of ${inUnitRemainingSummary} in parallel via ${partners} & ${fieldTech} (advancing BOM from ${overallBomPct}% toward 85%+).`,
       owner: `${fieldTech} & ${partners}`,
       status: 'Pending',
     },
     {
       id: `pmp-act-${project.id}-3`,
       phase: 'Milestone Recovery',
-      pmpTechnique: isHighRisk ? 'Schedule Compression: Crashing' : 'Critical Path Control',
-      action: `Recover "${activeMilestone?.title || 'Implementation'}" milestone baseline (Target: ${activeMilestone?.targetDate || project.targetCompletionDate}) and complete commissioning on ${infraBottleneckSummary}.`,
+      pmpTechnique: isHighRisk ? 'Accelerated Commissioning' : 'Milestone Target',
+      action: `Close out "${activeMilestone?.title || 'Implementation'}" milestone (Target: ${activeMilestone?.targetDate || project.targetCompletionDate}) and finish commissioning ${infraBottleneckSummary}.`,
       owner: `${pmName} & ${partners}`,
       status: 'Pending',
     },
     {
       id: `pmp-act-${project.id}-4`,
       phase: 'Risk Control',
-      pmpTechnique: 'Stakeholder Engagement & Baseline Sync',
+      pmpTechnique: 'Client & CSM Sync',
       action: !project.customerIntake?.walkthroughCompleted
-        ? `Expedite pending Customer Kickoff Intake & PMS credentials with ${project.clientName} and align CSM ${csmName} on adjusted handover window.`
-        : `Deliver weekly PMP Schedule Variance & Risk Register briefing to ${project.clientName} and align CSM ${csmName} for ${project.propertyName} handoff.`,
+        ? `Complete pending Customer Kickoff Intake & PMS credentials with ${project.clientName} and align CSM ${csmName} on updated handover dates.`
+        : `Send updated schedule status to ${project.clientName} and coordinate with CSM ${csmName} for ${project.propertyName} handoff.`,
       owner: `${pmName} & ${csmName} (CSM)`,
       status: 'Pending',
     },
@@ -1278,14 +1278,14 @@ export function generateTailoredPMPMitigationPlan(project: OperationProject): PM
     : recoveryDateObj.toISOString().split('T')[0];
 
   return {
-    id: `pmp-plan-${project.id}`,
+    id: `mitigation-plan-${project.id}`,
     projectId: project.id,
     strategyType,
     pmbokKnowledgeAreas: [
-      'Project Schedule Management (Fast Tracking & Crashing)',
-      'Project Risk Management (Qualitative Risk & Mitigation)',
-      'Project Stakeholder & Communications Management',
-      'Critical Path Method (CPM) Variance Recovery',
+      'Schedule Recovery',
+      'Blocker Mitigation',
+      'Vendor & Client Coordination',
+      'Phased Handover',
     ],
     rootCauseSynthesis,
     scheduleCompressionPlan,
