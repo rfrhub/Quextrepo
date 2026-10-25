@@ -35,6 +35,13 @@ import { QuextVisionFocusController, FocusModeType } from './components/QuextVis
 import { FieldTechPortal, FieldTechLoginModal } from './components/FieldTechPortal';
 import { RightNotificationsDock } from './components/RightNotificationsDock';
 import { QuextLogo } from './components/QuextLogo';
+import { MyQuextPlatformShell, MyQuextTopTab } from './components/MyQuextPlatformShell';
+import {
+  MyQuextLoginPage,
+  MyQuextSignedInUser,
+  resolveEmailToMyQuextUser,
+} from './components/MyQuextLoginPage';
+import { syncLiveOpportunitiesFromMyQuext } from './services/myquextLiveSync';
 import PartnerAcademyApp from './partner-academy/App';
 import {
   buildProjectPrePackagedBundle,
@@ -47,9 +54,17 @@ export default function App() {
   const [quotes, setQuotes] = useState<Quote[]>(() => loadStoredQuotes());
   const [projects, setProjects] = useState<OperationProject[]>(() => loadStoredProjects());
 
-  // Field Tech Login state (null = logged in as Raul Recalde / Full Operations & Sales Hub; 'Sean Gates' | 'Hector Lopez' = Field Tech View)
+  // Signed-in myquext.com user state (null = show myquext.com Welcome Back login screen)
+  const [signedInUser, setSignedInUser] = useState<MyQuextSignedInUser | null>(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('/login')) {
+      return null;
+    }
+    return resolveEmailToMyQuextUser('raul.recalde@onequext.com');
+  });
+
+  // Field Tech Portal toggle state (null = viewing myquext.com shell; 'Sean Gates' | 'Hector Lopez' = viewing Field Tech Portal)
   const [loggedInFieldTech, setLoggedInFieldTech] = useState<FieldTechName | null>(null);
-  // Partner Academy Login state (routed via Integrator Partner email or Partner Academy Portal link)
+  // Partner Academy Login state (routed directly when an Integrator Partner signs in at myquext.com)
   const [loggedInPartnerAcademy, setLoggedInPartnerAcademy] = useState<{
     email: string;
     companyId?: string;
@@ -63,9 +78,16 @@ export default function App() {
   const [autoPopTriggerKey, setAutoPopTriggerKey] = useState<number>(0);
 
   // Navigation states
-  const [mainTab, setMainTab] = useState<'home' | 'operations' | 'timeline' | 'quotes' | 'analysis'>('home');
+  const [isMyQuextShellMode, setIsMyQuextShellMode] = useState<boolean>(true);
+  const [myQuextTopTab, setMyQuextTopTab] = useState<MyQuextTopTab>('salesHub');
+  const [isSyncingLive, setIsSyncingLive] = useState<boolean>(false);
+  const [lastSyncedInfo, setLastSyncedInfo] = useState<string | null>(null);
+  const [mainTab, setMainTab] = useState<'home' | 'operations' | 'timeline' | 'quotes' | 'analysis'>('operations');
   const [operationsSubTab, setOperationsSubTab] = useState<string>('dashboard');
-  const [selectedAnalysisQuoteId, setSelectedAnalysisQuoteId] = useState<string>('33om1u0TTgW3MYKO2FhH');
+  const [selectedAnalysisQuoteId, setSelectedAnalysisQuoteId] = useState<string>(() => {
+    const initialQuotes = loadStoredQuotes();
+    return initialQuotes[0]?.id || '0SD2YXBmJXWZa1qM7Rk4';
+  });
   const [standaloneKickoffProjectId, setStandaloneKickoffProjectId] = useState<string | null>(null);
   const [standaloneAcceptanceProjectId, setStandaloneAcceptanceProjectId] = useState<string | null>(null);
 
@@ -75,6 +97,28 @@ export default function App() {
     const initial = loadStoredProjects();
     return initial[0]?.id || '';
   });
+
+  // Live sync handler with https://myquext.com Firestore
+  const handleSyncLiveMyQuext = async () => {
+    setIsSyncingLive(true);
+    try {
+      const res = await syncLiveOpportunitiesFromMyQuext(quotes as any, projects);
+      setQuotes(res.quotes);
+      saveStoredQuotes(res.quotes);
+      if (res.newWonCount > 0) {
+        setProjects(res.projects);
+        saveStoredProjects(res.projects);
+      }
+      setLastSyncedInfo(
+        `Synced ${res.syncedCount} live myquext.com opportunities (${res.newWonCount} newly won) at ${new Date().toLocaleTimeString()}`
+      );
+    } catch (err: any) {
+      console.warn('Live myquext.com sync warning:', err);
+      setLastSyncedInfo(`Using bundled myquext.com snapshot (${quotes.length} opportunities)`);
+    } finally {
+      setIsSyncingLive(false);
+    }
+  };
 
   // Automatically check 7-day CSM Handoff auto-close rule on mount
   useEffect(() => {
@@ -122,6 +166,13 @@ export default function App() {
           setLoggedInPartnerAcademy(null);
           setLoggedInFieldTech(null);
         }
+      }
+
+      if (hash.includes('/login')) {
+        setLoggedInFieldTech(null);
+        setLoggedInPartnerAcademy(null);
+        setSignedInUser(null);
+        return;
       }
 
       // Check if Partner Academy hash is accessed directly
@@ -182,19 +233,24 @@ export default function App() {
         if (parts[1]) {
           setSelectedAnalysisQuoteId(parts[1]);
           setMainTab('analysis');
+          setMyQuextTopTab('operations');
         }
       } else if (hash.includes('/operations/')) {
         const parts = hash.split('/operations/');
         if (parts[1]) {
           setMainTab('operations');
           setOperationsSubTab(parts[1]);
+          setMyQuextTopTab('operations');
         }
       } else if (hash.includes('#/timeline') || hash.includes('#timeline')) {
         setMainTab('timeline');
+        setMyQuextTopTab('operations');
       } else if (hash.includes('#/quotes') || hash.includes('#quotes')) {
         setMainTab('quotes');
+        setMyQuextTopTab('salesHub');
       } else if (hash.includes('#/home') || hash.includes('#home')) {
         setMainTab('home');
+        setMyQuextTopTab('operations');
       }
     };
 
@@ -204,12 +260,17 @@ export default function App() {
   }, []);
 
   // Sync projects with quotes marked as "Deal Won"
-  const handleUpdateQuoteStage = (quoteId: string, newStage: DealStage) => {
+  const handleUpdateQuoteStage = (
+    quoteId: string,
+    newStage: DealStage,
+    myquextStageLabel?: string
+  ) => {
     const updatedQuotes = quotes.map((q) => {
       if (q.id === quoteId) {
         return {
           ...q,
           stage: newStage,
+          myquextStage: myquextStageLabel || (newStage === 'Deal Won' ? 'Deal Won' : newStage),
           stageUpdatedAt: new Date().toISOString(),
         };
       }
@@ -221,16 +282,48 @@ export default function App() {
 
     // If marked as Deal Won, check if project exists; if not, create one!
     if (newStage === 'Deal Won') {
-      const existingProject = projects.find((p) => p.quoteId === quoteId);
+      const existingProject = projects.find((p) => p.id === quoteId || p.quoteId === quoteId);
       if (!existingProject) {
         const quoteObj = updatedQuotes.find((q) => q.id === quoteId);
         if (quoteObj) {
           const newProject = createProjectFromQuote(quoteObj);
+          const notif: ProjectActivityNotification = {
+            id: `notif-won-${Date.now()}`,
+            projectId: newProject.id,
+            propertyName: newProject.propertyName,
+            assignedPMName: newProject.assignedPM.name,
+            assignedFieldTech: newProject.assignedFieldTech || 'Hector Lopez',
+            timestamp: 'Just now',
+            createdAtIso: new Date().toISOString(),
+            audience: 'pm',
+            category: 'pm_update',
+            title: `New Deal Won Project Provisioned: ${newProject.propertyName}`,
+            details: `${newProject.unitsCount} units (${newProject.clientName}) moved to Deal Won in myquext.com Sales Hub and added to Operations.`,
+            actorName: quoteObj.assignedSalesLead || 'Raul Recalde',
+            badgeLabel: 'Deal Won → Ops',
+          };
+          newProject.activityNotifications = [notif, ...(newProject.activityNotifications || [])];
           const updatedProjects = [newProject, ...projects];
           setProjects(updatedProjects);
           saveStoredProjects(updatedProjects);
+          setLatestNotification(notif);
+          setAutoPopTriggerKey((k) => k + 1);
         }
       }
+    }
+  };
+
+  // Create a brand new opportunity in Sales Hub
+  const handleCreateNewOpportunity = (newQuote: Quote, markWonImmediately: boolean) => {
+    const updatedQuotes = [newQuote, ...quotes];
+    setQuotes(updatedQuotes);
+    saveStoredQuotes(updatedQuotes);
+
+    if (markWonImmediately) {
+      const newProject = createProjectFromQuote(newQuote);
+      const updatedProjects = [newProject, ...projects];
+      setProjects(updatedProjects);
+      saveStoredProjects(updatedProjects);
     }
   };
 
@@ -499,6 +592,7 @@ export default function App() {
   const handleViewQuoteAnalysis = (quoteId: string) => {
     setSelectedAnalysisQuoteId(quoteId);
     setMainTab('analysis');
+    setMyQuextTopTab('operations');
     window.location.hash = `/analysis/${quoteId}`;
   };
 
@@ -508,6 +602,7 @@ export default function App() {
     setFocusedProjectId(projectId);
     setMainTab('operations');
     setOperationsSubTab(projectId);
+    setMyQuextTopTab('operations');
     window.location.hash = `/operations/${projectId}`;
   };
 
@@ -516,12 +611,13 @@ export default function App() {
     setStandaloneKickoffProjectId(null);
     setMainTab('operations');
     setOperationsSubTab('dashboard');
+    setMyQuextTopTab('operations');
     window.location.hash = '/operations/dashboard';
   };
 
-  // Reset to initial demo data
+  // Reset to initial myquext.com data
   const handleResetData = () => {
-    if (window.confirm('Reset all field installation logs and BOM counts to default sample data?')) {
+    if (window.confirm('Reset all opportunities, field installation logs, and BOM counts to the default myquext.com dataset?')) {
       setQuotes(INITIAL_QUOTES);
       setProjects(INITIAL_PROJECTS);
       saveStoredQuotes(INITIAL_QUOTES);
@@ -607,54 +703,70 @@ export default function App() {
     );
   }
 
-  // If logged in to the Quext Partner Training & Certification Academy Portal (via Integrator Partner email or direct portal switch)
-  if (loggedInPartnerAcademy) {
+  // If no user is signed in to myquext.com, render the myquext.com Welcome Back login screen
+  if (!signedInUser) {
+    return (
+      <MyQuextLoginPage
+        onSignInSuccess={(user) => {
+          setSignedInUser(user);
+          if (user.accountType === 'integrator_partner') {
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy({
+              email: user.email,
+              companyId: user.partnerCompanyId,
+              partnerShortName: user.partnerShortName,
+              selectedProjectId: null,
+            });
+            window.location.hash = '#/partner-academy';
+          } else {
+            setLoggedInPartnerAcademy(null);
+            setLoggedInFieldTech(null);
+            window.location.hash = '#/home';
+          }
+        }}
+      />
+    );
+  }
+
+  // If logged in to the Quext Partner Training & Certification Academy Portal (via Integrator Partner login or project prep bundle)
+  if (loggedInPartnerAcademy || signedInUser.accountType === 'integrator_partner') {
+    const activePartnerEmail =
+      loggedInPartnerAcademy?.email ||
+      signedInUser.email ||
+      PARTNER_IDENTITY_DIRECTORY[0].defaultEmail;
+    const activePartnerCompanyId =
+      loggedInPartnerAcademy?.companyId ||
+      signedInUser.partnerCompanyId ||
+      PARTNER_IDENTITY_DIRECTORY[0].companyId;
+
     return (
       <>
         <PartnerAcademyApp
           projects={projects}
           onUpdateProject={handleUpdateProject}
-          activePartnerEmail={loggedInPartnerAcademy.email}
-          activeCompanyId={loggedInPartnerAcademy.companyId}
-          initialSelectedProjectId={loggedInPartnerAcademy.selectedProjectId}
-          onOpenUnifiedSignInModal={() => setIsLoginModalOpen(true)}
+          activePartnerEmail={activePartnerEmail}
+          activeCompanyId={activePartnerCompanyId}
+          initialSelectedProjectId={loggedInPartnerAcademy?.selectedProjectId || null}
+          onOpenUnifiedSignInModal={undefined}
           onExitToOperationsHub={() => {
-            setLoggedInPartnerAcademy(null);
-            window.location.hash = '#/home';
+            if (signedInUser.accountType === 'integrator_partner') {
+              // Integrator Partners do not have access to internal myquext.com — Sign Out returns to the myquext.com login screen
+              setLoggedInPartnerAcademy(null);
+              setLoggedInFieldTech(null);
+              setSignedInUser(null);
+              window.location.hash = '#/login';
+            } else {
+              // Internal team member returning from viewing a project's Partner Academy bundle
+              setLoggedInPartnerAcademy(null);
+              window.location.hash = '#/home';
+            }
           }}
-        />
-        <FieldTechLoginModal
-          isOpen={isLoginModalOpen}
-          onClose={() => setIsLoginModalOpen(false)}
-          currentLoggedInTech={loggedInFieldTech}
-          currentPartnerEmail={loggedInPartnerAcademy.email}
-          onLoginAsFieldTech={(tech) => {
-            setLoggedInPartnerAcademy(null);
-            setLoggedInFieldTech(tech);
-            window.location.hash = `#/field-tech/${tech.toLowerCase().replace(' ', '-')}`;
-          }}
-          onLoginAsAdminPM={() => {
-            setLoggedInPartnerAcademy(null);
-            setLoggedInFieldTech(null);
-            window.location.hash = '#/home';
-          }}
-          onLoginAsPartnerAcademy={(email, companyId, partnerShortName) => {
-            setLoggedInFieldTech(null);
-            setLoggedInPartnerAcademy({
-              email,
-              companyId,
-              partnerShortName,
-              selectedProjectId: null,
-            });
-            window.location.hash = '#/partner-academy';
-          }}
-          projects={projects}
         />
       </>
     );
   }
 
-  // If logged in as a Field Tech (Sean Gates or Hector Lopez), render their separate view of the site
+  // If toggled into the Field Tech Portal (from the Operations tab button on myquext.com)
   if (loggedInFieldTech) {
     return (
       <>
@@ -668,9 +780,13 @@ export default function App() {
           }}
           onLogoutToMainSite={() => {
             setLoggedInFieldTech(null);
-            window.location.hash = '#/home';
+            setMyQuextTopTab('operations');
+            window.location.hash = `/operations/${operationsSubTab}`;
           }}
-          onOpenLoginModal={() => setIsLoginModalOpen(true)}
+          onOpenLoginModal={() => {
+            setLoggedInFieldTech(null);
+            setMyQuextTopTab('operations');
+          }}
         />
         <RightNotificationsDock
           mode="field-tech"
@@ -678,33 +794,6 @@ export default function App() {
           fieldTech={loggedInFieldTech}
           latestNotification={latestNotification}
           autoPopTriggerKey={autoPopTriggerKey}
-        />
-        <FieldTechLoginModal
-          isOpen={isLoginModalOpen}
-          onClose={() => setIsLoginModalOpen(false)}
-          currentLoggedInTech={loggedInFieldTech}
-          currentPartnerEmail={null}
-          onLoginAsFieldTech={(tech) => {
-            setLoggedInPartnerAcademy(null);
-            setLoggedInFieldTech(tech);
-            window.location.hash = `#/field-tech/${tech.toLowerCase().replace(' ', '-')}`;
-          }}
-          onLoginAsAdminPM={() => {
-            setLoggedInPartnerAcademy(null);
-            setLoggedInFieldTech(null);
-            window.location.hash = '#/home';
-          }}
-          onLoginAsPartnerAcademy={(email, companyId, partnerShortName) => {
-            setLoggedInFieldTech(null);
-            setLoggedInPartnerAcademy({
-              email,
-              companyId,
-              partnerShortName,
-              selectedProjectId: null,
-            });
-            window.location.hash = '#/partner-academy';
-          }}
-          projects={projects}
         />
       </>
     );
@@ -728,8 +817,239 @@ export default function App() {
     );
   }
 
+  const operationsWorkspaceContent = (
+    <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {mainTab === 'home' && (
+        <HomeScreen
+          projects={projects}
+          onNavigateToOperationsDashboard={handleGoToOperationsDashboard}
+          onNavigateToAllProjects={() => {
+            setMainTab('operations');
+            setOperationsSubTab('all-projects');
+            window.location.hash = '/operations/all-projects';
+          }}
+          onNavigateToProject={(projectId) => {
+            setFocusedProjectId(projectId);
+            handleGoToOperationsProject(projectId);
+          }}
+          onNavigateToQuotes={() => {
+            if (isMyQuextShellMode) {
+              setMyQuextTopTab('salesHub');
+            } else {
+              setMainTab('quotes');
+              window.location.hash = '#/quotes';
+            }
+          }}
+          onTriggerSecretFocus={() => setFocusMode('initial-prompt')}
+          onOpenPartnerAcademy={(partnerShortName, projectId) => {
+            const targetPartner = partnerShortName || PARTNER_IDENTITY_DIRECTORY[0].partnerShortName;
+            const resolved = resolveMyQuextEmailIdentity(targetPartner, projects);
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy({
+              email:
+                resolved.portal === 'partner_academy'
+                  ? resolved.email
+                  : PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+              companyId:
+                resolved.portal === 'partner_academy'
+                  ? resolved.companyId
+                  : PARTNER_IDENTITY_DIRECTORY[0].companyId,
+              partnerShortName: targetPartner,
+              selectedProjectId: projectId || null,
+            });
+            window.location.hash = '#/partner-academy';
+          }}
+        />
+      )}
+
+      {mainTab === 'timeline' && (
+        <InstallationTimeline
+          projects={projects}
+          onSelectProject={(projectId) => {
+            handleGoToOperationsProject(projectId);
+          }}
+          onOpenCustomerKickoff={(projectId) => {
+            handleGoToOperationsProject(projectId);
+          }}
+          onUpdateProject={handleUpdateProject}
+        />
+      )}
+
+      {mainTab === 'operations' && (
+        <OperationsView
+          projects={projects}
+          quotesList={quotes}
+          onUpdateProject={handleUpdateProject}
+          onCreateProject={handleCreateManualProject}
+          onUpdateProjectStatusTag={handleUpdateProjectStatusTag}
+          onViewQuoteAnalysis={handleViewQuoteAnalysis}
+          activeSubTab={operationsSubTab}
+          onSelectSubTab={(tabId) => {
+            if (projects.some((p) => p.id === tabId)) {
+              setFocusedProjectId(tabId);
+            }
+            setOperationsSubTab(tabId);
+            window.location.hash = `/operations/${tabId}`;
+          }}
+          onOpenProjectInPartnerAcademy={(proj) => {
+            const firstPartner = (proj.integratorPartners && proj.integratorPartners[0]) || 'SKBM';
+            const resolved = resolveMyQuextEmailIdentity(firstPartner, projects);
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy({
+              email:
+                resolved.portal === 'partner_academy'
+                  ? resolved.email
+                  : PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+              companyId:
+                resolved.portal === 'partner_academy'
+                  ? resolved.companyId
+                  : PARTNER_IDENTITY_DIRECTORY[0].companyId,
+              partnerShortName: firstPartner,
+              selectedProjectId: proj.id,
+            });
+            window.location.hash = '#/partner-academy';
+          }}
+        />
+      )}
+
+      {mainTab === 'quotes' && (
+        <QuotesPipelineView
+          quotes={quotes}
+          onUpdateQuoteStage={handleUpdateQuoteStage}
+          onViewQuoteAnalysis={handleViewQuoteAnalysis}
+          onGoToOperationsProject={handleGoToOperationsProject}
+        />
+      )}
+
+      {mainTab === 'analysis' && activeQuoteForAnalysis && (
+        <QuoteAnalysisView
+          quote={activeQuoteForAnalysis}
+          quotesList={quotes}
+          onSelectQuoteForAnalysis={(quoteId) => {
+            setSelectedAnalysisQuoteId(quoteId);
+            window.location.hash = `/analysis/${quoteId}`;
+          }}
+          onGoToOperationsProject={handleGoToOperationsProject}
+        />
+      )}
+    </main>
+  );
+
+  if (isMyQuextShellMode) {
+    return (
+      <>
+        {focusMode === 'initial-prompt' && (
+          <QuextVisionFocusController
+            focusMode={focusMode}
+            setFocusMode={setFocusMode}
+            projects={projects}
+            quotesList={quotes}
+            activeProjectId={focusedProjectId || projects[0]?.id || ''}
+            onSelectProjectId={setFocusedProjectId}
+            onUpdateProject={handleUpdateProject}
+          />
+        )}
+
+        <MyQuextPlatformShell
+          quotes={quotes as any}
+          projects={projects}
+          onUpdateQuoteStage={handleUpdateQuoteStage}
+          onCreateNewOpportunity={handleCreateNewOpportunity}
+          onSyncLiveMyQuext={handleSyncLiveMyQuext}
+          isSyncingLive={isSyncingLive}
+          lastSyncedInfo={lastSyncedInfo}
+          activeTopTab={myQuextTopTab}
+          onSelectTopTab={(tab) => {
+            setMyQuextTopTab(tab);
+            if (tab === 'operations' && mainTab === 'quotes') {
+              setMainTab('operations');
+            }
+          }}
+          operationsMainTab={mainTab}
+          onSelectOperationsMainTab={(tab) => {
+            setMainTab(tab);
+            if (tab === 'analysis') {
+              window.location.hash = `/analysis/${selectedAnalysisQuoteId}`;
+            } else if (tab === 'operations') {
+              window.location.hash = `/operations/${operationsSubTab}`;
+            } else if (tab === 'timeline') {
+              window.location.hash = '#/timeline';
+            } else if (tab === 'quotes') {
+              window.location.hash = '#/quotes';
+            } else {
+              window.location.hash = '#/home';
+            }
+          }}
+          operationsSubTab={operationsSubTab}
+          onSelectOperationsSubTab={(sub) => {
+            setOperationsSubTab(sub);
+            window.location.hash = `/operations/${sub}`;
+          }}
+          onGoToOperationsDashboard={handleGoToOperationsDashboard}
+          onGoToOperationsProject={handleGoToOperationsProject}
+          onViewQuoteAnalysis={handleViewQuoteAnalysis}
+          currentUserName={signedInUser.name}
+          currentUserEmail={signedInUser.email}
+          currentUserRoleLabel={signedInUser.roleLabel}
+          currentUserAvatarInitial={signedInUser.avatarInitial}
+          onLogout={() => {
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy(null);
+            setSignedInUser(null);
+            window.location.hash = '#/login';
+          }}
+          onOpenFieldTechPortal={() => {
+            const targetTech = signedInUser.fieldTechDefault || 'Sean Gates';
+            setLoggedInFieldTech(targetTech);
+            window.location.hash = `#/field-tech/${targetTech.toLowerCase().replace(' ', '-')}`;
+          }}
+          onOpenLoginModal={() => {
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy(null);
+            setSignedInUser(null);
+            window.location.hash = '#/login';
+          }}
+          onOpenPartnerAcademy={() => {
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy({
+              email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+              companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
+              partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
+              selectedProjectId: null,
+            });
+            window.location.hash = '#/partner-academy';
+          }}
+          onResetData={handleResetData}
+          onToggleStandaloneMode={() => setIsMyQuextShellMode(false)}
+        >
+          {operationsWorkspaceContent}
+        </MyQuextPlatformShell>
+
+        <RightNotificationsDock
+          mode="pm"
+          projects={projects}
+          latestNotification={latestNotification}
+          autoPopTriggerKey={autoPopTriggerKey}
+          onSelectProject={handleGoToOperationsProject}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-['Inter']">
+      {/* Banner to return to myquext.com Shell Mode */}
+      <div className="bg-slate-900 text-white px-4 py-1.5 text-xs flex items-center justify-between">
+        <span>Viewing Standalone Operations Mode</span>
+        <button
+          type="button"
+          onClick={() => setIsMyQuextShellMode(true)}
+          className="px-2.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold cursor-pointer"
+        >
+          Switch to myquext.com Platform Shell →
+        </button>
+      </div>
+
       {/* Initial Pop-Up Window when Quext Vision logo is clicked 10 times within 5 seconds */}
       {focusMode === 'initial-prompt' && (
         <QuextVisionFocusController
@@ -776,118 +1096,7 @@ export default function App() {
         }}
       />
 
-      {/* Main Content Canvas */}
-      <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {mainTab === 'home' && (
-          <HomeScreen
-            projects={projects}
-            onNavigateToOperationsDashboard={handleGoToOperationsDashboard}
-            onNavigateToAllProjects={() => {
-              setMainTab('operations');
-              setOperationsSubTab('all-projects');
-              window.location.hash = '/operations/all-projects';
-            }}
-            onNavigateToProject={(projectId) => {
-              setFocusedProjectId(projectId);
-              handleGoToOperationsProject(projectId);
-            }}
-            onNavigateToQuotes={() => {
-              setMainTab('quotes');
-              window.location.hash = '#/quotes';
-            }}
-            onTriggerSecretFocus={() => setFocusMode('initial-prompt')}
-            onOpenPartnerAcademy={(partnerShortName, projectId) => {
-              const targetPartner = partnerShortName || PARTNER_IDENTITY_DIRECTORY[0].partnerShortName;
-              const resolved = resolveMyQuextEmailIdentity(targetPartner, projects);
-              setLoggedInFieldTech(null);
-              setLoggedInPartnerAcademy({
-                email:
-                  resolved.portal === 'partner_academy'
-                    ? resolved.email
-                    : PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
-                companyId:
-                  resolved.portal === 'partner_academy'
-                    ? resolved.companyId
-                    : PARTNER_IDENTITY_DIRECTORY[0].companyId,
-                partnerShortName: targetPartner,
-                selectedProjectId: projectId || null,
-              });
-              window.location.hash = '#/partner-academy';
-            }}
-          />
-        )}
-
-        {mainTab === 'timeline' && (
-          <InstallationTimeline
-            projects={projects}
-            onSelectProject={(projectId) => {
-              handleGoToOperationsProject(projectId);
-            }}
-            onOpenCustomerKickoff={(projectId) => {
-              handleGoToOperationsProject(projectId);
-            }}
-            onUpdateProject={handleUpdateProject}
-          />
-        )}
-
-        {mainTab === 'operations' && (
-          <OperationsView
-            projects={projects}
-            quotesList={quotes}
-            onUpdateProject={handleUpdateProject}
-            onCreateProject={handleCreateManualProject}
-            onUpdateProjectStatusTag={handleUpdateProjectStatusTag}
-            onViewQuoteAnalysis={handleViewQuoteAnalysis}
-            activeSubTab={operationsSubTab}
-            onSelectSubTab={(tabId) => {
-              if (projects.some((p) => p.id === tabId)) {
-                setFocusedProjectId(tabId);
-              }
-              setOperationsSubTab(tabId);
-              window.location.hash = `/operations/${tabId}`;
-            }}
-            onOpenProjectInPartnerAcademy={(proj) => {
-              const firstPartner = (proj.integratorPartners && proj.integratorPartners[0]) || 'SKBM';
-              const resolved = resolveMyQuextEmailIdentity(firstPartner, projects);
-              setLoggedInFieldTech(null);
-              setLoggedInPartnerAcademy({
-                email:
-                  resolved.portal === 'partner_academy'
-                    ? resolved.email
-                    : PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
-                companyId:
-                  resolved.portal === 'partner_academy'
-                    ? resolved.companyId
-                    : PARTNER_IDENTITY_DIRECTORY[0].companyId,
-                partnerShortName: firstPartner,
-                selectedProjectId: proj.id,
-              });
-              window.location.hash = '#/partner-academy';
-            }}
-          />
-        )}
-
-        {mainTab === 'quotes' && (
-          <QuotesPipelineView
-            quotes={quotes}
-            onUpdateQuoteStage={handleUpdateQuoteStage}
-            onViewQuoteAnalysis={handleViewQuoteAnalysis}
-            onGoToOperationsProject={handleGoToOperationsProject}
-          />
-        )}
-
-        {mainTab === 'analysis' && activeQuoteForAnalysis && (
-          <QuoteAnalysisView
-            quote={activeQuoteForAnalysis}
-            quotesList={quotes}
-            onSelectQuoteForAnalysis={(quoteId) => {
-              setSelectedAnalysisQuoteId(quoteId);
-              window.location.hash = `/analysis/${quoteId}`;
-            }}
-            onGoToOperationsProject={handleGoToOperationsProject}
-          />
-        )}
-      </main>
+      {operationsWorkspaceContent}
 
       {/* Quext White Theme Clean Footer */}
       <footer className="border-t border-slate-200 bg-white py-5 pb-24 md:pb-5 mt-12 text-xs text-slate-500">

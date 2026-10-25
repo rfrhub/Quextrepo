@@ -956,17 +956,14 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
               type="button"
               onClick={onLogoutToMainSite}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
-              title="Return to full PM / Operations portal"
+              title="Return to Operations tab on myquext.com"
             >
-              <LogOut className="w-3.5 h-3.5 text-slate-600" />
-              <span>PM View</span>
+              <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
+              <span>Back to Operations</span>
             </button>
 
-            <button
-              type="button"
-              onClick={onOpenLoginModal}
-              className="flex items-center gap-2 pl-1.5 sm:pl-2 border-l border-slate-200 hover:bg-slate-50 p-1 rounded-lg transition-colors cursor-pointer"
-              title="Switch account / Field Tech Login (Sean Gates & Hector Lopez)"
+            <div
+              className="flex items-center gap-2 pl-1.5 sm:pl-2 border-l border-slate-200 p-1 rounded-lg"
             >
               <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                 {techProfile.initials}
@@ -974,11 +971,10 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
               <div className="hidden xl:block text-left leading-tight">
                 <div className="text-xs font-semibold text-slate-900 flex items-center gap-1">
                   <span>{techProfile.name}</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
                 </div>
                 <div className="text-[11px] text-slate-500 font-medium">{techProfile.role}</div>
               </div>
-            </button>
+            </div>
           </div>
         </div>
 

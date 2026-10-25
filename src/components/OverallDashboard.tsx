@@ -42,6 +42,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Zap,
   CheckCircle,
   X,
@@ -79,6 +81,19 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [showMitigationPlans, setShowMitigationPlans] = useState<boolean>(false);
   const [showFinancialBreakdown, setShowFinancialBreakdown] = useState<boolean>(true);
   const [upcomingCardMode, setUpcomingCardMode] = useState<'go_lives' | 'installs'>('go_lives');
+  const [upcomingDisplayView, setUpcomingDisplayView] = useState<'timeline' | 'cards'>('timeline');
+  const [upcomingHorizonFilter, setUpcomingHorizonFilter] = useState<
+    'all' | 'next_7' | 'days_8_14' | 'days_15_30' | 'days_30_plus'
+  >('all');
+  const [showAllUpcomingTimeline, setShowAllUpcomingTimeline] = useState<boolean>(false);
+  const [showRolloutSequence, setShowRolloutSequence] = useState<boolean>(false);
+  const [hoveredTimelineProjectId, setHoveredTimelineProjectId] = useState<string | null>(null);
+  const [activeSpotlightSelection, setActiveSpotlightSelection] = useState<
+    | { type: 'wave'; dateStr: string }
+    | { type: 'zone'; bucket: 'next_7' | 'days_8_14' | 'days_15_30' | 'days_30_plus'; label: string }
+    | null
+  >(null);
+  const [spotlightIndex, setSpotlightIndex] = useState<number>(0);
   const [acknowledgedRoadblocks, setAcknowledgedRoadblocks] = useState<Record<string, boolean>>({});
   const [activeRoadblockCategory, setActiveRoadblockCategory] = useState<'all' | 'municipal' | 'supply_chain' | 'internal_assist'>('all');
   const [financialSortBy, setFinancialSortBy] = useState<'profit' | 'revenue' | 'margin' | 'collection'>('profit');
@@ -647,10 +662,10 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           </div>
         </div>
 
-        {/* Small Overview Card: Toggleable between Upcoming Go Lives (CSM Handoff) & Upcoming Installs (Implementation) */}
+        {/* Small Overview Card: Toggleable between Upcoming Go Lives (CSM Handoff) & Upcoming Installs (Implementation) + Executive Timeline vs Project Cards */}
         <div className="mt-4 pt-4 border-t border-slate-200/80">
           <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-sky-100 text-sky-700 rounded-lg border border-sky-200">
                   {upcomingCardMode === 'go_lives' ? (
@@ -660,7 +675,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                   )}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-sm font-extrabold text-slate-900 font-['Plus_Jakarta_Sans']">
                       {upcomingCardMode === 'go_lives'
                         ? 'Upcoming Go Lives'
@@ -670,6 +685,9 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                       {upcomingCardMode === 'go_lives'
                         ? `${upcomingGoLives.length} Scheduled`
                         : `${upcomingInstalls.length} Approaching`}
+                    </span>
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 rounded">
+                      Executive Cadence View
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500">
@@ -686,8 +704,39 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                 </div>
               </div>
 
-              {/* View Mode Toggle: Upcoming Go Lives vs Upcoming Installs */}
-              <div className="flex items-center gap-2 self-start md:self-auto">
+              {/* Controls: (1) Timeline View vs Project Cards toggle + (2) Upcoming Go Lives vs Upcoming Installs toggle */}
+              <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+                {/* Layout Toggle: Executive Timeline vs Project Cards */}
+                <div className="inline-flex items-center bg-white p-1 rounded-lg border border-slate-200 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setUpcomingDisplayView('timeline')}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                      upcomingDisplayView === 'timeline'
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                    title="High-level executive timeline showing when projects are coming and how soon"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>Timeline View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUpcomingDisplayView('cards')}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                      upcomingDisplayView === 'cards'
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                    title="Grid of individual project cards"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Project Cards</span>
+                  </button>
+                </div>
+
+                {/* Data Mode Toggle: Upcoming Go Lives vs Upcoming Installs */}
                 <div className="inline-flex items-center bg-white p-1 rounded-lg border border-slate-200 shadow-2xs">
                   <button
                     type="button"
@@ -735,117 +784,936 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               </div>
             </div>
 
-            {upcomingCardMode === 'go_lives' ? (
-              upcomingGoLives.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5">
-                  {upcomingGoLives.map(({ project, goLiveDate, status, csmName }, idx) => (
+            {(() => {
+              // Unified items for either Upcoming Go Lives or Upcoming Installs
+              const rawItems =
+                upcomingCardMode === 'go_lives'
+                  ? upcomingGoLives.map((item) => ({
+                      project: item.project,
+                      targetDate: item.goLiveDate,
+                      status: item.status,
+                      ownerLabel: 'CSM',
+                      ownerName: item.csmName,
+                      secondaryLabel: 'PM',
+                      secondaryName: item.project.assignedPM?.name || 'Raul Recalde',
+                      parsedTime: item.parsedTime,
+                    }))
+                  : upcomingInstalls.map((item) => ({
+                      project: item.project,
+                      targetDate: item.installDate,
+                      status: item.status,
+                      ownerLabel: 'Field Tech',
+                      ownerName: item.fieldTech,
+                      secondaryLabel: 'Partner',
+                      secondaryName: getProjectIntegratorPartners(item.project)[0] || 'SKBM',
+                      parsedTime: item.parsedTime,
+                    }));
+
+              if (rawItems.length === 0) {
+                return (
+                  <div className="text-xs text-slate-500 py-3 text-center bg-white rounded-lg border border-slate-200">
+                    {upcomingCardMode === 'go_lives'
+                      ? 'All active projects have completed their CSM Handoff Go-Live milestone.'
+                      : 'All active projects have completed their Implementation milestone.'}
+                  </div>
+                );
+              }
+
+              // If Project Cards view is selected, render the card grid
+              if (upcomingDisplayView === 'cards') {
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5">
+                    {rawItems.map(({ project, targetDate, status, ownerLabel, ownerName }, idx) => (
+                      <button
+                        key={project.id}
+                        type="button"
+                        onClick={() => onSelectProjectTab(project.id)}
+                        className={`text-left p-3 rounded-lg border transition-all cursor-pointer group flex flex-col justify-between ${
+                          idx === 0
+                            ? 'bg-white border-sky-300 shadow-2xs hover:border-sky-500'
+                            : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-2xs'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-1.5 mb-1">
+                            <span
+                              className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded border ${
+                                idx === 0
+                                  ? 'bg-sky-100 text-sky-800 border-sky-300'
+                                  : status === 'In Progress'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {idx === 0
+                                ? upcomingCardMode === 'go_lives'
+                                  ? 'Next Go Live'
+                                  : 'Next Install'
+                                : status}
+                            </span>
+                            <span className="text-[11px] font-mono font-extrabold text-sky-700">
+                              {formatGoLiveDate(targetDate)}
+                            </span>
+                          </div>
+                          <div className="text-xs font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate mt-1">
+                            {project.propertyName}
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {project.city}, {project.state} · {project.unitsCount} units
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-600">
+                          <span className="truncate">
+                            {ownerLabel === 'Field Tech' ? 'Tech' : ownerLabel}:{' '}
+                            <strong className="text-slate-800">{ownerName}</strong>
+                          </span>
+                          <span className="text-sky-600 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5 shrink-0">
+                            <span>Open</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                );
+              }
+
+              // =========================================================================
+              // EXECUTIVE HIGH-LEVEL TIMELINE VIEW (When Projects Are Coming & How Soon)
+              // =========================================================================
+              // Anchor "Today" so relative days-until countdowns are always accurate and meaningful
+              const nowMs = new Date('2026-10-25T00:00:00').getTime();
+              const dayMs = 1000 * 60 * 60 * 24;
+
+              const enrichedTimelineItems = rawItems.map((item, idx) => {
+                const rawDays = Math.round((item.parsedTime - nowMs) / dayMs);
+                const daysUntil = Math.max(1, rawDays);
+                const quotedTotal = item.project.bomItems.reduce((s, b) => s + b.quantity, 0);
+                const installedTotal = item.project.bomItems.reduce(
+                  (s, b) => s + b.installedCount,
+                  0
+                );
+                const installPct =
+                  quotedTotal > 0 ? Math.min(100, Math.round((installedTotal / quotedTotal) * 100)) : 0;
+                const scheduleHealth = calculateProjectScheduleHealth(
+                  item.project.targetCompletionDate,
+                  item.project.statusTag,
+                  item.project.notes,
+                  item.project.milestones
+                );
+                const horizonBucket: 'next_7' | 'days_8_14' | 'days_15_30' | 'days_30_plus' =
+                  daysUntil <= 7
+                    ? 'next_7'
+                    : daysUntil <= 14
+                    ? 'days_8_14'
+                    : daysUntil <= 30
+                    ? 'days_15_30'
+                    : 'days_30_plus';
+
+                return {
+                  ...item,
+                  rank: idx + 1,
+                  daysUntil,
+                  installPct,
+                  effectiveHealth: scheduleHealth.effectiveTag,
+                  horizonBucket,
+                };
+              });
+
+              const maxDaysSpan = Math.max(
+                35,
+                ...enrichedTimelineItems.map((i) => i.daysUntil)
+              );
+
+              // Group counts by horizon bucket for the Executive Cadence Summary Strip
+              const bucketStats = {
+                all: {
+                  count: enrichedTimelineItems.length,
+                  units: enrichedTimelineItems.reduce((s, i) => s + i.project.unitsCount, 0),
+                },
+                next_7: {
+                  count: enrichedTimelineItems.filter((i) => i.horizonBucket === 'next_7').length,
+                  units: enrichedTimelineItems
+                    .filter((i) => i.horizonBucket === 'next_7')
+                    .reduce((s, i) => s + i.project.unitsCount, 0),
+                },
+                days_8_14: {
+                  count: enrichedTimelineItems.filter((i) => i.horizonBucket === 'days_8_14').length,
+                  units: enrichedTimelineItems
+                    .filter((i) => i.horizonBucket === 'days_8_14')
+                    .reduce((s, i) => s + i.project.unitsCount, 0),
+                },
+                days_15_30: {
+                  count: enrichedTimelineItems.filter((i) => i.horizonBucket === 'days_15_30').length,
+                  units: enrichedTimelineItems
+                    .filter((i) => i.horizonBucket === 'days_15_30')
+                    .reduce((s, i) => s + i.project.unitsCount, 0),
+                },
+                days_30_plus: {
+                  count: enrichedTimelineItems.filter((i) => i.horizonBucket === 'days_30_plus')
+                    .length,
+                  units: enrichedTimelineItems
+                    .filter((i) => i.horizonBucket === 'days_30_plus')
+                    .reduce((s, i) => s + i.project.unitsCount, 0),
+                },
+              };
+
+              const filteredTimelineItems =
+                upcomingHorizonFilter === 'all'
+                  ? enrichedTimelineItems
+                  : enrichedTimelineItems.filter((i) => i.horizonBucket === upcomingHorizonFilter);
+
+              // Group distinct dates for the top Visual Horizon Track so overlapping dates show a clear wave marker
+              const dateWaveMap = new Map<
+                string,
+                {
+                  dateStr: string;
+                  daysUntil: number;
+                  items: typeof enrichedTimelineItems;
+                  totalUnits: number;
+                }
+              >();
+              filteredTimelineItems.forEach((item) => {
+                const existing = dateWaveMap.get(item.targetDate);
+                if (existing) {
+                  existing.items.push(item);
+                  existing.totalUnits += item.project.unitsCount;
+                } else {
+                  dateWaveMap.set(item.targetDate, {
+                    dateStr: item.targetDate,
+                    daysUntil: item.daysUntil,
+                    items: [item],
+                    totalUnits: item.project.unitsCount,
+                  });
+                }
+              });
+              const dateWaves = Array.from(dateWaveMap.values());
+
+              const displayedRows = showAllUpcomingTimeline
+                ? filteredTimelineItems
+                : filteredTimelineItems.slice(0, 10);
+
+              // Determine the active group of projects shown in the Spotlight Bar:
+              // - If user hovered/clicked a specific Date Wave node, show all projects on that date wave
+              // - If user hovered/clicked one of the 4 Horizon Zone headers (+7 Days, +8 to +14 Days, +15 to +28 Days, +29 Days & Beyond), show all projects in that zone
+              // - Otherwise default to the first Date Wave (or the wave containing hoveredTimelineProjectId)
+              let activeSpotlightGroup: typeof enrichedTimelineItems = [];
+              let activeSpotlightGroupLabel = '';
+
+              if (activeSpotlightSelection?.type === 'wave') {
+                const wave = dateWaves.find((w) => w.dateStr === activeSpotlightSelection.dateStr);
+                if (wave && wave.items.length > 0) {
+                  activeSpotlightGroup = wave.items;
+                  activeSpotlightGroupLabel = `${formatGoLiveDate(wave.dateStr)} Wave (+${wave.daysUntil}d)`;
+                }
+              } else if (activeSpotlightSelection?.type === 'zone') {
+                const zoneItems = enrichedTimelineItems.filter(
+                  (i) => i.horizonBucket === activeSpotlightSelection.bucket
+                );
+                if (zoneItems.length > 0) {
+                  activeSpotlightGroup = zoneItems;
+                  activeSpotlightGroupLabel = activeSpotlightSelection.label;
+                }
+              }
+
+              if (activeSpotlightGroup.length === 0) {
+                const fallbackWave =
+                  dateWaves.find((w) =>
+                    w.items.some((i) => i.project.id === hoveredTimelineProjectId)
+                  ) || dateWaves[0];
+                if (fallbackWave) {
+                  activeSpotlightGroup = fallbackWave.items;
+                  activeSpotlightGroupLabel = `${formatGoLiveDate(fallbackWave.dateStr)} Wave (+${fallbackWave.daysUntil}d)`;
+                } else if (filteredTimelineItems.length > 0) {
+                  activeSpotlightGroup = [filteredTimelineItems[0]];
+                  activeSpotlightGroupLabel = formatGoLiveDate(filteredTimelineItems[0].targetDate);
+                }
+              }
+
+              const safeSpotlightIdx =
+                activeSpotlightGroup.length > 0
+                  ? ((spotlightIndex % activeSpotlightGroup.length) + activeSpotlightGroup.length) %
+                    activeSpotlightGroup.length
+                  : 0;
+              const activeHoveredItem =
+                activeSpotlightGroup[safeSpotlightIdx] ||
+                filteredTimelineItems[0] ||
+                enrichedTimelineItems[0];
+
+              const selectWaveInSpotlight = (dateStr: string) => {
+                if (
+                  activeSpotlightSelection?.type !== 'wave' ||
+                  activeSpotlightSelection.dateStr !== dateStr
+                ) {
+                  setActiveSpotlightSelection({ type: 'wave', dateStr });
+                  setSpotlightIndex(0);
+                }
+              };
+
+              const selectZoneInSpotlight = (
+                bucket: 'next_7' | 'days_8_14' | 'days_15_30' | 'days_30_plus',
+                label: string
+              ) => {
+                if (
+                  activeSpotlightSelection?.type !== 'zone' ||
+                  activeSpotlightSelection.bucket !== bucket
+                ) {
+                  setActiveSpotlightSelection({ type: 'zone', bucket, label });
+                  setSpotlightIndex(0);
+                }
+              };
+
+              return (
+                <div className="space-y-3.5">
+                  {/* 1. Executive Horizon Filter Strip (How Soon Are Projects Coming?) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                     <button
-                      key={project.id}
                       type="button"
-                      onClick={() => onSelectProjectTab(project.id)}
-                      className={`text-left p-3 rounded-lg border transition-all cursor-pointer group flex flex-col justify-between ${
-                        idx === 0
-                          ? 'bg-white border-sky-300 shadow-2xs hover:border-sky-500'
-                          : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-2xs'
+                      onClick={() => {
+                        setUpcomingHorizonFilter('all');
+                        setActiveSpotlightSelection(null);
+                        setSpotlightIndex(0);
+                      }}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        upcomingHorizonFilter === 'all'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      <div>
-                        <div className="flex items-center justify-between gap-1.5 mb-1">
-                          <span
-                            className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded border ${
-                              idx === 0
-                                ? 'bg-sky-100 text-sky-800 border-sky-300'
-                                : status === 'In Progress'
-                                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                : 'bg-slate-100 text-slate-700 border-slate-200'
-                            }`}
-                          >
-                            {idx === 0 ? 'Next Go Live' : status}
-                          </span>
-                          <span className="text-[11px] font-mono font-extrabold text-sky-700">
-                            {formatGoLiveDate(goLiveDate)}
-                          </span>
-                        </div>
-                        <div className="text-xs font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate mt-1">
-                          {project.propertyName}
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate">
-                          {project.city}, {project.state} · {project.unitsCount} units
-                        </div>
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider opacity-80">
+                        <span>All Upcoming</span>
+                        <span className="font-mono">{bucketStats.all.count}</span>
                       </div>
-
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-600">
-                        <span className="truncate">
-                          CSM: <strong className="text-slate-800">{csmName}</strong>
-                        </span>
-                        <span className="text-sky-600 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5 shrink-0">
-                          <span>Open</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </span>
+                      <div className="text-base font-extrabold font-mono mt-0.5 tabular-nums">
+                        {bucketStats.all.count} Projects
+                      </div>
+                      <div className="text-[10px] opacity-75 truncate">
+                        {bucketStats.all.units.toLocaleString()} total units
                       </div>
                     </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-slate-500 py-3 text-center bg-white rounded-lg border border-slate-200">
-                  All active projects have completed their CSM Handoff Go-Live milestone.
-                </div>
-              )
-            ) : upcomingInstalls.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5">
-                {upcomingInstalls.map(({ project, installDate, status, fieldTech }, idx) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => onSelectProjectTab(project.id)}
-                    className={`text-left p-3 rounded-lg border transition-all cursor-pointer group flex flex-col justify-between ${
-                      idx === 0
-                        ? 'bg-white border-sky-300 shadow-2xs hover:border-sky-500'
-                        : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-2xs'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-1.5 mb-1">
-                        <span
-                          className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded border ${
-                            idx === 0
-                              ? 'bg-sky-100 text-sky-800 border-sky-300'
-                              : status === 'In Progress'
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : 'bg-slate-100 text-slate-700 border-slate-200'
+
+                    <button
+                      type="button"
+                      onMouseEnter={() =>
+                        selectZoneInSpotlight('next_7', 'TODAY → +7 DAYS (This Week)')
+                      }
+                      onClick={() => {
+                        setUpcomingHorizonFilter(
+                          upcomingHorizonFilter === 'next_7' ? 'all' : 'next_7'
+                        );
+                        selectZoneInSpotlight('next_7', 'TODAY → +7 DAYS (This Week)');
+                      }}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        upcomingHorizonFilter === 'next_7'
+                          ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                          : 'bg-amber-50/70 text-amber-950 border-amber-200 hover:bg-amber-100/70'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <span>Next 7 Days</span>
+                        <span className="px-1.5 py-0.2 rounded bg-amber-200/80 text-amber-950 font-mono">
+                          Immediate
+                        </span>
+                      </div>
+                      <div className="text-base font-extrabold font-mono mt-0.5 tabular-nums">
+                        {bucketStats.next_7.count} Projects
+                      </div>
+                      <div className="text-[10px] opacity-80 truncate">
+                        {bucketStats.next_7.units.toLocaleString()} units launching this week
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onMouseEnter={() =>
+                        selectZoneInSpotlight('days_8_14', '+8 TO +14 DAYS (Week 2)')
+                      }
+                      onClick={() => {
+                        setUpcomingHorizonFilter(
+                          upcomingHorizonFilter === 'days_8_14' ? 'all' : 'days_8_14'
+                        );
+                        selectZoneInSpotlight('days_8_14', '+8 TO +14 DAYS (Week 2)');
+                      }}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        upcomingHorizonFilter === 'days_8_14'
+                          ? 'bg-sky-600 text-white border-sky-700 shadow-xs'
+                          : 'bg-sky-50/70 text-sky-950 border-sky-200 hover:bg-sky-100/70'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <span>8–14 Days Out</span>
+                        <span className="font-mono">Week 2</span>
+                      </div>
+                      <div className="text-base font-extrabold font-mono mt-0.5 tabular-nums">
+                        {bucketStats.days_8_14.count} Projects
+                      </div>
+                      <div className="text-[10px] opacity-80 truncate">
+                        {bucketStats.days_8_14.units.toLocaleString()} units in 1–2 weeks
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onMouseEnter={() =>
+                        selectZoneInSpotlight('days_15_30', '+15 TO +28 DAYS (Weeks 3–4)')
+                      }
+                      onClick={() => {
+                        setUpcomingHorizonFilter(
+                          upcomingHorizonFilter === 'days_15_30' ? 'all' : 'days_15_30'
+                        );
+                        selectZoneInSpotlight('days_15_30', '+15 TO +28 DAYS (Weeks 3–4)');
+                      }}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                        upcomingHorizonFilter === 'days_15_30'
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                          : 'bg-indigo-50/60 text-indigo-950 border-indigo-200 hover:bg-indigo-100/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <span>15–30 Days Out</span>
+                        <span className="font-mono">Weeks 3–4</span>
+                      </div>
+                      <div className="text-base font-extrabold font-mono mt-0.5 tabular-nums">
+                        {bucketStats.days_15_30.count} Projects
+                      </div>
+                      <div className="text-[10px] opacity-80 truncate">
+                        {bucketStats.days_15_30.units.toLocaleString()} units this month
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onMouseEnter={() =>
+                        selectZoneInSpotlight('days_30_plus', '+29 DAYS & BEYOND')
+                      }
+                      onClick={() => {
+                        setUpcomingHorizonFilter(
+                          upcomingHorizonFilter === 'days_30_plus' ? 'all' : 'days_30_plus'
+                        );
+                        selectZoneInSpotlight('days_30_plus', '+29 DAYS & BEYOND');
+                      }}
+                      className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer col-span-2 sm:col-span-1 ${
+                        upcomingHorizonFilter === 'days_30_plus'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                          : 'bg-emerald-50/60 text-emerald-950 border-emerald-200 hover:bg-emerald-100/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <span>30+ Days Out</span>
+                        <span className="font-mono">Next Month+</span>
+                      </div>
+                      <div className="text-base font-extrabold font-mono mt-0.5 tabular-nums">
+                        {bucketStats.days_30_plus.count} Projects
+                      </div>
+                      <div className="text-[10px] opacity-80 truncate">
+                        {bucketStats.days_30_plus.units.toLocaleString()} units on horizon
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* 2. Interactive Visual Timeline Horizon Track (Scannable Leadership Pulse) */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px]">
+                          {upcomingCardMode === 'go_lives'
+                            ? 'Go-Live Launch Horizon Timeline'
+                            : 'Installation Start Horizon Timeline'}
+                        </span>
+                        <span className="text-slate-300">|</span>
+                        <span className="text-[11px] text-slate-500">
+                          Hover or click any horizon zone or milestone wave to scroll through properties below
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-semibold text-slate-600">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                          On Track
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                          Behind Schedule
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+                          High Risk
+                        </span>
+                        <span className="text-slate-300">|</span>
+                        {/* Button on the Interactive Visual Horizon Timeline Axis tile to toggle the Chronological Rollout Sequence & Countdown Rail */}
+                        <button
+                          type="button"
+                          onClick={() => setShowRolloutSequence((v) => !v)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer ${
+                            showRolloutSequence
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
                           }`}
+                          title="Toggle Chronological Rollout Sequence & Countdown Rail"
                         >
-                          {idx === 0 ? 'Next Install' : status}
-                        </span>
-                        <span className="text-[11px] font-mono font-extrabold text-sky-700">
-                          {formatGoLiveDate(installDate)}
-                        </span>
-                      </div>
-                      <div className="text-xs font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate mt-1">
-                        {project.propertyName}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {project.city}, {project.state} · {project.unitsCount} units
+                          <BarChart3 className="w-3.5 h-3.5 text-sky-500" />
+                          <span>
+                            {showRolloutSequence
+                              ? 'Hide Rollout Sequence'
+                              : `Chronological Rollout Sequence (${filteredTimelineItems.length})`}
+                          </span>
+                          {showRolloutSequence ? (
+                            <ChevronUp className="w-3 h-3" />
+                          ) : (
+                            <ChevronDown className="w-3 h-3" />
+                          )}
+                        </button>
                       </div>
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-600">
-                      <span className="truncate">
-                        Tech: <strong className="text-slate-800">{fieldTech}</strong>
-                      </span>
-                      <span className="text-sky-600 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5 shrink-0">
-                        <span>Open</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </span>
+                    {/* Proportional Timeline Axis */}
+                    <div className="relative pt-4 pb-7 px-3 bg-slate-50/80 rounded-lg border border-slate-200/80 overflow-x-auto">
+                      <div className="min-w-[640px] relative">
+                        {/* Interactive Horizon Zone Headers (+7 Days, +8 to +14 Days, +15 to +28 Days, +29 Days & Beyond) */}
+                        <div className="grid grid-cols-4 gap-1.5 text-[10px] font-mono font-bold text-slate-500 mb-3">
+                          <button
+                            type="button"
+                            onMouseEnter={() =>
+                              selectZoneInSpotlight('next_7', 'TODAY → +7 DAYS (This Week)')
+                            }
+                            onClick={() =>
+                              selectZoneInSpotlight('next_7', 'TODAY → +7 DAYS (This Week)')
+                            }
+                            className={`text-left border-l-2 border-amber-500 pl-2 py-1 rounded-r transition-colors cursor-pointer ${
+                              activeSpotlightSelection?.type === 'zone' &&
+                              activeSpotlightSelection.bucket === 'next_7'
+                                ? 'bg-amber-100/90 text-amber-950 ring-1 ring-amber-300'
+                                : 'text-amber-800 hover:bg-amber-100/50'
+                            }`}
+                          >
+                            <div>TODAY → +7 DAYS (This Week)</div>
+                            <div className="text-[9px] text-amber-700 font-sans font-semibold">
+                              {bucketStats.next_7.count} properties · {bucketStats.next_7.units} units
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onMouseEnter={() =>
+                              selectZoneInSpotlight('days_8_14', '+8 TO +14 DAYS (Week 2)')
+                            }
+                            onClick={() =>
+                              selectZoneInSpotlight('days_8_14', '+8 TO +14 DAYS (Week 2)')
+                            }
+                            className={`text-left border-l-2 border-sky-500 pl-2 py-1 rounded-r transition-colors cursor-pointer ${
+                              activeSpotlightSelection?.type === 'zone' &&
+                              activeSpotlightSelection.bucket === 'days_8_14'
+                                ? 'bg-sky-100/90 text-sky-950 ring-1 ring-sky-300'
+                                : 'text-sky-800 hover:bg-sky-100/50'
+                            }`}
+                          >
+                            <div>+8 TO +14 DAYS (Week 2)</div>
+                            <div className="text-[9px] text-sky-700 font-sans font-semibold">
+                              {bucketStats.days_8_14.count} properties · {bucketStats.days_8_14.units} units
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onMouseEnter={() =>
+                              selectZoneInSpotlight('days_15_30', '+15 TO +28 DAYS (Weeks 3–4)')
+                            }
+                            onClick={() =>
+                              selectZoneInSpotlight('days_15_30', '+15 TO +28 DAYS (Weeks 3–4)')
+                            }
+                            className={`text-left border-l-2 border-indigo-500 pl-2 py-1 rounded-r transition-colors cursor-pointer ${
+                              activeSpotlightSelection?.type === 'zone' &&
+                              activeSpotlightSelection.bucket === 'days_15_30'
+                                ? 'bg-indigo-100/90 text-indigo-950 ring-1 ring-indigo-300'
+                                : 'text-indigo-800 hover:bg-indigo-100/50'
+                            }`}
+                          >
+                            <div>+15 TO +28 DAYS (Weeks 3–4)</div>
+                            <div className="text-[9px] text-indigo-700 font-sans font-semibold">
+                              {bucketStats.days_15_30.count} properties ·{' '}
+                              {bucketStats.days_15_30.units} units
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onMouseEnter={() =>
+                              selectZoneInSpotlight('days_30_plus', '+29 DAYS & BEYOND')
+                            }
+                            onClick={() =>
+                              selectZoneInSpotlight('days_30_plus', '+29 DAYS & BEYOND')
+                            }
+                            className={`text-left border-l-2 border-emerald-500 pl-2 py-1 rounded-r transition-colors cursor-pointer ${
+                              activeSpotlightSelection?.type === 'zone' &&
+                              activeSpotlightSelection.bucket === 'days_30_plus'
+                                ? 'bg-emerald-100/90 text-emerald-950 ring-1 ring-emerald-300'
+                                : 'text-emerald-800 hover:bg-emerald-100/50'
+                            }`}
+                          >
+                            <div>+29 DAYS &amp; BEYOND</div>
+                            <div className="text-[9px] text-emerald-700 font-sans font-semibold">
+                              {bucketStats.days_30_plus.count} properties ·{' '}
+                              {bucketStats.days_30_plus.units} units
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Horizontal Spine Line */}
+                        <div className="relative h-10 flex items-center">
+                          <div className="w-full h-2 rounded-full bg-gradient-to-r from-amber-200 via-sky-200 to-emerald-200" />
+
+                          {/* TODAY Marker */}
+                          <div
+                            className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-center z-10"
+                            title="Today"
+                          >
+                            <div className="w-3 h-6 rounded-xs bg-slate-900 border-2 border-white shadow-xs" />
+                            <span className="text-[9px] font-mono font-extrabold text-slate-900 mt-1">
+                              TODAY
+                            </span>
+                          </div>
+
+                          {/* Date Wave Nodes along the Timeline */}
+                          {dateWaves.map((wave) => {
+                            const pctLeft = Math.min(
+                              97,
+                              Math.max(4, Math.round((wave.daysUntil / maxDaysSpan) * 94) + 2)
+                            );
+                            const primaryItem = wave.items[0];
+                            const hasHighRisk = wave.items.some(
+                              (i) => i.effectiveHealth === 'High Risk'
+                            );
+                            const hasBehind = wave.items.some(
+                              (i) => i.effectiveHealth === 'Behind Schedule'
+                            );
+                            const nodeColor = hasHighRisk
+                              ? 'bg-rose-600 border-rose-200 text-white'
+                              : hasBehind
+                              ? 'bg-amber-500 border-amber-200 text-white'
+                              : 'bg-emerald-600 border-emerald-200 text-white';
+                            const isSelectedWave =
+                              (activeSpotlightSelection?.type === 'wave' &&
+                                activeSpotlightSelection.dateStr === wave.dateStr) ||
+                              wave.items.some(
+                                (i) => i.project.id === activeHoveredItem?.project.id
+                              );
+
+                            return (
+                              <button
+                                key={wave.dateStr}
+                                type="button"
+                                onMouseEnter={() => {
+                                  setHoveredTimelineProjectId(primaryItem.project.id);
+                                  selectWaveInSpotlight(wave.dateStr);
+                                }}
+                                onClick={() => {
+                                  setHoveredTimelineProjectId(primaryItem.project.id);
+                                  selectWaveInSpotlight(wave.dateStr);
+                                }}
+                                style={{ left: `${pctLeft}%` }}
+                                className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 group cursor-pointer transition-transform ${
+                                  isSelectedWave ? 'z-30 scale-125' : 'z-20 hover:scale-125'
+                                }`}
+                                title={`${formatGoLiveDate(wave.dateStr)} (In ${wave.daysUntil} days) — ${wave.items.length} ${
+                                  wave.items.length === 1 ? 'property' : 'properties'
+                                }: ${wave.items.map((x) => x.project.propertyName).join(', ')}`}
+                              >
+                                <div
+                                  className={`w-6 h-6 rounded-full border-2 shadow-sm flex items-center justify-center text-[10px] font-mono font-extrabold ${nodeColor} ${
+                                    isSelectedWave ? 'ring-2 ring-slate-900' : ''
+                                  }`}
+                                >
+                                  {wave.items.length}
+                                </div>
+                                <div className="absolute top-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-mono font-bold text-slate-600">
+                                  +{wave.daysUntil}d
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-xs text-slate-500 py-3 text-center bg-white rounded-lg border border-slate-200">
-                All active projects have completed their Implementation milestone.
-              </div>
-            )}
+
+                    {/* Spotlight Callout Bar with Multi-Project Wave / Zone Scroller */}
+                    {activeHoveredItem && (
+                      <div className="mt-3 p-3.5 rounded-xl bg-slate-900 text-white space-y-2.5 text-xs shadow-sm">
+                        {/* Top Row: Active Project Details + Prev/Next Controls + Open Project Button */}
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                          <div className="flex flex-wrap items-center gap-2 min-w-0">
+                            <span className="px-2 py-0.5 rounded bg-sky-500/20 border border-sky-400/40 text-sky-300 font-mono font-bold text-[11px]">
+                              In {activeHoveredItem.daysUntil}{' '}
+                              {activeHoveredItem.daysUntil === 1 ? 'Day' : 'Days'} ·{' '}
+                              {formatGoLiveDate(activeHoveredItem.targetDate)}
+                            </span>
+                            <span className="font-extrabold text-white text-sm truncate">
+                              {activeHoveredItem.project.propertyName}
+                            </span>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-slate-300">
+                              {activeHoveredItem.project.city}, {activeHoveredItem.project.state} (
+                              {activeHoveredItem.project.unitsCount} units)
+                            </span>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-slate-300">
+                              {activeHoveredItem.ownerLabel}:{' '}
+                              <strong className="text-white">{activeHoveredItem.ownerName}</strong>
+                            </span>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-slate-300">
+                              HW Installed:{' '}
+                              <strong className="text-emerald-300 font-mono">
+                                {activeHoveredItem.installPct}%
+                              </strong>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Prev / Next Project Cycle Controls when > 1 project on the same point or horizon zone */}
+                            {activeSpotlightGroup.length > 1 && (
+                              <div className="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg p-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setSpotlightIndex(
+                                      (prev) =>
+                                        (prev - 1 + activeSpotlightGroup.length) %
+                                        activeSpotlightGroup.length
+                                    )
+                                  }
+                                  className="p-1 rounded hover:bg-slate-700 text-slate-200 hover:text-white transition-colors cursor-pointer"
+                                  title="Previous project on this point"
+                                >
+                                  <ChevronLeft className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="px-2 text-[11px] font-mono font-bold text-sky-300 tabular-nums">
+                                  {safeSpotlightIdx + 1} of {activeSpotlightGroup.length}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setSpotlightIndex(
+                                      (prev) => (prev + 1) % activeSpotlightGroup.length
+                                    )
+                                  }
+                                  className="p-1 rounded hover:bg-slate-700 text-slate-200 hover:text-white transition-colors cursor-pointer"
+                                  title="Next project on this point"
+                                >
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => onSelectProjectTab(activeHoveredItem.project.id)}
+                              className="px-3.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
+                            >
+                              <span>Open Project</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Bottom Row (Shown when > 1 project on this wave/zone): Scrollable Strip of Projects to Dial Into */}
+                        {activeSpotlightGroup.length > 1 && (
+                          <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 shrink-0">
+                              {activeSpotlightGroupLabel} ({activeSpotlightGroup.length} Projects):
+                            </span>
+                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                              {activeSpotlightGroup.map((grpItem, gIdx) => {
+                                const isCurrent = gIdx === safeSpotlightIdx;
+                                const dotColor =
+                                  grpItem.effectiveHealth === 'High Risk'
+                                    ? 'bg-rose-400'
+                                    : grpItem.effectiveHealth === 'Behind Schedule'
+                                    ? 'bg-amber-400'
+                                    : 'bg-emerald-400';
+
+                                return (
+                                  <button
+                                    key={grpItem.project.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSpotlightIndex(gIdx);
+                                      setHoveredTimelineProjectId(grpItem.project.id);
+                                    }}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 border ${
+                                      isCurrent
+                                        ? 'bg-sky-500/25 text-white border-sky-400 shadow-2xs'
+                                        : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                                    <span>{grpItem.project.propertyName}</span>
+                                    <span className="text-[10px] text-slate-400 font-mono">
+                                      ({grpItem.project.unitsCount}u)
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. Chronological Executive Timeline Rail (Initially Minimized; Toggled via Button on Horizon Timeline Tile) */}
+                  {showRolloutSequence && (
+                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs animate-fadeIn">
+                      <div className="px-4 py-2.5 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <span>Chronological Rollout Sequence &amp; Countdown Rail</span>
+                          <span className="px-1.5 py-0.2 rounded bg-white border border-slate-200 text-slate-800 font-mono">
+                            Showing {displayedRows.length} of {filteredTimelineItems.length}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="hidden md:inline">
+                            Timeline Horizon &amp; Hardware Readiness
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowRolloutSequence(false)}
+                            className="px-2 py-0.5 rounded bg-white hover:bg-slate-200 text-slate-700 border border-slate-300 text-[10px] font-bold cursor-pointer"
+                          >
+                            Minimize
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-slate-100">
+                        {displayedRows.map((item) => {
+                          const barWidthPct = Math.min(
+                            100,
+                            Math.max(8, Math.round((item.daysUntil / maxDaysSpan) * 100))
+                          );
+                          const urgencyStyle =
+                            item.daysUntil <= 7
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : item.daysUntil <= 14
+                              ? 'bg-sky-100 text-sky-900 border-sky-300'
+                              : 'bg-slate-100 text-slate-800 border-slate-200';
+
+                          return (
+                            <div
+                              key={item.project.id}
+                              onMouseEnter={() => {
+                                setHoveredTimelineProjectId(item.project.id);
+                                selectWaveInSpotlight(item.targetDate);
+                              }}
+                              onClick={() => onSelectProjectTab(item.project.id)}
+                              className="px-4 py-2.5 hover:bg-sky-50/50 transition-colors cursor-pointer grid grid-cols-1 md:grid-cols-12 items-center gap-3 text-xs"
+                            >
+                              {/* Left Spine: Countdown + Date + Property (5 cols) */}
+                              <div className="md:col-span-5 flex items-center gap-3 min-w-0">
+                                <div
+                                  className={`w-20 shrink-0 px-2 py-1 rounded-md border text-center font-mono font-extrabold text-[11px] ${urgencyStyle}`}
+                                >
+                                  In {item.daysUntil}d
+                                </div>
+                                <div className="w-24 shrink-0 font-mono text-[11px] font-bold text-slate-700">
+                                  {formatGoLiveDate(item.targetDate)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-slate-900 truncate flex items-center gap-1.5">
+                                    <span className="truncate">{item.project.propertyName}</span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 truncate">
+                                    {item.project.clientName} · {item.project.city},{' '}
+                                    {item.project.state} ·{' '}
+                                    <strong className="text-slate-700">
+                                      {item.project.unitsCount} units
+                                    </strong>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Center: Visual Time-to-Event Bar + Hardware Readiness (4 cols) */}
+                              <div className="md:col-span-4 space-y-1">
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="text-slate-500 font-medium">
+                                    {upcomingCardMode === 'go_lives'
+                                      ? 'CSM Handoff Horizon'
+                                      : 'Install Start Horizon'}{' '}
+                                    (<strong className="text-slate-700">+{item.daysUntil} days</strong>)
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-700">
+                                    HW Installed: {item.installPct}%
+                                  </span>
+                                </div>
+                                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden relative border border-slate-200/80">
+                                  {/* Horizon distance bar */}
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      item.effectiveHealth === 'High Risk'
+                                        ? 'bg-gradient-to-r from-rose-500 to-rose-400'
+                                        : item.effectiveHealth === 'Behind Schedule'
+                                        ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                                        : 'bg-gradient-to-r from-sky-500 to-indigo-500'
+                                    }`}
+                                    style={{ width: `${barWidthPct}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Right: Health Status + Assigned Owner + Open link (3 cols) */}
+                              <div className="md:col-span-3 flex items-center justify-between md:justify-end gap-2.5">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] border shrink-0 ${getStatusBadgeStyle(
+                                    item.effectiveHealth
+                                  )}`}
+                                >
+                                  {item.effectiveHealth}
+                                </span>
+                                <div className="text-right min-w-[95px] truncate">
+                                  <div className="text-[11px] font-bold text-slate-800 truncate">
+                                    {item.ownerName}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 truncate">
+                                    {item.secondaryLabel}: {item.secondaryName}
+                                  </div>
+                                </div>
+                                <ArrowRight className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Expand / Collapse Footer if more than 10 items */}
+                      {filteredTimelineItems.length > 10 && (
+                        <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                          <span className="text-[11px] text-slate-500">
+                            {showAllUpcomingTimeline
+                              ? `Showing all ${filteredTimelineItems.length} scheduled properties on timeline`
+                              : `Showing next 10 most imminent properties of ${filteredTimelineItems.length} total`}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowAllUpcomingTimeline((v) => !v)}
+                            className="text-xs font-bold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>
+                              {showAllUpcomingTimeline
+                                ? 'Collapse to Top 10 Next Up'
+                                : `Show All ${filteredTimelineItems.length} on Timeline`}
+                            </span>
+                            {showAllUpcomingTimeline ? (
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

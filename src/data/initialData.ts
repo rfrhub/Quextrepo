@@ -10,8 +10,11 @@ import {
   checkAndApplyCsmHandoffAutoClose,
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
+import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
 
-export const INITIAL_QUOTES: Quote[] = [
+export const INITIAL_QUOTES: Quote[] = MYQUEXT_QUOTES;
+
+export const LEGACY_SAMPLE_QUOTES: Quote[] = [
   {
     id: '33om1u0TTgW3MYKO2FhH',
     quoteNumber: 'QXT-2026-8841',
@@ -670,7 +673,9 @@ export const INITIAL_QUOTES: Quote[] = [
   },
 ];
 
-export const INITIAL_PROJECTS: OperationProject[] = [
+export const INITIAL_PROJECTS: OperationProject[] = MYQUEXT_PROJECTS;
+
+export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
   {
     id: '33om1u0TTgW3MYKO2FhH',
     quoteId: '33om1u0TTgW3MYKO2FhH',
@@ -1684,8 +1689,8 @@ export const INITIAL_PROJECTS: OperationProject[] = [
   },
 ];
 
-const STORAGE_KEY_QUOTES = 'quext_crm_quotes_v2_white';
-const STORAGE_KEY_PROJECTS = 'quext_operations_projects_v5_white';
+const STORAGE_KEY_QUOTES = 'quext_myquext_live_quotes_v1';
+const STORAGE_KEY_PROJECTS = 'quext_myquext_live_projects_v1';
 
 export function buildDefaultSOWForecastItems(project: Partial<OperationProject>): SOWForecastItem[] {
   const bom = project.bomItems || [];

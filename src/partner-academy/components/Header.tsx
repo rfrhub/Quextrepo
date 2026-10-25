@@ -455,30 +455,18 @@ export const Header: React.FC<HeaderProps> = ({
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-900 hover:text-white transition-colors cursor-pointer"
                   >
                     <Building2 className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Company Switcher &amp; Portal</span>
+                    <span>Partner Profile &amp; Company</span>
                   </button>
-                  {onOpenUnifiedSignInModal && (
-                    <button
-                      onClick={() => {
-                        setShowRoleMenu(false);
-                        onOpenUnifiedSignInModal();
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-cyan-300 hover:bg-zinc-900 hover:text-cyan-200 transition-colors cursor-pointer"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>myquext.com Email Router Sign-In</span>
-                    </button>
-                  )}
                   {onExitToOperationsHub && (
                     <button
                       onClick={() => {
                         setShowRoleMenu(false);
                         onExitToOperationsHub();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-purple-300 hover:bg-zinc-900 hover:text-purple-200 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-400 hover:bg-zinc-900 hover:text-rose-300 transition-colors cursor-pointer"
                     >
-                      <Award className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Return to Quext Operations Hub</span>
+                      <Award className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Sign Out</span>
                     </button>
                   )}
                 </div>
@@ -486,13 +474,13 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {onOpenUnifiedSignInModal && (
+          {onExitToOperationsHub && (
             <button
-              onClick={onOpenUnifiedSignInModal}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-cyan-300 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/40 rounded-full transition-colors cursor-pointer"
-              title="Simulate myquext.com Email Routing"
+              onClick={onExitToOperationsHub}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-full transition-colors cursor-pointer"
+              title="Sign out of Partner Academy"
             >
-              <span>Switch Email / Portal</span>
+              <span>Sign Out</span>
             </button>
           )}
 
