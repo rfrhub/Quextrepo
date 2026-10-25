@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Quext Projects Installation Dashboard",
+  "description": "Smart Community BOM tracking, Deal Won quote-to-project operations, fillable installer logs, and progress metrics for Quext IoT multifamily deployments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

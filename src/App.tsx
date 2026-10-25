@@ -1,0 +1,983 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  Quote,
+  OperationProject,
+  DealStage,
+  ProjectStatusTag,
+  FieldTechName,
+  ProjectActivityNotification,
+  normalizeFieldTech,
+  checkAndApplyCsmHandoffAutoClose,
+} from './types';
+import {
+  loadStoredQuotes,
+  saveStoredQuotes,
+  loadStoredProjects,
+  saveStoredProjects,
+  createProjectFromQuote,
+  INITIAL_QUOTES,
+  INITIAL_PROJECTS,
+} from './data/initialData';
+import { Header } from './components/Header';
+import { HomeScreen } from './components/HomeScreen';
+import { InstallationTimeline } from './components/InstallationTimeline';
+import { OperationsView } from './components/OperationsView';
+import { QuotesPipelineView } from './components/QuotesPipelineView';
+import { QuoteAnalysisView } from './components/QuoteAnalysisView';
+import { CustomerKickoffWalkthrough } from './components/CustomerKickoffWalkthrough';
+import { ProductAcceptancePortalModal } from './components/ShippingDockSection';
+import { QuextVisionFocusController, FocusModeType } from './components/QuextVisionFocusController';
+import { FieldTechPortal, FieldTechLoginModal } from './components/FieldTechPortal';
+import { RightNotificationsDock } from './components/RightNotificationsDock';
+import { QuextLogo } from './components/QuextLogo';
+import PartnerAcademyApp from './partner-academy/App';
+import {
+  buildProjectPrePackagedBundle,
+  resolveMyQuextEmailIdentity,
+  PARTNER_IDENTITY_DIRECTORY,
+} from './partner-academy/utils/projectCoursePackager';
+import { RotateCcw, ArrowLeft } from 'lucide-react';
+
+export default function App() {
+  const [quotes, setQuotes] = useState<Quote[]>(() => loadStoredQuotes());
+  const [projects, setProjects] = useState<OperationProject[]>(() => loadStoredProjects());
+
+  // Field Tech Login state (null = logged in as Raul Recalde / Full Operations & Sales Hub; 'Sean Gates' | 'Hector Lopez' = Field Tech View)
+  const [loggedInFieldTech, setLoggedInFieldTech] = useState<FieldTechName | null>(null);
+  // Partner Academy Login state (routed via Integrator Partner email or Partner Academy Portal link)
+  const [loggedInPartnerAcademy, setLoggedInPartnerAcademy] = useState<{
+    email: string;
+    companyId?: string;
+    partnerShortName?: string;
+    selectedProjectId?: string | null;
+  } | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+
+  // Live Right-Side Notification Dock auto-slide-out state (5-second reveal)
+  const [latestNotification, setLatestNotification] = useState<ProjectActivityNotification | null>(null);
+  const [autoPopTriggerKey, setAutoPopTriggerKey] = useState<number>(0);
+
+  // Navigation states
+  const [mainTab, setMainTab] = useState<'home' | 'operations' | 'timeline' | 'quotes' | 'analysis'>('home');
+  const [operationsSubTab, setOperationsSubTab] = useState<string>('dashboard');
+  const [selectedAnalysisQuoteId, setSelectedAnalysisQuoteId] = useState<string>('33om1u0TTgW3MYKO2FhH');
+  const [standaloneKickoffProjectId, setStandaloneKickoffProjectId] = useState<string | null>(null);
+  const [standaloneAcceptanceProjectId, setStandaloneAcceptanceProjectId] = useState<string | null>(null);
+
+  // Secret 4-Part Focus Mode / Quext Vision states
+  const [focusMode, setFocusMode] = useState<FocusModeType>('none');
+  const [focusedProjectId, setFocusedProjectId] = useState<string>(() => {
+    const initial = loadStoredProjects();
+    return initial[0]?.id || '';
+  });
+
+  // Automatically check 7-day CSM Handoff auto-close rule on mount
+  useEffect(() => {
+    setProjects((prev) => {
+      let changed = false;
+      const checked = prev.map((proj) => {
+        const afterCheck = checkAndApplyCsmHandoffAutoClose(proj);
+        if (afterCheck !== proj) changed = true;
+        return afterCheck;
+      });
+      if (changed) {
+        saveStoredProjects(checked);
+        return checked;
+      }
+      return prev;
+    });
+  }, []);
+
+  // Handle URL hash and ?email= parameter on load and change
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      const searchParams = new URLSearchParams(
+        window.location.search || (hash.includes('?') ? hash.split('?')[1] : '')
+      );
+      const emailParam = searchParams.get('email');
+
+      if (emailParam) {
+        const resolved = resolveMyQuextEmailIdentity(emailParam, projects);
+        if (resolved.portal === 'partner_academy') {
+          setLoggedInFieldTech(null);
+          setLoggedInPartnerAcademy({
+            email: resolved.email,
+            companyId: resolved.companyId,
+            partnerShortName: resolved.partnerShortName,
+          });
+          return;
+        }
+        if (resolved.portal === 'field_tech') {
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech(resolved.fieldTech);
+          return;
+        }
+        if (resolved.portal === 'pm_operations') {
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech(null);
+        }
+      }
+
+      // Check if Partner Academy hash is accessed directly
+      if (hash.includes('/partner-academy')) {
+        setLoggedInFieldTech(null);
+        setLoggedInPartnerAcademy((prev) =>
+          prev || {
+            email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+            companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
+            partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
+          }
+        );
+        return;
+      }
+
+      // Check if Field Tech direct login hash is accessed
+      if (hash.includes('/field-tech/')) {
+        const lower = hash.toLowerCase();
+        if (lower.includes('sean')) {
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech('Sean Gates');
+          return;
+        }
+        if (lower.includes('hector')) {
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech('Hector Lopez');
+          return;
+        }
+      }
+
+      // Check if standalone product acceptance portal link is accessed
+      if (hash.includes('/product-acceptance/')) {
+        const parts = hash.split('/product-acceptance/');
+        if (parts[1]) {
+          const cleanId = parts[1].split('?')[0];
+          setStandaloneAcceptanceProjectId(cleanId);
+          setStandaloneKickoffProjectId(null);
+          return;
+        }
+      } else {
+        setStandaloneAcceptanceProjectId(null);
+      }
+
+      // Check if standalone customer kickoff link is accessed
+      if (hash.includes('/customer-kickoff/')) {
+        const parts = hash.split('/customer-kickoff/');
+        if (parts[1]) {
+          const cleanId = parts[1].split('?')[0];
+          setStandaloneKickoffProjectId(cleanId);
+          return;
+        }
+      } else {
+        setStandaloneKickoffProjectId(null);
+      }
+
+      if (hash.includes('/analysis/')) {
+        const parts = hash.split('/analysis/');
+        if (parts[1]) {
+          setSelectedAnalysisQuoteId(parts[1]);
+          setMainTab('analysis');
+        }
+      } else if (hash.includes('/operations/')) {
+        const parts = hash.split('/operations/');
+        if (parts[1]) {
+          setMainTab('operations');
+          setOperationsSubTab(parts[1]);
+        }
+      } else if (hash.includes('#/timeline') || hash.includes('#timeline')) {
+        setMainTab('timeline');
+      } else if (hash.includes('#/quotes') || hash.includes('#quotes')) {
+        setMainTab('quotes');
+      } else if (hash.includes('#/home') || hash.includes('#home')) {
+        setMainTab('home');
+      }
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  // Sync projects with quotes marked as "Deal Won"
+  const handleUpdateQuoteStage = (quoteId: string, newStage: DealStage) => {
+    const updatedQuotes = quotes.map((q) => {
+      if (q.id === quoteId) {
+        return {
+          ...q,
+          stage: newStage,
+          stageUpdatedAt: new Date().toISOString(),
+        };
+      }
+      return q;
+    });
+
+    setQuotes(updatedQuotes);
+    saveStoredQuotes(updatedQuotes);
+
+    // If marked as Deal Won, check if project exists; if not, create one!
+    if (newStage === 'Deal Won') {
+      const existingProject = projects.find((p) => p.quoteId === quoteId);
+      if (!existingProject) {
+        const quoteObj = updatedQuotes.find((q) => q.id === quoteId);
+        if (quoteObj) {
+          const newProject = createProjectFromQuote(quoteObj);
+          const updatedProjects = [newProject, ...projects];
+          setProjects(updatedProjects);
+          saveStoredProjects(updatedProjects);
+        }
+      }
+    }
+  };
+
+  // Update project & automatically generate notifications for Customer Updates (PM dock + Latest Updates) and PM / Installer Log Updates (Field Tech dock)
+  const handleUpdateProject = (updated: OperationProject) => {
+    const prevProject = projects.find((p) => p.id === updated.id);
+    let enrichedProject = { ...updated };
+    let triggeredNotif: ProjectActivityNotification | null = null;
+
+    if (prevProject) {
+      const prevNotifCount = (prevProject.activityNotifications || []).length;
+      const nextNotifCount = (updated.activityNotifications || []).length;
+
+      // 1. Check if a new notification was already explicitly attached (e.g. from CustomerKickoffWalkthrough)
+      if (nextNotifCount > prevNotifCount && updated.activityNotifications?.[0]) {
+        triggeredNotif = updated.activityNotifications[0];
+      }
+
+      const now = new Date();
+      const formattedTime = now.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const techName = normalizeFieldTech(updated.assignedFieldTech);
+
+      // 2. Check if Customer signed Product Acceptance
+      if (
+        !triggeredNotif &&
+        updated.productAcceptanceSubmission &&
+        JSON.stringify(prevProject.productAcceptanceSubmission) !==
+          JSON.stringify(updated.productAcceptanceSubmission)
+      ) {
+        const sub = updated.productAcceptanceSubmission;
+        const custAccNotif: ProjectActivityNotification = {
+          id: `notif-acc-${updated.id}-${Date.now()}`,
+          projectId: updated.id,
+          propertyName: updated.propertyName,
+          assignedPMName: updated.assignedPM.name,
+          assignedFieldTech: techName,
+          timestamp: formattedTime,
+          createdAtIso: now.toISOString(),
+          audience: 'pm',
+          category: 'customer_acceptance',
+          title: `Customer Signed Product Acceptance (${sub.signedByName})`,
+          details: `${sub.signedByTitle} (${sub.signedByEmail}) signed off on hardware delivery for ${updated.propertyName}.`,
+          actorName: sub.signedByName,
+          badgeLabel: 'Customer Acceptance',
+        };
+        enrichedProject.activityNotifications = [
+          custAccNotif,
+          ...(enrichedProject.activityNotifications || []),
+        ];
+        triggeredNotif = custAccNotif;
+      }
+
+      // 3. Check for changes in the Installer Log section (installLogs or BOM postItLogs) -> Field Tech Notification
+      const prevLogsJson = JSON.stringify(prevProject.installLogs || []);
+      const nextLogsJson = JSON.stringify(updated.installLogs || []);
+      const prevPostItsJson = JSON.stringify(
+        (prevProject.bomItems || []).map((b) => b.postItLogs || [])
+      );
+      const nextPostItsJson = JSON.stringify(
+        (updated.bomItems || []).map((b) => b.postItLogs || [])
+      );
+
+      if (prevLogsJson !== nextLogsJson || prevPostItsJson !== nextPostItsJson) {
+        const prevLen = (prevProject.installLogs || []).length;
+        const nextLen = (updated.installLogs || []).length;
+        const latestLog = updated.installLogs?.[0];
+
+        let logTitle = `Installer Log Updated on ${updated.propertyName}`;
+        let logDetails = `Verification log updated for ${updated.propertyName}.`;
+        let actor = techName;
+
+        if (nextLen > prevLen && latestLog) {
+          logTitle = `New Installer Log: +${latestLog.quantityCompleted} ${latestLog.itemName}`;
+          logDetails = `${latestLog.locationCompleted} · Verified by ${latestLog.installerName} (${latestLog.statusCheck})${
+            latestLog.notes ? ` — "${latestLog.notes}"` : ''
+          }`;
+          actor = latestLog.installerName;
+        } else if (nextLen < prevLen) {
+          logTitle = `Installer Log Entry Removed (${updated.propertyName})`;
+          logDetails = `An installer completion log entry was removed from the verification log.`;
+        } else if (latestLog) {
+          logTitle = `Installer Log Edited: ${latestLog.itemName}`;
+          logDetails = `${latestLog.locationCompleted} (${latestLog.quantityCompleted} units · ${latestLog.statusCheck})`;
+          actor = latestLog.installerName;
+        }
+
+        const installerNotif: ProjectActivityNotification = {
+          id: `notif-ft-log-${updated.id}-${Date.now()}`,
+          projectId: updated.id,
+          propertyName: updated.propertyName,
+          assignedPMName: updated.assignedPM.name,
+          assignedFieldTech: techName,
+          timestamp: formattedTime,
+          createdAtIso: now.toISOString(),
+          audience: 'field_tech',
+          category: 'installer_log',
+          title: logTitle,
+          details: logDetails,
+          actorName: actor,
+          badgeLabel: 'Installer Log Update',
+        };
+        enrichedProject.activityNotifications = [
+          installerNotif,
+          ...(enrichedProject.activityNotifications || []),
+        ];
+        if (!triggeredNotif || loggedInFieldTech) {
+          triggeredNotif = installerNotif;
+        }
+      } else {
+        // 4. Check for PM updates on the project (SOW Forecaster, Shipping Dock, BOM quantities, Notes, Milestones, Doors, Status) -> Field Tech Notification
+        const sowChanged =
+          JSON.stringify(prevProject.sowForecastItems || []) !==
+          JSON.stringify(updated.sowForecastItems || []);
+        const shippingChanged =
+          JSON.stringify(prevProject.shippingDockItems || []) !==
+          JSON.stringify(updated.shippingDockItems || []);
+        const bomChanged =
+          JSON.stringify(
+            (prevProject.bomItems || []).map((b) => ({
+              id: b.id,
+              q: b.quantity,
+              i: b.installedCount,
+              s: b.sparesDelivered,
+            }))
+          ) !==
+          JSON.stringify(
+            (updated.bomItems || []).map((b) => ({
+              id: b.id,
+              q: b.quantity,
+              i: b.installedCount,
+              s: b.sparesDelivered,
+            }))
+          );
+        const notesChanged =
+          JSON.stringify(prevProject.notes || []) !== JSON.stringify(updated.notes || []);
+        const milestonesChanged =
+          JSON.stringify(prevProject.milestones || []) !==
+          JSON.stringify(updated.milestones || []);
+        const doorsChanged =
+          JSON.stringify(prevProject.customerIntake?.commonAreaDoors || []) !==
+          JSON.stringify(updated.customerIntake?.commonAreaDoors || []);
+        const statusChanged = prevProject.statusTag !== updated.statusTag;
+
+        if (
+          sowChanged ||
+          shippingChanged ||
+          bomChanged ||
+          notesChanged ||
+          milestonesChanged ||
+          doorsChanged ||
+          statusChanged
+        ) {
+          let pmTitle = `PM Project Update: ${updated.propertyName}`;
+          let pmDetails = `${updated.assignedPM.name} updated project details on ${updated.propertyName}.`;
+          let badge = 'PM Project Update';
+
+          if (sowChanged) {
+            const latestSow = updated.sowForecastItems?.[0];
+            pmTitle = `PM Updated SOW Forecaster (${updated.propertyName})`;
+            pmDetails = latestSow
+              ? `${updated.assignedPM.name} updated SOW scope: ${latestSow.bomItemName} (${latestSow.forecastedQuantity} units at ${latestSow.buildingOrArea}, ${latestSow.status}).`
+              : `${updated.assignedPM.name} modified the SOW Forecaster schedule.`;
+            badge = 'SOW Forecaster Update';
+          } else if (shippingChanged) {
+            const latestShip = updated.shippingDockItems?.[0];
+            pmTitle = `PM Updated Shipping “Dock” Table (${updated.propertyName})`;
+            pmDetails = latestShip
+              ? `${updated.assignedPM.name} updated shipment "${latestShip.shipmentBatchLabel}" (${latestShip.shippedQuantity} units via ${latestShip.carrier} · ${latestShip.status}).`
+              : `${updated.assignedPM.name} updated the Shipping “Dock” Table.`;
+            badge = 'Shipping Dock Update';
+          } else if (bomChanged) {
+            const totalQuoted = updated.bomItems.reduce((a, b) => a + b.quantity, 0);
+            const totalInstalled = updated.bomItems.reduce((a, b) => a + b.installedCount, 0);
+            pmTitle = `PM Updated Hardware Progress / BOM (${updated.propertyName})`;
+            pmDetails = `${updated.assignedPM.name} updated BOM hardware counts: ${totalInstalled.toLocaleString()} / ${totalQuoted.toLocaleString()} devices installed.`;
+            badge = 'Hardware BOM Update';
+          } else if (notesChanged) {
+            const latestNote = updated.notes?.[0];
+            pmTitle = `PM Posted Note: ${latestNote?.category || 'Project Update'}`;
+            pmDetails = latestNote
+              ? `${latestNote.author}: "${latestNote.text}"`
+              : `${updated.assignedPM.name} updated project notes.`;
+            badge = 'PM Note';
+          } else if (doorsChanged) {
+            const doorCount = updated.customerIntake?.commonAreaDoors?.length || 0;
+            pmTitle = `Common Area Doors Updated (${updated.propertyName})`;
+            pmDetails = `Common Area Doors Location Tree & Device Mapping updated (${doorCount} total doors configured).`;
+            badge = 'Common Doors Update';
+          } else if (milestonesChanged || statusChanged) {
+            pmTitle = `PM Updated Schedule / Milestones (${updated.propertyName})`;
+            pmDetails = `${updated.assignedPM.name} updated project milestone progress or status tag (${updated.statusTag}).`;
+            badge = 'PM Milestone Update';
+          }
+
+          const pmNotif: ProjectActivityNotification = {
+            id: `notif-ft-pm-${updated.id}-${Date.now()}`,
+            projectId: updated.id,
+            propertyName: updated.propertyName,
+            assignedPMName: updated.assignedPM.name,
+            assignedFieldTech: techName,
+            timestamp: formattedTime,
+            createdAtIso: now.toISOString(),
+            audience: 'field_tech',
+            category: 'pm_update',
+            title: pmTitle,
+            details: pmDetails,
+            actorName: updated.assignedPM.name,
+            badgeLabel: badge,
+          };
+
+          enrichedProject.activityNotifications = [
+            pmNotif,
+            ...(enrichedProject.activityNotifications || []),
+          ];
+          if (!triggeredNotif || loggedInFieldTech) {
+            triggeredNotif = pmNotif;
+          }
+        }
+      }
+    }
+
+    // Always keep the Pre-Packaged Partner Academy Course Bundle synced with the project's BOM & partners
+    enrichedProject.partnerCourseBundle = buildProjectPrePackagedBundle(enrichedProject);
+
+    const updatedProjects = projects.map((p) =>
+      p.id === enrichedProject.id ? enrichedProject : p
+    );
+    setProjects(updatedProjects);
+    saveStoredProjects(updatedProjects);
+
+    if (triggeredNotif) {
+      setLatestNotification(triggeredNotif);
+      setAutoPopTriggerKey((prev) => prev + 1);
+    }
+  };
+
+  // Create manual project with automatic Pre-Packaged Partner Academy Course Bundle
+  const handleCreateManualProject = (newProject: OperationProject) => {
+    const enrichedManual: OperationProject = {
+      ...newProject,
+      partnerCourseBundle: buildProjectPrePackagedBundle(newProject, 'Manual Project Creation'),
+    };
+    const updatedProjects = [enrichedManual, ...projects];
+    setProjects(updatedProjects);
+    saveStoredProjects(updatedProjects);
+  };
+
+  // Update status tag directly
+  const handleUpdateProjectStatusTag = (projectId: string, newTag: ProjectStatusTag) => {
+    const target = projects.find((p) => p.id === projectId);
+    if (target) {
+      handleUpdateProject({
+        ...target,
+        statusTag: newTag,
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+  };
+
+  // View quote analysis
+  const handleViewQuoteAnalysis = (quoteId: string) => {
+    setSelectedAnalysisQuoteId(quoteId);
+    setMainTab('analysis');
+    window.location.hash = `/analysis/${quoteId}`;
+  };
+
+  // Switch to project under Operations
+  const handleGoToOperationsProject = (projectId: string) => {
+    setStandaloneKickoffProjectId(null);
+    setFocusedProjectId(projectId);
+    setMainTab('operations');
+    setOperationsSubTab(projectId);
+    window.location.hash = `/operations/${projectId}`;
+  };
+
+  // Switch directly to Installation Overview Dashboard under Operations
+  const handleGoToOperationsDashboard = () => {
+    setStandaloneKickoffProjectId(null);
+    setMainTab('operations');
+    setOperationsSubTab('dashboard');
+    window.location.hash = '/operations/dashboard';
+  };
+
+  // Reset to initial demo data
+  const handleResetData = () => {
+    if (window.confirm('Reset all field installation logs and BOM counts to default sample data?')) {
+      setQuotes(INITIAL_QUOTES);
+      setProjects(INITIAL_PROJECTS);
+      saveStoredQuotes(INITIAL_QUOTES);
+      saveStoredProjects(INITIAL_PROJECTS);
+      setOperationsSubTab('dashboard');
+      setStandaloneKickoffProjectId(null);
+    }
+  };
+
+  // Check if standalone Product Acceptance Portal view should be displayed
+  const standaloneAcceptanceProject = standaloneAcceptanceProjectId
+    ? projects.find((p) => p.id === standaloneAcceptanceProjectId)
+    : null;
+
+  if (standaloneAcceptanceProject) {
+    return (
+      <>
+        <ProductAcceptancePortalModal
+          project={standaloneAcceptanceProject}
+          onClose={() => handleGoToOperationsProject(standaloneAcceptanceProject.id)}
+          onUpdateProject={handleUpdateProject}
+        />
+        <RightNotificationsDock
+          mode="pm"
+          projects={projects}
+          latestNotification={latestNotification}
+          autoPopTriggerKey={autoPopTriggerKey}
+          onSelectProject={handleGoToOperationsProject}
+        />
+      </>
+    );
+  }
+
+  // Check if standalone customer kickoff view should be displayed
+  const standaloneProject = standaloneKickoffProjectId
+    ? projects.find((p) => p.id === standaloneKickoffProjectId)
+    : null;
+
+  if (standaloneProject) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-['Inter']">
+        {/* Customer Portal Clean White Header */}
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+          <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <QuextLogo />
+              <div className="h-4 w-px bg-slate-300"></div>
+              <span className="text-xs font-bold text-slate-800 tracking-wide uppercase">
+                Customer Kickoff Portal
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleGoToOperationsProject(standaloneProject.id)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Return to Operations Workspace</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <CustomerKickoffWalkthrough
+            project={standaloneProject}
+            onUpdateProject={handleUpdateProject}
+            isStandaloneClientView={true}
+            onBackToTechnicalBOM={() => handleGoToOperationsProject(standaloneProject.id)}
+          />
+        </main>
+
+        <RightNotificationsDock
+          mode="pm"
+          projects={projects}
+          latestNotification={latestNotification}
+          autoPopTriggerKey={autoPopTriggerKey}
+          onSelectProject={handleGoToOperationsProject}
+        />
+      </div>
+    );
+  }
+
+  // If logged in to the Quext Partner Training & Certification Academy Portal (via Integrator Partner email or direct portal switch)
+  if (loggedInPartnerAcademy) {
+    return (
+      <>
+        <PartnerAcademyApp
+          projects={projects}
+          onUpdateProject={handleUpdateProject}
+          activePartnerEmail={loggedInPartnerAcademy.email}
+          activeCompanyId={loggedInPartnerAcademy.companyId}
+          initialSelectedProjectId={loggedInPartnerAcademy.selectedProjectId}
+          onOpenUnifiedSignInModal={() => setIsLoginModalOpen(true)}
+          onExitToOperationsHub={() => {
+            setLoggedInPartnerAcademy(null);
+            window.location.hash = '#/home';
+          }}
+        />
+        <FieldTechLoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          currentLoggedInTech={loggedInFieldTech}
+          currentPartnerEmail={loggedInPartnerAcademy.email}
+          onLoginAsFieldTech={(tech) => {
+            setLoggedInPartnerAcademy(null);
+            setLoggedInFieldTech(tech);
+            window.location.hash = `#/field-tech/${tech.toLowerCase().replace(' ', '-')}`;
+          }}
+          onLoginAsAdminPM={() => {
+            setLoggedInPartnerAcademy(null);
+            setLoggedInFieldTech(null);
+            window.location.hash = '#/home';
+          }}
+          onLoginAsPartnerAcademy={(email, companyId, partnerShortName) => {
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy({
+              email,
+              companyId,
+              partnerShortName,
+              selectedProjectId: null,
+            });
+            window.location.hash = '#/partner-academy';
+          }}
+          projects={projects}
+        />
+      </>
+    );
+  }
+
+  // If logged in as a Field Tech (Sean Gates or Hector Lopez), render their separate view of the site
+  if (loggedInFieldTech) {
+    return (
+      <>
+        <FieldTechPortal
+          fieldTech={loggedInFieldTech}
+          projects={projects}
+          onUpdateProject={handleUpdateProject}
+          onSwitchFieldTech={(tech) => {
+            setLoggedInFieldTech(tech);
+            window.location.hash = `#/field-tech/${tech.toLowerCase().replace(' ', '-')}`;
+          }}
+          onLogoutToMainSite={() => {
+            setLoggedInFieldTech(null);
+            window.location.hash = '#/home';
+          }}
+          onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        />
+        <RightNotificationsDock
+          mode="field-tech"
+          projects={projects}
+          fieldTech={loggedInFieldTech}
+          latestNotification={latestNotification}
+          autoPopTriggerKey={autoPopTriggerKey}
+        />
+        <FieldTechLoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          currentLoggedInTech={loggedInFieldTech}
+          currentPartnerEmail={null}
+          onLoginAsFieldTech={(tech) => {
+            setLoggedInPartnerAcademy(null);
+            setLoggedInFieldTech(tech);
+            window.location.hash = `#/field-tech/${tech.toLowerCase().replace(' ', '-')}`;
+          }}
+          onLoginAsAdminPM={() => {
+            setLoggedInPartnerAcademy(null);
+            setLoggedInFieldTech(null);
+            window.location.hash = '#/home';
+          }}
+          onLoginAsPartnerAcademy={(email, companyId, partnerShortName) => {
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy({
+              email,
+              companyId,
+              partnerShortName,
+              selectedProjectId: null,
+            });
+            window.location.hash = '#/partner-academy';
+          }}
+          projects={projects}
+        />
+      </>
+    );
+  }
+
+  const activeQuoteForAnalysis =
+    quotes.find((q) => q.id === selectedAnalysisQuoteId) || quotes[0];
+
+  // If in Standard Focus Mode or Quext Vision Mode, replace the entire site view with the Focus Mode controller
+  if (focusMode === 'standard' || focusMode === 'quext-vision') {
+    return (
+      <QuextVisionFocusController
+        focusMode={focusMode}
+        setFocusMode={setFocusMode}
+        projects={projects}
+        quotesList={quotes}
+        activeProjectId={focusedProjectId || projects[0]?.id || ''}
+        onSelectProjectId={setFocusedProjectId}
+        onUpdateProject={handleUpdateProject}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-['Inter']">
+      {/* Initial Pop-Up Window when Quext Vision logo is clicked 10 times within 5 seconds */}
+      {focusMode === 'initial-prompt' && (
+        <QuextVisionFocusController
+          focusMode={focusMode}
+          setFocusMode={setFocusMode}
+          projects={projects}
+          quotesList={quotes}
+          activeProjectId={focusedProjectId || projects[0]?.id || ''}
+          onSelectProjectId={setFocusedProjectId}
+          onUpdateProject={handleUpdateProject}
+        />
+      )}
+
+      {/* Quext Unified Header (White Theme) */}
+      <Header
+        currentMainTab={mainTab}
+        onSelectMainTab={(tab) => {
+          setMainTab(tab);
+          if (tab === 'analysis') {
+            window.location.hash = `/analysis/${selectedAnalysisQuoteId}`;
+          } else if (tab === 'operations') {
+            window.location.hash = `/operations/${operationsSubTab}`;
+          } else if (tab === 'timeline') {
+            window.location.hash = '#/timeline';
+          } else if (tab === 'quotes') {
+            window.location.hash = '#/quotes';
+          } else {
+            window.location.hash = '#/home';
+          }
+        }}
+        onGoToOperationsDashboard={handleGoToOperationsDashboard}
+        wonProjectsCount={projects.length}
+        totalQuotesCount={quotes.length}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onOpenPartnerAcademy={() => {
+          setLoggedInFieldTech(null);
+          setLoggedInPartnerAcademy({
+            email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+            companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
+            partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
+            selectedProjectId: null,
+          });
+          window.location.hash = '#/partner-academy';
+        }}
+      />
+
+      {/* Main Content Canvas */}
+      <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {mainTab === 'home' && (
+          <HomeScreen
+            projects={projects}
+            onNavigateToOperationsDashboard={handleGoToOperationsDashboard}
+            onNavigateToAllProjects={() => {
+              setMainTab('operations');
+              setOperationsSubTab('all-projects');
+              window.location.hash = '/operations/all-projects';
+            }}
+            onNavigateToProject={(projectId) => {
+              setFocusedProjectId(projectId);
+              handleGoToOperationsProject(projectId);
+            }}
+            onNavigateToQuotes={() => {
+              setMainTab('quotes');
+              window.location.hash = '#/quotes';
+            }}
+            onTriggerSecretFocus={() => setFocusMode('initial-prompt')}
+            onOpenPartnerAcademy={(partnerShortName, projectId) => {
+              const targetPartner = partnerShortName || PARTNER_IDENTITY_DIRECTORY[0].partnerShortName;
+              const resolved = resolveMyQuextEmailIdentity(targetPartner, projects);
+              setLoggedInFieldTech(null);
+              setLoggedInPartnerAcademy({
+                email:
+                  resolved.portal === 'partner_academy'
+                    ? resolved.email
+                    : PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+                companyId:
+                  resolved.portal === 'partner_academy'
+                    ? resolved.companyId
+                    : PARTNER_IDENTITY_DIRECTORY[0].companyId,
+                partnerShortName: targetPartner,
+                selectedProjectId: projectId || null,
+              });
+              window.location.hash = '#/partner-academy';
+            }}
+          />
+        )}
+
+        {mainTab === 'timeline' && (
+          <InstallationTimeline
+            projects={projects}
+            onSelectProject={(projectId) => {
+              handleGoToOperationsProject(projectId);
+            }}
+            onOpenCustomerKickoff={(projectId) => {
+              handleGoToOperationsProject(projectId);
+            }}
+            onUpdateProject={handleUpdateProject}
+          />
+        )}
+
+        {mainTab === 'operations' && (
+          <OperationsView
+            projects={projects}
+            quotesList={quotes}
+            onUpdateProject={handleUpdateProject}
+            onCreateProject={handleCreateManualProject}
+            onUpdateProjectStatusTag={handleUpdateProjectStatusTag}
+            onViewQuoteAnalysis={handleViewQuoteAnalysis}
+            activeSubTab={operationsSubTab}
+            onSelectSubTab={(tabId) => {
+              if (projects.some((p) => p.id === tabId)) {
+                setFocusedProjectId(tabId);
+              }
+              setOperationsSubTab(tabId);
+              window.location.hash = `/operations/${tabId}`;
+            }}
+            onOpenProjectInPartnerAcademy={(proj) => {
+              const firstPartner = (proj.integratorPartners && proj.integratorPartners[0]) || 'SKBM';
+              const resolved = resolveMyQuextEmailIdentity(firstPartner, projects);
+              setLoggedInFieldTech(null);
+              setLoggedInPartnerAcademy({
+                email:
+                  resolved.portal === 'partner_academy'
+                    ? resolved.email
+                    : PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+                companyId:
+                  resolved.portal === 'partner_academy'
+                    ? resolved.companyId
+                    : PARTNER_IDENTITY_DIRECTORY[0].companyId,
+                partnerShortName: firstPartner,
+                selectedProjectId: proj.id,
+              });
+              window.location.hash = '#/partner-academy';
+            }}
+          />
+        )}
+
+        {mainTab === 'quotes' && (
+          <QuotesPipelineView
+            quotes={quotes}
+            onUpdateQuoteStage={handleUpdateQuoteStage}
+            onViewQuoteAnalysis={handleViewQuoteAnalysis}
+            onGoToOperationsProject={handleGoToOperationsProject}
+          />
+        )}
+
+        {mainTab === 'analysis' && activeQuoteForAnalysis && (
+          <QuoteAnalysisView
+            quote={activeQuoteForAnalysis}
+            quotesList={quotes}
+            onSelectQuoteForAnalysis={(quoteId) => {
+              setSelectedAnalysisQuoteId(quoteId);
+              window.location.hash = `/analysis/${quoteId}`;
+            }}
+            onGoToOperationsProject={handleGoToOperationsProject}
+          />
+        )}
+      </main>
+
+      {/* Quext White Theme Clean Footer */}
+      <footer className="border-t border-slate-200 bg-white py-5 pb-24 md:pb-5 mt-12 text-xs text-slate-500">
+        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+            <span className="font-extrabold text-slate-900 tracking-tight font-['Plus_Jakarta_Sans']">QUEXT</span>
+            <span>·</span>
+            <span>Multifamily IoT &amp; Smart Community Operations</span>
+            <span>·</span>
+            <span className="font-mono text-slate-500">myquext.com</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={handleResetData}
+              className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-900 transition-colors text-xs font-medium cursor-pointer"
+              title="Reset test data to initial values"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Demo Data</span>
+            </button>
+            <span className="text-slate-300">|</span>
+            <button
+              type="button"
+              onClick={() => {
+                setLoggedInFieldTech(null);
+                setLoggedInPartnerAcademy({
+                  email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+                  companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
+                  partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
+                  selectedProjectId: null,
+                });
+                window.location.hash = '#/partner-academy';
+              }}
+              className="text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer"
+            >
+              Partner Academy Portal
+            </button>
+            <span className="text-slate-300">|</span>
+            <button
+              type="button"
+              onClick={() => setIsLoginModalOpen(true)}
+              className="text-sky-700 hover:text-sky-900 font-bold underline cursor-pointer"
+            >
+              myquext.com Email Router (Partner / Field Tech / PM)
+            </button>
+            <span className="hidden sm:inline text-slate-300">|</span>
+            <span>Logged in as: <strong className="text-slate-800">raul.recalde@onequext.com</strong></span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Hidden Right-Side Customer Updates Notifications Dock (Accessible on all pages) */}
+      <RightNotificationsDock
+        mode="pm"
+        projects={projects}
+        latestNotification={latestNotification}
+        autoPopTriggerKey={autoPopTriggerKey}
+        onSelectProject={handleGoToOperationsProject}
+      />
+
+      {/* Unified myquext.com Email Identity Router & Portal Switcher Modal */}
+      <FieldTechLoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        currentLoggedInTech={loggedInFieldTech}
+        currentPartnerEmail={null}
+        onLoginAsFieldTech={(tech) => {
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech(tech);
+          window.location.hash = `#/field-tech/${tech.toLowerCase().replace(' ', '-')}`;
+        }}
+        onLoginAsAdminPM={() => {
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech(null);
+          window.location.hash = '#/home';
+        }}
+        onLoginAsPartnerAcademy={(email, companyId, partnerShortName) => {
+          setLoggedInFieldTech(null);
+          setLoggedInPartnerAcademy({
+            email,
+            companyId,
+            partnerShortName,
+            selectedProjectId: null,
+          });
+          window.location.hash = '#/partner-academy';
+        }}
+        projects={projects}
+      />
+    </div>
+  );
+}
