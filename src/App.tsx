@@ -1206,7 +1206,6 @@ export default function App() {
         wonProjectsCount={projects.length}
         totalQuotesCount={quotes.length}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
-        onOpenSowAutomation={() => setIsSowHubOpen(true)}
         onOpenPartnerAcademy={() => {
           setLoggedInFieldTech(null);
           setLoggedInPartnerAcademy({

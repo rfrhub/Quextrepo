@@ -519,20 +519,6 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingLive ? 'animate-spin' : ''}`} />
           </button>
 
-          {onOpenSowAutomation && (
-            <button
-              type="button"
-              onClick={onOpenSowAutomation}
-              title="Open OneQuext SOW Google Form Automation Hub & Field Tech Dispatcher"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-teal-200 bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-semibold transition-colors cursor-pointer"
-            >
-              <FileText className="w-3.5 h-3.5 text-teal-600" />
-              <span className="hidden sm:inline">SOW Automation</span>
-              <span className="sm:hidden">SOW</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </button>
-          )}
-
           {/* Toggle Standalone Mode */}
           <button
             type="button"
@@ -1663,18 +1649,64 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 management.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectTopTab('operations');
-                onGoToOperationsDashboard();
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
-            >
-              <span>Go to Operations Installation Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {onOpenSowAutomation && (
+                <button
+                  type="button"
+                  onClick={onOpenSowAutomation}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors"
+                  title="Open OneQuext SOW Google Form Automation Hub & Field Tech Dispatcher"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>SOW Automation Hub</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectTopTab('operations');
+                  onGoToOperationsDashboard();
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
+              >
+                <span>Go to Operations Installation Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
+
+          {/* SOW Automation Feature Hub in Customer Success */}
+          {onOpenSowAutomation && (
+            <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white border border-teal-500/30 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="relative z-10 space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/40 text-teal-300 text-xs font-bold">
+                  <FileText className="w-3.5 h-3.5 text-teal-400" />
+                  <span>OneQuext SOW Google Form Automation Hub</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                  Automate SOW Intake &amp; Field Tech Dispatch
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Collect Google Form survey submissions, auto-generate official branded SOW PDF agreements,
+                  and dispatch Field Techs (Sean Gates, Hector Lopez) with 1-click email and calendar notifications.
+                </p>
+              </div>
+              <div className="relative z-10 shrink-0">
+                <button
+                  type="button"
+                  onClick={onOpenSowAutomation}
+                  className="px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 active:bg-teal-600 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
+                >
+                  <FileText className="w-4 h-4 stroke-[2.5]" />
+                  <span>Launch SOW Automation Hub</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.slice(0, 18).map((proj) => (
