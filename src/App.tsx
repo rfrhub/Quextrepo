@@ -750,29 +750,197 @@ export default function App() {
     }
   };
 
-  // Check if standalone Product Acceptance Portal view should be displayed
-  const standaloneAcceptanceProject = standaloneAcceptanceProjectId
-    ? projects.find((p) => p.id === standaloneAcceptanceProjectId)
-    : null;
+  // Resolves the project for the standalone customer Product Acceptance Portal.
+  // Supports automated projects (converted from Deal Won quotes) and manual projects (created via modal).
+  const standaloneAcceptanceProject = useMemo(() => {
+    if (!standaloneAcceptanceProjectId) return null;
+    const target = standaloneAcceptanceProjectId.trim().toLowerCase();
 
-  if (standaloneAcceptanceProject) {
+    // 1. Search in current in-memory projects
+    let matched = projects.find(
+      (p) =>
+        p.id.toLowerCase() === target ||
+        (p.quoteId && p.quoteId.toLowerCase() === target) ||
+        (p.quoteNumber && p.quoteNumber.toLowerCase() === target)
+    );
+
+    // 2. Search in localStorage stored projects
+    if (!matched) {
+      try {
+        const stored = loadStoredProjects();
+        matched = stored.find(
+          (p) =>
+            p.id.toLowerCase() === target ||
+            (p.quoteId && p.quoteId.toLowerCase() === target) ||
+            (p.quoteNumber && p.quoteNumber.toLowerCase() === target)
+        );
+      } catch (err) {
+        console.error('Error loading stored projects for standalone acceptance', err);
+      }
+    }
+
+    // 3. Fallback to INITIAL_PROJECTS
+    if (!matched) {
+      matched = INITIAL_PROJECTS.find(
+        (p) =>
+          p.id.toLowerCase() === target ||
+          (p.quoteId && p.quoteId.toLowerCase() === target) ||
+          (p.quoteNumber && p.quoteNumber.toLowerCase() === target)
+      );
+    }
+
+    // 4. Fuzzy fallback by alphanumeric match
+    if (!matched) {
+      const cleanAlpha = target.replace(/[^a-z0-9]/g, '');
+      if (cleanAlpha.length >= 4) {
+        matched =
+          projects.find((p) => p.id.replace(/[^a-z0-9]/g, '').toLowerCase().includes(cleanAlpha)) ||
+          INITIAL_PROJECTS.find((p) => p.id.replace(/[^a-z0-9]/g, '').toLowerCase().includes(cleanAlpha));
+      }
+    }
+
+    return matched || null;
+  }, [standaloneAcceptanceProjectId, projects]);
+
+  if (standaloneAcceptanceProjectId) {
+    if (standaloneAcceptanceProject) {
+      return (
+        <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-['Inter']">
+          {/* Customer Portal Clean White Header */}
+          <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+            <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <QuextLogo />
+                <div className="h-4 w-px bg-slate-300"></div>
+                <span className="text-xs font-bold text-slate-800 tracking-wide uppercase">
+                  Product Acceptance Portal
+                </span>
+                <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  Hardware Delivery &amp; Verification
+                </span>
+              </div>
+
+              {/* Property & Client Info Banner */}
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg text-xs font-semibold text-slate-700">
+                <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                <span>{standaloneAcceptanceProject.propertyName}</span>
+                {standaloneAcceptanceProject.clientName && (
+                  <>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-500">{standaloneAcceptanceProject.clientName}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Controls / Support */}
+              <div className="flex items-center gap-2">
+                {signedInUser ? (
+                  <div className="flex items-center gap-2">
+                    <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-800 rounded-md text-[11px] font-mono font-bold">
+                      <Eye className="w-3 h-3 text-amber-600" />
+                      Quext Team Preview
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleGoToOperationsProject(standaloneAcceptanceProject.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back to PM Workspace</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <div className="hidden sm:flex flex-col text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Assigned Project Manager
+                      </span>
+                      <span className="font-bold text-slate-800 text-xs">
+                        {standaloneAcceptanceProject.assignedPM?.name || 'Quext Operations Team'}
+                      </span>
+                    </div>
+                    {standaloneAcceptanceProject.assignedPM?.email && (
+                      <a
+                        href={`mailto:${standaloneAcceptanceProject.assignedPM.email}?subject=Question regarding Product Acceptance for ${encodeURIComponent(standaloneAcceptanceProject.propertyName)}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200 rounded-lg font-bold text-xs transition-colors"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Contact PM</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <ProductAcceptancePortalModal
+              project={standaloneAcceptanceProject}
+              onClose={signedInUser ? () => handleGoToOperationsProject(standaloneAcceptanceProject.id) : undefined}
+              onUpdateProject={handleUpdateProject}
+              isStandaloneClientView={!signedInUser}
+            />
+          </main>
+
+          {/* Customer Portal Clean Footer */}
+          <footer className="bg-white border-t border-slate-200 py-4 px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500 font-mono">
+            &copy; {new Date().getFullYear()} Quext (OneQuext). Official Hardware Delivery &amp; Product Acceptance Portal. Need assistance? Contact{' '}
+            <a href="mailto:support@onequext.com" className="text-emerald-700 hover:underline">
+              support@onequext.com
+            </a>
+          </footer>
+
+          {signedInUser && (
+            <RightNotificationsDock
+              mode="pm"
+              projects={projects}
+              latestNotification={latestNotification}
+              autoPopTriggerKey={autoPopTriggerKey}
+              onSelectProject={handleGoToOperationsProject}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // Acceptance Project ID provided, but project not found
     return (
-      <>
-        <ProductAcceptancePortalModal
-          project={standaloneAcceptanceProject}
-          onClose={() => handleGoToOperationsProject(standaloneAcceptanceProject.id)}
-          onUpdateProject={handleUpdateProject}
-        />
-        {signedInUser && (
-          <RightNotificationsDock
-            mode="pm"
-            projects={projects}
-            latestNotification={latestNotification}
-            autoPopTriggerKey={autoPopTriggerKey}
-            onSelectProject={handleGoToOperationsProject}
-          />
-        )}
-      </>
+      <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-['Inter']">
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center px-4 sm:px-8 shadow-xs">
+          <div className="flex items-center gap-3">
+            <QuextLogo />
+            <div className="h-4 w-px bg-slate-300"></div>
+            <span className="text-xs font-bold text-slate-800 tracking-wide uppercase">
+              Product Acceptance Portal
+            </span>
+          </div>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-lg text-center space-y-4">
+            <div className="w-14 h-14 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mx-auto text-amber-600">
+              <Building2 className="w-7 h-7" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Product Acceptance Portal Not Found
+            </h2>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              We couldn&apos;t locate the active shipment acceptance records for project identifier{' '}
+              <code className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-800 font-mono text-[11px]">
+                {standaloneAcceptanceProjectId}
+              </code>.
+            </p>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Please check with your assigned Quext Project Manager or contact{' '}
+              <a href="mailto:support@onequext.com" className="text-sky-600 underline font-semibold">
+                support@onequext.com
+              </a>{' '}
+              to request an updated portal link.
+            </p>
+          </div>
+        </main>
+      </div>
     );
   }
 

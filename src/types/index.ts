@@ -1382,3 +1382,14 @@ export function buildCustomerKickoffPortalUrl(projectId: string): string {
   return `${origin}${path}#/customer-kickoff/${projectId}`;
 }
 
+export function buildProductAcceptancePortalUrl(projectId: string): string {
+  if (typeof window === 'undefined') return `#/product-acceptance/${projectId}`;
+  const origin = window.location.origin;
+  let path = window.location.pathname || '/';
+  path = path.replace(/index\.html$/i, '');
+  if (!path.endsWith('/')) {
+    path = `${path}/`;
+  }
+  return `${origin}${path}#/product-acceptance/${projectId}`;
+}
+

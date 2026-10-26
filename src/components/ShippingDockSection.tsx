@@ -7,6 +7,7 @@ import {
   CustomerCommsLog,
   BOMItem,
   getProjectIntegratorPartners,
+  buildProductAcceptancePortalUrl,
 } from '../types';
 import {
   Truck,
@@ -20,8 +21,10 @@ import {
   X,
   ChevronUp,
   ChevronDown,
+  Eye,
 } from 'lucide-react';
 import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
+import { ConfirmProductAcceptanceModal } from './ConfirmProductAcceptanceModal';
 
 interface ShippingDockSectionProps {
   project: OperationProject;
@@ -65,7 +68,7 @@ export const ProductAcceptancePortalModal: React.FC<{
   onUpdateProject: (updated: OperationProject) => void;
   onClose?: () => void;
   isStandaloneClientView?: boolean;
-}> = ({ project, onUpdateProject, onClose }) => {
+}> = ({ project, onUpdateProject, onClose, isStandaloneClientView }) => {
   const dockItems: ShippingDockItem[] = project.shippingDockItems || [];
   const bomItems = project.bomItems || [];
   const existingSub = project.productAcceptanceSubmission;
@@ -422,6 +425,7 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
 
   const [isAddingShipment, setIsAddingShipment] = useState<boolean>(false);
   const [isAcceptanceModalOpen, setIsAcceptanceModalOpen] = useState<boolean>(false);
+  const [isSendPortalModalOpen, setIsSendPortalModalOpen] = useState<boolean>(false);
   const [copiedPortalLink, setCopiedPortalLink] = useState<boolean>(false);
   const [alertBanner, setAlertBanner] = useState<string | null>(null);
   const [gmailModalPayload, setGmailModalPayload] = useState<LiveGmailModalPayload | null>(null);
@@ -748,7 +752,7 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
 
   // Send ALL shipment updates as a whole to the customer via Gmail
   const handleSendAllShipmentsUpdate = () => {
-    const portalLink = `${window.location.origin}${window.location.pathname}#/product-acceptance/${project.id}`;
+    const portalLink = buildProductAcceptancePortalUrl(project.id);
     const summaryText = dockItems
       .map(
         (d) =>
@@ -822,7 +826,7 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
 
   // Send a single line item shipment update to the customer via Gmail
   const handleSendSingleLineItemUpdate = (item: ShippingDockItem) => {
-    const portalLink = `${window.location.origin}${window.location.pathname}#/product-acceptance/${project.id}`;
+    const portalLink = buildProductAcceptancePortalUrl(project.id);
     const breakdownStr = formatDockItem1To1Breakdown(item);
     const tableHtml = buildShippingEmailTableHtml([item]);
 
@@ -887,15 +891,23 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
     });
   };
 
-  // Send Product Acceptance Portal to customer & open preview
-  const handleSendProductAcceptancePortal = () => {
-    const origin = window.location.origin;
-    const pathname = window.location.pathname;
-    const portalLink = `${origin}${pathname}#/product-acceptance/${project.id}`;
-    navigator.clipboard.writeText(portalLink).catch(() => {});
-    setCopiedPortalLink(true);
-    setTimeout(() => setCopiedPortalLink(false), 3000);
+  // Prompt PM to confirm details and email Product Acceptance Portal to the customer
+  const handleOpenSendProductAcceptancePortal = () => {
+    setIsSendPortalModalOpen(true);
+  };
 
+  const handleProductAcceptanceDispatched = ({
+    recipients,
+    subject,
+    gmailMessageId,
+    sentViaGmail,
+  }: {
+    recipients: string[];
+    subject: string;
+    gmailMessageId?: string;
+    sentViaGmail: boolean;
+  }) => {
+    const portalLink = buildProductAcceptancePortalUrl(project.id);
     const nowStr = new Date().toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -908,11 +920,15 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
       projectId: project.id,
       timestamp: nowStr,
       type: 'product_acceptance_request',
-      recipientEmail: defaultRecipient,
-      subject: `Action Required: Sign Product Acceptance Portal for ${project.propertyName}`,
-      summary: `Dispatched Product Acceptance Portal link (${portalLink}) for customer to confirm received BOM shipments, add line-item scenario notes, and sign off.`,
+      recipientEmail: recipients.join(', '),
+      subject,
+      summary: `Dispatched Product Acceptance Portal link (${portalLink}) via ${
+        sentViaGmail ? 'Gmail' : 'Direct Dispatch'
+      } to customer to confirm receipt of ${dockItems.length} shipment batches and sign off [ID: ${
+        gmailMessageId || 'Sent'
+      }].`,
       sentBy: project.assignedPM.name,
-      status: 'Sent',
+      status: 'Delivered',
     };
 
     onUpdateProject({
@@ -921,7 +937,10 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
       lastUpdated: new Date().toISOString(),
     });
 
-    setIsAcceptanceModalOpen(true);
+    setAlertBanner(
+      `Real email delivered via Gmail: Product Acceptance Portal sent to ${recipients.join(', ')}!`
+    );
+    setTimeout(() => setAlertBanner(null), 5000);
   };
 
   return (
@@ -962,12 +981,22 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
 
           <button
             type="button"
-            onClick={handleSendProductAcceptancePortal}
+            onClick={() => setIsAcceptanceModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+            title="Preview what the customer sees in their Product Acceptance Portal"
+          >
+            <Eye className="w-3.5 h-3.5 text-slate-600" />
+            <span>Preview Portal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenSendProductAcceptancePortal}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors cursor-pointer"
-            title="Send Product Acceptance Portal to customer to confirm receipt, add scenario notes, and sign"
+            title="Prompt to confirm portal details and email the Product Acceptance Portal to the customer"
           >
             <FileSignature className="w-3.5 h-3.5" />
-            <span>{copiedPortalLink ? 'Portal Sent & Link Copied!' : 'Send Product Acceptance Portal'}</span>
+            <span>Send Product Acceptance Portal</span>
           </button>
 
           <button
@@ -1747,6 +1776,17 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmProductAcceptanceModal
+        project={project}
+        isOpen={isSendPortalModalOpen}
+        onClose={() => setIsSendPortalModalOpen(false)}
+        onPreviewPortal={() => {
+          setIsSendPortalModalOpen(false);
+          setIsAcceptanceModalOpen(true);
+        }}
+        onDispatched={handleProductAcceptanceDispatched}
+      />
 
       <LiveGmailConfirmModal
         payload={gmailModalPayload}
