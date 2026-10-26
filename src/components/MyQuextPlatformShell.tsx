@@ -102,7 +102,6 @@ interface MyQuextPlatformShellProps {
   onOpenLoginModal: () => void;
   onOpenPartnerAcademy: () => void;
   onOpenSowAutomation?: () => void;
-  onOpenInstallersClip?: () => void;
   onOpenPMTutorial?: () => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
@@ -147,7 +146,6 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onOpenLoginModal,
   onOpenPartnerAcademy,
   onOpenSowAutomation,
-  onOpenInstallersClip,
   onOpenPMTutorial,
   onResetData,
   onToggleStandaloneMode,
@@ -506,21 +504,19 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             )}
           </div>
 
-          {/* Live Sync from myquext.com Firestore button */}
+          {/* Live Sync from myquext.com Firestore button (Small Square Reload Symbol) */}
           <button
             type="button"
             onClick={onSyncLiveMyQuext}
             disabled={isSyncingLive}
             title={
               lastSyncedInfo ||
-              'Pull latest live opportunities and stages directly from myquext.com Firestore'
+              (isSyncingLive ? 'Syncing myquext.com...' : 'Live myquext.com Sync')
             }
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors cursor-pointer"
+            aria-label="Live myquext.com Sync"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 transition-colors cursor-pointer shrink-0"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingLive ? 'animate-spin' : ''}`} />
-            <span className="hidden xl:inline">
-              {isSyncingLive ? 'Syncing myquext.com...' : 'Live myquext.com Sync'}
-            </span>
           </button>
 
           {onOpenSowAutomation && (
@@ -534,22 +530,6 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               <span className="hidden sm:inline">SOW Automation</span>
               <span className="sm:hidden">SOW</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </button>
-          )}
-
-          {onOpenInstallersClip && (
-            <button
-              type="button"
-              onClick={onOpenInstallersClip}
-              title="Open Installers Clip (In-the-Field Standalone Mode)"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-bold transition-colors cursor-pointer"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              <span className="hidden sm:inline">Installers Clip</span>
-              <span className="sm:hidden">Clip</span>
-              <span className="px-1 py-0.2 bg-sky-200 text-sky-800 rounded text-[9px] font-black uppercase">
-                Field
-              </span>
             </button>
           )}
 

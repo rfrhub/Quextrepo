@@ -37,7 +37,6 @@ import { RightNotificationsDock } from './components/RightNotificationsDock';
 import { QuextLogo } from './components/QuextLogo';
 import { MyQuextPlatformShell, MyQuextTopTab } from './components/MyQuextPlatformShell';
 import { SOWFormAutomationHub } from './components/SOWFormAutomationHub';
-import { InstallersClipModal } from './components/InstallersClipModal';
 import { PMTutorialGuide, TutorialNavigationTarget } from './components/PMTutorialGuide';
 import {
   MyQuextLoginPage,
@@ -76,8 +75,6 @@ export default function App() {
   } | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isSowHubOpen, setIsSowHubOpen] = useState<boolean>(false);
-  const [isGlobalClipOpen, setIsGlobalClipOpen] = useState<boolean>(false);
-  const [globalClipProjectId, setGlobalClipProjectId] = useState<string | null>(null);
 
   // Live Right-Side Notification Dock auto-slide-out state (5-second reveal)
   const [latestNotification, setLatestNotification] = useState<ProjectActivityNotification | null>(null);
@@ -1129,10 +1126,6 @@ export default function App() {
             window.location.hash = '#/partner-academy';
           }}
           onOpenSowAutomation={() => setIsSowHubOpen(true)}
-          onOpenInstallersClip={() => {
-            setGlobalClipProjectId(null);
-            setIsGlobalClipOpen(true);
-          }}
           onOpenPMTutorial={() => setIsPMTutorialOpen(true)}
           onResetData={handleResetData}
           onToggleStandaloneMode={() => setIsMyQuextShellMode(false)}
@@ -1214,10 +1207,6 @@ export default function App() {
         totalQuotesCount={quotes.length}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onOpenSowAutomation={() => setIsSowHubOpen(true)}
-        onOpenInstallersClip={() => {
-          setGlobalClipProjectId(null);
-          setIsGlobalClipOpen(true);
-        }}
         onOpenPartnerAcademy={() => {
           setLoggedInFieldTech(null);
           setLoggedInPartnerAcademy({
@@ -1327,18 +1316,6 @@ export default function App() {
         isOpen={isSowHubOpen}
         onClose={() => setIsSowHubOpen(false)}
         onNavigateToProject={handleGoToOperationsProject}
-      />
-
-      {/* Global Installers Clip Standalone App */}
-      <InstallersClipModal
-        isOpen={isGlobalClipOpen}
-        onClose={() => setIsGlobalClipOpen(false)}
-        projects={projects}
-        onUpdateProject={handleUpdateProject}
-        initialProjectId={globalClipProjectId}
-        activeInstallerName={signedInUser?.name || 'Field Technician'}
-        installerRole={signedInUser?.fieldTechDefault ? 'field_tech' : 'pm'}
-        companyName={signedInUser?.partnerShortName || 'Quext Field Operations'}
       />
 
       {isPMTutorialOpen && (

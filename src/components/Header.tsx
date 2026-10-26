@@ -27,7 +27,6 @@ interface HeaderProps {
   onOpenLoginModal?: () => void;
   onOpenPartnerAcademy?: () => void;
   onOpenSowAutomation?: () => void;
-  onOpenInstallersClip?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -39,7 +38,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLoginModal,
   onOpenPartnerAcademy,
   onOpenSowAutomation,
-  onOpenInstallersClip,
 }) => {
   const [needsAuth, setNeedsAuth] = useState<boolean>(true);
   const [gmailUserEmail, setGmailUserEmail] = useState<string | null>(null);
@@ -228,22 +226,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="hidden sm:inline">SOW Automation</span>
                 <span className="sm:hidden">SOW</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              </button>
-            )}
-
-            {onOpenInstallersClip && (
-              <button
-                type="button"
-                onClick={onOpenInstallersClip}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
-                title="Open Installers Clip — Standalone In-the-Field Logging App"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                <span className="hidden sm:inline">Installers Clip</span>
-                <span className="sm:hidden">Clip</span>
-                <span className="px-1 py-0.2 bg-sky-200 text-sky-800 rounded text-[9px] font-black uppercase">
-                  Field
-                </span>
               </button>
             )}
 
