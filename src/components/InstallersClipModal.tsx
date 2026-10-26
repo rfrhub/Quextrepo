@@ -1,8 +1,7 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import {
   OperationProject,
   BOMItem,
-  BOMCategory,
   InstallLogEntry,
   PendingInstallationChange,
   getCategoryDisplayName,
@@ -18,7 +17,6 @@ import {
   Pause,
   Trash2,
   Check,
-  CheckCircle2,
   AlertTriangle,
   ChevronRight,
   ArrowLeft,
@@ -29,14 +27,10 @@ import {
   Mail,
   Building2,
   MapPin,
-  Clock,
-  Sparkles,
   Smartphone,
-  Layers,
   Search,
-  Filter,
-  Maximize2,
   RotateCcw,
+  RefreshCw,
 } from 'lucide-react';
 
 interface StagedItemEntry {
@@ -53,7 +47,7 @@ interface StagedItemEntry {
 export interface InstallersClipProps {
   isOpen: boolean;
   onClose: () => void;
-  projects: OperationProject[];
+  projects?: OperationProject[];
   onUpdateProject: (updatedProject: OperationProject) => void;
   initialProjectId?: string | null;
   activeInstallerName?: string;
@@ -61,16 +55,106 @@ export interface InstallersClipProps {
   companyName?: string;
 }
 
-export const InstallersClipModal: React.FC<InstallersClipProps> = ({
+// Error Boundary to prevent any child exceptions from turning the entire page white
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  onReset?: () => void;
+  onClose?: () => void;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class InstallersClipErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('InstallersClipModal trapped error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6 text-center text-slate-100 font-sans">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mb-4">
+            <AlertTriangle className="w-8 h-8 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Installers Clip Encountered an Issue</h2>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mb-6 leading-relaxed">
+            {this.state.error?.message || 'An unexpected rendering error occurred while loading projects.'}
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false, error: undefined });
+                if (this.props.onReset) this.props.onReset();
+              }}
+              className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-colors shadow-md"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset &amp; Reload Clip</span>
+            </button>
+            <button
+              type="button"
+              onClick={this.props.onClose}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition-colors border border-slate-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Normalizer for Project Manager info
+function normalizeAssignedPM(pmInput: any): ProjectManagerInfo {
+  if (!pmInput) return AVAILABLE_PMS[0];
+  if (typeof pmInput === 'string') {
+    const match = AVAILABLE_PMS.find((p) => p.name.toLowerCase() === pmInput.toLowerCase());
+    if (match) return match;
+    return {
+      name: pmInput,
+      email: `${pmInput.toLowerCase().replace(/[^a-z0-9]/g, '.')}@onequext.com`,
+      role: 'Project Manager',
+      phone: '(806) 555-0142',
+    };
+  }
+  return {
+    name: pmInput.name || 'Project Manager',
+    email: pmInput.email || 'pm@onequext.com',
+    role: pmInput.role || 'Project Manager',
+    phone: pmInput.phone || '(806) 555-0142',
+  };
+}
+
+const InstallersClipModalInternal: React.FC<InstallersClipProps> = ({
   isOpen,
   onClose,
-  projects,
+  projects = [],
   onUpdateProject,
   initialProjectId,
   activeInstallerName = 'Sean Gates',
   installerRole = 'field_tech',
   companyName,
 }) => {
+  // Defensive check on projects array
+  const safeProjects = useMemo(() => {
+    return Array.isArray(projects) ? projects.filter(Boolean) : [];
+  }, [projects]);
+
   // Navigation: landing page (project cards) or inside a specific project
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(initialProjectId || null);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -104,51 +188,79 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
     }
   }, [initialProjectId]);
 
+  // Selected Project object
+  const activeProject = useMemo(() => {
+    if (!selectedProjectId) return null;
+    return safeProjects.find((p) => p && p.id === selectedProjectId) || null;
+  }, [selectedProjectId, safeProjects]);
+
+  // If selectedProjectId is set but project doesn't exist, safely reset to landing page
+  useEffect(() => {
+    if (selectedProjectId && !activeProject) {
+      setSelectedProjectId(null);
+    }
+  }, [selectedProjectId, activeProject]);
+
   // Clean up recording timer on unmount
   useEffect(() => {
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      if (audioElementRef.current) audioElementRef.current.pause();
+      if (audioElementRef.current) {
+        try {
+          audioElementRef.current.pause();
+        } catch {
+          // ignore
+        }
+      }
     };
   }, []);
 
   if (!isOpen) return null;
 
-  // Selected Project object
-  const activeProject = selectedProjectId
-    ? projects.find((p) => p.id === selectedProjectId) || null
-    : null;
-
-  const assignedPM = activeProject?.assignedPM || AVAILABLE_PMS[0];
+  const assignedPM = normalizeAssignedPM(activeProject?.assignedPM);
 
   // Filtered projects for the Landing Screen
   const filteredProjects = useMemo(() => {
-    if (!searchQuery.trim()) return projects;
-    const q = searchQuery.toLowerCase();
-    return projects.filter(
-      (p) =>
-        p.propertyName.toLowerCase().includes(q) ||
-        p.city.toLowerCase().includes(q) ||
-        p.state.toLowerCase().includes(q) ||
-        p.clientName.toLowerCase().includes(q)
-    );
-  }, [projects, searchQuery]);
+    if (!searchQuery.trim()) return safeProjects;
+    const q = searchQuery.toLowerCase().trim();
+    return safeProjects.filter((p) => {
+      if (!p) return false;
+      const propName = (p.propertyName || '').toLowerCase();
+      const city = (p.city || '').toLowerCase();
+      const state = (p.state || '').toLowerCase();
+      const client = (p.clientName || '').toLowerCase();
+      return propName.includes(q) || city.includes(q) || state.includes(q) || client.includes(q);
+    });
+  }, [safeProjects, searchQuery]);
 
   // Available categories for selected project
   const projectCategories = useMemo(() => {
-    if (!activeProject) return [];
+    if (!activeProject || !Array.isArray(activeProject.bomItems)) return [];
     const set = new Set<string>();
-    activeProject.bomItems.forEach((b) => set.add(getCategoryDisplayName(b.category)));
+    activeProject.bomItems.forEach((b) => {
+      if (b && b.category) {
+        try {
+          set.add(getCategoryDisplayName(b.category));
+        } catch {
+          set.add(String(b.category));
+        }
+      }
+    });
     return Array.from(set);
   }, [activeProject]);
 
   // Filtered BOM items for selected project
   const filteredBOMItems = useMemo(() => {
-    if (!activeProject) return [];
-    if (activeCategoryFilter === 'all') return activeProject.bomItems;
-    return activeProject.bomItems.filter(
-      (b) => getCategoryDisplayName(b.category) === activeCategoryFilter
-    );
+    if (!activeProject || !Array.isArray(activeProject.bomItems)) return [];
+    if (activeCategoryFilter === 'all') return activeProject.bomItems.filter(Boolean);
+    return activeProject.bomItems.filter((b) => {
+      if (!b) return false;
+      try {
+        return getCategoryDisplayName(b.category) === activeCategoryFilter;
+      } catch {
+        return false;
+      }
+    });
   }, [activeProject, activeCategoryFilter]);
 
   // Helper to get or init staged item entry
@@ -195,8 +307,8 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
 
   // "Full Scope" 1-Finger Auto-fill Remainder Button
   const handleFullScope = (item: BOMItem) => {
-    const remaining = Math.max(0, item.quantity - (item.installedCount || 0));
-    updateStagedItem(item.id, { quantity: remaining > 0 ? remaining : item.quantity });
+    const remaining = Math.max(0, (item.quantity || 0) - (item.installedCount || 0));
+    updateStagedItem(item.id, { quantity: remaining > 0 ? remaining : item.quantity || 1 });
   };
 
   // Photo Capture / File Selection
@@ -209,28 +321,25 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
       reader.onload = (uploadEvent) => {
         const dataUrl = uploadEvent.target?.result as string;
         if (dataUrl) {
-          const currentPhotos = getStagedItem(
-            filteredBOMItems.find((b) => b.id === itemId) || filteredBOMItems[0]
-          ).photos || [];
+          const currentPhotos = (stagedEntries[itemId]?.photos) || [];
           updateStagedItem(itemId, { photos: [...currentPhotos, dataUrl] });
         }
       };
       reader.readAsDataURL(file);
     });
-    // Reset file input value so same photo can be re-added if desired
     e.target.value = '';
   };
 
   const handleRemovePhoto = (itemId: string, photoIndex: number) => {
-    const cur = getStagedItem(filteredBOMItems.find((b) => b.id === itemId) || filteredBOMItems[0]);
-    const updatedPhotos = cur.photos.filter((_, idx) => idx !== photoIndex);
+    const cur = stagedEntries[itemId]?.photos || [];
+    const updatedPhotos = cur.filter((_, idx) => idx !== photoIndex);
     updateStagedItem(itemId, { photos: updatedPhotos });
   };
 
   // Audio Voice Memo Recording Handlers
   const handleStartRecording = async (itemId: string) => {
     try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
@@ -260,7 +369,6 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
           setRecordingSeconds((prev) => prev + 1);
         }, 1000);
       } else {
-        // Fallback for browsers or sandboxes without audio capture permission
         simulateAudioRecording(itemId);
       }
     } catch (err) {
@@ -285,9 +393,12 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
     }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
     } else {
-      // Synthetic fallback audio memo
       updateStagedItem(itemId, {
         audioBlobUrl: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
         audioDuration: recordingSeconds || 6,
@@ -300,36 +411,53 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
   const handlePlayAudio = (itemId: string, audioUrl?: string) => {
     if (!audioUrl) return;
     if (playingItemId === itemId) {
-      if (audioElementRef.current) audioElementRef.current.pause();
+      if (audioElementRef.current) {
+        try {
+          audioElementRef.current.pause();
+        } catch {
+          // ignore
+        }
+      }
       setPlayingItemId(null);
       return;
     }
 
     if (audioElementRef.current) {
-      audioElementRef.current.pause();
+      try {
+        audioElementRef.current.pause();
+      } catch {
+        // ignore
+      }
     }
 
-    const audio = new Audio(audioUrl);
-    audioElementRef.current = audio;
-    setPlayingItemId(itemId);
+    try {
+      const audio = new Audio(audioUrl);
+      audioElementRef.current = audio;
+      setPlayingItemId(itemId);
 
-    audio.onended = () => {
-      setPlayingItemId(null);
-    };
+      audio.onended = () => {
+        setPlayingItemId(null);
+      };
 
-    audio.onerror = () => {
-      // In case dummy data URI or unplayable blob
-      setTimeout(() => setPlayingItemId(null), 3000);
-    };
+      audio.onerror = () => {
+        setTimeout(() => setPlayingItemId(null), 3000);
+      };
 
-    audio.play().catch(() => {
-      setTimeout(() => setPlayingItemId(null), 3000);
-    });
+      audio.play().catch(() => {
+        setTimeout(() => setPlayingItemId(null), 3000);
+      });
+    } catch {
+      setTimeout(() => setPlayingItemId(null), 1000);
+    }
   };
 
   const handleDeleteAudio = (itemId: string) => {
     if (playingItemId === itemId && audioElementRef.current) {
-      audioElementRef.current.pause();
+      try {
+        audioElementRef.current.pause();
+      } catch {
+        // ignore
+      }
       setPlayingItemId(null);
     }
     updateStagedItem(itemId, { audioBlobUrl: undefined, audioDuration: undefined });
@@ -355,11 +483,11 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
     })}`;
 
     const newLogs: InstallLogEntry[] = [];
-    const updatedBOM = [...activeProject.bomItems];
+    const updatedBOM = [...(activeProject.bomItems || [])];
     const newPendingChanges: PendingInstallationChange[] = [];
 
     activeStagedItemsList.forEach(([itemId, entry]) => {
-      const bomIndex = updatedBOM.findIndex((b) => b.id === itemId);
+      const bomIndex = updatedBOM.findIndex((b) => b && b.id === itemId);
       if (bomIndex === -1) return;
       const bom = updatedBOM[bomIndex];
 
@@ -403,7 +531,6 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
 
       newLogs.push(logEntry);
 
-      // Add to pending changes queue for Project Manager review banner
       newPendingChanges.push({
         id: `pending-clip-${logId}`,
         source: 'install_log',
@@ -423,17 +550,13 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
         approvalStatus: isOverAllocation ? 'pending_approval' : undefined,
       });
 
-      // If NOT pending confirmation (e.g. approved PM) or auto-staging, update BOM counts
       const updatedItemLogs = [...(bom.postItLogs || []), logEntry];
 
       updatedBOM[bomIndex] = {
         ...bom,
-        // Only increment installed count immediately if PM, or stage it for PM confirmation
         installedCount: isPendingRole && isOverAllocation
-          ? bom.installedCount // Wait for PM approval if exceeds SOW
-          : isPendingRole
-          ? bom.installedCount + entry.quantity // Auto update for real-time progress, but flagged for PM confirmation
-          : bom.installedCount + entry.quantity,
+          ? bom.installedCount
+          : (bom.installedCount || 0) + entry.quantity,
         postItLogs: updatedItemLogs,
         overAllocationOffset: isOverAllocation ? offset : bom.overAllocationOffset,
       };
@@ -452,15 +575,12 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
 
     onUpdateProject(updatedProject);
 
-    // Show celebration toast
     setSuccessToastMessage(
       `Logged ${totalStagedUnits} devices across ${activeStagedItemsList.length} BOM line item${
         activeStagedItemsList.length > 1 ? 's' : ''
-      }! Synced to ${activeProject.propertyName}.`
+      }! Synced to ${activeProject.propertyName || 'Project'}.`
     );
     setShowSuccessToast(true);
-
-    // Reset staged items
     setStagedEntries({});
 
     setTimeout(() => {
@@ -469,7 +589,7 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col font-sans select-none overflow-hidden text-slate-100 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col font-sans select-none overflow-hidden text-slate-100 animate-in fade-in duration-200">
       {/* ========================================================================= */}
       {/* TOP BAR / APP HEADER (Clean Mobile Native Shell)                         */}
       {/* ========================================================================= */}
@@ -549,10 +669,10 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
       {/* ========================================================================= */}
       {/* SCREEN 1: UBER SIMPLIFIED LANDING PAGE (Tap Project Card with One Finger) */}
       {/* ========================================================================= */}
-      {!selectedProjectId && (
+      {(!selectedProjectId || !activeProject) && (
         <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 max-w-5xl mx-auto w-full space-y-6">
           {/* Welcome Card & Instructions */}
-          <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold">
                 <Smartphone className="w-3.5 h-3.5" />
@@ -592,21 +712,27 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
           </div>
 
           {/* Large, Tactile 1-Finger Project Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-12">
             {filteredProjects.length === 0 ? (
               <div className="col-span-full py-16 text-center text-slate-500 space-y-2">
                 <Building2 className="w-12 h-12 mx-auto text-slate-600 stroke-[1.5]" />
                 <p className="text-base font-semibold text-slate-400">No matching projects found</p>
-                <p className="text-xs">Try clearing your search term</p>
+                <p className="text-xs">
+                  {safeProjects.length === 0
+                    ? 'No assigned projects currently in your account queue.'
+                    : 'Try clearing your search term to view all projects.'}
+                </p>
               </div>
             ) : (
               filteredProjects.map((project) => {
-                // Compute project completion stats
                 let quotedTotal = 0;
                 let installedTotal = 0;
-                project.bomItems.forEach((b) => {
-                  quotedTotal += b.quantity;
-                  installedTotal += b.installedCount || 0;
+                const bItems = Array.isArray(project.bomItems) ? project.bomItems : [];
+                bItems.forEach((b) => {
+                  if (b) {
+                    quotedTotal += Number(b.quantity) || 0;
+                    installedTotal += Number(b.installedCount) || 0;
+                  }
                 });
                 const pct = quotedTotal > 0 ? Math.round((installedTotal / quotedTotal) * 100) : 0;
                 const remainingTotal = Math.max(0, quotedTotal - installedTotal);
@@ -627,15 +753,15 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors truncate">
-                            {project.propertyName}
+                            {project.propertyName || 'Untitled Job'}
                           </h3>
                           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
                             <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                             <span className="truncate">
-                              {project.city}, {project.state}
+                              {project.city || 'Site'}, {project.state || 'TX'}
                             </span>
                             <span className="text-slate-600">·</span>
-                            <span className="text-slate-400">{project.unitsCount} Units</span>
+                            <span className="text-slate-400">{project.unitsCount || 0} Units</span>
                           </div>
                         </div>
 
@@ -720,10 +846,10 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h2 className="text-base sm:text-xl font-black text-white truncate">
-                    {activeProject.propertyName}
+                    {activeProject.propertyName || 'Active Site'}
                   </h2>
                   <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 rounded-md">
-                    {activeProject.city}, {activeProject.state}
+                    {activeProject.city || 'Site'}, {activeProject.state || 'TX'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
@@ -756,16 +882,20 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
                 className={`px-3.5 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
                   activeCategoryFilter === 'all'
                     ? 'bg-sky-500 text-white shadow-md shadow-sky-500/20'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                All BOM Items ({activeProject.bomItems.length})
+                All BOM Items ({Array.isArray(activeProject.bomItems) ? activeProject.bomItems.length : 0})
               </button>
 
               {projectCategories.map((catName) => {
-                const count = activeProject.bomItems.filter(
-                  (b) => getCategoryDisplayName(b.category) === catName
-                ).length;
+                const count = (activeProject.bomItems || []).filter((b) => {
+                  try {
+                    return getCategoryDisplayName(b.category) === catName;
+                  } catch {
+                    return false;
+                  }
+                }).length;
                 const isCatActive = activeCategoryFilter === catName;
                 return (
                   <button
@@ -775,7 +905,7 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
                     className={`px-3.5 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer active:scale-95 ${
                       isCatActive
                         ? 'bg-sky-500 text-white shadow-md shadow-sky-500/20'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
                     {catName} ({count})
@@ -786,366 +916,373 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
           </div>
 
           {/* BOM Item Cards List (Scrollable Body) */}
-          <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 max-w-4xl mx-auto w-full pb-28">
-            {filteredBOMItems.map((item) => {
-              const entry = getStagedItem(item);
-              const remaining = Math.max(0, item.quantity - (item.installedCount || 0));
-              const totalInstalledWithNew = (item.installedCount || 0) + (entry.quantity || 0);
-              const isOverAllocation = totalInstalledWithNew > item.quantity;
-              const offset = Math.max(0, totalInstalledWithNew - item.quantity);
-              const isStagedActive = entry.quantity > 0;
-              const pctInstalled =
-                item.quantity > 0
-                  ? Math.min(100, Math.round(((item.installedCount || 0) / item.quantity) * 100))
-                  : 0;
+          <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 max-w-4xl mx-auto w-full pb-32">
+            {filteredBOMItems.length === 0 ? (
+              <div className="py-16 text-center text-slate-500 space-y-2">
+                <Building2 className="w-12 h-12 mx-auto text-slate-600 stroke-[1.5]" />
+                <p className="text-base font-semibold text-slate-400">No hardware line items found</p>
+                <p className="text-xs">
+                  {activeCategoryFilter !== 'all'
+                    ? 'No items in this category. Tap "All BOM Items" above to view full scope.'
+                    : 'This project currently has no quoted BOM items.'}
+                </p>
+              </div>
+            ) : (
+              filteredBOMItems.map((item) => {
+                const entry = getStagedItem(item);
+                const remaining = Math.max(0, (item.quantity || 0) - (item.installedCount || 0));
+                const totalInstalledWithNew = (item.installedCount || 0) + (entry.quantity || 0);
+                const isOverAllocation = totalInstalledWithNew > (item.quantity || 0);
+                const offset = Math.max(0, totalInstalledWithNew - (item.quantity || 0));
+                const isStagedActive = entry.quantity > 0;
+                const pctInstalled =
+                  (item.quantity || 0) > 0
+                    ? Math.min(100, Math.round(((item.installedCount || 0) / item.quantity) * 100))
+                    : 0;
 
-              return (
-                <div
-                  key={item.id}
-                  className={`rounded-2xl border-2 transition-all duration-200 overflow-hidden shadow-lg ${
-                    isStagedActive
-                      ? isOverAllocation
-                        ? 'bg-slate-900 border-amber-500 ring-2 ring-amber-500/20'
-                        : 'bg-slate-900 border-sky-500 ring-2 ring-sky-500/20'
-                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  {/* Card Header: Device Name & Progress */}
-                  <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-slate-900/70">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-slate-800 text-slate-300 border border-slate-700 rounded-md">
-                            {getCategoryDisplayName(item.category)}
-                          </span>
-                          <span className="text-xs text-slate-400 truncate">{item.location}</span>
-                        </div>
-                        <h4 className="text-base sm:text-lg font-black text-white mt-1">
-                          {item.name}
-                        </h4>
-                        <p className="text-xs text-slate-400 mt-0.5">Model: {item.model}</p>
-                      </div>
-
-                      {/* Quoted vs Installed Badge */}
-                      <div className="text-right shrink-0">
-                        <div className="text-sm sm:text-base font-black text-white tabular-nums">
-                          <span className="text-emerald-400">{item.installedCount || 0}</span> /{' '}
-                          <span>{item.quantity}</span>
-                        </div>
-                        <span className="text-[11px] text-slate-400 block">
-                          {remaining > 0 ? `${remaining} remaining` : 'Scope Complete'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          pctInstalled >= 100 ? 'bg-emerald-400' : 'bg-sky-400'
-                        }`}
-                        style={{ width: `${pctInstalled}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* 1-Finger Stepper & Controls */}
-                  <div className="p-4 sm:p-5 space-y-4">
-                    {/* Stepper Row */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                          Log Units Completed Today
-                        </span>
-                        {/* ⚡ Full Scope Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleFullScope(item)}
-                          className="px-2.5 py-1 text-xs font-bold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                          title="Fills the remaining quoted scope with 1 tap"
-                        >
-                          <Zap className="w-3.5 h-3.5 fill-amber-300" />
-                          <span>+ Full Scope ({remaining})</span>
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        {/* Big Minus Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleAdjustQuantity(item, -1)}
-                          disabled={entry.quantity <= 0}
-                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-800 hover:bg-slate-750 active:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 flex items-center justify-center text-white text-2xl font-bold cursor-pointer transition-transform active:scale-90 shrink-0 shadow-md"
-                        >
-                          <Minus className="w-6 h-6" />
-                        </button>
-
-                        {/* Big Direct Input / Display */}
-                        <div className="flex-1 h-14 sm:h-16 bg-slate-950 border-2 border-slate-800 rounded-2xl flex items-center justify-center px-4 relative">
-                          <input
-                            type="number"
-                            min="0"
-                            value={entry.quantity || ''}
-                            onChange={(e) =>
-                              updateStagedItem(item.id, {
-                                quantity: Math.max(0, parseInt(e.target.value, 10) || 0),
-                              })
-                            }
-                            placeholder="0"
-                            className="w-full text-center text-2xl sm:text-3xl font-black text-white bg-transparent focus:outline-none tabular-nums"
-                          />
-                          <span className="absolute right-3 text-xs font-bold text-slate-500 pointer-events-none">
-                            units
-                          </span>
-                        </div>
-
-                        {/* Big Plus Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleAdjustQuantity(item, 1)}
-                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-sky-600 hover:bg-sky-500 active:bg-sky-400 border border-sky-400/50 flex items-center justify-center text-white text-2xl font-bold cursor-pointer transition-transform active:scale-90 shrink-0 shadow-md shadow-sky-600/30"
-                        >
-                          <Plus className="w-6 h-6 stroke-[3]" />
-                        </button>
-                      </div>
-
-                      {/* Quick Increment Pills */}
-                      <div className="flex items-center gap-1.5 mt-2.5">
-                        <span className="text-[11px] font-semibold text-slate-400 mr-1">Quick:</span>
-                        {[1, 5, 10, 25].map((amt) => (
-                          <button
-                            key={amt}
-                            type="button"
-                            onClick={() => handleAdjustQuantity(item, amt)}
-                            className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 active:bg-slate-650 text-slate-200 border border-slate-700 rounded-lg cursor-pointer transition-transform active:scale-95"
-                          >
-                            +{amt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* SOW OVER-ALLOCATION WARNING BANNER */}
-                    {isOverAllocation && (
-                      <div className="p-3.5 rounded-xl bg-amber-950/80 border-2 border-amber-400/80 text-amber-100 text-xs space-y-2 animate-in fade-in duration-200">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                          <div>
-                            <strong className="font-extrabold text-amber-300 block text-xs sm:text-sm">
-                              Quantity exceeds SOW Quantities and the PM must be notified before making
-                              this change.
-                            </strong>
-                            <p className="text-amber-200/90 text-xs mt-0.5 leading-snug">
-                              Logging {entry.quantity} units (new total will be {totalInstalledWithNew})
-                              exceeds quoted total ({item.quantity}) by <strong>+{offset} units</strong>.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* 1-Tap PM Contact Link Cards */}
-                        <div className="p-2.5 bg-black/40 border border-amber-500/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                          <div>
-                            <span className="text-amber-300/80 block text-[10px] font-bold uppercase">
-                              Assigned Project Manager
-                            </span>
-                            <strong className="text-white text-xs sm:text-sm">{assignedPM.name}</strong>
-                          </div>
+                return (
+                  <div
+                    key={item.id}
+                    className={`rounded-2xl border-2 transition-all duration-200 overflow-hidden shadow-lg ${
+                      isStagedActive
+                        ? isOverAllocation
+                          ? 'bg-slate-900 border-amber-500 ring-2 ring-amber-500/20'
+                          : 'bg-slate-900 border-sky-500 ring-2 ring-sky-500/20'
+                        : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {/* Card Header: Device Name & Progress */}
+                    <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-slate-900/70">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <a
-                              href={`tel:${assignedPM.phone}`}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center gap-1.5 text-xs transition-colors"
-                            >
-                              <Phone className="w-3.5 h-3.5" />
-                              <span>{assignedPM.phone}</span>
-                            </a>
-                            <a
-                              href={`mailto:${assignedPM.email}?subject=${encodeURIComponent(
-                                `SOW Over-allocation Notice: ${item.name} on ${activeProject.propertyName}`
-                              )}&body=${encodeURIComponent(
-                                `Hi ${assignedPM.name},\n\nI am logging ${entry.quantity} units of ${item.name} on ${activeProject.propertyName}. This exceeds quoted SOW by +${offset} units.\n\nPlease review and approve on the project page.\n\nThanks,\n${activeInstallerName}`
-                              )}`}
-                              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg flex items-center gap-1.5 text-xs transition-colors"
-                            >
-                              <Mail className="w-3.5 h-3.5" />
-                              <span>Email PM</span>
-                            </a>
+                            <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-slate-800 text-slate-300 border border-slate-700 rounded-md">
+                              {getCategoryDisplayName(item.category)}
+                            </span>
+                            <span className="text-xs text-slate-400 truncate">{item.location}</span>
                           </div>
+                          <h4 className="text-base sm:text-lg font-black text-white mt-1">
+                            {item.name}
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-0.5">Model: {item.model || 'Standard'}</p>
+                        </div>
+
+                        {/* Quoted vs Installed Badge */}
+                        <div className="text-right shrink-0">
+                          <div className="text-sm sm:text-base font-black text-white tabular-nums">
+                            <span className="text-emerald-400">{item.installedCount || 0}</span> /{' '}
+                            <span>{item.quantity || 0}</span>
+                          </div>
+                          <span className="text-[11px] text-slate-400 block">
+                            {remaining > 0 ? `${remaining} remaining` : 'Scope Complete'}
+                          </span>
                         </div>
                       </div>
-                    )}
 
-                    {/* Status Check Chips */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
-                        Installation Status Check
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        {(
-                          [
-                            'Verified & Online',
-                            'Signal Testing Passed',
-                            'Pending LoRa Sync',
-                            'Hardware Swapped',
-                          ] as const
-                        ).map((status) => {
-                          const isSelected = entry.statusCheck === status;
-                          return (
-                            <button
-                              key={status}
-                              type="button"
-                              onClick={() => updateStagedItem(item.id, { statusCheck: status })}
-                              className={`px-2.5 py-2 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer active:scale-95 ${
-                                isSelected
-                                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400 shadow-sm'
-                                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
-                              }`}
-                            >
-                              {status}
-                            </button>
-                          );
-                        })}
+                      {/* Progress Bar */}
+                      <div className="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            pctInstalled >= 100 ? 'bg-emerald-400' : 'bg-sky-400'
+                          }`}
+                          style={{ width: `${pctInstalled}%` }}
+                        />
                       </div>
                     </div>
 
-                    {/* Location Completed Input */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
-                        Specific Units / Location
-                      </label>
-                      <input
-                        type="text"
-                        value={entry.locationCompleted}
-                        onChange={(e) =>
-                          updateStagedItem(item.id, { locationCompleted: e.target.value })
-                        }
-                        placeholder="e.g. Bldg 3, Units 301-316 or 2nd Floor Clubhouse"
-                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
-                      />
-                    </div>
-
-                    {/* Line Item Notes Input */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
-                        Field Notes for this BOM Item
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={entry.itemNotes}
-                        onChange={(e) => updateStagedItem(item.id, { itemNotes: e.target.value })}
-                        placeholder="Type any install context, wiring details, or issues..."
-                        className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 resize-none"
-                      />
-                    </div>
-
-                    {/* MEDIA TOOLS: VOICE MEMO + PHOTO UPLOAD (EXCLUSIVE TO CLIP) */}
-                    <div className="pt-2 border-t border-slate-800/80 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                          Field Media & Verification
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          {entry.photos.length} Photo{entry.photos.length === 1 ? '' : 's'} ·{' '}
-                          {entry.audioBlobUrl ? 'Voice Note Attached' : 'No Voice Note'}
-                        </span>
-                      </div>
-
-                      {/* Action Buttons: Camera Upload + Audio Recorder */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {/* 1. Camera / Photo Upload Button */}
-                        <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-750 active:bg-slate-700 border border-slate-700 text-sky-400 font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shadow-sm">
-                          <Camera className="w-4 h-4" />
-                          <span>Snap / Add Photo</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            multiple
-                            onChange={(e) => handlePhotoCapture(item.id, e)}
-                            className="hidden"
-                          />
-                        </label>
-
-                        {/* 2. Audio Voice Memo Recorder */}
-                        {recordingItemId === item.id ? (
+                    {/* 1-Finger Stepper & Controls */}
+                    <div className="p-4 sm:p-5 space-y-4">
+                      {/* Stepper Row */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                            Log Units Completed Today
+                          </span>
                           <button
                             type="button"
-                            onClick={() => handleStopRecording(item.id)}
-                            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95 animate-pulse shadow-md shadow-rose-600/40"
+                            onClick={() => handleFullScope(item)}
+                            className="px-2.5 py-1 text-xs font-bold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                            title="Fills the remaining quoted scope with 1 tap"
                           >
-                            <Square className="w-4 h-4 fill-white" />
-                            <span>Stop Recording ({recordingSeconds}s)</span>
+                            <Zap className="w-3.5 h-3.5 fill-amber-300" />
+                            <span>+ Full Scope ({remaining})</span>
                           </button>
-                        ) : entry.audioBlobUrl ? (
-                          <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-xl p-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handlePlayAudio(item.id, entry.audioBlobUrl)}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-colors cursor-pointer"
-                            >
-                              {playingItemId === item.id ? (
-                                <>
-                                  <Pause className="w-3.5 h-3.5 fill-white" />
-                                  <span>Pause Memo</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Play className="w-3.5 h-3.5 fill-white" />
-                                  <span>Play Voice Memo ({entry.audioDuration || 5}s)</span>
-                                </>
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteAudio(item.id)}
-                              className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
-                              title="Delete voice note"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleAdjustQuantity(item, -1)}
+                            disabled={entry.quantity <= 0}
+                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-800 hover:bg-slate-700 active:bg-slate-650 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-700 flex items-center justify-center text-white text-2xl font-bold cursor-pointer transition-transform active:scale-90 shrink-0 shadow-md"
+                          >
+                            <Minus className="w-6 h-6" />
+                          </button>
+
+                          <div className="flex-1 h-14 sm:h-16 bg-slate-950 border-2 border-slate-800 rounded-2xl flex items-center justify-center px-4 relative">
+                            <input
+                              type="number"
+                              min="0"
+                              value={entry.quantity || ''}
+                              onChange={(e) =>
+                                updateStagedItem(item.id, {
+                                  quantity: Math.max(0, parseInt(e.target.value, 10) || 0),
+                                })
+                              }
+                              placeholder="0"
+                              className="w-full text-center text-2xl sm:text-3xl font-black text-white bg-transparent focus:outline-none tabular-nums"
+                            />
+                            <span className="absolute right-3 text-xs font-bold text-slate-500 pointer-events-none">
+                              units
+                            </span>
                           </div>
-                        ) : (
+
                           <button
                             type="button"
-                            onClick={() => handleStartRecording(item.id)}
-                            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-750 active:bg-slate-700 border border-slate-700 text-emerald-400 font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shadow-sm"
+                            onClick={() => handleAdjustQuantity(item, 1)}
+                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-sky-600 hover:bg-sky-500 active:bg-sky-400 border border-sky-400/50 flex items-center justify-center text-white text-2xl font-bold cursor-pointer transition-transform active:scale-90 shrink-0 shadow-md shadow-sky-600/30"
                           >
-                            <Mic className="w-4 h-4" />
-                            <span>Record Voice Memo</span>
+                            <Plus className="w-6 h-6 stroke-[3]" />
                           </button>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Photo Gallery Thumbnails */}
-                      {entry.photos.length > 0 && (
-                        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-                          {entry.photos.map((photoUrl, pIdx) => (
-                            <div
-                              key={pIdx}
-                              className="relative group shrink-0 w-16 h-16 rounded-xl border border-slate-700 overflow-hidden bg-slate-950"
+                        {/* Quick Increment Pills */}
+                        <div className="flex items-center gap-1.5 mt-2.5">
+                          <span className="text-[11px] font-semibold text-slate-400 mr-1">Quick:</span>
+                          {[1, 5, 10, 25].map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => handleAdjustQuantity(item, amt)}
+                              className="px-2.5 py-1 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg cursor-pointer transition-transform active:scale-95"
                             >
-                              <img
-                                src={photoUrl}
-                                alt={`Install Verification ${pIdx + 1}`}
-                                className="w-full h-full object-cover cursor-pointer"
-                                onClick={() => setPreviewPhotoUrl(photoUrl)}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleRemovePhoto(item.id, pIdx)}
-                                className="absolute top-1 right-1 w-5 h-5 bg-black/80 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer"
-                                title="Remove photo"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
+                              +{amt}
+                            </button>
                           ))}
                         </div>
+                      </div>
+
+                      {/* SOW OVER-ALLOCATION WARNING BANNER */}
+                      {isOverAllocation && (
+                        <div className="p-3.5 rounded-xl bg-amber-950/80 border-2 border-amber-400/80 text-amber-100 text-xs space-y-2 animate-in fade-in duration-200">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                            <div>
+                              <strong className="font-extrabold text-amber-300 block text-xs sm:text-sm">
+                                Quantity exceeds SOW Quantities and the PM must be notified before making
+                                this change.
+                              </strong>
+                              <p className="text-amber-200/90 text-xs mt-0.5 leading-snug">
+                                Logging {entry.quantity} units (new total will be {totalInstalledWithNew})
+                                exceeds quoted total ({item.quantity}) by <strong>+{offset} units</strong>.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="p-2.5 bg-black/40 border border-amber-500/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div>
+                              <span className="text-amber-300/80 block text-[10px] font-bold uppercase">
+                                Assigned Project Manager
+                              </span>
+                              <strong className="text-white text-xs sm:text-sm">{assignedPM.name}</strong>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`tel:${assignedPM.phone}`}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>{assignedPM.phone}</span>
+                              </a>
+                              <a
+                                href={`mailto:${assignedPM.email}?subject=${encodeURIComponent(
+                                  `SOW Over-allocation Notice: ${item.name} on ${activeProject.propertyName || 'Project'}`
+                                )}&body=${encodeURIComponent(
+                                  `Hi ${assignedPM.name},\n\nI am logging ${entry.quantity} units of ${item.name} on ${activeProject.propertyName || 'the project'}. This exceeds quoted SOW by +${offset} units.\n\nPlease review and approve on the project page.\n\nThanks,\n${activeInstallerName}`
+                                )}`}
+                                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg flex items-center gap-1.5 text-xs transition-colors"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>Email PM</span>
+                              </a>
+                            </div>
+                          </div>
+                        </div>
                       )}
+
+                      {/* Status Check Chips */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                          Installation Status Check
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                          {(
+                            [
+                              'Verified & Online',
+                              'Signal Testing Passed',
+                              'Pending LoRa Sync',
+                              'Hardware Swapped',
+                            ] as const
+                          ).map((status) => {
+                            const isSelected = entry.statusCheck === status;
+                            return (
+                              <button
+                                key={status}
+                                type="button"
+                                onClick={() => updateStagedItem(item.id, { statusCheck: status })}
+                                className={`px-2.5 py-2 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer active:scale-95 ${
+                                  isSelected
+                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400 shadow-sm'
+                                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                                }`}
+                              >
+                                {status}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Location Completed Input */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                          Specific Units / Location
+                        </label>
+                        <input
+                          type="text"
+                          value={entry.locationCompleted}
+                          onChange={(e) =>
+                            updateStagedItem(item.id, { locationCompleted: e.target.value })
+                          }
+                          placeholder="e.g. Bldg 3, Units 301-316 or 2nd Floor Clubhouse"
+                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+
+                      {/* Line Item Notes Input */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                          Field Notes for this BOM Item
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={entry.itemNotes}
+                          onChange={(e) => updateStagedItem(item.id, { itemNotes: e.target.value })}
+                          placeholder="Type any install context, wiring details, or issues..."
+                          className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 resize-none"
+                        />
+                      </div>
+
+                      {/* MEDIA TOOLS: VOICE MEMO + PHOTO UPLOAD (EXCLUSIVE TO CLIP) */}
+                      <div className="pt-2 border-t border-slate-800/80 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                            Field Media &amp; Verification
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {entry.photos.length} Photo{entry.photos.length === 1 ? '' : 's'} ·{' '}
+                            {entry.audioBlobUrl ? 'Voice Note Attached' : 'No Voice Note'}
+                          </span>
+                        </div>
+
+                        {/* Action Buttons: Camera Upload + Audio Recorder */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {/* 1. Camera / Photo Upload Button */}
+                          <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-650 border border-slate-700 text-sky-400 font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shadow-sm">
+                            <Camera className="w-4 h-4" />
+                            <span>Snap / Add Photo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              multiple
+                              onChange={(e) => handlePhotoCapture(item.id, e)}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {/* 2. Audio Voice Memo Recorder */}
+                          {recordingItemId === item.id ? (
+                            <button
+                              type="button"
+                              onClick={() => handleStopRecording(item.id)}
+                              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95 animate-pulse shadow-md shadow-rose-600/40"
+                            >
+                              <Square className="w-4 h-4 fill-white" />
+                              <span>Stop Recording ({recordingSeconds}s)</span>
+                            </button>
+                          ) : entry.audioBlobUrl ? (
+                            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-xl p-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handlePlayAudio(item.id, entry.audioBlobUrl)}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-colors cursor-pointer"
+                              >
+                                {playingItemId === item.id ? (
+                                  <>
+                                    <Pause className="w-3.5 h-3.5 fill-white" />
+                                    <span>Pause Memo</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="w-3.5 h-3.5 fill-white" />
+                                    <span>Play Voice Memo ({entry.audioDuration || 5}s)</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteAudio(item.id)}
+                                className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
+                                title="Delete voice note"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleStartRecording(item.id)}
+                              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-650 border border-slate-700 text-emerald-400 font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shadow-sm"
+                            >
+                              <Mic className="w-4 h-4" />
+                              <span>Record Voice Memo</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Photo Gallery Thumbnails */}
+                        {entry.photos.length > 0 && (
+                          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+                            {entry.photos.map((photoUrl, pIdx) => (
+                              <div
+                                key={pIdx}
+                                className="relative group shrink-0 w-16 h-16 rounded-xl border border-slate-700 overflow-hidden bg-slate-950"
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={`Install Verification ${pIdx + 1}`}
+                                  className="w-full h-full object-cover cursor-pointer"
+                                  onClick={() => setPreviewPhotoUrl(photoUrl)}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePhoto(item.id, pIdx)}
+                                  className="absolute top-1 right-1 w-5 h-5 bg-black/80 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer"
+                                  title="Remove photo"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* ========================================================================= */}
@@ -1164,7 +1301,6 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
                 </div>
               </div>
 
-              {/* Big Green 1-Finger Submit Button */}
               <button
                 type="button"
                 onClick={handleSubmitBatch}
@@ -1207,5 +1343,13 @@ export const InstallersClipModal: React.FC<InstallersClipProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+export const InstallersClipModal: React.FC<InstallersClipProps> = (props) => {
+  return (
+    <InstallersClipErrorBoundary onClose={props.onClose}>
+      <InstallersClipModalInternal {...props} />
+    </InstallersClipErrorBoundary>
   );
 };

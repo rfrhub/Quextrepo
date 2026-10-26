@@ -38,6 +38,7 @@ import {
   UserCheck,
   Lightbulb,
   GraduationCap,
+  Zap,
 } from 'lucide-react';
 
 export type MyQuextTopTab =
@@ -101,6 +102,7 @@ interface MyQuextPlatformShellProps {
   onOpenLoginModal: () => void;
   onOpenPartnerAcademy: () => void;
   onOpenSowAutomation?: () => void;
+  onOpenInstallersClip?: () => void;
   onOpenPMTutorial?: () => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
@@ -145,6 +147,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onOpenLoginModal,
   onOpenPartnerAcademy,
   onOpenSowAutomation,
+  onOpenInstallersClip,
   onOpenPMTutorial,
   onResetData,
   onToggleStandaloneMode,
@@ -531,6 +534,22 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               <span className="hidden sm:inline">SOW Automation</span>
               <span className="sm:hidden">SOW</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </button>
+          )}
+
+          {onOpenInstallersClip && (
+            <button
+              type="button"
+              onClick={onOpenInstallersClip}
+              title="Open Installers Clip (In-the-Field Standalone Mode)"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <span className="hidden sm:inline">Installers Clip</span>
+              <span className="sm:hidden">Clip</span>
+              <span className="px-1 py-0.2 bg-sky-200 text-sky-800 rounded text-[9px] font-black uppercase">
+                Field
+              </span>
             </button>
           )}
 
