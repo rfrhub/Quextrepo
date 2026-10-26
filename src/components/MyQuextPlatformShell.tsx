@@ -100,6 +100,7 @@ interface MyQuextPlatformShellProps {
   onViewQuoteAnalysis: (quoteId: string) => void;
   onOpenLoginModal: () => void;
   onOpenPartnerAcademy: () => void;
+  onOpenSowAutomation?: () => void;
   onOpenPMTutorial?: () => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
@@ -143,6 +144,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onViewQuoteAnalysis,
   onOpenLoginModal,
   onOpenPartnerAcademy,
+  onOpenSowAutomation,
   onOpenPMTutorial,
   onResetData,
   onToggleStandaloneMode,
@@ -517,6 +519,20 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               {isSyncingLive ? 'Syncing myquext.com...' : 'Live myquext.com Sync'}
             </span>
           </button>
+
+          {onOpenSowAutomation && (
+            <button
+              type="button"
+              onClick={onOpenSowAutomation}
+              title="Open OneQuext SOW Google Form Automation Hub & Field Tech Dispatcher"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-teal-200 bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-semibold transition-colors cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-teal-600" />
+              <span className="hidden sm:inline">SOW Automation</span>
+              <span className="sm:hidden">SOW</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </button>
+          )}
 
           {/* Toggle Standalone Mode */}
           <button

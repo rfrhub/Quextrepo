@@ -20,6 +20,7 @@ import { ProgressGraph } from './ProgressGraph';
 import { SOWForecasterSection } from './SOWForecasterSection';
 import { ShippingDockSection } from './ShippingDockSection';
 import { InstallLogSection } from './InstallLogSection';
+import { InstallersClipModal } from './InstallersClipModal';
 import {
   PARTNER_IDENTITY_DIRECTORY,
   resolveMyQuextEmailIdentity,
@@ -51,6 +52,7 @@ import {
   Users,
   BookOpen,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 
 export interface FieldTechAccountProfile {
@@ -471,6 +473,10 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
   const [activityStreamFilter, setActivityStreamFilter] = useState<
     'all' | 'sow' | 'dock' | 'logs' | 'doors'
   >('all');
+
+  // Installers Clip standalone in-the-field modal/view toggle
+  const [isInstallersClipOpen, setIsInstallersClipOpen] = useState<boolean>(false);
+  const [clipInitialProjectId, setClipInitialProjectId] = useState<string | null>(null);
 
   // Common Area Door Quick Add state for the active project view
   const [isAddingDoor, setIsAddingDoor] = useState<boolean>(false);
@@ -938,7 +944,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
             </button>
           </div>
 
-          {/* Zone 2: Center Navigation (Live Activity Hub only — no projects in top nav) */}
+          {/* Zone 2: Center Navigation (Live Activity Hub + Installers Clip) */}
           <nav className="hidden md:flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none">
             <button
               type="button"
@@ -954,10 +960,40 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                 {assignedProjects.length} Active
               </span>
             </button>
+
+            {/* Installers Clip Field App Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setClipInitialProjectId(activeTab !== 'hub' ? activeTab : null);
+                setIsInstallersClipOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-bold rounded-lg bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 border border-sky-400/40"
+              title="Open Installers Clip — Standalone In-the-Field Logging App"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
+              <span>Installers Clip</span>
+              <span className="px-1.5 py-0.2 bg-white/20 rounded text-[9px] font-black uppercase tracking-wider">
+                Field
+              </span>
+            </button>
           </nav>
 
           {/* Zone 3: Field Tech Switcher & Profile matching Header.tsx */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Mobile Installers Clip Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setClipInitialProjectId(activeTab !== 'hub' ? activeTab : null);
+                setIsInstallersClipOpen(true);
+              }}
+              className="md:hidden flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-xs border border-sky-400/40 cursor-pointer"
+              title="Open Installers Clip"
+            >
+              <Zap className="w-3 h-3 text-amber-300 fill-amber-300 shrink-0" />
+              <span>Clip</span>
+            </button>
             {/* Quick Switcher between Sean Gates & Hector Lopez (Desktop) */}
             <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
               {AVAILABLE_FIELD_TECHS.map((tName) => (
@@ -1750,6 +1786,18 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                       </button>
 
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setClipInitialProjectId(selectedProject.id);
+                            setIsInstallersClipOpen(true);
+                          }}
+                          className="text-[11px] sm:text-xs px-2.5 py-1 rounded bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 backdrop-blur-md border border-white/20 text-white font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+                          title="Open this project in Installers Clip"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                          <span>Open in Installers Clip</span>
+                        </button>
                         <span className="text-[11px] sm:text-xs px-2.5 py-1 rounded bg-sky-600/90 backdrop-blur-md border border-white/20 text-white font-bold flex items-center gap-1.5">
                           <Wrench className="w-3.5 h-3.5" />
                           <span>{fieldTech}</span>
@@ -2308,6 +2356,18 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
           <span className="text-[10px] mt-0.5 truncate max-w-full">Account</span>
         </button>
       </nav>
+
+      {/* Installers Clip Standalone In-The-Field Modal / App */}
+      <InstallersClipModal
+        isOpen={isInstallersClipOpen}
+        onClose={() => setIsInstallersClipOpen(false)}
+        projects={assignedProjects}
+        onUpdateProject={onUpdateProject}
+        initialProjectId={clipInitialProjectId}
+        activeInstallerName={fieldTech}
+        installerRole="field_tech"
+        companyName="Quext Field Operations"
+      />
     </div>
   );
 };

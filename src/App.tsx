@@ -36,6 +36,7 @@ import { FieldTechPortal, FieldTechLoginModal } from './components/FieldTechPort
 import { RightNotificationsDock } from './components/RightNotificationsDock';
 import { QuextLogo } from './components/QuextLogo';
 import { MyQuextPlatformShell, MyQuextTopTab } from './components/MyQuextPlatformShell';
+import { SOWFormAutomationHub } from './components/SOWFormAutomationHub';
 import { PMTutorialGuide, TutorialNavigationTarget } from './components/PMTutorialGuide';
 import {
   MyQuextLoginPage,
@@ -73,6 +74,7 @@ export default function App() {
     selectedProjectId?: string | null;
   } | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [isSowHubOpen, setIsSowHubOpen] = useState<boolean>(false);
 
   // Live Right-Side Notification Dock auto-slide-out state (5-second reveal)
   const [latestNotification, setLatestNotification] = useState<ProjectActivityNotification | null>(null);
@@ -1123,6 +1125,7 @@ export default function App() {
             });
             window.location.hash = '#/partner-academy';
           }}
+          onOpenSowAutomation={() => setIsSowHubOpen(true)}
           onOpenPMTutorial={() => setIsPMTutorialOpen(true)}
           onResetData={handleResetData}
           onToggleStandaloneMode={() => setIsMyQuextShellMode(false)}
@@ -1203,6 +1206,7 @@ export default function App() {
         wonProjectsCount={projects.length}
         totalQuotesCount={quotes.length}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onOpenSowAutomation={() => setIsSowHubOpen(true)}
         onOpenPartnerAcademy={() => {
           setLoggedInFieldTech(null);
           setLoggedInPartnerAcademy({
@@ -1305,6 +1309,13 @@ export default function App() {
           window.location.hash = '#/partner-academy';
         }}
         projects={projects}
+      />
+
+      {/* OneQuext SOW Google Form Automation Hub & Field Tech Dispatcher */}
+      <SOWFormAutomationHub
+        isOpen={isSowHubOpen}
+        onClose={() => setIsSowHubOpen(false)}
+        onNavigateToProject={handleGoToOperationsProject}
       />
 
       {isPMTutorialOpen && (

@@ -18,6 +18,11 @@ import {
   Phone,
   Sparkles,
   XCircle,
+  Camera,
+  Mic,
+  Play,
+  Pause,
+  X,
 } from 'lucide-react';
 
 interface SelectedBOMConfig {
@@ -76,6 +81,10 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
 
   // Multi-BOM Item selection map: { [itemId]: { quantity, itemNotes } }
   const [selectedBOMEntries, setSelectedBOMEntries] = useState<Record<string, SelectedBOMConfig>>({});
+
+  // Media preview states for photos & audio memos
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
 
   const activePM = assignedPM || AVAILABLE_PMS[0];
 
@@ -797,6 +806,60 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
                         Line Note: {log.itemNotes}
                       </div>
                     )}
+                    {/* Media Attachments: Photos & Audio Memos logged from Installers Clip */}
+                    {((log.photos && log.photos.length > 0) || log.audioNoteUrl) && (
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        {log.photos && log.photos.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            {log.photos.map((img, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setPreviewPhotoUrl(img)}
+                                className="w-6 h-6 rounded border border-slate-300 overflow-hidden shrink-0 hover:ring-2 hover:ring-sky-400 transition-all cursor-pointer"
+                                title="Click to view full photo"
+                              >
+                                <img src={img} alt="Verification" className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                            <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-1 rounded border border-sky-200">
+                              {log.photos.length} Photo{log.photos.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+
+                        {log.audioNoteUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (playingAudioId === log.id) {
+                                setPlayingAudioId(null);
+                              } else {
+                                setPlayingAudioId(log.id);
+                                const a = new Audio(log.audioNoteUrl);
+                                a.onended = () => setPlayingAudioId(null);
+                                a.onerror = () => setPlayingAudioId(null);
+                                a.play().catch(() => setPlayingAudioId(null));
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-bold transition-colors cursor-pointer"
+                            title="Play installer voice memo"
+                          >
+                            {playingAudioId === log.id ? (
+                              <>
+                                <Pause className="w-2.5 h-2.5 fill-emerald-700" />
+                                <span>Pause ({log.audioNoteDuration || 5}s)</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-2.5 h-2.5 fill-emerald-700" />
+                                <span>Voice Memo ({log.audioNoteDuration || 5}s)</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   <td className="py-3.5 px-2 text-center">
@@ -815,6 +878,32 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Lightbox Photo Preview Modal */}
+      {previewPhotoUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setPreviewPhotoUrl(null)}
+        >
+          <div
+            className="relative max-w-2xl max-h-[85vh] bg-white rounded-xl overflow-hidden shadow-2xl p-2 border border-slate-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewPhotoUrl}
+              alt="Installation Verification Full View"
+              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewPhotoUrl(null)}
+              className="absolute top-4 right-4 p-1.5 bg-black/75 hover:bg-rose-600 text-white rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -38,6 +38,9 @@ export interface InstallLogEntry {
   offsetQuantity?: number;
   itemNotes?: string; // Dedicated note tied to this individual BOM line item
   approvalStatus?: 'pending_approval' | 'approved' | 'denied';
+  photos?: string[]; // In-the-field photos confirming installation / hardware context
+  audioNoteUrl?: string; // Voice memo audio recording URL or data URI
+  audioNoteDuration?: number; // Duration of audio memo in seconds
 }
 
 export interface PendingInstallationChange {

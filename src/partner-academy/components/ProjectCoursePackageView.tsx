@@ -27,6 +27,7 @@ import {
   ExternalLink,
   Award,
   Play,
+  Zap,
 } from 'lucide-react';
 
 interface ProjectCoursePackageViewProps {
@@ -35,6 +36,7 @@ interface ProjectCoursePackageViewProps {
   onStartCourseModule: (module: CourseModule) => void;
   onTakeCourseQuiz: (module: CourseModule, mode: 'practice_quiz' | 'certification_exam') => void;
   onOpenGuideTab: (tabId: string) => void;
+  onOpenInstallersClip?: () => void;
   onUpdateProject?: (updatedProject: OperationProject) => void;
 }
 
@@ -44,6 +46,7 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
   onStartCourseModule,
   onTakeCourseQuiz,
   onOpenGuideTab,
+  onOpenInstallersClip,
   onUpdateProject,
 }) => {
   const { currentUser } = useAuth();
@@ -189,6 +192,17 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
                   <div>Prep Checklist</div>
                 </div>
               </div>
+
+              {/* Installers Clip Field Mode Launcher */}
+              <button
+                type="button"
+                onClick={onOpenInstallersClip || (() => onOpenGuideTab('installers_clip'))}
+                className="w-full mt-2 py-2 px-3 rounded-xl bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm border border-sky-400/30 cursor-pointer transition-all active:scale-98"
+                title="Open Installers Clip for this project"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                <span>Open in Installers Clip (Field Log)</span>
+              </button>
             </div>
           </div>
 

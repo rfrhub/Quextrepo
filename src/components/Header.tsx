@@ -25,6 +25,7 @@ interface HeaderProps {
   totalQuotesCount: number;
   onOpenLoginModal?: () => void;
   onOpenPartnerAcademy?: () => void;
+  onOpenSowAutomation?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   totalQuotesCount,
   onOpenLoginModal,
   onOpenPartnerAcademy,
+  onOpenSowAutomation,
 }) => {
   const [needsAuth, setNeedsAuth] = useState<boolean>(true);
   const [gmailUserEmail, setGmailUserEmail] = useState<string | null>(null);
@@ -212,6 +214,20 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
+            {onOpenSowAutomation && (
+              <button
+                type="button"
+                onClick={onOpenSowAutomation}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                title="Open SOW Google Form Automation Hub & Field Tech Dispatcher"
+              >
+                <FileText className="w-3.5 h-3.5 text-teal-600" />
+                <span className="hidden sm:inline">SOW Automation</span>
+                <span className="sm:hidden">SOW</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </button>
+            )}
+
             {onOpenLoginModal && (
               <button
                 type="button"
@@ -323,6 +339,18 @@ export const Header: React.FC<HeaderProps> = ({
             <Building2 className="w-3.5 h-3.5" />
             <span>Quote Analysis</span>
           </button>
+
+          {onOpenSowAutomation && (
+            <button
+              type="button"
+              onClick={onOpenSowAutomation}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg whitespace-nowrap shrink-0 transition-all cursor-pointer bg-teal-500 text-white shadow-2xs"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>SOW Automation</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
+            </button>
+          )}
         </div>
 
         {/* Expandable Mobile Menu Drawer */}

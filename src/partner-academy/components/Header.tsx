@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { QuextLogo } from './QuextLogo';
-import { ShieldCheck, UserCheck, Building2, Award, ChevronDown } from 'lucide-react';
+import { ShieldCheck, UserCheck, Building2, Award, ChevronDown, Zap } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   onOpenLoginModal: () => void;
   onOpenCertModal: () => void;
+  onOpenInstallersClip?: () => void;
   onOpenUnifiedSignInModal?: () => void;
   onExitToOperationsHub?: () => void;
 }
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   setCurrentTab,
   onOpenLoginModal,
   onOpenCertModal,
+  onOpenInstallersClip,
   onOpenUnifiedSignInModal,
   onExitToOperationsHub,
 }) => {
@@ -342,7 +344,22 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Zone 3: 1-2 primary actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Installers Clip Field App Action Button */}
+          <button
+            type="button"
+            onClick={onOpenInstallersClip || (() => setCurrentTab('installers_clip'))}
+            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md border border-sky-400/40 transition-all cursor-pointer active:scale-95 shrink-0"
+            title="Open Installers Clip — In-the-Field Logging App for Integrator Partners"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
+            <span className="hidden sm:inline">Installers Clip</span>
+            <span className="sm:hidden">Clip</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded text-[9px] font-black uppercase tracking-wider">
+              Field
+            </span>
+          </button>
+
           {/* Quick Role & Company Context Trigger */}
           <div className="relative">
             <button

@@ -213,10 +213,17 @@ async function getQuextLogoBase64(): Promise<string | null> {
   }
 }
 
+export interface EmailAttachment {
+  filename: string;
+  contentType: string;
+  base64Data: string;
+}
+
 export interface SendGmailParams {
   to: string | string[];
   subject: string;
   htmlBody: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface SendGmailResult {
@@ -229,6 +236,7 @@ export const sendRealGmailEmail = async ({
   to,
   subject,
   htmlBody,
+  attachments,
 }: SendGmailParams): Promise<SendGmailResult> => {
   const token = await getAccessToken();
   if (!token) {
@@ -259,7 +267,69 @@ export const sendRealGmailEmail = async ({
   const logoBase64 = await getQuextLogoBase64();
   let mimeLines: string[];
 
-  if (logoBase64) {
+  const hasAttachments = attachments && attachments.length > 0;
+
+  if (hasAttachments) {
+    const mixedBoundary = `quext_mixed_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const relatedBoundary = `quext_rel_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+    mimeLines = [
+      `To: ${recipientList.join(', ')}`,
+      `Subject: ${encodeMimeHeaderUtf8(subject)}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
+      '',
+      `--${mixedBoundary}`,
+    ];
+
+    if (logoBase64) {
+      const htmlWithCid = brandedHtml
+        .split(QUEXT_EMAIL_LOGO_URL)
+        .join(`cid:${QUEXT_EMAIL_LOGO_CID}`);
+
+      mimeLines.push(
+        `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
+        '',
+        `--${relatedBoundary}`,
+        'Content-Type: text/html; charset="UTF-8"',
+        'Content-Transfer-Encoding: 8bit',
+        '',
+        htmlWithCid,
+        '',
+        `--${relatedBoundary}`,
+        'Content-Type: image/png; name="Quext_Logo_Black.png"',
+        'Content-Transfer-Encoding: base64',
+        `Content-ID: <${QUEXT_EMAIL_LOGO_CID}>`,
+        'Content-Disposition: inline; filename="Quext_Logo_Black.png"',
+        '',
+        logoBase64,
+        '',
+        `--${relatedBoundary}--`
+      );
+    } else {
+      mimeLines.push(
+        'Content-Type: text/html; charset="UTF-8"',
+        'Content-Transfer-Encoding: 8bit',
+        '',
+        brandedHtml
+      );
+    }
+
+    // Attach each attachment
+    for (const att of attachments!) {
+      mimeLines.push(
+        '',
+        `--${mixedBoundary}`,
+        `Content-Type: ${att.contentType || 'application/pdf'}; name="${att.filename}"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${att.filename}"`,
+        '',
+        att.base64Data
+      );
+    }
+
+    mimeLines.push('', `--${mixedBoundary}--`);
+  } else if (logoBase64) {
     const boundary = `quext_rel_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const htmlWithCid = brandedHtml
       .split(QUEXT_EMAIL_LOGO_URL)

@@ -23,6 +23,7 @@ import { BefeLocksGuide } from './components/BefeLocksGuide';
 import { LockFieldGuide } from './components/LockFieldGuide';
 import { SpecSheetsViewer } from './components/SpecSheetsViewer';
 import { ButterflyIntercomWiring } from './components/ButterflyIntercomWiring';
+import { InstallersClipModal } from '../components/InstallersClipModal';
 import { CourseModule } from './types';
 import { COURSE_MODULES } from './data/mockData';
 import {
@@ -60,7 +61,7 @@ const MainApp: React.FC<{
   onOpenUnifiedSignInModal,
   onExitToOperationsHub,
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentCompany } = useAuth();
 
   const [currentTab, setCurrentTab] = useState<string>('curriculum');
   const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null);
@@ -69,6 +70,10 @@ const MainApp: React.FC<{
   const [showCertModal, setShowCertModal] = useState<boolean>(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [certTargetUserId, setCertTargetUserId] = useState<string | undefined>(undefined);
+
+  // Installers Clip standalone field logging app state
+  const [isInstallersClipOpen, setIsInstallersClipOpen] = useState<boolean>(false);
+  const [clipInitialProjectId, setClipInitialProjectId] = useState<string | null>(null);
 
   // Track which project's Pre-Packaged Installation Prep Bundle is active
   const [activePrepProjectId, setActivePrepProjectId] = useState<string | null>(
@@ -125,12 +130,21 @@ const MainApp: React.FC<{
       <Header
         currentTab={currentTab}
         setCurrentTab={(tab) => {
+          if (tab === 'installers_clip') {
+            setClipInitialProjectId(activePrepProjectId);
+            setIsInstallersClipOpen(true);
+            return;
+          }
           setIsViewingProjectPrepHub(false);
           setSelectedModule(null);
           setCurrentTab(tab);
         }}
         onOpenLoginModal={() => setShowLoginModal(true)}
         onOpenCertModal={() => handleOpenCertificate(currentUser.id)}
+        onOpenInstallersClip={() => {
+          setClipInitialProjectId(activePrepProjectId);
+          setIsInstallersClipOpen(true);
+        }}
         onOpenUnifiedSignInModal={onOpenUnifiedSignInModal}
         onExitToOperationsHub={onExitToOperationsHub}
       />
@@ -212,6 +226,10 @@ const MainApp: React.FC<{
                 setSelectedModule(null);
                 setCurrentTab(tabId);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onOpenInstallersClip={() => {
+                setClipInitialProjectId(activePrepProject.id);
+                setIsInstallersClipOpen(true);
               }}
               onUpdateProject={onUpdateProject}
             />
@@ -544,6 +562,20 @@ const MainApp: React.FC<{
       {showLoginModal && (
         <LoginModal onClose={() => setShowLoginModal(false)} />
       )}
+
+      {/* Installers Clip Standalone In-The-Field App for Integrator Partners */}
+      <InstallersClipModal
+        isOpen={isInstallersClipOpen}
+        onClose={() => setIsInstallersClipOpen(false)}
+        projects={projects}
+        onUpdateProject={(updated) => {
+          if (onUpdateProject) onUpdateProject(updated);
+        }}
+        initialProjectId={clipInitialProjectId}
+        activeInstallerName={currentUser.name}
+        installerRole="integrator_partner"
+        companyName={currentCompany?.name || 'Integrator Partner'}
+      />
     </div>
   );
 };
