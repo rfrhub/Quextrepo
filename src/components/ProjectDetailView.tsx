@@ -31,6 +31,8 @@ import { ShippingDockSection } from './ShippingDockSection';
 import { SOWForecasterSection } from './SOWForecasterSection';
 import { ProgressGraph } from './ProgressGraph';
 import { InstallLogSection } from './InstallLogSection';
+import { InstallLogsAndMediaContainer } from './InstallLogsAndMediaContainer';
+import { InstallersClipModal } from './InstallersClipModal';
 import { ProjectNotesSection } from './ProjectNotesSection';
 import { CustomerKickoffWalkthrough } from './CustomerKickoffWalkthrough';
 import { CustomerCommsControlPanel } from './CustomerCommsControlPanel';
@@ -135,6 +137,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const [isCSMTrainingOpen, setIsCSMTrainingOpen] = useState<boolean>(false);
   const [csmPortalInitialMode, setCsmPortalInitialMode] = useState<'csm-intro-booking' | 'csm-handoff'>('csm-intro-booking');
   const [isClosureSummaryOpen, setIsClosureSummaryOpen] = useState<boolean>(false);
+  const [isInstallersClipOpen, setIsInstallersClipOpen] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [showCSMCompletedAlert, setShowCSMCompletedAlert] = useState<boolean>(false);
   const [showCSMIntroBookingAlert, setShowCSMIntroBookingAlert] = useState<boolean>(false);
@@ -2455,9 +2458,10 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             </div>
           </div>
 
-          {/* Historical Installer Completion Log */}
+          {/* Historical Installer Completion Log & Field Media Carousel (Horizontal Scroll Between Logs and Photos/Audio) */}
           <div id="pm-installer-logs" className="scroll-mt-36">
-            <InstallLogSection
+            <InstallLogsAndMediaContainer
+              project={project}
               logs={project.installLogs}
               bomItems={project.bomItems}
               projectIntegratorPartners={getProjectIntegratorPartners(project)}
@@ -2469,6 +2473,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               onConfirmInstallation={handleConfirmInstallation}
               onApproveOverAllocation={handleApproveOverAllocation}
               onDenyOverAllocation={handleDenyOverAllocation}
+              onOpenInstallersClip={() => setIsInstallersClipOpen(true)}
             />
           </div>
 
@@ -2852,6 +2857,18 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Standalone Installers Clip Modal for fast mobile or desktop field logs & media */}
+      <InstallersClipModal
+        isOpen={isInstallersClipOpen}
+        onClose={() => setIsInstallersClipOpen(false)}
+        projects={[project]}
+        onUpdateProject={onUpdateProject}
+        initialProjectId={project.id}
+        activeInstallerName={project.assignedPM?.name || 'Quext Field Operations'}
+        installerRole="pm"
+        companyName={getProjectIntegratorPartners(project)[0] || 'Integrator Partner'}
+      />
 
     </div>
   );

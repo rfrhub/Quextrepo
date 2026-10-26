@@ -20,6 +20,7 @@ import { ProgressGraph } from './ProgressGraph';
 import { SOWForecasterSection } from './SOWForecasterSection';
 import { ShippingDockSection } from './ShippingDockSection';
 import { InstallLogSection } from './InstallLogSection';
+import { InstallLogsAndMediaContainer } from './InstallLogsAndMediaContainer';
 import { InstallersClipModal } from './InstallersClipModal';
 import {
   PARTNER_IDENTITY_DIRECTORY,
@@ -1978,18 +1979,23 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
               onUpdateProject={onUpdateProject}
             />
 
-            {/* SECTION 4: Installer Completion & Verification Log */}
+            {/* SECTION 4: Installer Completion & Verification Log & Field Media Carousel */}
             <div id="ft-installer-log">
-              <InstallLogSection
+              <InstallLogsAndMediaContainer
+                project={selectedProject}
                 logs={selectedProject.installLogs}
                 bomItems={selectedProject.bomItems}
                 projectIntegratorPartners={getProjectIntegratorPartners(selectedProject)}
-                onAddLog={(newLog, autoInc) => handleAddLog(selectedProject, newLog, autoInc)}
+                onAddLog={(newLog, autoInc) => handleAddLog(selectedProject, newLog, Boolean(autoInc))}
                 onDeleteLog={(logId) => handleDeleteLog(selectedProject, logId)}
                 defaultInstallerName={`${fieldTech} (Field Tech)`}
                 editorRole="field_tech"
                 editorName={`${fieldTech} (Field Tech)`}
                 assignedPM={selectedProject.assignedPM}
+                onOpenInstallersClip={() => {
+                  setClipInitialProjectId(selectedProject.id);
+                  setIsInstallersClipOpen(true);
+                }}
               />
             </div>
 

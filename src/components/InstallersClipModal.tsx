@@ -351,11 +351,15 @@ const InstallersClipModalInternal: React.FC<InstallersClipProps> = ({
 
         mediaRecorder.onstop = () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const blobUrl = URL.createObjectURL(audioBlob);
-          updateStagedItem(itemId, {
-            audioBlobUrl: blobUrl,
-            audioDuration: recordingSeconds || 5,
-          });
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const dataUrl = (reader.result as string) || URL.createObjectURL(audioBlob);
+            updateStagedItem(itemId, {
+              audioBlobUrl: dataUrl,
+              audioDuration: recordingSeconds || 5,
+            });
+          };
+          reader.readAsDataURL(audioBlob);
           stream.getTracks().forEach((track) => track.stop());
         };
 

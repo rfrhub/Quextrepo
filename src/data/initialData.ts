@@ -849,27 +849,43 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         id: 'log-33-101',
         projectId: '33om1u0TTgW3MYKO2FhH',
         timestamp: '2026-10-21 09:45 AM',
-        installerName: 'Austin Field Crew Alpha (Marco T.)',
+        installerName: 'Austin Field Crew Alpha (Sean Gates)',
         itemId: 'bom-33-01',
         itemName: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
         quantityCompleted: 24,
         locationCompleted: 'Building 4, Units 401 through 424',
         statusCheck: 'Verified & Online',
         notes: 'Calibrated door strike plates and provisioned Apple Wallet digital credentials for property management test master key.',
+        itemNotes: 'Calibrated door strike plates and provisioned Apple Wallet digital credentials for property management test master key.',
         color: 'yellow',
+        submittedByRole: 'field_tech',
+        photos: [
+          '/src/assets/images/schlage_befe_control_lock_1791238473031.jpg',
+          '/src/assets/images/schlage_befe_control_lock_interior.png',
+        ],
+        audioNoteUrl: 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAAAAAAAAAAAAAAAA=',
+        audioNoteDuration: 8,
       },
       {
         id: 'log-33-102',
         projectId: '33om1u0TTgW3MYKO2FhH',
         timestamp: '2026-10-20 03:30 PM',
-        installerName: 'Austin Field Crew Beta (Dave Chen)',
+        installerName: 'SKBM Partner Crew (Marcus Vance)',
         itemId: 'bom-33-02',
         itemName: 'Quext IoT Smart Thermostat (LoRaWAN)',
         quantityCompleted: 28,
         locationCompleted: 'Building 3, Floors 2 & 3',
         statusCheck: 'Signal Testing Passed',
         notes: 'LoRaWAN RSSI verified at -78 dBm across all units. C-wire test passed 24V steady.',
+        itemNotes: 'LoRaWAN RSSI verified at -78 dBm across all units. C-wire test passed 24V steady.',
         color: 'yellow',
+        submittedByRole: 'integrator_partner',
+        photos: [
+          '/src/assets/images/quext_iot_thermostat_1791229740444.jpg',
+          '/src/assets/images/cover_quext_thermostat_1791385399191.jpg',
+        ],
+        audioNoteUrl: 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAAAAAAAAAAAAAAAA=',
+        audioNoteDuration: 12,
       },
       {
         id: 'log-33-103',
@@ -882,7 +898,14 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         locationCompleted: 'Clubhouse Tower & Building 2 Parapet',
         statusCheck: 'Verified & Online',
         notes: 'All 4 property gateways are now fully synced to Quext Cloud IoT core with LTE failover backup enabled.',
+        itemNotes: 'Base station antenna torqued to spec, LTE failover verified on carrier test.',
         color: 'yellow',
+        submittedByRole: 'field_tech',
+        photos: [
+          '/src/assets/images/tektelic_gateway_iot_1791238061805.jpg',
+        ],
+        audioNoteUrl: 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAAAAAAAAAAAAAAAA=',
+        audioNoteDuration: 6,
       },
       {
         id: 'log-33-104',
@@ -1914,6 +1937,21 @@ function enrichProjectDefaults(p: OperationProject): OperationProject {
     ...p,
     assignedFieldTech: normalizeFieldTech(p.assignedFieldTech),
     integratorPartners: partners,
+    installLogs:
+      p.installLogs && p.installLogs.length > 0
+        ? p.installLogs.map((l) => {
+            const initMatch = INITIAL_PROJECTS.find((ip) => ip.id === p.id)?.installLogs?.find(
+              (il) => il.id === l.id
+            );
+            return {
+              ...l,
+              photos: l.photos && l.photos.length > 0 ? l.photos : initMatch?.photos || [],
+              audioNoteUrl: l.audioNoteUrl || initMatch?.audioNoteUrl,
+              audioNoteDuration: l.audioNoteDuration || initMatch?.audioNoteDuration,
+              itemNotes: l.itemNotes || initMatch?.itemNotes,
+            };
+          })
+        : INITIAL_PROJECTS.find((ip) => ip.id === p.id)?.installLogs || [],
     useNfcWallet:
       p.useNfcWallet !== undefined
         ? p.useNfcWallet
