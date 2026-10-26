@@ -26,10 +26,13 @@ import {
   QUEXT_TRAINING_HELP_ARTICLE_URL,
   PendingInstallationChange,
   buildCustomerKickoffPortalUrl,
+  CustomerCommsLog,
+  getLockFinishSummaryTag,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
-import { ShippingDockSection } from './ShippingDockSection';
+import { ShippingDockSection, buildFullShippingUpdatePayload } from './ShippingDockSection';
+import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
 import { SOWForecasterSection } from './SOWForecasterSection';
 import { ProgressGraph } from './ProgressGraph';
 import { InstallLogSection } from './InstallLogSection';
@@ -73,6 +76,8 @@ import {
   MessageSquare,
   Thermometer,
   Send,
+  Truck,
+  FileSignature,
   DollarSign,
   ChevronDown,
   ChevronRight,
@@ -144,6 +149,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const [showCSMCompletedAlert, setShowCSMCompletedAlert] = useState<boolean>(false);
   const [showCSMIntroBookingAlert, setShowCSMIntroBookingAlert] = useState<boolean>(false);
   const [showEntrataPassword, setShowEntrataPassword] = useState<boolean>(true);
+  const [gmailModalPayload, setGmailModalPayload] = useState<LiveGmailModalPayload | null>(null);
+  const [headerEmailSuccessBanner, setHeaderEmailSuccessBanner] = useState<string | null>(null);
 
   // Common Area Door Quick Add state
   const [isAddingDoor, setIsAddingDoor] = useState<boolean>(false);
@@ -900,6 +907,378 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const isProjectClosed = project.milestones.some(
     (m) => m.title.toLowerCase().includes('closed') && m.status === 'Completed'
   );
+  const isImplementationActive = project.milestones.some(
+    (m) =>
+      (m.title.toLowerCase() === 'implementation' ||
+        (m.title.toLowerCase().includes('implementation') &&
+          !m.title.toLowerCase().includes('pre-implementation'))) &&
+      m.status === 'In Progress'
+  );
+  const isPortalBuildoutActive = project.milestones.some(
+    (m) => m.title.toLowerCase().includes('portal buildout') && m.status === 'In Progress'
+  );
+  const isProductAcquisitionActive = project.milestones.some(
+    (m) => m.title.toLowerCase().includes('product acquisition') && m.status === 'In Progress'
+  );
+  const isKickoffCompletedInEntirety = Boolean(
+    project.customerIntake?.walkthroughCompleted ||
+      project.customerIntake?.submittedAt ||
+      isKickoffCompleted
+  );
+
+  const customerEmailRecipient =
+    project.customerIntake?.subscriberEmail ||
+    project.customerIntake?.communityEmail ||
+    project.customerIntake?.staffRoles?.[0]?.email ||
+    'RFRleasing@gmail.com';
+
+  // Implementation Active: Send BOM progress overview (high-level view + individual line item view WITHOUT internal notes)
+  const handleSendImplementationBomProgressEmail = () => {
+    const bomItems = project.bomItems || [];
+    const totalQuoted = bomItems.reduce((acc, i) => acc + i.quantity, 0);
+    const totalInstalled = bomItems.reduce((acc, i) => acc + i.installedCount, 0);
+    const overallPct = totalQuoted > 0 ? Math.min(100, Math.round((totalInstalled / totalQuoted) * 100)) : 0;
+
+    // Categories summary
+    const categories = Array.from(new Set(bomItems.map((b) => b.category)));
+    const catRowsHtml = categories
+      .map((cat) => {
+        const catItems = bomItems.filter((b) => b.category === cat);
+        const q = catItems.reduce((sum, i) => sum + i.quantity, 0);
+        const inst = catItems.reduce((sum, i) => sum + i.installedCount, 0);
+        const p = q > 0 ? Math.min(100, Math.round((inst / q) * 100)) : 0;
+        return `
+          <tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #1e293b; font-size: 13px;">${cat}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-family: monospace; font-size: 13px; color: #334155;">${q.toLocaleString()}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-family: monospace; font-size: 13px; font-weight: 700; color: #0284c7;">${inst.toLocaleString()}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-family: monospace; font-size: 13px; font-weight: 700; color: ${p >= 100 ? '#059669' : p > 0 ? '#0284c7' : '#64748b'};">${p}%</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    // Individual line items table (WITHOUT internal notes visible to customer)
+    const lineItemRowsHtml = bomItems
+      .map((item) => {
+        const pct = item.quantity > 0 ? Math.min(100, Math.round((item.installedCount / item.quantity) * 100)) : 0;
+        const finishTag = item.lockFinishConfig ? ` <span style="font-size: 11px; color: #475569; font-weight: normal;">[${getLockFinishSummaryTag(item.lockFinishConfig)}]</span>` : '';
+        const statusBadge =
+          item.installedCount >= item.quantity
+            ? `<span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background-color: #ecfdf5; color: #059669; font-size: 11px; font-weight: 700;">Complete</span>`
+            : item.installedCount > 0
+            ? `<span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background-color: #f0f9ff; color: #0284c7; font-size: 11px; font-weight: 700;">In Progress (${pct}%)</span>`
+            : `<span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background-color: #f8fafc; color: #64748b; font-size: 11px; font-weight: 600;">Pending</span>`;
+
+        return `
+          <tr>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px;">
+              <div style="font-weight: 600; color: #0f172a;">${item.name}${finishTag}</div>
+              <div style="font-family: monospace; font-size: 11px; color: #64748b; margin-top: 2px;">Model: ${item.model}</div>
+            </td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #475569;">
+              ${item.category}
+            </td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #475569;">
+              ${item.location || 'On-site'}
+            </td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; text-align: right; font-family: monospace; font-size: 13px; color: #334155;">
+              ${item.quantity.toLocaleString()}
+            </td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; text-align: right; font-family: monospace; font-size: 13px; font-weight: 700; color: #0284c7;">
+              ${item.installedCount.toLocaleString()}
+            </td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; text-align: center;">
+              ${statusBadge}
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const htmlBody = `
+      <div style="font-family: Inter, Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+        <div style="border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
+          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
+          <span style="float: right; font-size: 11px; color: #0284c7; font-weight: bold; text-transform: uppercase; line-height: 28px;">Deployment Progress Overview</span>
+        </div>
+        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
+        <p style="margin: 0 0 16px 0; font-size: 13px; color: #334155;">
+          Here is your live Smart Community hardware installation progress overview for <strong>${project.propertyName}</strong>:
+        </p>
+
+        <!-- High-Level Overview Cards -->
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <div style="flex: 1; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600;">Total Quoted</div>
+            <div style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 4px; font-family: monospace;">${totalQuoted.toLocaleString()}</div>
+          </div>
+          <div style="flex: 1; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #0369a1; font-weight: 600;">Installed to Date</div>
+            <div style="font-size: 20px; font-weight: 700; color: #0284c7; margin-top: 4px; font-family: monospace;">${totalInstalled.toLocaleString()}</div>
+          </div>
+          <div style="flex: 1; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #047857; font-weight: 600;">Overall Progress</div>
+            <div style="font-size: 20px; font-weight: 700; color: #059669; margin-top: 4px; font-family: monospace;">${overallPct}%</div>
+          </div>
+        </div>
+
+        <!-- High-Level Category Breakdown -->
+        <div style="margin-bottom: 24px;">
+          <h4 style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">Hardware Category Breakdown</h4>
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <thead>
+              <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Category</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Quoted</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Installed</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">% Done</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${catRowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Individual Line Item View (No internal notes) -->
+        <div style="margin-bottom: 20px;">
+          <h4 style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">Individual Hardware Line Items</h4>
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <thead>
+              <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Hardware / Model</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Category</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Location</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Quoted</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Installed</th>
+                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: center;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lineItemRowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
+          Best regards,<br/>
+          <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations (${project.assignedPM?.email || 'pm@onequext.com'})
+        </p>
+      </div>
+    `;
+
+    setGmailModalPayload({
+      title: 'Confirm & Send BOM Progress Deployment Overview via Gmail',
+      defaultRecipients: customerEmailRecipient,
+      subject: `[Deployment Overview] Hardware Installation Progress: ${project.propertyName} (${overallPct}% Complete)`,
+      htmlBody,
+      onDispatched: ({ recipients, subject, gmailMessageId }) => {
+        const nowStr = new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        const newLog: CustomerCommsLog = {
+          id: `bom-progress-${Date.now()}`,
+          projectId: project.id,
+          timestamp: nowStr,
+          type: 'deployment_overview_email',
+          recipientEmail: recipients.join(', '),
+          subject,
+          summary: `Sent Smart Community BOM progress overview (${totalInstalled}/${totalQuoted} units, ${overallPct}%) to customer. [Gmail ID: ${gmailMessageId || 'Sent'}]`,
+          sentBy: project.assignedPM?.name || 'Quext PM',
+          status: 'Delivered',
+        };
+        onUpdateProject({
+          ...project,
+          customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
+          lastUpdated: new Date().toISOString(),
+        });
+        setHeaderEmailSuccessBanner(
+          `Real email delivered via Gmail: BOM Deployment Overview (${overallPct}% installed) sent to ${recipients.join(', ')}!`
+        );
+        setTimeout(() => setHeaderEmailSuccessBanner(null), 5000);
+      },
+    });
+  };
+
+  // Portal Buildout Active & Kickoff Incomplete: Send Kickoff Document to customer
+  const handleSendKickoffDocumentEmail = () => {
+    const portalUrl = buildCustomerKickoffPortalUrl(project.id);
+    const htmlBody = `
+      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+        <div style="border-bottom: 2px solid #f59e0b; padding-bottom: 12px; margin-bottom: 16px;">
+          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
+          <span style="float: right; font-size: 11px; color: #d97706; font-weight: bold; text-transform: uppercase; line-height: 28px;">Kickoff Walkthrough Document</span>
+        </div>
+        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
+        <p style="margin: 0 0 14px 0; font-size: 13px; color: #334155;">
+          Please continue filling out your official <strong>Quext Smart Community Kickoff Document &amp; Intake Form</strong> for <strong>${project.propertyName}</strong> (${project.unitsCount} units):
+        </p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${portalUrl}" style="background-color: #f59e0b; color: #ffffff; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            Continue Kickoff Document
+          </a>
+        </div>
+        <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 12px; color: #92400e;">
+          <strong>Information required to finalize Portal Buildout:</strong>
+          <ul style="margin: 6px 0 0 16px; padding: 0;">
+            <li>Property Management Software (PMS) integration credentials (${project.customerIntake?.pmsSoftware || 'Yardi / RealPage / Entrata'})</li>
+            <li>On-site staff directory &amp; administrative roles</li>
+            <li>Common area access door schedule &amp; perimeter gates</li>
+            <li>Site plan &amp; gateway placement confirmations</li>
+          </ul>
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
+          Best regards,<br/>
+          <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations (${project.assignedPM?.email || 'pm@onequext.com'})
+        </p>
+      </div>
+    `;
+
+    setGmailModalPayload({
+      title: 'Confirm & Send Kickoff Document to Customer via Gmail',
+      defaultRecipients: customerEmailRecipient,
+      subject: `[Action Required] Quext Kickoff Document & Intake Form: ${project.propertyName}`,
+      htmlBody,
+      onDispatched: ({ recipients, subject, gmailMessageId }) => {
+        const nowStr = new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        const newLog: CustomerCommsLog = {
+          id: `kickoff-doc-${Date.now()}`,
+          projectId: project.id,
+          timestamp: nowStr,
+          type: 'kickoff_submission',
+          recipientEmail: recipients.join(', '),
+          subject,
+          summary: `Sent Kickoff Document link to customer to continue filling out. [Gmail ID: ${gmailMessageId || 'Sent'}]`,
+          sentBy: project.assignedPM?.name || 'Quext PM',
+          status: 'Delivered',
+        };
+        onUpdateProject({
+          ...project,
+          customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
+          lastUpdated: new Date().toISOString(),
+        });
+        setHeaderEmailSuccessBanner(
+          `Real email delivered via Gmail: Kickoff Document link sent to ${recipients.join(', ')}!`
+        );
+        setTimeout(() => setHeaderEmailSuccessBanner(null), 5000);
+      },
+    });
+  };
+
+  // Portal Buildout Active & Kickoff Complete: Send touch base check-in email giving overview of completed items
+  const handleSendTouchBaseCheckinEmail = () => {
+    const intake = project.customerIntake;
+    const submittedDateStr = intake?.submittedAt
+      ? new Date(intake.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'Confirmed & Verified';
+
+    const htmlBody = `
+      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+        <div style="border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 16px;">
+          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
+          <span style="float: right; font-size: 11px; color: #059669; font-weight: bold; text-transform: uppercase; line-height: 28px;">Project Check-In &amp; Milestone Update</span>
+        </div>
+        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
+        <p style="margin: 0 0 14px 0; font-size: 13px; color: #334155;">
+          We are touching base to provide a status update on your smart community deployment for <strong>${project.propertyName}</strong> (${project.unitsCount} units).
+        </p>
+        <p style="margin: 0 0 16px 0; font-size: 13px; color: #334155;">
+          Your kickoff document and intake details have been completed in their entirety and verified by our engineering team. Here is an overview of what has currently been completed for the project up to this point:
+        </p>
+
+        <!-- Completed Items Summary Cards -->
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
+            <span style="font-size: 13px; color: #1e293b;"><strong>Kickoff Intake Document:</strong> Completed and verified (${submittedDateStr})</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
+            <span style="font-size: 13px; color: #1e293b;"><strong>PMS Software Integration:</strong> Configured for <strong>${intake?.pmsSoftware || 'Selected PMS'}</strong></span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
+            <span style="font-size: 13px; color: #1e293b;"><strong>Staff Roles &amp; User Directory:</strong> <strong>${intake?.staffRoles?.length || staffMembers.length || 0} Staff roles</strong> confirmed</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
+            <span style="font-size: 13px; color: #1e293b;"><strong>Common Area Door Tree:</strong> <strong>${intake?.commonAreaDoors?.length || commonDoors.length || 0} Common area doors &amp; access points</strong> mapped</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
+            <span style="font-size: 13px; color: #1e293b;"><strong>Bill of Materials &amp; Lock Finishes:</strong> All <strong>${project.bomItems.length} line items</strong> verified</span>
+          </div>
+        </div>
+
+        <!-- Milestone Ahead Reassurance -->
+        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 13px; color: #065f46;">
+          <strong>Next Milestone Ahead:</strong> Everything is on track and progressing smoothly! You are on your way to the next Project Milestone — <strong>Product Acquisition</strong> — very soon, where your hardware batches and integrator shipments will be prepared at the shipping dock.
+        </div>
+
+        <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
+          Best regards,<br/>
+          <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations (${project.assignedPM?.email || 'pm@onequext.com'})
+        </p>
+      </div>
+    `;
+
+    setGmailModalPayload({
+      title: 'Confirm & Send Touch Base Check-In Email via Gmail',
+      defaultRecipients: customerEmailRecipient,
+      subject: `Project Check-In & Completed Milestones Overview: ${project.propertyName}`,
+      htmlBody,
+      onDispatched: ({ recipients, subject, gmailMessageId }) => {
+        const nowStr = new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        const newLog: CustomerCommsLog = {
+          id: `touch-base-${Date.now()}`,
+          projectId: project.id,
+          timestamp: nowStr,
+          type: 'deployment_overview_email',
+          recipientEmail: recipients.join(', '),
+          subject,
+          summary: `Sent touch base check-in email giving overview of completed items (Kickoff, PMS, Staff roles, Common doors) and upcoming Product Acquisition milestone transition. [Gmail ID: ${gmailMessageId || 'Sent'}]`,
+          sentBy: project.assignedPM?.name || 'Quext PM',
+          status: 'Delivered',
+        };
+        onUpdateProject({
+          ...project,
+          customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
+          lastUpdated: new Date().toISOString(),
+        });
+        setHeaderEmailSuccessBanner(
+          `Real email delivered via Gmail: Touch base check-in email delivered to ${recipients.join(', ')}!`
+        );
+        setTimeout(() => setHeaderEmailSuccessBanner(null), 5000);
+      },
+    });
+  };
+
+  // Product Acquisition Active: Send Shipping update to Customer (same as Send Full Update in Shipping Dock)
+  const handleSendShippingUpdateEmail = () => {
+    const payload = buildFullShippingUpdatePayload(
+      project,
+      (msg) => {
+        setHeaderEmailSuccessBanner(msg);
+        setTimeout(() => setHeaderEmailSuccessBanner(null), 5000);
+      },
+      onUpdateProject
+    );
+    setGmailModalPayload(payload);
+  };
 
   const getStatusBadgeStyle = (tag: ProjectStatusTag) => {
     switch (tag) {
@@ -932,6 +1311,21 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {headerEmailSuccessBanner && (
+        <div className="flex items-center justify-between gap-3 p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-semibold shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{headerEmailSuccessBanner}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setHeaderEmailSuccessBanner(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-bold p-1 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       
       {/* Top Banner / Project Profile (White Theme) */}
       <div className="relative z-40 bg-white border border-slate-200 rounded-xl overflow-visible shadow-xs">
@@ -988,26 +1382,72 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-purple-700" />}
                   <span>{copiedLink ? 'CSM Link Copied!' : 'Copy CSM Link'}</span>
                 </button>
-              ) : isKickoffCompleted ? (
+              ) : isImplementationActive ? (
                 <button
                   type="button"
-                  onClick={() => setActiveTab('customer-comms')}
+                  onClick={handleSendImplementationBomProgressEmail}
                   className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                  title="Open Customer Comms to send deployment overview update"
+                  title="Send Smart Community BOM progress overview (high-level cards & individual line items without notes) via Email"
                 >
                   <Send className="w-3.5 h-3.5 text-white" />
                   <span className="hidden sm:inline">Send Deployment Overview Email Now</span>
-                  <span className="sm:hidden">Send Update</span>
+                  <span className="sm:hidden">Send BOM Progress</span>
+                </button>
+              ) : isPortalBuildoutActive ? (
+                !isKickoffCompletedInEntirety ? (
+                  <button
+                    type="button"
+                    onClick={handleSendKickoffDocumentEmail}
+                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
+                    title="Send Kickoff document link to customer to continue filling out"
+                  >
+                    <FileSignature className="w-3.5 h-3.5 text-white" />
+                    <span className="hidden sm:inline">Send Kickoff Document</span>
+                    <span className="sm:hidden">Kickoff Doc</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendTouchBaseCheckinEmail}
+                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
+                    title="Send touch base check-in email giving customer an overview of completed items and upcoming milestone transition"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                    <span className="hidden sm:inline">Touch base with customer</span>
+                    <span className="sm:hidden">Touch Base</span>
+                  </button>
+                )
+              ) : isProductAcquisitionActive ? (
+                <button
+                  type="button"
+                  onClick={handleSendShippingUpdateEmail}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
+                  title="Send full Shipping Dock update to customer via Gmail"
+                >
+                  <Truck className="w-3.5 h-3.5 text-white" />
+                  <span className="hidden sm:inline">Send Shipping update to Customer</span>
+                  <span className="sm:hidden">Shipping Update</span>
+                </button>
+              ) : isKickoffCompletedInEntirety ? (
+                <button
+                  type="button"
+                  onClick={handleSendImplementationBomProgressEmail}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
+                  title="Send Deployment Overview Email Now"
+                >
+                  <Send className="w-3.5 h-3.5 text-white" />
+                  <span className="hidden sm:inline">Send Deployment Overview Email Now</span>
+                  <span className="sm:hidden">Send Overview</span>
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={handleCopyKickoffLink}
+                  onClick={handleSendKickoffDocumentEmail}
                   className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                  title="Copy direct shareable kickoff link for customer"
+                  title="Send Kickoff document to customer to continue filling out"
                 >
-                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5 text-sky-600" />}
-                  <span>{copiedLink ? 'Link Copied!' : 'Copy Kickoff link'}</span>
+                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <FileSignature className="w-3.5 h-3.5 text-amber-600" />}
+                  <span>{copiedLink ? 'Link Copied!' : 'Send Kickoff Document'}</span>
                 </button>
               )}
 
@@ -1849,7 +2289,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               href="#shipping-dock-section"
               className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-800 font-semibold whitespace-nowrap shrink-0 transition-colors"
             >
-              Shipping &ldquo;Dock&rdquo;
+              Shipping Dock
             </a>
             <a
               href="#sow-forecaster-section"
@@ -2249,7 +2689,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             />
           </div>
 
-          {/* Shipping "Dock" Table (Under BOM Section) + Product Acceptance Portal */}
+          {/* Shipping Dock (Under BOM Section) + Product Acceptance Portal */}
           <div data-tutorial-id="shipping-dock-section">
             <ShippingDockSection
               project={project}
@@ -2888,6 +3328,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         activeInstallerName={project.assignedPM?.name || 'Quext Field Operations'}
         installerRole="pm"
         companyName={getProjectIntegratorPartners(project)[0] || 'Integrator Partner'}
+      />
+
+      {/* Real Gmail Confirmation Modal for dispatches from ProjectDetailView */}
+      <LiveGmailConfirmModal
+        payload={gmailModalPayload}
+        onClose={() => setGmailModalPayload(null)}
       />
 
     </div>

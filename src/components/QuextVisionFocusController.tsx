@@ -224,9 +224,9 @@ export function evaluateMilestoneChecklist(
       {
         id: 'product_acq_step_1',
         stepIndex: 0,
-        title: 'Review & Update Shipping “Dock” Table and Send Customer Updates',
+        title: 'Review & Update Shipping Dock and Send Customer Updates',
         description:
-          'Review integrator shipments in the Shipping Dock Table, update tracking/statuses, and send updates to the customer.',
+          'Review integrator shipments in the Shipping Dock, update tracking/statuses, and send updates to the customer.',
         isCompleted: isDone,
       },
     ];
@@ -2291,7 +2291,7 @@ const QuextVisionStepWindow: React.FC<{
   }
 
   // ==========================================================================
-  // 3. PRODUCT ACQUISITION MILESTONE WINDOW (Shipping "Dock" Table)
+  // 3. PRODUCT ACQUISITION MILESTONE WINDOW (Shipping Dock)
   // ==========================================================================
   if (normMilestone.includes('product acquisition')) {
     return (
@@ -2302,10 +2302,10 @@ const QuextVisionStepWindow: React.FC<{
               Product Acquisition Milestone · Pop-Up Window
             </span>
             <h2 className="text-xl font-extrabold text-slate-900 mt-1">
-              Review &amp; Update Shipping &ldquo;Dock&rdquo; Table
+              Review &amp; Update Shipping Dock
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Review and update integrator shipments in the Shipping Dock Table below and send shipment updates to the customer.
+              Review and update integrator shipments in the Shipping Dock below and send shipment updates to the customer.
             </p>
           </div>
           <button

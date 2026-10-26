@@ -434,6 +434,198 @@ export const ProductAcceptancePortalModal: React.FC<{
   );
 };
 
+export const formatDockItem1To1BreakdownHelper = (
+  item: ShippingDockItem,
+  bomItems: BOMItem[]
+): string => {
+  const rowBomIds =
+    item.bomItemIds && item.bomItemIds.length > 0 ? item.bomItemIds : [item.bomItemId];
+  const matchedBoms = bomItems.filter((b) => rowBomIds.includes(b.id));
+  const qtyMap = getDockRowBomQuantities(item, bomItems);
+  if (matchedBoms.length === 0) {
+    return `${item.bomItemName} (Qty ${item.shippedQuantity})`;
+  }
+  return matchedBoms
+    .map((b) => {
+      const finishStr = b.lockFinishConfig ? ` [${getLockFinishSummaryTag(b.lockFinishConfig)}]` : '';
+      return `${b.name}${finishStr} (${b.model}): Qty ${qtyMap[b.id] ?? 0}`;
+    })
+    .join(' + ');
+};
+
+export const buildShippingEmailTableHtmlHelper = (
+  itemsToRender: ShippingDockItem[],
+  bomItems: BOMItem[]
+): string => {
+  if (itemsToRender.length === 0) {
+    return `<p style="font-size: 13px; color: #64748b; margin: 12px 0;">No shipment batches logged yet.</p>`;
+  }
+
+  const tableRows = itemsToRender
+    .map((item) => {
+      const rowBomIds =
+        item.bomItemIds && item.bomItemIds.length > 0
+          ? item.bomItemIds
+          : [item.bomItemId];
+      const matchedBoms = bomItems.filter((b) => rowBomIds.includes(b.id));
+      const qtyMap = getDockRowBomQuantities(item, bomItems);
+
+      const hardwareItemsHtml =
+        matchedBoms.length > 0
+          ? matchedBoms
+              .map(
+                (b) =>
+                  `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}${
+                    b.lockFinishConfig
+                      ? `<br/><span style="font-size: 11px; color: #475569; font-weight: normal;">Finish: ${getLockFinishSummaryTag(
+                          b.lockFinishConfig
+                        )}</span>`
+                      : ''
+                  }</div>`
+              )
+              .join('')
+          : `<div style="font-weight: 600; color: #0f172a;">${item.bomItemName}</div>`;
+
+      const quantityHtml =
+        matchedBoms.length > 0
+          ? matchedBoms
+              .map(
+                (b) =>
+                  `<div style="margin-bottom: 3px; font-family: monospace; font-weight: 700; color: #0369a1;">${
+                    qtyMap[b.id] ?? 0
+                  } units</div>`
+              )
+              .join('')
+          : `<div style="font-family: monospace; font-weight: 700; color: #0369a1;">${item.shippedQuantity} units</div>`;
+
+      return `
+        <tr>
+          <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px;">
+            ${hardwareItemsHtml}
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${item.shipmentBatchLabel}</div>
+          </td>
+          <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px; white-space: nowrap;">
+            ${quantityHtml}
+          </td>
+          <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #1e293b;">
+            <div style="font-weight: 600;">${item.carrier}</div>
+            <div style="font-family: monospace; font-size: 11px; color: #0284c7; margin-top: 2px;">${item.trackingNumber}</div>
+          </td>
+          <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #334155; white-space: nowrap;">
+            <div><strong>Shipped:</strong> ${item.shippedDate || 'TBD'}</div>
+            <div style="margin-top: 2px;"><strong>ETA:</strong> ${item.estimatedArrivalDate || 'TBD'}</div>
+            <div style="margin-top: 4px; display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #f0f9ff; color: #0369a1; font-size: 10px; font-weight: 700;">${item.status}</div>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  return `
+    <table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+      <thead>
+        <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
+          <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Hardware Shipped</th>
+          <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Quantity</th>
+          <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Carrier &amp; Tracking</th>
+          <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Ship Date &amp; ETA</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+    </table>
+  `;
+};
+
+export function buildFullShippingUpdatePayload(
+  project: OperationProject,
+  onSuccess?: (msg: string) => void,
+  onUpdateProject?: (updated: OperationProject) => void
+): LiveGmailModalPayload {
+  const dockItems: ShippingDockItem[] = project.shippingDockItems || [];
+  const bomItems = project.bomItems || [];
+  const defaultRecipient =
+    project.customerIntake?.subscriberEmail ||
+    project.customerIntake?.communityEmail ||
+    project.customerIntake?.staffRoles?.[0]?.email ||
+    'RFRleasing@gmail.com';
+
+  const portalLink = buildProductAcceptancePortalUrl(project.id);
+  const summaryText = dockItems
+    .map(
+      (d) =>
+        `${formatDockItem1To1BreakdownHelper(d, bomItems)} [Total ${d.shippedQuantity} units via ${d.carrier}, Tracking: ${d.trackingNumber}, Status: ${d.status}]`
+    )
+    .join('; ');
+
+  const tableHtml = buildShippingEmailTableHtmlHelper(dockItems, bomItems);
+
+  const htmlBody = `
+    <div style="font-family: Inter, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+      <div style="border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
+        <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
+        <span style="float: right; font-size: 11px; color: #0284c7; font-weight: bold; text-transform: uppercase; line-height: 28px;">Shipping Dock Update</span>
+      </div>
+      <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
+      <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Here is the hardware shipping summary for <strong>${project.propertyName}</strong>:</p>
+      ${tableHtml}
+      <p style="margin-top: 16px; font-size: 13px; color: #334155;">Once received on site, please confirm delivery in the <a href="${portalLink}" style="color: #0284c7; font-weight: 600;">Product Acceptance Portal</a>.</p>
+      <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
+        Best regards,<br/>
+        <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations
+      </p>
+    </div>
+  `;
+
+  return {
+    title: 'Confirm & Send Full Shipping Dock Update via Gmail',
+    defaultRecipients: defaultRecipient,
+    subject: `Shipping Dock Update (All Batches): ${project.propertyName}`,
+    htmlBody,
+    onDispatched: ({ recipients, subject, gmailMessageId }) => {
+      const nowStr = new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const updatedItems = dockItems.map((item) => ({
+        ...item,
+        lastNotifiedCustomerAt: nowStr,
+      }));
+
+      const newLog: CustomerCommsLog = {
+        id: `ship-all-${Date.now()}`,
+        projectId: project.id,
+        timestamp: nowStr,
+        type: 'shipping_update_email',
+        recipientEmail: recipients.join(', '),
+        subject,
+        summary: `Sent complete Shipping Dock update (${dockItems.length} line items) to customer: ${summaryText} [Gmail ID: ${gmailMessageId || 'Sent'}]`,
+        sentBy: project.assignedPM?.name || 'Quext PM',
+        status: 'Delivered',
+      };
+
+      if (onUpdateProject) {
+        onUpdateProject({
+          ...project,
+          shippingDockItems: updatedItems,
+          customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+
+      if (onSuccess) {
+        onSuccess(
+          `Real email delivered via Gmail: Full Shipping Dock update (${dockItems.length} line items) sent to ${recipients.join(', ')}!`
+        );
+      }
+    },
+  };
+}
+
 export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
   project,
   onUpdateProject,
@@ -680,176 +872,25 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
   };
 
   const formatDockItem1To1Breakdown = (item: ShippingDockItem): string => {
-    const rowBomIds =
-      item.bomItemIds && item.bomItemIds.length > 0 ? item.bomItemIds : [item.bomItemId];
-    const matchedBoms = bomItems.filter((b) => rowBomIds.includes(b.id));
-    const qtyMap = getDockRowBomQuantities(item, bomItems);
-    if (matchedBoms.length === 0) {
-      return `${item.bomItemName} (Qty ${item.shippedQuantity})`;
-    }
-    return matchedBoms
-      .map((b) => {
-        const finishStr = b.lockFinishConfig ? ` [${getLockFinishSummaryTag(b.lockFinishConfig)}]` : '';
-        return `${b.name}${finishStr} (${b.model}): Qty ${qtyMap[b.id] ?? 0}`;
-      })
-      .join(' + ');
+    return formatDockItem1To1BreakdownHelper(item, bomItems);
   };
 
-  // Builds a clean, clutter-free HTML table for Shipping Dock customer emails
   const buildShippingEmailTableHtml = (itemsToRender: ShippingDockItem[]): string => {
-    if (itemsToRender.length === 0) {
-      return `<p style="font-size: 13px; color: #64748b; margin: 12px 0;">No shipment batches logged yet.</p>`;
-    }
-
-    const tableRows = itemsToRender
-      .map((item) => {
-        const rowBomIds =
-          item.bomItemIds && item.bomItemIds.length > 0
-            ? item.bomItemIds
-            : [item.bomItemId];
-        const matchedBoms = bomItems.filter((b) => rowBomIds.includes(b.id));
-        const qtyMap = getDockRowBomQuantities(item, bomItems);
-
-        const hardwareItemsHtml =
-          matchedBoms.length > 0
-            ? matchedBoms
-                .map(
-                  (b) =>
-                    `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}${
-                      b.lockFinishConfig
-                        ? `<br/><span style="font-size: 11px; color: #475569; font-weight: normal;">Finish: ${getLockFinishSummaryTag(
-                            b.lockFinishConfig
-                          )}</span>`
-                        : ''
-                    }</div>`
-                )
-                .join('')
-            : `<div style="font-weight: 600; color: #0f172a;">${item.bomItemName}</div>`;
-
-        const quantityHtml =
-          matchedBoms.length > 0
-            ? matchedBoms
-                .map(
-                  (b) =>
-                    `<div style="margin-bottom: 3px; font-family: monospace; font-weight: 700; color: #0369a1;">${
-                      qtyMap[b.id] ?? 0
-                    } units</div>`
-                )
-                .join('')
-            : `<div style="font-family: monospace; font-weight: 700; color: #0369a1;">${item.shippedQuantity} units</div>`;
-
-        return `
-          <tr>
-            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px;">
-              ${hardwareItemsHtml}
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${item.shipmentBatchLabel}</div>
-            </td>
-            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px; white-space: nowrap;">
-              ${quantityHtml}
-            </td>
-            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #1e293b;">
-              <div style="font-weight: 600;">${item.carrier}</div>
-              <div style="font-family: monospace; font-size: 11px; color: #0284c7; margin-top: 2px;">${item.trackingNumber}</div>
-            </td>
-            <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #334155; white-space: nowrap;">
-              <div><strong>Shipped:</strong> ${item.shippedDate || 'TBD'}</div>
-              <div style="margin-top: 2px;"><strong>ETA:</strong> ${item.estimatedArrivalDate || 'TBD'}</div>
-              <div style="margin-top: 4px; display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #f0f9ff; color: #0369a1; font-size: 10px; font-weight: 700;">${item.status}</div>
-            </td>
-          </tr>
-        `;
-      })
-      .join('');
-
-    return `
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-        <thead>
-          <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Hardware Shipped</th>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Quantity</th>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Carrier &amp; Tracking</th>
-            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Ship Date &amp; ETA</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-    `;
+    return buildShippingEmailTableHtmlHelper(itemsToRender, bomItems);
   };
 
   // Send ALL shipment updates as a whole to the customer via Gmail
   const handleSendAllShipmentsUpdate = () => {
-    const portalLink = buildProductAcceptancePortalUrl(project.id);
-    const summaryText = dockItems
-      .map(
-        (d) =>
-          `${formatDockItem1To1Breakdown(d)} [Total ${d.shippedQuantity} units via ${d.carrier}, Tracking: ${d.trackingNumber}, Status: ${d.status}]`
+    setGmailModalPayload(
+      buildFullShippingUpdatePayload(
+        project,
+        (msg) => {
+          setAlertBanner(msg);
+          setTimeout(() => setAlertBanner(null), 5000);
+        },
+        onUpdateProject
       )
-      .join('; ');
-
-    const tableHtml = buildShippingEmailTableHtml(dockItems);
-
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #0284c7; font-weight: bold; text-transform: uppercase; line-height: 28px;">Shipping Dock Update</span>
-        </div>
-        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-        <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Here is the hardware shipping summary for <strong>${project.propertyName}</strong>:</p>
-        ${tableHtml}
-        <p style="margin-top: 16px; font-size: 13px; color: #334155;">Once received on site, please confirm delivery in the <a href="${portalLink}" style="color: #0284c7; font-weight: 600;">Product Acceptance Portal</a>.</p>
-        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-          Best regards,<br/>
-          <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-        </p>
-      </div>
-    `;
-
-    setGmailModalPayload({
-      title: 'Confirm & Send Full Shipping Dock Update via Gmail',
-      defaultRecipients: defaultRecipient,
-      subject: `Shipping Dock Update (All Batches): ${project.propertyName}`,
-      htmlBody,
-      onDispatched: ({ recipients, subject, gmailMessageId }) => {
-        const nowStr = new Date().toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-
-        const updatedItems = dockItems.map((item) => ({
-          ...item,
-          lastNotifiedCustomerAt: nowStr,
-        }));
-
-        const newLog: CustomerCommsLog = {
-          id: `ship-all-${Date.now()}`,
-          projectId: project.id,
-          timestamp: nowStr,
-          type: 'shipping_update_email',
-          recipientEmail: recipients.join(', '),
-          subject,
-          summary: `Sent complete Shipping Dock table update (${dockItems.length} line items) to customer: ${summaryText} [Gmail ID: ${gmailMessageId || 'Sent'}]`,
-          sentBy: project.assignedPM.name,
-          status: 'Delivered',
-        };
-
-        onUpdateProject({
-          ...project,
-          shippingDockItems: updatedItems,
-          customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
-          lastUpdated: new Date().toISOString(),
-        });
-
-        setAlertBanner(
-          `Real email delivered via Gmail: Full Shipping Dock update (${dockItems.length} line items) sent to ${recipients.join(', ')}!`
-        );
-        setTimeout(() => setAlertBanner(null), 5000);
-      },
-    });
+    );
   };
 
   // Send a single line item shipment update to the customer via Gmail
@@ -979,7 +1020,7 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <Truck className="w-5 h-5 text-sky-600" />
             <h3 className="text-base font-bold text-slate-900">
-              Shipping &ldquo;Dock&rdquo; Table
+              Shipping Dock
             </h3>
             <span className="text-[11px] font-mono px-2 py-0.5 bg-sky-100 text-sky-800 border border-sky-200 rounded font-bold">
               {dockItems.length} Shipment Batches
@@ -1375,13 +1416,13 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
               type="submit"
               className="px-4 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs cursor-pointer"
             >
-              Save Shipment to Dock Table
+              Save Shipment to Shipping Dock
             </button>
           </div>
         </form>
       )}
 
-      {/* Shipping Dock Table */}
+      {/* Shipping Dock */}
       <div className="overflow-x-auto border border-slate-200 rounded-lg">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
@@ -1403,7 +1444,7 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
             {dockItems.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-8 text-center text-slate-400">
-                  No shipments logged in the Shipping Dock Table yet. Click <strong>&quot;+ Add Shipment Batch&quot;</strong> above.
+                  No shipments logged in the Shipping Dock yet. Click <strong>&quot;+ Add Shipment Batch&quot;</strong> above.
                 </td>
               </tr>
             ) : (

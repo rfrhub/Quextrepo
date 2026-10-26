@@ -590,10 +590,10 @@ export default function App() {
             badge = 'SOW Forecaster Update';
           } else if (shippingChanged) {
             const latestShip = updated.shippingDockItems?.[0];
-            pmTitle = `PM Updated Shipping “Dock” Table (${updated.propertyName})`;
+            pmTitle = `PM Updated Shipping Dock (${updated.propertyName})`;
             pmDetails = latestShip
               ? `${updated.assignedPM.name} updated shipment "${latestShip.shipmentBatchLabel}" (${latestShip.shippedQuantity} units via ${latestShip.carrier} · ${latestShip.status}).`
-              : `${updated.assignedPM.name} updated the Shipping “Dock” Table.`;
+              : `${updated.assignedPM.name} updated the Shipping Dock.`;
             badge = 'Shipping Dock Update';
           } else if (bomChanged) {
             const totalQuoted = updated.bomItems.reduce((a, b) => a + b.quantity, 0);

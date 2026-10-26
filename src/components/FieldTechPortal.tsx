@@ -554,7 +554,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
     0
   );
 
-  // 3. Shipping "Dock" Table items across filtered assigned projects
+  // 3. Shipping Dock items across filtered assigned projects
   const allDockItems = hubFilteredProjects.flatMap((p) =>
     (p.shippingDockItems || []).map((item) => ({
       ...item,
@@ -652,9 +652,9 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
       assignedPMName: dock.assignedPMName,
       timestamp: `ETA ${dock.estimatedArrivalDate}`,
       category: 'dock',
-      title: `Shipping “Dock”: ${dock.bomItemName} (Qty: ${dock.shippedQuantity})`,
+      title: `Shipping Dock: ${dock.bomItemName} (Qty: ${dock.shippedQuantity})`,
       details: `${dock.carrier} · Tracking: ${dock.trackingNumber} · Status: ${dock.status}`,
-      badge: 'Shipping “Dock”',
+      badge: 'Shipping Dock',
       badgeColor: 'bg-sky-50 text-sky-800 border-sky-300',
     });
   });
@@ -1119,7 +1119,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                     Managing on-site smart community deployments across your{' '}
                     <strong>{assignedProjects.length} assigned communities</strong> in the{' '}
                     <strong>{techProfile.region}</strong> for Hardware Categories Progress, SOW
-                    Forecaster, Shipping &ldquo;Dock&rdquo; Table, Installer Completion Logs, and
+                    Forecaster, Shipping Dock, Installer Completion Logs, and
                     Common Area Doors.
                   </p>
                 </div>
@@ -1320,7 +1320,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                       { id: 'all', label: `All (${unifiedFieldEvents.length})` },
                       { id: 'logs', label: `Installer Logs (${allInstallLogs.length})` },
                       { id: 'sow', label: `SOW Forecaster (${allSowItems.length})` },
-                      { id: 'dock', label: `Shipping “Dock” (${allDockItems.length})` },
+                      { id: 'dock', label: `Shipping Dock (${allDockItems.length})` },
                       { id: 'doors', label: `Common Doors (${allCommonDoors.length})` },
                     ].map((tab) => (
                       <button
@@ -1584,13 +1584,13 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Summary 3: Shipping "Dock" Table */}
+                {/* Summary 3: Shipping Dock */}
                 <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs space-y-4 overflow-hidden min-w-0">
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
                     <div className="flex items-center gap-2 min-w-0">
                       <Truck className="w-5 h-5 text-sky-600 shrink-0" />
                       <h3 className="text-sm font-bold text-slate-900 truncate">
-                        Shipping &ldquo;Dock&rdquo; Table
+                        Shipping Dock
                       </h3>
                     </div>
                     <span className="text-[11px] font-mono text-sky-700 font-bold tabular-nums">
@@ -1733,7 +1733,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
              Contains ONLY the 5 sections requested by the user:
              1. Hardware Categories Progress Breakdown
              2. SOW Forecaster
-             3. Shipping “Dock” Table
+             3. Shipping Dock
              4. Installer Completion & Verification Log
              5. Common Area Doors Location Tree & Device Mapping
              ================================================================== */
@@ -1921,7 +1921,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-sky-50 text-slate-800 hover:text-sky-800 border border-slate-200 transition-colors whitespace-nowrap shrink-0"
                       >
                         <Truck className="w-3.5 h-3.5 text-sky-600" />
-                        <span>Shipping &ldquo;Dock&rdquo; Table</span>
+                        <span>Shipping Dock</span>
                       </a>
                       <a
                         href="#ft-installer-log"
@@ -1973,7 +1973,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
               editorName={`${fieldTech} (Field Tech)`}
             />
 
-            {/* SECTION 3: Shipping “Dock” Table */}
+            {/* SECTION 3: Shipping Dock */}
             <ShippingDockSection
               project={selectedProject}
               onUpdateProject={onUpdateProject}
