@@ -41,6 +41,11 @@ export const LEGACY_SAMPLE_QUOTES: Quote[] = [
         quantity: 254,
         installedCount: 202,
         unitPrice: 220,
+        lockFinishConfig: {
+          family: 'befe',
+          befeTrimStyle: 'Greenwich',
+          befeColorFinish: '622 - Matte Black',
+        },
         description: 'Integrated digital key deadbolt with NFC/BLE reader, hardened brass latch, and remote lock/unlock.',
       },
       {
@@ -137,6 +142,11 @@ export const LEGACY_SAMPLE_QUOTES: Quote[] = [
         quantity: 342,
         installedCount: 220,
         unitPrice: 220,
+        lockFinishConfig: {
+          family: 'befe',
+          befeTrimStyle: 'Addison',
+          befeColorFinish: '619 - Satin Nickel',
+        },
       },
       {
         id: 'bom-kat-02',
@@ -265,6 +275,14 @@ export const LEGACY_SAMPLE_QUOTES: Quote[] = [
         quantity: 310,
         installedCount: 180,
         unitPrice: 280,
+        lockFinishConfig: {
+          family: 'xe360',
+          xe360Subtype: 'Mortise',
+          xe360ColorFinish: '622 - Matte Black',
+          xe360LeverStyle: 'BRW - Broadway',
+          xe360MortiseGrade: 'ANSI/BHMA Grade 1',
+          xe360MortiseFunction: 'Interior push button (B)',
+        },
       },
       {
         id: 'bom-dom-02',
@@ -712,6 +730,11 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         unitPrice: 220,
         sparesCount: 10,
         sparesDelivered: true,
+        lockFinishConfig: {
+          family: 'befe',
+          befeTrimStyle: 'Greenwich',
+          befeColorFinish: '622 - Matte Black',
+        },
         description: 'Integrated digital key deadbolt with NFC/BLE reader, hardened brass latch, and remote lock/unlock.',
         postItLogs: [
           {
@@ -1013,6 +1036,11 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         quantity: 342,
         installedCount: 220,
         unitPrice: 220,
+        lockFinishConfig: {
+          family: 'befe',
+          befeTrimStyle: 'Addison',
+          befeColorFinish: '619 - Satin Nickel',
+        },
         postItLogs: [
           {
             id: 'log-kat-01',
@@ -1241,6 +1269,14 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         quantity: 310,
         installedCount: 180,
         unitPrice: 280,
+        lockFinishConfig: {
+          family: 'xe360',
+          xe360Subtype: 'Mortise',
+          xe360ColorFinish: '622 - Matte Black',
+          xe360LeverStyle: 'BRW - Broadway',
+          xe360MortiseGrade: 'ANSI/BHMA Grade 1',
+          xe360MortiseFunction: 'Interior push button (B)',
+        },
       },
       {
         id: 'bom-dom-02',

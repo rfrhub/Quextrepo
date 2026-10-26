@@ -8,6 +8,8 @@ import {
   BOMItem,
   getProjectIntegratorPartners,
   buildProductAcceptancePortalUrl,
+  getLockFinishSummaryTag,
+  getLockFinishColorHex,
 } from '../types';
 import {
   Truck,
@@ -280,15 +282,32 @@ export const ProductAcceptancePortalModal: React.FC<{
                             {matchedBoms.map((b) => (
                               <div
                                 key={`portal-bom-${item.id}-${b.id}`}
-                                className="flex items-center justify-between gap-2 text-[11px] bg-slate-50 border border-slate-200 rounded px-2 py-0.5"
+                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] bg-slate-50 border border-slate-200 rounded px-2 py-1"
                               >
-                                <span className="font-bold text-slate-900">
-                                  {b.name}{' '}
-                                  <span className="font-mono text-[10px] text-slate-500">
-                                    ({b.model})
+                                <div>
+                                  <span className="font-bold text-slate-900">
+                                    {b.name}{' '}
+                                    <span className="font-mono text-[10px] text-slate-500">
+                                      ({b.model})
+                                    </span>
                                   </span>
-                                </span>
-                                <span className="font-mono font-bold text-sky-800">
+                                  {b.lockFinishConfig && (
+                                    <div className="inline-flex items-center gap-1.5 ml-2 font-sans font-semibold text-[10px] text-slate-700 bg-white border border-slate-200 px-1.5 py-0.2 rounded">
+                                      <span
+                                        className="w-2 h-2 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                        style={{
+                                          backgroundColor: getLockFinishColorHex(
+                                            b.lockFinishConfig.befeColorFinish ||
+                                            b.lockFinishConfig.ndeColorFinish ||
+                                            b.lockFinishConfig.xe360ColorFinish
+                                          ),
+                                        }}
+                                      />
+                                      <span>Finish: {getLockFinishSummaryTag(b.lockFinishConfig)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="font-mono font-bold text-sky-800 shrink-0">
                                   Qty: {rowQtyMap[b.id] ?? 0}
                                 </span>
                               </div>
@@ -669,7 +688,10 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
       return `${item.bomItemName} (Qty ${item.shippedQuantity})`;
     }
     return matchedBoms
-      .map((b) => `${b.name} (${b.model}): Qty ${qtyMap[b.id] ?? 0}`)
+      .map((b) => {
+        const finishStr = b.lockFinishConfig ? ` [${getLockFinishSummaryTag(b.lockFinishConfig)}]` : '';
+        return `${b.name}${finishStr} (${b.model}): Qty ${qtyMap[b.id] ?? 0}`;
+      })
       .join(' + ');
   };
 
@@ -693,7 +715,13 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
             ? matchedBoms
                 .map(
                   (b) =>
-                    `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}</div>`
+                    `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}${
+                      b.lockFinishConfig
+                        ? `<br/><span style="font-size: 11px; color: #475569; font-weight: normal;">Finish: ${getLockFinishSummaryTag(
+                            b.lockFinishConfig
+                          )}</span>`
+                        : ''
+                    }</div>`
                 )
                 .join('')
             : `<div style="font-weight: 600; color: #0f172a;">${item.bomItemName}</div>`;
@@ -1473,6 +1501,21 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
                                     <span className="font-mono text-[10px] text-sky-700">
                                       ({b.model})
                                     </span>
+                                    {b.lockFinishConfig && (
+                                      <span className="inline-flex items-center gap-1 ml-0.5 px-1.5 py-0.2 rounded bg-slate-900 text-white font-sans text-[10px] font-medium">
+                                        <span
+                                          className="w-1.5 h-1.5 rounded-full border border-white/50 shrink-0"
+                                          style={{
+                                            backgroundColor: getLockFinishColorHex(
+                                              b.lockFinishConfig.befeColorFinish ||
+                                              b.lockFinishConfig.ndeColorFinish ||
+                                              b.lockFinishConfig.xe360ColorFinish
+                                            ),
+                                          }}
+                                        />
+                                        <span>{getLockFinishSummaryTag(b.lockFinishConfig)}</span>
+                                      </span>
+                                    )}
                                     <span className="ml-0.5 px-1.5 py-0.2 rounded bg-white border border-sky-200 font-mono text-[10px] text-sky-900">
                                       Qty: {itemQty}
                                     </span>

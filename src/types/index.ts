@@ -74,6 +74,7 @@ export interface BOMItem {
   unitPrice: number;
   description?: string;
   thermostatBrand?: ThermostatBrand; // Ability to specify if Honeywell or Quext thermostat!
+  lockFinishConfig?: LockFinishConfig; // PM-configured lock trim style, lever style, color finish & hardware settings
   postItLogs?: InstallLogEntry[]; // Stored and logged within its corresponding row!
   sparesCount?: number; // Spares included in line item total, but distinct from installed device count
   sparesDelivered?: boolean; // Subtle confirmation by PM that spares have been delivered to customer
@@ -1392,4 +1393,252 @@ export function buildProductAcceptancePortalUrl(projectId: string): string {
   }
   return `${origin}${path}#/product-acceptance/${projectId}`;
 }
+
+// ==========================================
+// Lock Finishes, Trim & Lever Specifications
+// ==========================================
+
+export type LockFamilyType = 'befe' | 'nde' | 'xe360';
+
+// BE & FE Locks (BE467, FE410, etc.)
+export type BeFeTrimStyle = 'Greenwich' | 'Addison';
+export const BE_FE_TRIM_STYLES: readonly BeFeTrimStyle[] = ['Greenwich', 'Addison'] as const;
+
+export type BeFeColorFinish =
+  | '619 - Satin Nickel'
+  | '622 - Matte Black'
+  | '625 - Polished Chrome'
+  | '626 - Satin Chrome'
+  | '716 - Aged Bronze';
+
+export const BE_FE_COLOR_FINISHES: readonly BeFeColorFinish[] = [
+  '619 - Satin Nickel',
+  '622 - Matte Black',
+  '625 - Polished Chrome',
+  '626 - Satin Chrome',
+  '716 - Aged Bronze',
+] as const;
+
+// NDE Locks (NDEB Wireless Levers)
+export type NdeColorFinish =
+  | '605: Bright Brass'
+  | '606: Satin Brass'
+  | '612: Satin Bronze'
+  | '643e: Aged Bronze'
+  | '619: Satin Nickel'
+  | '622: Matte Black'
+  | '625: Bright Chrome'
+  | '626: Satin Chrome'
+  | '626AM: Satin Chrome with Antimicrobial Coating';
+
+export const NDE_COLOR_FINISHES: readonly NdeColorFinish[] = [
+  '605: Bright Brass',
+  '606: Satin Brass',
+  '612: Satin Bronze',
+  '643e: Aged Bronze',
+  '619: Satin Nickel',
+  '622: Matte Black',
+  '625: Bright Chrome',
+  '626: Satin Chrome',
+  '626AM: Satin Chrome with Antimicrobial Coating',
+] as const;
+
+export type NdeLeverType =
+  | 'Athens (ATH)'
+  | 'Boardwalk (BRK)'
+  | 'Broadway (BRW)'
+  | 'Latitude (LAT)'
+  | 'Longitude (LON)'
+  | 'Omega (OME)'
+  | 'Rhodes (RHO)'
+  | 'Sparta (SPA)'
+  | 'Tubular (TLR)';
+
+export const NDE_LEVER_TYPES: readonly NdeLeverType[] = [
+  'Athens (ATH)',
+  'Boardwalk (BRK)',
+  'Broadway (BRW)',
+  'Latitude (LAT)',
+  'Longitude (LON)',
+  'Omega (OME)',
+  'Rhodes (RHO)',
+  'Sparta (SPA)',
+  'Tubular (TLR)',
+] as const;
+
+// XE360 Locks (Exit Trim, Tubular, Mortise)
+export type Xe360ColorFinish =
+  | '619 - Satin Nickel'
+  | '622 - Matte Black'
+  | '626 - Satin Chrome';
+
+export const XE360_COLOR_FINISHES: readonly Xe360ColorFinish[] = [
+  '619 - Satin Nickel',
+  '622 - Matte Black',
+  '626 - Satin Chrome',
+] as const;
+
+export type Xe360LeverStyle =
+  | 'BRW - Broadway'
+  | 'LAT - Latitude'
+  | 'LONE - Longitude-Extended'
+  | 'NEP - Neptune (Sparta)';
+
+export const XE360_LEVER_STYLES: readonly Xe360LeverStyle[] = [
+  'BRW - Broadway',
+  'LAT - Latitude',
+  'LONE - Longitude-Extended',
+  'NEP - Neptune (Sparta)',
+] as const;
+
+export type Xe360Subtype = 'Exit Trim' | 'Tubular' | 'Mortise';
+export const XE360_SUBTYPES: readonly Xe360Subtype[] = ['Exit Trim', 'Tubular', 'Mortise'] as const;
+
+export type Xe360ExitTrimCrashbar =
+  | 'Falcon 25'
+  | 'Von Duprin 98/99 / XP98/99 rim'
+  | 'Von Duprin 22 rim/surface vertical rod devices';
+
+export const XE360_EXIT_TRIM_CRASHBARS: readonly Xe360ExitTrimCrashbar[] = [
+  'Falcon 25',
+  'Von Duprin 98/99 / XP98/99 rim',
+  'Von Duprin 22 rim/surface vertical rod devices',
+] as const;
+
+export type Xe360ExitTrimFunction =
+  | 'Interior push button with LED indicator (B)'
+  | 'Interior LED indicator (I)';
+
+export const XE360_EXIT_TRIM_FUNCTIONS: readonly Xe360ExitTrimFunction[] = [
+  'Interior push button with LED indicator (B)',
+  'Interior LED indicator (I)',
+] as const;
+
+export type Xe360TubularFunction =
+  | 'Push button (B) - Common areas and package rooms'
+  | 'Indicator (I) - Common areas and package rooms';
+
+export const XE360_TUBULAR_FUNCTIONS: readonly Xe360TubularFunction[] = [
+  'Push button (B) - Common areas and package rooms',
+  'Indicator (I) - Common areas and package rooms',
+] as const;
+
+export type Xe360MortiseFunction =
+  | 'Interior LED indicator (I)'
+  | 'Interior push button (B)'
+  | 'Mortise deadbolt with thumbturn and LED indicator (D)';
+
+export const XE360_MORTISE_FUNCTIONS: readonly Xe360MortiseFunction[] = [
+  'Interior LED indicator (I)',
+  'Interior push button (B)',
+  'Mortise deadbolt with thumbturn and LED indicator (D)',
+] as const;
+
+export interface LockFinishConfig {
+  family: LockFamilyType;
+  // BE & FE Locks
+  befeTrimStyle?: BeFeTrimStyle;
+  befeColorFinish?: BeFeColorFinish;
+  // NDE Locks
+  ndeColorFinish?: NdeColorFinish;
+  ndeLeverType?: NdeLeverType;
+  // XE360 Locks
+  xe360Subtype?: Xe360Subtype;
+  xe360ColorFinish?: Xe360ColorFinish;
+  xe360LeverStyle?: Xe360LeverStyle;
+  xe360ExitTrimCrashbar?: Xe360ExitTrimCrashbar;
+  xe360ExitTrimFunction?: Xe360ExitTrimFunction;
+  xe360TubularGrade?: string; // 'ANSI/BHMA Grade 2'
+  xe360TubularFunction?: Xe360TubularFunction;
+  xe360MortiseGrade?: string; // 'ANSI/BHMA Grade 1'
+  xe360MortiseFunction?: Xe360MortiseFunction;
+  customNotes?: string;
+}
+
+export function isLockBOMItem(item: { name?: string; model?: string; category?: string }): boolean {
+  if (!item) return false;
+  const s = `${item.name || ''} ${item.model || ''}`.toLowerCase();
+  // Exclude non-lock items
+  if (
+    s.includes('intercom') ||
+    s.includes('gate reader') ||
+    s.includes('elevator') ||
+    s.includes('fob') ||
+    s.includes('credential') ||
+    s.includes('card reader') ||
+    s.includes('rc reader') ||
+    s.includes('rc-reader') ||
+    s.includes('controller')
+  ) {
+    return false;
+  }
+  return (
+    s.includes('be467') ||
+    s.includes('fe410') ||
+    s.includes('ndeb') ||
+    s.includes('nde') ||
+    s.includes('xe360') ||
+    s.includes('deadbolt') ||
+    s.includes('smart lock') ||
+    s.includes('interconnected') ||
+    s.includes('mortise') ||
+    s.includes('exit trim') ||
+    s.includes('tubular') ||
+    s.includes('lever') ||
+    (Boolean(item.category && item.category.toLowerCase().includes('smart access control')) && s.includes('lock'))
+  );
+}
+
+export function detectLockFamily(item: {
+  name?: string;
+  model?: string;
+  category?: string;
+  lockFinishConfig?: LockFinishConfig;
+}): LockFamilyType {
+  if (item?.lockFinishConfig?.family) {
+    return item.lockFinishConfig.family;
+  }
+  const s = `${item?.name || ''} ${item?.model || ''}`.toLowerCase();
+  if (s.includes('xe360') || s.includes('exit trim') || s.includes('tubular') || (s.includes('mortise') && !s.includes('deadbolt'))) {
+    return 'xe360';
+  }
+  if (s.includes('ndeb') || s.includes('nde') || s.includes('wireless lever')) {
+    return 'nde';
+  }
+  return 'befe';
+}
+
+export function getLockFinishSummaryTag(config?: LockFinishConfig): string | null {
+  if (!config) return null;
+  if (config.family === 'befe') {
+    const parts = [config.befeTrimStyle, config.befeColorFinish].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  if (config.family === 'nde') {
+    const parts = [config.ndeColorFinish, config.ndeLeverType].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  if (config.family === 'xe360') {
+    const subtypeLabel = config.xe360Subtype ? `XE360 ${config.xe360Subtype}` : 'XE360';
+    const parts = [subtypeLabel, config.xe360ColorFinish, config.xe360LeverStyle].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  return null;
+}
+
+export function getLockFinishColorHex(colorFinish?: string): string {
+  if (!colorFinish) return '#64748B';
+  const c = colorFinish.toLowerCase();
+  if (c.includes('622') || c.includes('matte black') || c.includes('black')) return '#18181B';
+  if (c.includes('619') || c.includes('satin nickel') || c.includes('nickel')) return '#CBD5E1';
+  if (c.includes('625') || c.includes('bright chrome') || c.includes('polished chrome')) return '#F1F5F9';
+  if (c.includes('626am')) return '#94A3B8';
+  if (c.includes('626') || c.includes('satin chrome')) return '#94A3B8';
+  if (c.includes('716') || c.includes('643e') || c.includes('aged bronze') || c.includes('bronze')) return '#78350F';
+  if (c.includes('605') || c.includes('bright brass')) return '#F59E0B';
+  if (c.includes('606') || c.includes('satin brass') || c.includes('brass')) return '#D97706';
+  if (c.includes('612') || c.includes('satin bronze')) return '#92400E';
+  return '#64748B';
+}
+
 

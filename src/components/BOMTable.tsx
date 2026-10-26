@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
-import { BOMItem, InstallLogEntry, ThermostatBrand, CommonAreaDoor, getCategoryUnitLabel, getCategoryDisplayName } from '../types';
+import {
+  BOMItem,
+  InstallLogEntry,
+  ThermostatBrand,
+  CommonAreaDoor,
+  getCategoryUnitLabel,
+  getCategoryDisplayName,
+  isLockBOMItem,
+  getLockFinishSummaryTag,
+  getLockFinishColorHex,
+  LockFinishConfig,
+} from '../types';
 import { PostItWindow } from './PostItWindow';
+import { LockFinishModal } from './LockFinishModal';
 import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle } from 'lucide-react';
 
 interface BOMTableProps {
@@ -11,6 +23,7 @@ interface BOMTableProps {
   onUpdateInstalledCount: (itemId: string, newCount: number) => void;
   onSaveRowLog: (itemId: string, newLog: Omit<InstallLogEntry, 'id'>, autoIncrementBOM: boolean) => void;
   onUpdateThermostatBrand?: (itemId: string, brand: ThermostatBrand) => void;
+  onUpdateLockFinishConfig?: (itemId: string, config: LockFinishConfig) => void;
   onToggleSparesDelivered?: (itemId: string) => void;
   onDeleteLog?: (logId: string) => void;
   isReadOnly?: boolean;
@@ -24,6 +37,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   onUpdateInstalledCount,
   onSaveRowLog,
   onUpdateThermostatBrand,
+  onUpdateLockFinishConfig,
   onToggleSparesDelivered,
   onDeleteLog,
   isReadOnly = false,
@@ -33,6 +47,8 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   
   // Post-it window state
   const [activePostItItem, setActivePostItItem] = useState<BOMItem | null>(null);
+  // Lock finish modal state
+  const [activeLockFinishItem, setActiveLockFinishItem] = useState<BOMItem | null>(null);
   // Row inline drawer expansion state
   const [expandedRowLogs, setExpandedRowLogs] = useState<Record<string, boolean>>({});
 
@@ -213,6 +229,54 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                 >
                                   Honeywell
                                 </button>
+                              </div>
+                            )}
+
+                            {/* Lock Finish & Trim Tag Badge */}
+                            {isLockBOMItem(item) && (
+                              <div className="inline-flex items-center gap-1.5 ml-1">
+                                {item.lockFinishConfig ? (
+                                  <button
+                                    type="button"
+                                    disabled={isReadOnly}
+                                    onClick={() => setActiveLockFinishItem(item)}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all shadow-xs border ${
+                                      isReadOnly
+                                        ? 'cursor-default'
+                                        : 'cursor-pointer hover:ring-2 hover:ring-sky-400 hover:scale-[1.02]'
+                                    } bg-slate-900 text-white border-slate-700`}
+                                    title="Click to modify lock trim style, color finish, lever type, and subtype settings"
+                                  >
+                                    <span
+                                      className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
+                                      style={{
+                                        backgroundColor: getLockFinishColorHex(
+                                          item.lockFinishConfig.befeColorFinish ||
+                                          item.lockFinishConfig.ndeColorFinish ||
+                                          item.lockFinishConfig.xe360ColorFinish
+                                        ),
+                                      }}
+                                    />
+                                    <span className="truncate max-w-[260px]">
+                                      {getLockFinishSummaryTag(item.lockFinishConfig)}
+                                    </span>
+                                    {!isReadOnly && <span className="text-[9px] text-sky-300 font-semibold">✎ Edit</span>}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={isReadOnly}
+                                    onClick={() => setActiveLockFinishItem(item)}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all border ${
+                                      isReadOnly
+                                        ? 'opacity-60 cursor-default bg-slate-100 text-slate-500 border-slate-200'
+                                        : 'cursor-pointer bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 hover:border-amber-400'
+                                    }`}
+                                    title="Associate lock trim style, color finish, and lever type"
+                                  >
+                                    <span>🎨 + Set Lock Finish</span>
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -496,6 +560,20 @@ export const BOMTable: React.FC<BOMTableProps> = ({
           }}
           onDeleteLog={onDeleteLog}
           onClose={() => setActivePostItItem(null)}
+        />
+      )}
+
+      {/* Interactive Lock Finish & Trim Specification Modal */}
+      {activeLockFinishItem && (
+        <LockFinishModal
+          item={activeLockFinishItem}
+          isOpen={!!activeLockFinishItem}
+          onClose={() => setActiveLockFinishItem(null)}
+          onSave={(itemId, config) => {
+            if (onUpdateLockFinishConfig) {
+              onUpdateLockFinishConfig(itemId, config);
+            }
+          }}
         />
       )}
 

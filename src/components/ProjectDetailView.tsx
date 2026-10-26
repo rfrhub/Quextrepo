@@ -6,6 +6,7 @@ import {
   ProjectNote,
   ProjectStatusTag,
   ThermostatBrand,
+  LockFinishConfig,
   AVAILABLE_PMS,
   AVAILABLE_CSMS,
   CSMName,
@@ -343,6 +344,25 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
   const handleUpdateThermostatBrand = (_itemId: string, brand: ThermostatBrand) => {
     handleUpdateThermostatBrandAll(brand);
+  };
+
+  // Handle updating lock finish configuration (trim style, color finish, lever style, crashbar, functions)
+  const handleUpdateLockFinishConfig = (itemId: string, config: LockFinishConfig) => {
+    const updatedBOM = project.bomItems.map((item) => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          lockFinishConfig: config,
+        };
+      }
+      return item;
+    });
+
+    onUpdateProject({
+      ...project,
+      bomItems: updatedBOM,
+      lastUpdated: new Date().toISOString(),
+    });
   };
 
   // Handle saving a post-it log attached directly to a BOM row
@@ -2223,6 +2243,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               onUpdateInstalledCount={handleUpdateInstalledCount}
               onSaveRowLog={handleSaveRowLog}
               onUpdateThermostatBrand={handleUpdateThermostatBrand}
+              onUpdateLockFinishConfig={handleUpdateLockFinishConfig}
               onToggleSparesDelivered={handleToggleSparesDelivered}
               onDeleteLog={handleDeleteLog}
             />

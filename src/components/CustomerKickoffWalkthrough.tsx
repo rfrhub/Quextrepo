@@ -11,6 +11,8 @@ import {
   normalizeFieldTech,
   projectHasGatewayOrHubOnBOM,
   buildCustomerKickoffPortalUrl,
+  getLockFinishSummaryTag,
+  getLockFinishColorHex,
 } from '../types';
 import { loadStoredQuotes } from '../data/initialData';
 import {
@@ -588,7 +590,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
         <tr><th>Item Name</th><th>Model</th><th>Category</th><th>Quoted Quantity</th></tr>
       </thead>
       <tbody>
-        ${project.bomItems.map((item) => `<tr><td><strong>${item.name}</strong></td><td>${item.model}</td><td>${item.category}</td><td>${item.quantity}</td></tr>`).join('')}
+        ${project.bomItems.map((item) => `<tr><td><strong>${item.name}</strong>${item.lockFinishConfig ? `<br/><span style="font-size:11px;color:#0f172a;font-weight:600;">Finish/Trim: ${getLockFinishSummaryTag(item.lockFinishConfig)}</span>` : ''}</td><td>${item.model}</td><td>${item.category}</td><td>${item.quantity}</td></tr>`).join('')}
       </tbody>
     </table>
   </div>
@@ -1800,11 +1802,26 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3.5 px-4 max-w-xs">
                         <div className="font-bold text-slate-900 text-xs sm:text-sm">{item.name}</div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-mono">
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-mono">
                           <span>SKU: {item.model}</span>
                           {item.thermostatBrand && (
-                            <span className="font-sans font-bold text-amber-800 bg-amber-50 px-1 rounded border border-amber-200">
+                            <span className="font-sans font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                               Brand: {item.thermostatBrand}
+                            </span>
+                          )}
+                          {item.lockFinishConfig && (
+                            <span className="inline-flex items-center gap-1.5 font-sans font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                style={{
+                                  backgroundColor: getLockFinishColorHex(
+                                    item.lockFinishConfig.befeColorFinish ||
+                                    item.lockFinishConfig.ndeColorFinish ||
+                                    item.lockFinishConfig.xe360ColorFinish
+                                  ),
+                                }}
+                              />
+                              <span>Finish: {getLockFinishSummaryTag(item.lockFinishConfig)}</span>
                             </span>
                           )}
                         </div>

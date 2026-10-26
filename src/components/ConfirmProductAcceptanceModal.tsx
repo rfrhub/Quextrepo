@@ -3,6 +3,7 @@ import {
   OperationProject,
   ShippingDockItem,
   buildProductAcceptancePortalUrl,
+  getLockFinishSummaryTag,
 } from '../types';
 import {
   subscribeToGmailAuth,
@@ -136,7 +137,13 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
             ? matchedBoms
                 .map(
                   (b) =>
-                    `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}</div>`
+                    `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}${
+                      b.lockFinishConfig
+                        ? `<br/><span style="font-size: 11px; color: #475569; font-weight: normal;">Finish: ${getLockFinishSummaryTag(
+                            b.lockFinishConfig
+                          )}</span>`
+                        : ''
+                    }</div>`
                 )
                 .join('')
             : `<div style="font-weight: 600; color: #0f172a;">${item.bomItemName}</div>`;
