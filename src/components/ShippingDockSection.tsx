@@ -10,6 +10,7 @@ import {
   buildProductAcceptancePortalUrl,
   getLockFinishSummaryTag,
   getLockFinishColorHex,
+  isLockBOMItem,
 } from '../types';
 import {
   Truck,
@@ -291,7 +292,7 @@ export const ProductAcceptancePortalModal: React.FC<{
                                       ({b.model})
                                     </span>
                                   </span>
-                                  {b.lockFinishConfig && (
+                                  {isLockBOMItem(b) && b.lockFinishConfig && (
                                     <div className="inline-flex items-center gap-1.5 ml-2 font-sans font-semibold text-[10px] text-slate-700 bg-white border border-slate-200 px-1.5 py-0.2 rounded">
                                       <span
                                         className="w-2 h-2 rounded-full border border-slate-400 shrink-0 shadow-2xs"
@@ -447,7 +448,7 @@ export const formatDockItem1To1BreakdownHelper = (
   }
   return matchedBoms
     .map((b) => {
-      const finishStr = b.lockFinishConfig ? ` [${getLockFinishSummaryTag(b.lockFinishConfig)}]` : '';
+      const finishStr = isLockBOMItem(b) && b.lockFinishConfig ? ` [${getLockFinishSummaryTag(b.lockFinishConfig)}]` : '';
       return `${b.name}${finishStr} (${b.model}): Qty ${qtyMap[b.id] ?? 0}`;
     })
     .join(' + ');
@@ -476,7 +477,7 @@ export const buildShippingEmailTableHtmlHelper = (
               .map(
                 (b) =>
                   `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}${
-                    b.lockFinishConfig
+                    isLockBOMItem(b) && b.lockFinishConfig
                       ? `<br/><span style="font-size: 11px; color: #475569; font-weight: normal;">Finish: ${getLockFinishSummaryTag(
                           b.lockFinishConfig
                         )}</span>`
@@ -1542,7 +1543,7 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
                                     <span className="font-mono text-[10px] text-sky-700">
                                       ({b.model})
                                     </span>
-                                    {b.lockFinishConfig && (
+                                    {isLockBOMItem(b) && b.lockFinishConfig && (
                                       <span className="inline-flex items-center gap-1 ml-0.5 px-1.5 py-0.2 rounded bg-slate-900 text-white font-sans text-[10px] font-medium">
                                         <span
                                           className="w-1.5 h-1.5 rounded-full border border-white/50 shrink-0"

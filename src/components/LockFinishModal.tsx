@@ -46,7 +46,7 @@ interface LockFinishModalProps {
   item: BOMItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (itemId: string, config: LockFinishConfig) => void;
+  onSave: (itemId: string, config?: LockFinishConfig) => void;
 }
 
 export const LockFinishModal: React.FC<LockFinishModalProps> = ({
@@ -632,6 +632,19 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {item.lockFinishConfig && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSave(item.id, undefined);
+                  onClose();
+                }}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer mr-1"
+                title="Remove lock finish tag from this line item"
+              >
+                Remove Tag
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}

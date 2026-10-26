@@ -8,6 +8,7 @@ import {
   normalizeFieldTech,
   getProjectIntegratorPartners,
   checkAndApplyCsmHandoffAutoClose,
+  isLockBOMItem,
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
@@ -1973,6 +1974,26 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
     ...p,
     assignedFieldTech: normalizeFieldTech(p.assignedFieldTech),
     integratorPartners: partners,
+    bomItems: (p.bomItems || []).map((b) => {
+      let fixedModel = b.model;
+      if (/enrollment reader/i.test(b.name)) {
+        if (/mt20w/i.test(b.name) || /mt20w/i.test(b.model)) {
+          fixedModel = 'SCH-MT20W';
+        } else if (/mt20/i.test(b.name) || /mt20/i.test(b.model)) {
+          fixedModel = 'SCH-MT20';
+        }
+      }
+      // If it is NOT a lock (e.g. Schlage Enrollment Reader MT20W, Readers, Gate Readers, Intercoms), strip any mistakenly applied lockFinishConfig
+      if (!isLockBOMItem({ ...b, model: fixedModel }) && b.lockFinishConfig) {
+        const cleaned = { ...b, model: fixedModel };
+        delete cleaned.lockFinishConfig;
+        return cleaned;
+      }
+      if (fixedModel !== b.model) {
+        return { ...b, model: fixedModel };
+      }
+      return b;
+    }),
     installLogs:
       p.installLogs && p.installLogs.length > 0
         ? p.installLogs.map((l) => {
@@ -2053,7 +2074,8 @@ export function loadStoredProjects(): OperationProject[] {
 
 export function saveStoredProjects(projects: OperationProject[]) {
   try {
-    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(projects));
+    const enriched = projects.map((p) => enrichProjectDefaults(p));
+    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(enriched));
   } catch (e) {
     console.error('Failed to save projects', e);
   }

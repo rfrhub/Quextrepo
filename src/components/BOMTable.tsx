@@ -23,7 +23,7 @@ interface BOMTableProps {
   onUpdateInstalledCount: (itemId: string, newCount: number) => void;
   onSaveRowLog: (itemId: string, newLog: Omit<InstallLogEntry, 'id'>, autoIncrementBOM: boolean) => void;
   onUpdateThermostatBrand?: (itemId: string, brand: ThermostatBrand) => void;
-  onUpdateLockFinishConfig?: (itemId: string, config: LockFinishConfig) => void;
+  onUpdateLockFinishConfig?: (itemId: string, config?: LockFinishConfig) => void;
   onToggleSparesDelivered?: (itemId: string) => void;
   onDeleteLog?: (logId: string) => void;
   isReadOnly?: boolean;
@@ -169,7 +169,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
               const itemLogs = getLogsForItem(item.id);
               const isExpanded = expandedRowLogs[item.id];
               const dispCategory = getCategoryDisplayName(item.category);
-              const unitLabel = getCategoryUnitLabel(item.category);
+              const unitLabel = getCategoryUnitLabel(item.category, item);
               const isThermostat = dispCategory === 'Smart Thermostats';
               const currentBrand: ThermostatBrand = item.thermostatBrand || (item.name.toLowerCase().includes('honeywell') ? 'Honeywell' : 'Quext');
 

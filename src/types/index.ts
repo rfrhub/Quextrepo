@@ -941,7 +941,10 @@ export interface SoftwareCatalogItem {
 }
 
 // Category helper specifications
-export function getCategoryUnitLabel(category: string): string {
+export function getCategoryUnitLabel(category: string, item?: { name?: string; model?: string }): string {
+  if (item && !isLockBOMItem(item) && (category === 'Smart Access Control' || category === 'Common Area & Utilities')) {
+    return 'units';
+  }
   switch (category) {
     case 'Smart Access Control':
       return 'locks';
@@ -958,7 +961,7 @@ export function getCategoryUnitLabel(category: string): string {
     case 'Bulk Managed WiFi':
       return 'Devices';
     case 'Common Area & Utilities':
-      return 'locks';
+      return 'units';
     default:
       return 'units';
   }
@@ -1557,10 +1560,27 @@ export interface LockFinishConfig {
 
 export function isLockBOMItem(item: { name?: string; model?: string; category?: string }): boolean {
   if (!item) return false;
-  const s = `${item.name || ''} ${item.model || ''}`.toLowerCase();
-  // Exclude non-lock items
+  const name = (item.name || '').toLowerCase();
+  const model = (item.model || '').toLowerCase();
+  const s = `${name} ${model}`;
+
+  // Explicitly exclude non-lock items (Enrollment Readers, MT20W, Readers, Gate Readers, Elevators, Controllers, Intercoms, Fobs, Credentials, Handles)
   if (
-    s.includes('intercom') ||
+    name.includes('enrollment') ||
+    name.includes('mt20') ||
+    name.includes('mt20w') ||
+    name.includes('reader') ||
+    name.includes('controller') ||
+    name.includes('elevator') ||
+    name.includes('intercom') ||
+    name.includes('gate') ||
+    name.includes('fob') ||
+    name.includes('credential') ||
+    name.includes('passage handle') ||
+    name.includes('handleset') ||
+    s.includes('enrollment') ||
+    s.includes('mt20') ||
+    s.includes('mt20w') ||
     s.includes('gate reader') ||
     s.includes('elevator') ||
     s.includes('fob') ||
@@ -1568,24 +1588,34 @@ export function isLockBOMItem(item: { name?: string; model?: string; category?: 
     s.includes('card reader') ||
     s.includes('rc reader') ||
     s.includes('rc-reader') ||
-    s.includes('controller')
+    s.includes('rc11') ||
+    s.includes('rc15') ||
+    s.includes('rck15') ||
+    s.includes('controller') ||
+    s.includes('intercom')
   ) {
     return false;
   }
+
   return (
-    s.includes('be467') ||
-    s.includes('fe410') ||
-    s.includes('ndeb') ||
-    s.includes('nde') ||
-    s.includes('xe360') ||
-    s.includes('deadbolt') ||
-    s.includes('smart lock') ||
-    s.includes('interconnected') ||
-    s.includes('mortise') ||
-    s.includes('exit trim') ||
-    s.includes('tubular') ||
-    s.includes('lever') ||
-    (Boolean(item.category && item.category.toLowerCase().includes('smart access control')) && s.includes('lock'))
+    name.includes('be467') ||
+    name.includes('fe410') ||
+    name.includes('ndeb') ||
+    name.includes('nde') ||
+    name.includes('xe360') ||
+    name.includes('deadbolt') ||
+    name.includes('smart lock') ||
+    name.includes('interconnected') ||
+    name.includes('mortise') ||
+    name.includes('exit trim') ||
+    name.includes('tubular') ||
+    name.includes('lever') ||
+    model.includes('be467') ||
+    model.includes('fe410') ||
+    model.includes('ndeb') ||
+    model.includes('nde') ||
+    model.includes('xe360') ||
+    (Boolean(item.category && item.category.toLowerCase().includes('smart access control')) && name.includes('lock'))
   );
 }
 

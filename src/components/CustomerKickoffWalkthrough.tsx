@@ -13,6 +13,7 @@ import {
   buildCustomerKickoffPortalUrl,
   getLockFinishSummaryTag,
   getLockFinishColorHex,
+  isLockBOMItem,
 } from '../types';
 import { loadStoredQuotes } from '../data/initialData';
 import {
@@ -590,7 +591,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
         <tr><th>Item Name</th><th>Model</th><th>Category</th><th>Quoted Quantity</th></tr>
       </thead>
       <tbody>
-        ${project.bomItems.map((item) => `<tr><td><strong>${item.name}</strong>${item.lockFinishConfig ? `<br/><span style="font-size:11px;color:#0f172a;font-weight:600;">Finish/Trim: ${getLockFinishSummaryTag(item.lockFinishConfig)}</span>` : ''}</td><td>${item.model}</td><td>${item.category}</td><td>${item.quantity}</td></tr>`).join('')}
+        ${project.bomItems.map((item) => `<tr><td><strong>${item.name}</strong>${isLockBOMItem(item) && item.lockFinishConfig ? `<br/><span style="font-size:11px;color:#0f172a;font-weight:600;">Finish/Trim: ${getLockFinishSummaryTag(item.lockFinishConfig)}</span>` : ''}</td><td>${item.model}</td><td>${item.category}</td><td>${item.quantity}</td></tr>`).join('')}
       </tbody>
     </table>
   </div>
@@ -1809,7 +1810,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
                               Brand: {item.thermostatBrand}
                             </span>
                           )}
-                          {item.lockFinishConfig && (
+                          {isLockBOMItem(item) && item.lockFinishConfig && (
                             <span className="inline-flex items-center gap-1.5 font-sans font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
                               <span
                                 className="w-2.5 h-2.5 rounded-full border border-slate-400 shrink-0 shadow-2xs"

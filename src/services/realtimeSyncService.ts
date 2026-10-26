@@ -14,7 +14,7 @@ import {
   getDocs,
   writeBatch,
 } from 'firebase/firestore';
-import { OperationProject, Quote } from '../types';
+import { OperationProject, Quote, isLockBOMItem } from '../types';
 import {
   INITIAL_PROJECTS,
   INITIAL_QUOTES,
@@ -107,12 +107,32 @@ export function subscribeToLiveProjects(
 
         isInitialLoad = false;
         const liveList: OperationProject[] = [];
+        let hadNonLockTagsInCloud = false;
+        const projectsToCleanseInCloud: OperationProject[] = [];
+
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as OperationProject;
           if (data && data.id) {
-            liveList.push(enrichProjectDefaults(data));
+            const hasInvalidLockTag = (data.bomItems || []).some(
+              (b) => !isLockBOMItem(b) && Boolean(b.lockFinishConfig)
+            );
+            const enriched = enrichProjectDefaults(data);
+            if (hasInvalidLockTag) {
+              hadNonLockTagsInCloud = true;
+              projectsToCleanseInCloud.push(enriched);
+            }
+            liveList.push(enriched);
           }
         });
+
+        // If cloud snapshot had non-lock items tagged with lock finishes, immediately sanitize in Cloud Firestore
+        if (hadNonLockTagsInCloud && projectsToCleanseInCloud.length > 0) {
+          projectsToCleanseInCloud.forEach((p) => {
+            saveLiveProject(p).catch((err) =>
+              console.warn('[Cloud Sync] Auto-cleansed non-lock tag in Firestore error:', err)
+            );
+          });
+        }
 
         // Sort by quote number or lastUpdated descending
         liveList.sort((a, b) => {
@@ -162,7 +182,7 @@ export async function saveLiveProject(project: OperationProject): Promise<void> 
   if (!project || !project.id) return;
   try {
     updateSyncStatus({ isSyncing: true });
-    const clean = sanitizeForFirestore(project);
+    const clean = sanitizeForFirestore(enrichProjectDefaults(project));
     const docRef = doc(db, PROJECTS_COLLECTION, project.id);
     await setDoc(docRef, clean, { merge: true });
 

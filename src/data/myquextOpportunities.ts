@@ -1016,7 +1016,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-sf_imp-07",
         "name": "Schlage Enrollment Reader (MT20)",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20",
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
@@ -2908,7 +2908,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-Ygomho-01",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 138,
@@ -3568,7 +3568,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-sf_imp-02",
         "name": "Schlage Enrollment Reader(MT20)",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20",
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
@@ -3634,7 +3634,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-snHjGz-01",
         "name": "Schlage Enrollment Reader(MT20)",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20",
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
@@ -8320,7 +8320,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-eLAhs0-01",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 5,
@@ -10058,7 +10058,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-oaTpjj-08",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 89,
@@ -10157,7 +10157,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-oaTpjj-17",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 4,
@@ -10729,7 +10729,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-WT6URN-08",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 4,
@@ -10850,7 +10850,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-pioY4p-08",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 30,
@@ -12060,7 +12060,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-XfFsdj-08",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 4,
@@ -13028,7 +13028,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-yxfOjX-09",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 4,
@@ -19652,7 +19652,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "bom-sf_imp-07",
         "name": "Schlage Enrollment Reader (MT20)",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20",
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
@@ -23216,7 +23216,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "bom-Ygomho-01",
         "name": "Schlage Enrollment Reader MT20W",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20W",
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 138,
@@ -24492,7 +24492,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "bom-sf_imp-02",
         "name": "Schlage Enrollment Reader(MT20)",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20",
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
@@ -24646,7 +24646,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "bom-snHjGz-01",
         "name": "Schlage Enrollment Reader(MT20)",
-        "model": "SCH-BE467",
+        "model": "SCH-MT20",
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,

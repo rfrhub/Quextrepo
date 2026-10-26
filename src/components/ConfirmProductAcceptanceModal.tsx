@@ -4,6 +4,7 @@ import {
   ShippingDockItem,
   buildProductAcceptancePortalUrl,
   getLockFinishSummaryTag,
+  isLockBOMItem,
 } from '../types';
 import {
   subscribeToGmailAuth,
@@ -138,7 +139,7 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                 .map(
                   (b) =>
                     `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}${
-                      b.lockFinishConfig
+                      isLockBOMItem(b) && b.lockFinishConfig
                         ? `<br/><span style="font-size: 11px; color: #475569; font-weight: normal;">Finish: ${getLockFinishSummaryTag(
                             b.lockFinishConfig
                           )}</span>`

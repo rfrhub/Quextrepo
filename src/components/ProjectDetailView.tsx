@@ -28,6 +28,7 @@ import {
   buildCustomerKickoffPortalUrl,
   CustomerCommsLog,
   getLockFinishSummaryTag,
+  isLockBOMItem,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
@@ -354,9 +355,14 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   };
 
   // Handle updating lock finish configuration (trim style, color finish, lever style, crashbar, functions)
-  const handleUpdateLockFinishConfig = (itemId: string, config: LockFinishConfig) => {
+  const handleUpdateLockFinishConfig = (itemId: string, config?: LockFinishConfig) => {
     const updatedBOM = project.bomItems.map((item) => {
       if (item.id === itemId) {
+        if (!config) {
+          const cleaned = { ...item };
+          delete cleaned.lockFinishConfig;
+          return cleaned;
+        }
         return {
           ...item,
           lockFinishConfig: config,
@@ -962,7 +968,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const lineItemRowsHtml = bomItems
       .map((item) => {
         const pct = item.quantity > 0 ? Math.min(100, Math.round((item.installedCount / item.quantity) * 100)) : 0;
-        const finishTag = item.lockFinishConfig ? ` <span style="font-size: 11px; color: #475569; font-weight: normal;">[${getLockFinishSummaryTag(item.lockFinishConfig)}]</span>` : '';
+        const finishTag = isLockBOMItem(item) && item.lockFinishConfig ? ` <span style="font-size: 11px; color: #475569; font-weight: normal;">[${getLockFinishSummaryTag(item.lockFinishConfig)}]</span>` : '';
         const statusBadge =
           item.installedCount >= item.quantity
             ? `<span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background-color: #ecfdf5; color: #059669; font-size: 11px; font-weight: 700;">Complete</span>`
