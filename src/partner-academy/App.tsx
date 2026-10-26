@@ -172,7 +172,7 @@ const MainApp: React.FC<{
       )}
 
       {/* Main Container */}
-      <main className="flex-1">
+      <main data-tutorial-id="partner-academy-hub" className="flex-1">
         {/* Hero banner shown on main curriculum tab when no specific course or project prep view is open */}
         {currentTab === 'curriculum' && !selectedModule && !isViewingProjectPrepHub && (
           <HeroBanner

@@ -155,6 +155,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
 
           <button
             type="button"
+            data-tutorial-id="create-manual-project-btn"
             onClick={() => setIsCreateModalOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition-colors cursor-pointer shrink-0"
             title="Create a project manually with custom BOM and assign PM/CSM"
@@ -185,13 +186,15 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
       )}
 
       {activeSubTab === 'all-projects' && (
-        <AllProjectsTab
-          projects={projects}
-          onSelectProjectTab={(projectId) => onSelectSubTab(projectId)}
-          onUpdateProjectStatusTag={onUpdateProjectStatusTag}
-          onUpdateProject={onUpdateProject}
-          initialStatusFilter={directoryFilter}
-        />
+        <div data-tutorial-id="all-projects-container">
+          <AllProjectsTab
+            projects={projects}
+            onSelectProjectTab={(projectId) => onSelectSubTab(projectId)}
+            onUpdateProjectStatusTag={onUpdateProjectStatusTag}
+            onUpdateProject={onUpdateProject}
+            initialStatusFilter={directoryFilter}
+          />
+        </div>
       )}
 
       {/* Sub-Tab 3 View: Kickoff Intake Attention Gathering */}

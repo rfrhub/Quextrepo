@@ -28,6 +28,8 @@ import {
   ArrowRight,
   Award,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -50,6 +52,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
   const [selectedPMFilter, setSelectedPMFilter] = useState<string>('all');
   const [partnerProgressFilter, setPartnerProgressFilter] = useState<'all' | 'completed' | 'in_progress'>('all');
+  const [areProjectCardsMinimized, setAreProjectCardsMinimized] = useState<boolean>(false);
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
 
   // Listen for live Partner Academy course updates
@@ -711,6 +714,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </button>
             </div>
 
+            <button
+              type="button"
+              onClick={() => setAreProjectCardsMinimized((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
+              title={areProjectCardsMinimized ? 'Expand all partner project cards to full size' : 'Hide all cards as a whole to save space'}
+            >
+              {areProjectCardsMinimized ? (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Expand Cards ({partnerOverallSummaries.length})</span>
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Minimize Cards</span>
+                </>
+              )}
+            </button>
+
             {onOpenPartnerAcademy && (
               <button
                 type="button"
@@ -794,203 +816,234 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         </div>
 
-        {/* Per-Integrator Partner Course Progress Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {partnerOverallSummaries.map(
-            ({
-              overall,
-              projectEvaluations,
-              completedAssignedProjectsCount,
-              allAssignedProjectsCoursesDone,
-            }) => (
-              <div
-                key={overall.partnerShortName}
-                className={`rounded-xl border p-4 flex flex-col justify-between transition-all shadow-2xs ${
-                  allAssignedProjectsCoursesDone
-                    ? 'bg-emerald-50/25 border-emerald-200 hover:border-emerald-300'
-                    : 'bg-white border-slate-200 hover:border-purple-300'
-                }`}
-              >
-                <div className="space-y-3">
-                  {/* Partner Header */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-indigo-100 text-indigo-950 border border-indigo-300">
-                          {overall.partnerShortName}
-                        </span>
-                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                          {overall.companyCode}
-                        </span>
-                        {allAssignedProjectsCoursesDone ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Project Courses Complete</span>
+        {/* Per-Integrator Partner Course Progress Cards (Minimizable as a whole to save space) */}
+        {!areProjectCardsMinimized ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {partnerOverallSummaries.map(
+              ({
+                overall,
+                projectEvaluations,
+                completedAssignedProjectsCount,
+                allAssignedProjectsCoursesDone,
+              }) => (
+                <div
+                  key={overall.partnerShortName}
+                  className={`rounded-xl border p-4 flex flex-col justify-between transition-all shadow-2xs ${
+                    allAssignedProjectsCoursesDone
+                      ? 'bg-emerald-50/25 border-emerald-200 hover:border-emerald-300'
+                      : 'bg-white border-slate-200 hover:border-purple-300'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Partner Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-indigo-100 text-indigo-950 border border-indigo-300">
+                            {overall.partnerShortName}
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                            <Clock className="w-3 h-3 text-amber-600" />
-                            <span>Courses In Progress</span>
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                            {overall.companyCode}
                           </span>
-                        )}
+                          {allAssignedProjectsCoursesDone ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Project Courses Complete</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>Courses In Progress</span>
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-900 mt-1">
+                          {overall.companyName}
+                        </h3>
+                        <div className="text-[11px] text-slate-500">
+                          Lead: <strong className="text-slate-700">{overall.leadName}</strong> ·{' '}
+                          <span className="font-mono">{overall.email}</span>
+                        </div>
                       </div>
-                      <h3 className="text-sm font-bold text-slate-900 mt-1">
-                        {overall.companyName}
-                      </h3>
-                      <div className="text-[11px] text-slate-500">
-                        Lead: <strong className="text-slate-700">{overall.leadName}</strong> ·{' '}
-                        <span className="font-mono">{overall.email}</span>
-                      </div>
-                    </div>
 
-                    <div className="text-right shrink-0">
-                      <div
-                        className={`text-lg font-extrabold font-mono tabular-nums ${
-                          overall.overallPct === 100
-                            ? 'text-emerald-700'
-                            : overall.overallPct >= 70
-                            ? 'text-purple-700'
-                            : 'text-amber-700'
-                        }`}
-                      >
-                        {overall.overallPct}%
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {overall.completedModulesCount}/{overall.totalModulesCount} Academy
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Overall Academy Progress Bar */}
-                  <div>
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="font-semibold text-slate-600">
-                        Overall Academy Course Progress
-                      </span>
-                      <span className="font-mono text-slate-700 font-bold">
-                        {overall.passedQuizzesCount} Quizzes Passed
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          overall.overallPct === 100
-                            ? 'bg-emerald-500'
-                            : 'bg-gradient-to-r from-purple-600 to-cyan-500'
-                        }`}
-                        style={{ width: `${overall.overallPct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* All 7 Academy Modules Status Pills (Clickable to toggle/verify in real time) */}
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
-                      <span>Academy Course Modules ({overall.completedModulesCount}/{overall.totalModulesCount})</span>
-                      <span className="font-normal text-slate-400">Click pill to toggle</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {overall.modules.map((mod) => (
-                        <button
-                          key={mod.moduleId}
-                          type="button"
-                          onClick={() =>
-                            togglePartnerSingleCourseCompletion(
-                              overall.partnerShortName,
-                              mod.moduleId
-                            )
-                          }
-                          title={`${mod.code}: ${mod.title} — ${
-                            mod.isCompleted
-                              ? `Completed (${mod.quizScore ? `Quiz: ${mod.quizScore}%` : '100%'})`
-                              : `In Progress (${mod.progressPct}%)`
-                          }. Click to toggle completion.`}
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer inline-flex items-center gap-1 ${
-                            mod.isCompleted
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                              : mod.progressPct > 0
-                              ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
-                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                      <div className="text-right shrink-0">
+                        <div
+                          className={`text-lg font-extrabold font-mono tabular-nums ${
+                            overall.overallPct === 100
+                              ? 'text-emerald-700'
+                              : overall.overallPct >= 70
+                              ? 'text-purple-700'
+                              : 'text-amber-700'
                           }`}
                         >
-                          <span>{mod.isCompleted ? '✓' : mod.progressPct > 0 ? '⏳' : '○'}</span>
-                          <span>{mod.code}</span>
-                          <span>{mod.progressPct}%</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Assigned Projects Course Completion Breakdown */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1.5">
-                      <span>
-                        Assigned Projects ({completedAssignedProjectsCount}/{projectEvaluations.length} Courses Complete)
-                      </span>
-                    </div>
-                    {projectEvaluations.length === 0 ? (
-                      <div className="text-[11px] text-slate-400 italic py-1">
-                        No projects assigned under current filter.
+                          {overall.overallPct}%
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {overall.completedModulesCount}/{overall.totalModulesCount} Academy
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
-                        {projectEvaluations.map((pe) => (
-                          <div
-                            key={pe.project.id}
-                            onClick={() => onNavigateToProject(pe.project.id)}
-                            className="p-2 rounded-lg bg-slate-50 hover:bg-sky-50/70 border border-slate-200 hover:border-sky-300 flex items-center justify-between gap-2 text-xs cursor-pointer transition-all"
+                    </div>
+
+                    {/* Overall Academy Progress Bar */}
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="font-semibold text-slate-600">
+                          Overall Academy Course Progress
+                        </span>
+                        <span className="font-mono text-slate-700 font-bold">
+                          {overall.passedQuizzesCount} Quizzes Passed
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            overall.overallPct === 100
+                              ? 'bg-emerald-500'
+                              : 'bg-gradient-to-r from-purple-600 to-cyan-500'
+                          }`}
+                          style={{ width: `${overall.overallPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* All 7 Academy Modules Status Pills (Clickable to toggle/verify in real time) */}
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
+                        <span>Academy Course Modules ({overall.completedModulesCount}/{overall.totalModulesCount})</span>
+                        <span className="font-normal text-slate-400">Click pill to toggle</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {overall.modules.map((mod) => (
+                          <button
+                            key={mod.moduleId}
+                            type="button"
+                            onClick={() =>
+                              togglePartnerSingleCourseCompletion(
+                                overall.partnerShortName,
+                                mod.moduleId
+                              )
+                            }
+                            title={`${mod.code}: ${mod.title} — ${
+                              mod.isCompleted
+                                ? `Completed (${mod.quizScore ? `Quiz: ${mod.quizScore}%` : '100%'})`
+                                : `In Progress (${mod.progressPct}%)`
+                            }. Click to toggle completion.`}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer inline-flex items-center gap-1 ${
+                              mod.isCompleted
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                : mod.progressPct > 0
+                                ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                            }`}
                           >
-                            <div className="min-w-0">
-                              <div className="font-bold text-slate-900 truncate">
-                                {pe.project.propertyName}
-                              </div>
-                              <div className="text-[10px] text-slate-500 truncate">
-                                PM: {pe.project.assignedPM.name} · {pe.project.city}
-                              </div>
-                            </div>
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border shrink-0 ${
-                                pe.isCompleted
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                  : 'bg-amber-100 text-amber-900 border-amber-300'
-                              }`}
-                            >
-                              {pe.isCompleted
-                                ? `✓ Completed (${pe.completedCoursesCount}/${pe.totalCoursesCount})`
-                                : `⏳ ${pe.completedCoursesCount}/${pe.totalCoursesCount} (${pe.progressPct}%)`}
-                            </span>
-                          </div>
+                            <span>{mod.isCompleted ? '✓' : mod.progressPct > 0 ? '⏳' : '○'}</span>
+                            <span>{mod.code}</span>
+                            <span>{mod.progressPct}%</span>
+                          </button>
                         ))}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
 
-                {/* Card Footer: Open Partner in Academy */}
-                {onOpenPartnerAcademy && (
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-slate-500">
-                      {overall.region}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onOpenPartnerAcademy(
-                          overall.partnerShortName,
-                          projectEvaluations[0]?.project.id
-                        )
-                      }
-                      className="text-[11px] font-bold text-purple-700 hover:text-purple-900 inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>View in Partner Academy</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
+                    {/* Assigned Projects Course Completion Breakdown */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1.5">
+                        <span>
+                          Assigned Projects ({completedAssignedProjectsCount}/{projectEvaluations.length} Courses Complete)
+                        </span>
+                      </div>
+                      {projectEvaluations.length === 0 ? (
+                        <div className="text-[11px] text-slate-400 italic py-1">
+                          No projects assigned under current filter.
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
+                          {projectEvaluations.map((pe) => (
+                            <div
+                              key={pe.project.id}
+                              onClick={() => onNavigateToProject(pe.project.id)}
+                              className="p-2 rounded-lg bg-slate-50 hover:bg-sky-50/70 border border-slate-200 hover:border-sky-300 flex items-center justify-between gap-2 text-xs cursor-pointer transition-all"
+                            >
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900 truncate">
+                                  {pe.project.propertyName}
+                                </div>
+                                <div className="text-[10px] text-slate-500 truncate">
+                                  PM: {pe.project.assignedPM.name} · {pe.project.city}
+                                </div>
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border shrink-0 ${
+                                  pe.isCompleted
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-amber-100 text-amber-900 border-amber-300'
+                                }`}
+                              >
+                                {pe.isCompleted
+                                  ? `✓ Completed (${pe.completedCoursesCount}/${pe.totalCoursesCount})`
+                                  : `⏳ ${pe.completedCoursesCount}/${pe.totalCoursesCount} (${pe.progressPct}%)`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            )
-          )}
-        </div>
+
+                  {/* Card Footer: Open Partner in Academy */}
+                  {onOpenPartnerAcademy && (
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-slate-500">
+                        {overall.region}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onOpenPartnerAcademy(
+                            overall.partnerShortName,
+                            projectEvaluations[0]?.project.id
+                          )
+                        }
+                        className="text-[11px] font-bold text-purple-700 hover:text-purple-900 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View in Partner Academy</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+          </div>
+        ) : (
+          /* Minimized Compact Strip: Hides all cards as a whole to save space */
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-extrabold text-slate-900 font-mono">
+                {partnerOverallSummaries.length} Partner Cards Minimized
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                Avg Academy Progress: <strong className="font-mono text-purple-700">{partnerHubMetrics.avgOverallAcademyPct}%</strong>
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                Projects Complete: <strong className="font-mono text-emerald-700">{partnerHubMetrics.projectsWithCompletedCourses}/{partnerHubMetrics.totalFilteredProjects}</strong>
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                Ready Partners: <strong className="font-mono text-indigo-700">{partnerHubMetrics.partnersFullyReadyCount}/{partnerHubMetrics.relevantPartnersCount}</strong>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAreProjectCardsMinimized(false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-2xs transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+              <span>Expand All Cards ({partnerOverallSummaries.length})</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Grid: Left Activity Stream + Right Community Quick Cards */}

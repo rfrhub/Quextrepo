@@ -10,6 +10,7 @@ import {
   CommonAreaDoor,
   ThermostatBrand,
   InstallLogEntry,
+  PendingInstallationChange,
   ProjectStatusTag,
   calculateProjectScheduleHealth,
 } from '../types';
@@ -744,17 +745,44 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
     autoIncrementBOM: boolean
   ) => {
     const logId = `postit-${Date.now()}`;
+    const isOverAllocation = Boolean(newLog.exceedsSOW);
+    const offset = newLog.offsetQuantity || 0;
+
     const logEntry: InstallLogEntry = {
       ...newLog,
       id: logId,
       projectId: project.id,
       itemId: newLog.itemId,
+      pendingPMConfirmation: true,
+      submittedByRole: 'field_tech',
+      color: isOverAllocation ? 'rose' : 'amber',
+      approvalStatus: isOverAllocation ? 'pending_approval' : undefined,
+    };
+
+    const pendingChange: PendingInstallationChange = {
+      id: `pending-ft-log-${Date.now()}`,
+      source: 'install_log',
+      sourceId: logId,
+      title: isOverAllocation ? `⚠️ SOW Over-Allocation: ${newLog.itemName}` : `Installer Log: ${newLog.itemName}`,
+      submittedBy: `${fieldTech} (Field Tech)`,
+      submittedRole: 'field_tech',
+      submittedAt: new Date().toISOString(),
+      details: isOverAllocation
+        ? `Logged ${newLog.quantityCompleted} units in ${newLog.locationCompleted} (Exceeds SOW by +${offset} units). Requires PM Approval.`
+        : `Logged ${newLog.quantityCompleted} units in ${newLog.locationCompleted} (${newLog.statusCheck}). Awaiting PM Confirmation.`,
+      bomIncrements: { [newLog.itemId]: newLog.quantityCompleted },
+      status: 'pending',
+      associatedLog: logEntry,
+      exceedsSOW: isOverAllocation,
+      offsetQuantity: offset,
+      approvalStatus: isOverAllocation ? 'pending_approval' : undefined,
     };
 
     const updatedBOM = project.bomItems.map((item) => {
       if (item.id === newLog.itemId) {
         const existingLogs = item.postItLogs || [];
-        const newCount = autoIncrementBOM
+        const shouldIncrement = autoIncrementBOM && !isOverAllocation;
+        const newCount = shouldIncrement
           ? item.installedCount + newLog.quantityCompleted
           : item.installedCount;
         return {
@@ -770,6 +798,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
       ...project,
       bomItems: updatedBOM,
       installLogs: [logEntry, ...project.installLogs],
+      pendingInstallationChanges: [pendingChange, ...(project.pendingInstallationChanges || [])],
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -1025,7 +1054,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
              ================================================================== */
           <div className="space-y-6">
             {/* Homescreen Hero Welcome Banner matching HomeScreen.tsx */}
-            <div className="bg-gradient-to-r from-white via-sky-50/40 to-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-xs relative overflow-hidden">
+            <div data-tutorial-id="field-tech-hub" className="bg-gradient-to-r from-white via-sky-50/40 to-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-xs relative overflow-hidden">
               {/* Quext Vision Emblem in Top Right matching HomeScreen.tsx */}
               <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-4 z-20">
                 <QuextVisionLogo size={63} />
@@ -1891,6 +1920,8 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
             <SOWForecasterSection
               project={selectedProject}
               onUpdateProject={onUpdateProject}
+              editorRole="field_tech"
+              editorName={`${fieldTech} (Field Tech)`}
             />
 
             {/* SECTION 3: Shipping “Dock” Table */}
@@ -1908,6 +1939,9 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                 onAddLog={(newLog, autoInc) => handleAddLog(selectedProject, newLog, autoInc)}
                 onDeleteLog={(logId) => handleDeleteLog(selectedProject, logId)}
                 defaultInstallerName={`${fieldTech} (Field Tech)`}
+                editorRole="field_tech"
+                editorName={`${fieldTech} (Field Tech)`}
+                assignedPM={selectedProject.assignedPM}
               />
             </div>
 

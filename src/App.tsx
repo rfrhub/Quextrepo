@@ -94,7 +94,27 @@ export default function App() {
 
   // PM Onboarding Tutorial Guidance Feature State
   const [isPMTutorialOpen, setIsPMTutorialOpen] = useState<boolean>(false);
+  const [pmTutorialStep, setPmTutorialStep] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('quext_pm_tutorial_step');
+      if (saved) {
+        const idx = parseInt(saved, 10);
+        if (!isNaN(idx) && idx >= 0) return idx;
+      }
+    } catch {
+      // ignore
+    }
+    return 0;
+  });
   const [pmProjectDetailTab, setPmProjectDetailTab] = useState<'field-bom' | 'customer-comms' | 'customer-kickoff'>('field-bom');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('quext_pm_tutorial_step', pmTutorialStep.toString());
+    } catch {
+      // ignore
+    }
+  }, [pmTutorialStep]);
 
   // Secret 4-Part Focus Mode / Quext Vision states
   const [focusMode, setFocusMode] = useState<FocusModeType>('none');
@@ -830,6 +850,8 @@ export default function App() {
             onNavigateToView={handleTutorialNavigate}
             projects={projects}
             currentPortal="partner-academy"
+            currentStepIndex={pmTutorialStep}
+            onStepChange={setPmTutorialStep}
           />
         )}
       </>
@@ -872,6 +894,8 @@ export default function App() {
             onNavigateToView={handleTutorialNavigate}
             projects={projects}
             currentPortal="field-tech"
+            currentStepIndex={pmTutorialStep}
+            onStepChange={setPmTutorialStep}
           />
         )}
       </>
@@ -1115,6 +1139,8 @@ export default function App() {
             currentPortal="operations"
             currentOperationsMainTab={mainTab}
             currentOperationsSubTab={operationsSubTab}
+            currentStepIndex={pmTutorialStep}
+            onStepChange={setPmTutorialStep}
           />
         )}
 
@@ -1290,6 +1316,8 @@ export default function App() {
           currentPortal="operations"
           currentOperationsMainTab={mainTab}
           currentOperationsSubTab={operationsSubTab}
+          currentStepIndex={pmTutorialStep}
+          onStepChange={setPmTutorialStep}
         />
       )}
     </div>

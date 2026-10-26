@@ -5,6 +5,8 @@ import {
   CustomerCommsLog,
   BOMItem,
   getProjectIntegratorPartners,
+  PendingInstallationChange,
+  InstallLogEntry,
 } from '../types';
 import {
   ClipboardList,
@@ -23,11 +25,17 @@ import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirm
 interface SOWForecasterSectionProps {
   project: OperationProject;
   onUpdateProject: (updated: OperationProject) => void;
+  editorRole?: 'pm' | 'field_tech' | 'integrator_partner';
+  editorName?: string;
+  onConfirmInstallation?: (changeId?: string, sowItemId?: string) => void;
 }
 
 export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
   project,
   onUpdateProject,
+  editorRole = 'pm',
+  editorName,
+  onConfirmInstallation,
 }) => {
   const sowItems: SOWForecastItem[] = project.sowForecastItems || [];
   const bomItems = project.bomItems || [];
@@ -216,8 +224,12 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
   };
 
   const handleUpdateSOWItem = (id: string, updates: Partial<SOWForecastItem>) => {
+    let newlyCompletedItem: SOWForecastItem | null = null;
+    let qtyMapForCompleted: Record<string, number> = {};
+
     const updated = sowItems.map((item) => {
       if (item.id === id) {
+        let merged: SOWForecastItem = { ...item, ...updates };
         if (updates.bomItemIds) {
           const matchedBoms = bomItems.filter((b) => updates.bomItemIds!.includes(b.id));
           const existingQtyMap = getRowBomQuantities(item);
@@ -232,9 +244,8 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
             (sum, b) => sum + (nextQtyMap[b.id] ?? 0),
             0
           );
-          return {
-            ...item,
-            ...updates,
+          merged = {
+            ...merged,
             bomItemId: matchedBoms[0]?.id || item.bomItemId,
             bomItemName:
               matchedBoms.map((b) => b.name).join(' + ') || item.bomItemName,
@@ -250,9 +261,8 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
         if (updates.bomItemId && updates.bomItemId !== item.bomItemId) {
           const matched = bomItems.find((b) => b.id === updates.bomItemId);
           const defaultQty = matched ? getDefaultBomForecastQty(matched) : item.forecastedQuantity;
-          return {
-            ...item,
-            ...updates,
+          merged = {
+            ...merged,
             bomItemIds: matched ? [matched.id] : item.bomItemIds,
             bomItemNames: matched ? [matched.name] : item.bomItemNames,
             bomItemName: matched ? matched.name : item.bomItemName,
@@ -260,10 +270,97 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
             forecastedQuantity: defaultQty,
           };
         }
-        return { ...item, ...updates };
+
+        // If marking as completed
+        if (updates.status === 'Completed' && item.status !== 'Completed') {
+          qtyMapForCompleted = getRowBomQuantities(merged);
+          if (editorRole === 'field_tech' || editorRole === 'integrator_partner') {
+            merged.pendingPMConfirmation = true;
+            merged.submittedByRole = editorRole;
+          } else {
+            merged.pendingPMConfirmation = false;
+            merged.confirmedAt = new Date().toISOString();
+          }
+          newlyCompletedItem = merged;
+        }
+
+        return merged;
       }
       return item;
     });
+
+    if (newlyCompletedItem && (editorRole === 'field_tech' || editorRole === 'integrator_partner')) {
+      // Stage pending installation change for PM review & confirmation
+      const completedSow = newlyCompletedItem as SOWForecastItem;
+      const pendingChange: PendingInstallationChange = {
+        id: `pending-sow-${Date.now()}`,
+        source: 'sow_forecaster',
+        sourceId: completedSow.id,
+        title: `SOW Item Completed: ${completedSow.workDescription || completedSow.bomItemName}`,
+        submittedBy: editorName || (editorRole === 'field_tech' ? 'Field Technician' : 'Integrator Partner Crew'),
+        submittedRole: editorRole,
+        submittedAt: new Date().toISOString(),
+        details: `Marked Completed in ${completedSow.buildingOrArea || 'All Zones'} (${completedSow.forecastedQuantity} units). Awaiting PM Confirmation.`,
+        bomIncrements: qtyMapForCompleted,
+        status: 'pending',
+      };
+
+      onUpdateProject({
+        ...project,
+        sowForecastItems: updated,
+        pendingInstallationChanges: [pendingChange, ...(project.pendingInstallationChanges || [])],
+        lastUpdated: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (newlyCompletedItem && editorRole === 'pm') {
+      // Direct PM update: commit updates to BOM installed counts and installer logs immediately!
+      const updatedBOM = project.bomItems.map((b) => {
+        const inc = qtyMapForCompleted[b.id] || 0;
+        if (inc > 0) {
+          return {
+            ...b,
+            installedCount: Math.min(b.quantity, (b.installedCount || 0) + inc),
+          };
+        }
+        return b;
+      });
+
+      const nowTime = new Date();
+      const formattedTimestamp = `${nowTime.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })} ${nowTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+
+      const completedSow = newlyCompletedItem as SOWForecastItem;
+      const newLogs: InstallLogEntry[] = Object.entries(qtyMapForCompleted).map(([bomId, qty]) => {
+        const b = project.bomItems.find((x) => x.id === bomId);
+        return {
+          id: `log-sow-${Date.now()}-${bomId}`,
+          projectId: project.id,
+          timestamp: formattedTimestamp,
+          installerName: completedSow.assignedInstaller || 'Project Manager Direct Verification',
+          itemId: bomId,
+          itemName: b?.name || completedSow.bomItemName,
+          quantityCompleted: qty,
+          locationCompleted: completedSow.buildingOrArea || 'Site-wide',
+          statusCheck: 'Verified & Online',
+          notes: `SOW Scope Completed: ${completedSow.workDescription || completedSow.bomItemName}`,
+          color: 'emerald',
+        };
+      });
+
+      onUpdateProject({
+        ...project,
+        bomItems: updatedBOM,
+        installLogs: [...newLogs, ...project.installLogs],
+        sowForecastItems: updated,
+        lastUpdated: new Date().toISOString(),
+      });
+      return;
+    }
 
     onUpdateProject({
       ...project,
@@ -1312,6 +1409,33 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
                         <option value="In Progress">⚡ In Progress</option>
                         <option value="Completed">✓ Completed</option>
                       </select>
+
+                      {item.status === 'Completed' && item.pendingPMConfirmation && (
+                        <div className="mt-1 flex flex-col gap-1 items-start">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            ⏳ Pending PM Review
+                          </span>
+                          {editorRole === 'pm' && (
+                            <button
+                              type="button"
+                              onClick={() => onConfirmInstallation?.(undefined, item.id)}
+                              className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Confirm this installation update and commit to BOM"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Confirm installation</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {item.status === 'Completed' && !item.pendingPMConfirmation && item.confirmedAt && (
+                        <div className="mt-1">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                            ✓ Confirmed by PM
+                          </span>
+                        </div>
+                      )}
                     </td>
 
                     {/* Send By Line Item / Actions */}

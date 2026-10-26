@@ -23,6 +23,7 @@ import {
   projectHasGatewayOrHubOnBOM,
   getCSMCalendarBookingProfile,
   QUEXT_TRAINING_HELP_ARTICLE_URL,
+  PendingInstallationChange,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
@@ -353,7 +354,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const updatedBOM = project.bomItems.map((item) => {
       if (item.id === itemId) {
         const existingLogs = item.postItLogs || [];
-        const newCount = autoIncrementBOM
+        const shouldIncrement = autoIncrementBOM && !newLog.exceedsSOW;
+        const newCount = shouldIncrement
           ? item.installedCount + newLog.quantityCompleted
           : item.installedCount;
         return {
@@ -365,16 +367,269 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
       return item;
     });
 
+    const pendingChanges = project.pendingInstallationChanges || [];
+    let updatedPending = [...pendingChanges];
+    if (newLog.exceedsSOW) {
+      const pendingChange: PendingInstallationChange = {
+        id: `pending-overalloc-${Date.now()}-${itemId}`,
+        source: 'install_log',
+        sourceId: logId,
+        title: `⚠️ SOW Over-Allocation: ${newLog.itemName}`,
+        submittedBy: newLog.installerName,
+        submittedRole: newLog.submittedByRole || 'field_tech',
+        submittedAt: new Date().toISOString(),
+        details: `Logged ${newLog.quantityCompleted} units (Exceeds SOW by +${newLog.offsetQuantity} units). Requires PM Approval.`,
+        bomIncrements: { [itemId]: newLog.quantityCompleted },
+        status: 'pending',
+        exceedsSOW: true,
+        offsetQuantity: newLog.offsetQuantity,
+        approvalStatus: 'pending_approval',
+        associatedLog: logEntry,
+      };
+      updatedPending = [pendingChange, ...updatedPending];
+    }
+
     onUpdateProject({
       ...project,
       bomItems: updatedBOM,
       installLogs: [logEntry, ...project.installLogs],
+      pendingInstallationChanges: updatedPending,
       lastUpdated: new Date().toISOString(),
     });
   };
 
   const handleAddLog = (newLog: Omit<InstallLogEntry, 'id'>, autoIncrementBOM: boolean) => {
     handleSaveRowLog(newLog.itemId, newLog, autoIncrementBOM);
+  };
+
+  const handleConfirmInstallation = (changeId?: string, sowItemId?: string, logId?: string) => {
+    const bomIncrements: Record<string, number> = {};
+    const confirmedDetails: string[] = [];
+
+    // 1. If a specific changeId was given, or all pending changes:
+    const pendingList = project.pendingInstallationChanges || [];
+    const updatedPendingList = pendingList.map((c) => {
+      if ((changeId && c.id === changeId) || (!changeId && !sowItemId && !logId && c.status === 'pending')) {
+        Object.entries(c.bomIncrements).forEach(([bomId, qty]) => {
+          bomIncrements[bomId] = (bomIncrements[bomId] || 0) + qty;
+        });
+        confirmedDetails.push(c.details);
+        return {
+          ...c,
+          status: 'confirmed' as const,
+          confirmedAt: new Date().toISOString(),
+          confirmedBy: 'Project Manager',
+        };
+      }
+      return c;
+    });
+
+    // 2. If a specific sowItemId was given or all pending SOW items:
+    const updatedSowItems = (project.sowForecastItems || []).map((s) => {
+      if ((sowItemId && s.id === sowItemId) || (!changeId && !sowItemId && !logId && s.status === 'Completed' && s.pendingPMConfirmation)) {
+        const rowBomIds = s.bomItemIds && s.bomItemIds.length > 0 ? s.bomItemIds : [s.bomItemId];
+        const matchedBoms = project.bomItems.filter((b) => rowBomIds.includes(b.id));
+        matchedBoms.forEach((b) => {
+          const qty = s.bomItemQuantities?.[b.id] ?? s.forecastedQuantity;
+          bomIncrements[b.id] = (bomIncrements[b.id] || 0) + qty;
+        });
+        confirmedDetails.push(`SOW: ${s.workDescription || s.bomItemName}`);
+        return {
+          ...s,
+          pendingPMConfirmation: false,
+          confirmedAt: new Date().toISOString(),
+        };
+      }
+      return s;
+    });
+
+    // 3. If a specific logId was given or all pending install logs:
+    const updatedInstallLogs = (project.installLogs || []).map((l) => {
+      if ((logId && l.id === logId) || (!changeId && !sowItemId && !logId && l.pendingPMConfirmation)) {
+        bomIncrements[l.itemId] = (bomIncrements[l.itemId] || 0) + l.quantityCompleted;
+        confirmedDetails.push(`Install Log: ${l.itemName} (+${l.quantityCompleted})`);
+        return {
+          ...l,
+          pendingPMConfirmation: false,
+          color: 'emerald' as const,
+          notes: `${l.notes} (✓ Confirmed by PM)`,
+        };
+      }
+      return l;
+    });
+
+    // 4. Update BOM installed counts:
+    const updatedBOM = project.bomItems.map((b) => {
+      const inc = bomIncrements[b.id] || 0;
+      if (inc > 0) {
+        return {
+          ...b,
+          installedCount: Math.min(b.quantity, (b.installedCount || 0) + inc),
+        };
+      }
+      return b;
+    });
+
+    // 5. Add a PM confirmation note to project:
+    const confirmNote: ProjectNote = {
+      id: `note-confirm-${Date.now()}`,
+      projectId: project.id,
+      author: 'Project Manager',
+      timestamp:
+        new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+        ' ' +
+        new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      category: 'Inspection & Commissioning',
+      text: `PM Confirmed On-Site Installation Work: ${
+        confirmedDetails.join(' · ') || 'Hardware batch committed to BOM.'
+      }`,
+      isPinned: true,
+    };
+
+    onUpdateProject({
+      ...project,
+      bomItems: updatedBOM,
+      sowForecastItems: updatedSowItems,
+      installLogs: updatedInstallLogs,
+      pendingInstallationChanges: updatedPendingList,
+      notes: [confirmNote, ...project.notes],
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleApproveOverAllocation = (logId: string) => {
+    const targetLog = (project.installLogs || []).find((l) => l.id === logId);
+    if (!targetLog) return;
+
+    // Increment BOM installed count by the full logged quantity
+    const updatedBOM = project.bomItems.map((b) => {
+      if (b.id === targetLog.itemId) {
+        return {
+          ...b,
+          installedCount: (b.installedCount || 0) + targetLog.quantityCompleted,
+          overAllocationDenied: false,
+          overAllocationOffset: 0,
+        };
+      }
+      return b;
+    });
+
+    // Update the log status
+    const updatedLogs = (project.installLogs || []).map((l) => {
+      if (l.id === logId) {
+        return {
+          ...l,
+          approvalStatus: 'approved' as const,
+          pendingPMConfirmation: false,
+          color: 'emerald' as const,
+          notes: `${l.notes} (✓ SOW Over-Allocation Approved by PM)`,
+        };
+      }
+      return l;
+    });
+
+    // Update pending changes
+    const updatedPendingList = (project.pendingInstallationChanges || []).map((c) => {
+      if (c.sourceId === logId || c.associatedLog?.id === logId) {
+        return {
+          ...c,
+          status: 'confirmed' as const,
+          approvalStatus: 'approved' as const,
+          confirmedAt: new Date().toISOString(),
+          confirmedBy: 'Project Manager',
+        };
+      }
+      return c;
+    });
+
+    const approveNote: ProjectNote = {
+      id: `note-appr-${Date.now()}`,
+      projectId: project.id,
+      author: 'Project Manager',
+      timestamp:
+        new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+        ' ' +
+        new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      category: 'Inspection & Commissioning',
+      text: `PM Approved SOW Over-Allocation: ${targetLog.installerName} logged ${targetLog.quantityCompleted} units of ${targetLog.itemName} (+${targetLog.offsetQuantity} over quoted). Committed to BOM.`,
+      isPinned: true,
+    };
+
+    onUpdateProject({
+      ...project,
+      bomItems: updatedBOM,
+      installLogs: updatedLogs,
+      pendingInstallationChanges: updatedPendingList,
+      notes: [approveNote, ...project.notes],
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleDenyOverAllocation = (logId: string) => {
+    const targetLog = (project.installLogs || []).find((l) => l.id === logId);
+    if (!targetLog) return;
+
+    // Flag the line item in BOM and highlight the offset
+    const updatedBOM = project.bomItems.map((b) => {
+      if (b.id === targetLog.itemId) {
+        return {
+          ...b,
+          overAllocationDenied: true,
+          overAllocationOffset: targetLog.offsetQuantity || 0,
+        };
+      }
+      return b;
+    });
+
+    // Update the log status to denied
+    const updatedLogs = (project.installLogs || []).map((l) => {
+      if (l.id === logId) {
+        return {
+          ...l,
+          approvalStatus: 'denied' as const,
+          pendingPMConfirmation: false,
+          color: 'rose' as const,
+          notes: `${l.notes} (✕ SOW Over-Allocation Denied by PM - Requires Change Order)`,
+        };
+      }
+      return l;
+    });
+
+    const updatedPendingList = (project.pendingInstallationChanges || []).map((c) => {
+      if (c.sourceId === logId || c.associatedLog?.id === logId) {
+        return {
+          ...c,
+          status: 'confirmed' as const,
+          approvalStatus: 'denied' as const,
+          denialReason: 'Over-allocation denied by PM',
+          confirmedAt: new Date().toISOString(),
+          confirmedBy: 'Project Manager',
+        };
+      }
+      return c;
+    });
+
+    const denyNote: ProjectNote = {
+      id: `note-deny-${Date.now()}`,
+      projectId: project.id,
+      author: 'Project Manager',
+      timestamp:
+        new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+        ' ' +
+        new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      category: 'Inspection & Commissioning',
+      text: `PM Denied SOW Over-Allocation: ${targetLog.installerName} attempted ${targetLog.quantityCompleted} units of ${targetLog.itemName} (+${targetLog.offsetQuantity} over quoted). Line item flagged and offset highlighted for Change Order review.`,
+      isPinned: true,
+    };
+
+    onUpdateProject({
+      ...project,
+      bomItems: updatedBOM,
+      installLogs: updatedLogs,
+      pendingInstallationChanges: updatedPendingList,
+      notes: [denyNote, ...project.notes],
+      lastUpdated: new Date().toISOString(),
+    });
   };
 
   const handleDeleteLog = (logId: string) => {
@@ -949,8 +1204,82 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             </div>
           </div>
 
+          {/* Pending Field Tech / Integrator Installation Updates Banner with "Confirm installation" button */}
+          {(() => {
+            const pendingChanges = (project.pendingInstallationChanges || []).filter((c) => c.status === 'pending');
+            const pendingSOWs = (project.sowForecastItems || []).filter((s) => s.status === 'Completed' && s.pendingPMConfirmation);
+            const pendingLogs = (project.installLogs || []).filter((l) => l.pendingPMConfirmation);
+            const hasPending = pendingChanges.length > 0 || pendingSOWs.length > 0 || pendingLogs.length > 0;
+            if (!hasPending) return null;
+
+            return (
+              <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 via-amber-100/60 to-amber-50 border-2 border-amber-400 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 animate-fade-in">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0 mt-0.5">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-amber-200 text-amber-950 border border-amber-400">
+                        Field Tech / Integrator Changes Pending PM Confirmation
+                      </span>
+                      <span className="text-xs text-slate-600 font-mono">
+                        {pendingChanges.length + pendingSOWs.length + pendingLogs.length} pending updates
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-extrabold text-amber-950 mt-1">
+                      On-site installation work completed and submitted for project commit
+                    </h4>
+                    <div className="text-xs text-amber-900/90 mt-1 space-y-1">
+                      {pendingChanges.map((c) => (
+                        <div key={c.id} className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-bold text-slate-900">• {c.title}</span>
+                          <span className="text-slate-600">by <strong className="text-amber-950">{c.submittedBy}</strong></span>
+                          <span className="text-slate-400">·</span>
+                          <span className="font-mono text-[11px] text-slate-700">{c.details}</span>
+                        </div>
+                      ))}
+                      {pendingSOWs
+                        .filter((s) => !pendingChanges.some((c) => c.sourceId === s.id))
+                        .map((s) => (
+                          <div key={s.id} className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-bold text-slate-900">• SOW Completed: {s.workDescription || s.bomItemName}</span>
+                            <span className="text-slate-600">by <strong className="text-amber-950">{s.assignedInstaller}</strong></span>
+                            <span className="text-slate-400">·</span>
+                            <span className="font-mono text-[11px] text-slate-700">{s.buildingOrArea} ({s.forecastedQuantity} units)</span>
+                          </div>
+                        ))}
+                      {pendingLogs
+                        .filter((l) => !pendingChanges.some((c) => c.sourceId === l.id))
+                        .map((l) => (
+                          <div key={l.id} className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-bold text-slate-900">• Installer Log: {l.itemName} (+{l.quantityCompleted})</span>
+                            <span className="text-slate-600">by <strong className="text-amber-950">{l.installerName}</strong></span>
+                            <span className="text-slate-400">·</span>
+                            <span className="font-mono text-[11px] text-slate-700">{l.locationCompleted} ({l.statusCheck})</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmInstallation()}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-md cursor-pointer transition-transform hover:scale-105"
+                    title="Confirm all pending installation updates and commit to project BOM"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Confirm installation</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Unified Panel: Deployment Progress & Milestones (Left) + Project Health Tag (Right) */}
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div data-tutorial-id="milestones-tracker-rail" className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
             {/* Left Side inside Panel: Deployment Progress Bar & Project Milestones */}
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-700">
@@ -1536,15 +1865,17 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
       {/* VIEW 1: Customer Comms Control Panel */}
       {activeTab === 'customer-comms' && (
-        <CustomerCommsControlPanel
-          project={project}
-          onUpdateProject={onUpdateProject}
-          onOpenKickoffWalkthrough={() => setActiveTab('customer-kickoff')}
-          onOpenCSMPortal={(mode) => {
-            setCsmPortalInitialMode(mode || (isOnCSMIntroMilestone ? 'csm-intro-booking' : 'csm-handoff'));
-            setIsCSMTrainingOpen(true);
-          }}
-        />
+        <div data-tutorial-id="customer-comms-panel">
+          <CustomerCommsControlPanel
+            project={project}
+            onUpdateProject={onUpdateProject}
+            onOpenKickoffWalkthrough={() => setActiveTab('customer-kickoff')}
+            onOpenCSMPortal={(mode) => {
+              setCsmPortalInitialMode(mode || (isOnCSMIntroMilestone ? 'csm-intro-booking' : 'csm-handoff'));
+              setIsCSMTrainingOpen(true);
+            }}
+          />
+        </div>
       )}
 
       {/* VIEW 2: Customer Kickoff Walkthrough */}
@@ -1881,7 +2212,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           </div>
 
           {/* Smart Community Bill of Materials (BOM) Table with Post-It Note Window & Thermostat Brand Selector */}
-          <div id="pm-bom-table" className="scroll-mt-36">
+          <div id="pm-bom-table" data-tutorial-id="hardware-bom-table" className="scroll-mt-36">
             <BOMTable
               items={project.bomItems}
               allProjectLogs={project.installLogs}
@@ -1896,16 +2227,23 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           </div>
 
           {/* Shipping "Dock" Table (Under BOM Section) + Product Acceptance Portal */}
-          <ShippingDockSection
-            project={project}
-            onUpdateProject={onUpdateProject}
-          />
+          <div data-tutorial-id="shipping-dock-section">
+            <ShippingDockSection
+              project={project}
+              onUpdateProject={onUpdateProject}
+            />
+          </div>
 
           {/* SOW Forecaster Section (Installer Scope Forecast Matched Against BOM Line Items) */}
-          <SOWForecasterSection
-            project={project}
-            onUpdateProject={onUpdateProject}
-          />
+          <div data-tutorial-id="sow-and-mitigation-section">
+            <SOWForecasterSection
+              project={project}
+              onUpdateProject={onUpdateProject}
+              editorRole="pm"
+              editorName={project.assignedPM?.name || 'Project Manager'}
+              onConfirmInstallation={handleConfirmInstallation}
+            />
+          </div>
 
           {/* COMMON AREA DOORS LOCATION TREE & DEVICE COMMISSIONING TRACKER */}
           <div id="pm-common-doors" className="scroll-mt-36 bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
@@ -2125,6 +2463,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               projectIntegratorPartners={getProjectIntegratorPartners(project)}
               onAddLog={handleAddLog}
               onDeleteLog={handleDeleteLog}
+              editorRole="pm"
+              editorName={project.assignedPM?.name || 'Project Manager'}
+              assignedPM={project.assignedPM}
+              onConfirmInstallation={handleConfirmInstallation}
+              onApproveOverAllocation={handleApproveOverAllocation}
+              onDenyOverAllocation={handleDenyOverAllocation}
             />
           </div>
 

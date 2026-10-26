@@ -32,6 +32,32 @@ export interface InstallLogEntry {
   statusCheck: 'Verified & Online' | 'Signal Testing Passed' | 'Pending LoRa Sync' | 'Hardware Swapped';
   notes: string;
   color?: 'yellow' | 'cyan' | 'emerald' | 'rose' | 'amber';
+  pendingPMConfirmation?: boolean; // When logged by field tech or partner, awaiting PM confirmation
+  submittedByRole?: 'field_tech' | 'integrator_partner' | 'pm';
+  exceedsSOW?: boolean;
+  offsetQuantity?: number;
+  itemNotes?: string; // Dedicated note tied to this individual BOM line item
+  approvalStatus?: 'pending_approval' | 'approved' | 'denied';
+}
+
+export interface PendingInstallationChange {
+  id: string;
+  source: 'sow_forecaster' | 'install_log';
+  sourceId: string;
+  title: string;
+  submittedBy: string; // e.g. "Sean Gates (Field Tech)" or "SKBM Partner Crew"
+  submittedRole: 'field_tech' | 'integrator_partner' | 'pm';
+  submittedAt: string;
+  details: string; // Summary of changes
+  bomIncrements: Record<string, number>; // { [bomItemId]: quantity }
+  status: 'pending' | 'confirmed';
+  confirmedAt?: string;
+  confirmedBy?: string;
+  associatedLog?: InstallLogEntry;
+  exceedsSOW?: boolean;
+  offsetQuantity?: number;
+  approvalStatus?: 'pending_approval' | 'approved' | 'denied';
+  denialReason?: string;
 }
 
 export interface BOMItem {
@@ -48,6 +74,8 @@ export interface BOMItem {
   postItLogs?: InstallLogEntry[]; // Stored and logged within its corresponding row!
   sparesCount?: number; // Spares included in line item total, but distinct from installed device count
   sparesDelivered?: boolean; // Subtle confirmation by PM that spares have been delivered to customer
+  overAllocationOffset?: number; // When installer exceeded SOW, tracked offset
+  overAllocationDenied?: boolean; // Flagged when PM denied the over-allocation
 }
 
 export interface ProjectNote {
@@ -496,6 +524,9 @@ export interface SOWForecastItem {
   status: 'Forecasted' | 'In Progress' | 'Completed';
   lastNotifiedCustomerAt?: string;
   notes?: string;
+  pendingPMConfirmation?: boolean; // When updated by field tech / partner, awaiting PM confirmation
+  submittedByRole?: 'field_tech' | 'integrator_partner' | 'pm';
+  confirmedAt?: string;
 }
 
 export type ShippingCarrier =
@@ -709,6 +740,7 @@ export interface OperationProject {
   shippingDockItems?: ShippingDockItem[];
   productAcceptanceSubmission?: ProductAcceptanceSubmission;
   activityNotifications?: ProjectActivityNotification[];
+  pendingInstallationChanges?: PendingInstallationChange[]; // Staged changes from Field Techs & Integrator Partners awaiting PM confirmation
   kickoffCompleted?: boolean;
   isManuallyCreated?: boolean;
   isBomLocked?: boolean;

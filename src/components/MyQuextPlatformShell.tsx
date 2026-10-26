@@ -367,6 +367,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
             <button
               type="button"
+              data-tutorial-id="top-nav-operations"
               onClick={() => {
                 onSelectTopTab('operations');
                 if (operationsMainTab === 'quotes') {
@@ -545,6 +546,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
           <div className="relative">
             <button
               type="button"
+              data-tutorial-id="top-nav-profile-menu"
               onClick={() => setIsProfileMenuOpen((v) => !v)}
               className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer text-left"
               title={`${currentUserName} (${currentUserEmail})`}
@@ -1490,7 +1492,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
       {activeTopTab === 'operations' && (
         <div className="flex-1 flex flex-col min-w-0">
           {/* Sub-Navigation Bar inside the myquext.com Operations Tab */}
-          <div className="bg-white border-b border-slate-200 px-4 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <div data-tutorial-id="operations-subnav-bar" className="bg-white border-b border-slate-200 px-4 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-2 flex items-center gap-1">
                 <Layers className="w-3.5 h-3.5 text-blue-600" />
@@ -1499,6 +1501,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
               <button
                 type="button"
+                data-tutorial-id="subnav-installation-overview"
                 onClick={onGoToOperationsDashboard}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   operationsMainTab === 'operations' && operationsSubTab === 'dashboard'
@@ -1520,6 +1523,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
               <button
                 type="button"
+                data-tutorial-id="subnav-all-projects"
                 onClick={() => {
                   onSelectOperationsMainTab('operations');
                   onSelectOperationsSubTab('all-projects');
@@ -1535,6 +1539,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
               <button
                 type="button"
+                data-tutorial-id="subnav-kickoff-attention"
                 onClick={() => {
                   onSelectOperationsMainTab('operations');
                   onSelectOperationsSubTab('kickoff-attention');
@@ -1600,6 +1605,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                data-tutorial-id="subnav-field-tech-btn"
                 onClick={onOpenFieldTechPortal || onOpenLoginModal}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
               >

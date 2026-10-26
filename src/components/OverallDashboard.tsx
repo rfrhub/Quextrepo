@@ -97,6 +97,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [acknowledgedRoadblocks, setAcknowledgedRoadblocks] = useState<Record<string, boolean>>({});
   const [activeRoadblockCategory, setActiveRoadblockCategory] = useState<'all' | 'municipal' | 'supply_chain' | 'internal_assist'>('all');
   const [financialSortBy, setFinancialSortBy] = useState<'profit' | 'revenue' | 'margin' | 'collection'>('profit');
+  const [isFinancialProjectsMinimized, setIsFinancialProjectsMinimized] = useState<boolean>(false);
 
   // Pop-up modal state for "Assistance Provided"
   const [assistModalProject, setAssistModalProject] = useState<OperationProject | null>(null);
@@ -1213,7 +1214,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                   </div>
 
                   {/* 2. Interactive Visual Timeline Horizon Track (Scannable Leadership Pulse) */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
+                  <div data-tutorial-id="horizon-timeline-axis" className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px]">
@@ -1243,6 +1244,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                         {/* Button on the Interactive Visual Horizon Timeline Axis tile to toggle the Chronological Rollout Sequence & Countdown Rail */}
                         <button
                           type="button"
+                          data-tutorial-id="horizon-rollout-btn"
                           onClick={() => setShowRolloutSequence((v) => !v)}
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer ${
                             showRolloutSequence
@@ -1437,7 +1439,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
 
                     {/* Spotlight Callout Bar with Multi-Project Wave / Zone Scroller */}
                     {activeHoveredItem && (
-                      <div className="mt-3 p-3.5 rounded-xl bg-slate-900 text-white space-y-2.5 text-xs shadow-sm">
+                      <div data-tutorial-id="horizon-spotlight-bar" className="mt-3 p-3.5 rounded-xl bg-slate-900 text-white space-y-2.5 text-xs shadow-sm">
                         {/* Top Row: Active Project Details + Prev/Next Controls + Open Project Button */}
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
                           <div className="flex flex-wrap items-center gap-2 min-w-0">
@@ -2384,7 +2386,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
             <span className="text-xs text-slate-500 font-semibold">Sort Breakdown:</span>
             <select
               value={financialSortBy}
@@ -2396,6 +2398,25 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               <option value="margin">Highest Margin (%)</option>
               <option value="collection">Cash Collection %</option>
             </select>
+
+            <button
+              type="button"
+              onClick={() => setIsFinancialProjectsMinimized((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
+              title={isFinancialProjectsMinimized ? 'Expand project breakdown table' : 'Minimize project breakdown table to save space'}
+            >
+              {isFinancialProjectsMinimized ? (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Expand Projects ({projectFinancials.length})</span>
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Minimize Projects</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -2511,86 +2532,110 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           </div>
         </div>
 
-        {/* Project Financial Breakdown Table */}
-        <div className="overflow-x-auto mt-4 border border-slate-200 rounded-xl">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                <th className="py-2.5 px-3">Project & Client</th>
-                <th className="py-2.5 px-3 text-right">Quoted Hardware</th>
-                <th className="py-2.5 px-3 text-right">Turnkey Install</th>
-                <th className="py-2.5 px-3 text-right">Total Revenue</th>
-                <th className="py-2.5 px-3 text-right">Estimated Cost</th>
-                <th className="py-2.5 px-3 text-right font-bold text-emerald-800">Gross Profit ($)</th>
-                <th className="py-2.5 px-3 text-right">Margin %</th>
-                <th className="py-2.5 px-3 text-center">Billed / Invoiced</th>
-                <th className="py-2.5 px-3 text-center">Collection Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {projectFinancials
-                .sort((a, b) => {
-                  if (financialSortBy === 'profit') return b.grossProfit - a.grossProfit;
-                  if (financialSortBy === 'revenue') return b.totalQuotedRevenue - a.totalQuotedRevenue;
-                  if (financialSortBy === 'margin') return b.grossMarginPct - a.grossMarginPct;
-                  return b.billedPercentage - a.billedPercentage;
-                })
-                .map((f) => (
-                  <tr key={`fin-${f.project.id}`} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-2.5 px-3">
-                      <button
-                        type="button"
-                        onClick={() => onSelectProjectTab(f.project.id)}
-                        className="font-bold text-slate-900 hover:text-sky-700 text-left transition-colors cursor-pointer"
-                      >
-                        {f.project.propertyName}
-                      </button>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {f.project.clientName} · #{f.project.quoteNumber}
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                      ${f.quotedHardwareRevenue.toLocaleString()}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                      ${f.quotedInstallRevenue.toLocaleString()}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                      ${f.totalQuotedRevenue.toLocaleString()}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-600">
-                      ${f.totalEstimatedCost.toLocaleString()}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-extrabold text-emerald-700">
-                      +${f.grossProfit.toLocaleString()}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
-                      {f.grossMarginPct}%
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <div className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-slate-800">
-                        <span>{f.billedPercentage}%</span>
-                        <span className="text-[10px] text-slate-400">(${Math.round(f.cashCollected / 1000)}k)</span>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      {f.isAtRisk ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                          <AlertTriangle className="w-3 h-3 text-amber-600" />
-                          <span>Delayed (${Math.round(f.unbilledAmount / 1000)}k)</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>On Track</span>
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Project Financial Breakdown Table with Minimize / Expand Toggle */}
+        {!isFinancialProjectsMinimized ? (
+          <div className="overflow-x-auto mt-4 border border-slate-200 rounded-xl">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Project & Client</th>
+                  <th className="py-2.5 px-3 text-right">Quoted Hardware</th>
+                  <th className="py-2.5 px-3 text-right">Turnkey Install</th>
+                  <th className="py-2.5 px-3 text-right">Total Revenue</th>
+                  <th className="py-2.5 px-3 text-right">Estimated Cost</th>
+                  <th className="py-2.5 px-3 text-right font-bold text-emerald-800">Gross Profit ($)</th>
+                  <th className="py-2.5 px-3 text-right">Margin %</th>
+                  <th className="py-2.5 px-3 text-center">Billed / Invoiced</th>
+                  <th className="py-2.5 px-3 text-center">Collection Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {projectFinancials
+                  .sort((a, b) => {
+                    if (financialSortBy === 'profit') return b.grossProfit - a.grossProfit;
+                    if (financialSortBy === 'revenue') return b.totalQuotedRevenue - a.totalQuotedRevenue;
+                    if (financialSortBy === 'margin') return b.grossMarginPct - a.grossMarginPct;
+                    return b.billedPercentage - a.billedPercentage;
+                  })
+                  .map((f) => (
+                    <tr key={`fin-${f.project.id}`} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-2.5 px-3">
+                        <button
+                          type="button"
+                          onClick={() => onSelectProjectTab(f.project.id)}
+                          className="font-bold text-slate-900 hover:text-sky-700 text-left transition-colors cursor-pointer"
+                        >
+                          {f.project.propertyName}
+                        </button>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {f.project.clientName} · #{f.project.quoteNumber}
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                        ${f.quotedHardwareRevenue.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                        ${f.quotedInstallRevenue.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                        ${f.totalQuotedRevenue.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-600">
+                        ${f.totalEstimatedCost.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-extrabold text-emerald-700">
+                        +${f.grossProfit.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
+                        {f.grossMarginPct}%
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-slate-800">
+                          <span>{f.billedPercentage}%</span>
+                          <span className="text-[10px] text-slate-400">(${Math.round(f.cashCollected / 1000)}k)</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        {f.isAtRisk ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <AlertTriangle className="w-3 h-3 text-amber-600" />
+                            <span>Delayed (${Math.round(f.unbilledAmount / 1000)}k)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>On Track</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-extrabold text-slate-900 font-mono">
+                {projectFinancials.length} Projects Minimized
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>Total Revenue: <strong className="font-mono text-slate-900">${totalPortfolioRevenue.toLocaleString()}</strong></span>
+              <span className="text-slate-400">•</span>
+              <span>Gross Profit: <strong className="font-mono text-emerald-700">${totalPortfolioProfit.toLocaleString()}</strong> ({portfolioBlendedMargin}%)</span>
+              <span className="text-slate-400">•</span>
+              <span>Collected: <strong className="font-mono text-sky-800">${totalCashCollected.toLocaleString()}</strong> ({portfolioCollectionPct}%)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFinancialProjectsMinimized(false)}
+              className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer shrink-0 self-start sm:self-auto"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+              <span>Expand Projects Table</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Visual Comparative Charts Row */}

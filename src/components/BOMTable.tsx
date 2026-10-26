@@ -161,7 +161,11 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                 <React.Fragment key={item.id}>
                   <tr
                     className={`hover:bg-slate-50/90 transition-colors ${
-                      isDone ? 'bg-emerald-50/40' : ''
+                      item.overAllocationDenied
+                        ? 'bg-rose-50/40 border-l-4 border-l-rose-500'
+                        : isDone
+                        ? 'bg-emerald-50/40'
+                        : ''
                     }`}
                   >
                     {/* Item Name & Model */}
@@ -172,6 +176,11 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                         </div>
                         <div>
                           <div className="font-semibold text-slate-900 text-xs sm:text-sm">{item.name}</div>
+                          {item.overAllocationDenied && (
+                            <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-100 text-rose-900 border border-rose-300 text-[10px] font-extrabold animate-pulse">
+                              <span>⚠️ Offset Exceeded: +{item.overAllocationOffset} units Denied by PM (Requires Change Order)</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-mono">
                             <span>SKU: {item.model}</span>
                             <span>·</span>
