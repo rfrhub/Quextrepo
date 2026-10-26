@@ -217,6 +217,16 @@ export function buildProjectPrePackagedBundle(
     );
   }
 
+  // IoT LoRaWAN Gateways & Mesh Infrastructure (Mandatory when on BOM)
+  if (hasGateways) {
+    addCourse(
+      'mod_gateway_installation',
+      `Required for LoRaWAN IoT infrastructure (${gatewayMatch.qty} Base Station Gateway${gatewayMatch.qty > 1 ? 's' : ''} on BOM: ${gatewayMatch.names[0] || 'Base Station Gateway'})`,
+      gatewayMatch.qty,
+      true
+    );
+  }
+
   // 2. Assemble Interactive Field Guides, Checklists & Simulators
   const packagedGuides: PackagedGuideItem[] = [];
   const addGuide = (item: PackagedGuideItem) => {
@@ -300,6 +310,18 @@ export function buildProjectPrePackagedBundle(
       badge: `${leakSensorMatch.qty} Leak Devices`,
       matchReason: `Matched to ${leakSensorMatch.qty.toLocaleString()} Leak Protection & Shutoff devices on BOM`,
       estimatedMinutes: 14,
+    });
+  }
+
+  if (hasGateways) {
+    addGuide({
+      tabId: 'gateway_guide',
+      title: 'Quext Smart Community Gateway Installation Guide',
+      subtitle: 'TEKTELIC outdoor gateway mounting, Unistrut & antenna, T568B termination, PoE & verification',
+      category: 'Field Guide',
+      badge: `${gatewayMatch.qty} Gateway${gatewayMatch.qty > 1 ? 's' : ''}`,
+      matchReason: `Required for ${gatewayMatch.qty} IoT Base Station Gateway(s) on ${project.propertyName}`,
+      estimatedMinutes: 15,
     });
   }
 

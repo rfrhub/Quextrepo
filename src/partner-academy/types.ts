@@ -89,7 +89,7 @@ export interface CourseModule {
   code: string;
   shortDescription: string;
   overview: string;
-  category: 'Climate & IoT' | 'Smart Access' | 'Commercial Hardware' | 'Reader Controllers' | 'Portal Operations';
+  category: 'Climate & IoT' | 'Smart Access' | 'Commercial Hardware' | 'Reader Controllers' | 'Portal Operations' | 'IoT Infrastructure & Gateways';
   hardwareImage: string;
   officialDeviceName?: string;
   officialModel?: string;

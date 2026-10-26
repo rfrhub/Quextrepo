@@ -20,6 +20,7 @@ export const CourseCurriculum: React.FC<CourseCurriculumProps> = ({
 
   const categories = [
     { id: 'all', label: 'All Courses' },
+    { id: 'IoT Infrastructure & Gateways', label: 'IoT Gateways & Mesh' },
     { id: 'Climate & IoT', label: 'Thermostats & IoT' },
     { id: 'Smart Access', label: 'NFC Wallet & Deadbolts' },
     { id: 'Commercial Hardware', label: 'XE360 & NDE Locks' },

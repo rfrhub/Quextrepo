@@ -2266,3 +2266,175 @@ export const PORTAL_GUIDE_QUIZ_PACKAGE: ModuleQuizPackage = {
   },
 };
 
+// Course 8: Quext Smart Community Gateway Installation Guide Quiz Package
+export const GATEWAY_INSTALLATION_QUIZ_PACKAGE: ModuleQuizPackage = {
+  practiceQuiz: {
+    title: 'Smart Community Gateway Installation Practice Check',
+    passingScore: 80,
+    questions: [
+      {
+        id: 'gw_pq_1',
+        question: 'What length and diameter of EMT conduit is specified in the Quext Installer Guide for the antenna mast extension?',
+        options: [
+          '10\' 1/2" EMT conduit — silver',
+          '5\' 1" PVC pipe',
+          '20\' 2" rigid steel conduit',
+          '8\' copper pipe',
+        ],
+        correctIndex: 0,
+        explanation: 'The Quext Gateway Installer Guide specifies a standard 10\' 1/2" EMT conduit (silver) to rigidly elevate the omnidirectional antenna above the parapet.',
+      },
+      {
+        id: 'gw_pq_2',
+        question: 'What channel specification is required for the wall mounting backplane?',
+        options: [
+          '2\' 12 GA Unistrut channel — silver (2 channels)',
+          'Single 1\' plastic slotted track',
+          '14 GA drywall track',
+          'Thin gauge aluminum trim',
+        ],
+        correctIndex: 0,
+        explanation: 'Heavy 12 GA Unistrut (2 channels, 2 feet each) provides the structural stiffness necessary to withstand outdoor wind shear on roof parapets.',
+      },
+      {
+        id: 'gw_pq_3',
+        question: 'Which standard wiring scheme must be followed when terminating RJ45 Ethernet connectors for the gateway?',
+        options: [
+          'EIA/TIA-568B (T568B)',
+          'EIA/TIA-568A (T568A)',
+          'Crossover wiring',
+          'USOC telephone pinout',
+        ],
+        correctIndex: 0,
+        explanation: 'Quext standards mandate T568B pinout on both the roof gateway end and the data closet patch end for 1:1 gigabit/PoE continuity.',
+      },
+      {
+        id: 'gw_pq_4',
+        question: 'What critical operation must be completed BEFORE crimping the RJ45 connector onto the outdoor network cable?',
+        options: [
+          'Pass the cable through the provided IP67 water-tight connector gland, rubber grommet, and compression nut',
+          'Connect the cable to AC power',
+          'Dip the cable ends in water',
+          'Staple the cable to the roof membrane',
+        ],
+        correctIndex: 0,
+        explanation: 'The water-tight connector gland components must be threaded onto the raw cable before crimping; otherwise the connector head will not fit through the gland hole.',
+      },
+      {
+        id: 'gw_pq_5',
+        question: 'What is the dedicated Quext Support phone number and option for live on-site gateway verification?',
+        options: [
+          '806-993-3200 • OPTION 4',
+          '1-800-555-0100',
+          '800-111-2222 • Option 1',
+          '911 Dispatch',
+        ],
+        correctIndex: 0,
+        explanation: 'Quext Support can be reached directly from the field at 806-993-3200 • OPTION 4 to verify gateway cloud telemetry, packet RSSI, and commission the property IoT mesh.',
+      },
+    ],
+  },
+  certificationExam: {
+    passingScore: 80,
+    questions: [
+      {
+        id: 'gw_cert_1',
+        question: 'What are the two approved structural mounting location orientations detailed in the Quext Gateway Installer Guide?',
+        options: [
+          'Inside Roof Wall Mount vs. Outside Roof Mount',
+          'Underground vault vs. Indoor drop ceiling',
+          'Interior closet wall vs. Kitchen pantry',
+          'Attic floor vs. Chimney flue',
+        ],
+        correctIndex: 0,
+        explanation: 'The guide illustrates Inside Roof Wall Mount (parapet interior) and Outside Roof Mount (exterior wall), both keeping the antenna tip clear above the roofline.',
+      },
+      {
+        id: 'gw_cert_2',
+        question: 'How many Unistrut channels and universal pipe clamps are specified to secure the 10\' EMT antenna mast?',
+        options: [
+          'Two 2\' 12 GA Unistrut channels and two 1/2" universal pipe clamps (spaced vertically)',
+          'One channel and zero clamps (use zip-ties)',
+          'Four 10\' channels and tape',
+          'Six wood 2x4s and nails',
+        ],
+        correctIndex: 0,
+        explanation: 'Two 2\' 12 GA Unistrut channels spaced vertically with two 1/2" universal pipe clamps create a rigid two-point cantilever mount that prevents mast tilting under wind load.',
+      },
+      {
+        id: 'gw_cert_3',
+        question: 'Where must the fiberglass omnidirectional LoRaWAN antenna radiating element be positioned relative to the metal EMT conduit?',
+        options: [
+          'Completely above the top of the metal EMT conduit to avoid RF distortion',
+          'Taped flush alongside the metal conduit',
+          'Inside the metal conduit pipe',
+          'Pointed downward toward the roof gravel',
+        ],
+        correctIndex: 0,
+        explanation: 'The radiating fiberglass cylinder must extend entirely above the metallic conduit; metallic structures running parallel to the antenna will severely degrade the 915 MHz radiation pattern.',
+      },
+      {
+        id: 'gw_cert_4',
+        question: 'When anchoring Unistrut to vertical wall substrate, what step is required before driving fasteners?',
+        options: [
+          'Pre-drill appropriate pilot holes for wood studs or masonry, clean dust, and apply outdoor silicone/polyurethane sealant into and around anchor holes',
+          'Hammer directly into coping cap flashing without pre-drilling',
+          'Use hot glue',
+          'Drill through the roofing membrane boots',
+        ],
+        correctIndex: 0,
+        explanation: 'Pre-drilling proper pilot depth and applying generous sealant prevents water intrusion into building framing and guarantees solid mechanical anchor bite.',
+      },
+      {
+        id: 'gw_cert_5',
+        question: 'In the data closet, into which port on the provided PoE power injector must the cable originating from the outdoor roof gateway be connected?',
+        options: [
+          'The port labeled "POE"',
+          'The port labeled "LAN" or "DATA"',
+          'Any random port on the property resident switch',
+          'The phone jack',
+        ],
+        correctIndex: 0,
+        explanation: 'The gateway requires 48V-56V Power over Ethernet and must be plugged strictly into the port labeled "POE". The "LAN" port connects onward to the router/switch backhaul.',
+      },
+      {
+        id: 'gw_cert_6',
+        question: 'What is the purpose of forming a downward drip loop in the RF antenna coaxial cable below the gateway N-type connector?',
+        options: [
+          'To prevent rainwater running down the cable jacket from pooling at and penetrating the RF connector seal',
+          'To increase radio signal speed',
+          'To make the installation look like a spiral',
+          'To ground lightning directly to the floor',
+        ],
+        correctIndex: 0,
+        explanation: 'A downward drip loop causes moisture to drip off the bottom of the loop curve before reaching the connector threads.',
+      },
+      {
+        id: 'gw_cert_7',
+        question: 'What are the 3 core items in the final completion check of the Quext Gateway Guide?',
+        options: [
+          '01 MOUNTING (Secure & sealed) · 02 WIRING (Gateway & PoE connected) · 03 CONNECTIVITY (Verify with Quext)',
+          'Paint walls · Clean windows · Take lunch',
+          'Install carpet · Run vacuum · Lock door',
+          'Charge phone · Check email · Send text',
+        ],
+        correctIndex: 0,
+        explanation: 'The Quext Gateway Guide completion card mandates verifying: 01 MOUNTING (Secure & sealed), 02 WIRING (Gateway & PoE connected), and 03 CONNECTIVITY (Verify with Quext at 806-993-3200 • Option 4).',
+      },
+      {
+        id: 'gw_cert_8',
+        question: 'What information should the field technician have ready when calling Quext Support for live gateway sign-off?',
+        options: [
+          'Gateway MAC Address and Serial Number (from the chassis barcode label)',
+          'Their driver’s license number',
+          'The current property leasing price',
+          'The property manager’s personal cell number',
+        ],
+        correctIndex: 0,
+        explanation: 'Having the Gateway MAC Address and Serial Number enables Quext Support to immediately locate the device in the cloud and confirm RF packet telemetry.',
+      },
+    ],
+  },
+};
+
+

@@ -60,6 +60,12 @@ export const Header: React.FC<HeaderProps> = ({
       group: 'locks',
     },
     {
+      id: 'gateway_guide',
+      title: 'Smart Community Gateway Guide',
+      desc: 'TEKTELIC outdoor gateway mounting, Unistrut & antenna, T568B wiring, PoE & verification',
+      group: 'general',
+    },
+    {
       id: 'wallet_guide',
       title: 'Wallet Upgrade',
       desc: 'Mobile credential reader upgrade & Apple/Google Wallet provisioning',

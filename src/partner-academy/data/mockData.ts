@@ -7,6 +7,7 @@ import {
   BEFE_LOCKS_QUIZ_PACKAGE,
   RC_CARD_READERS_QUIZ_PACKAGE,
   PORTAL_GUIDE_QUIZ_PACKAGE,
+  GATEWAY_INSTALLATION_QUIZ_PACKAGE,
 } from './quizQuestions';
 
 export const PARTNER_COMPANIES: PartnerCompany[] = [
@@ -2009,6 +2010,324 @@ export const COURSE_MODULES: CourseModule[] = [
     lessons: [],
     practiceQuiz: PORTAL_GUIDE_QUIZ_PACKAGE.practiceQuiz,
     quiz: PORTAL_GUIDE_QUIZ_PACKAGE.certificationExam,
+  },
+
+  // Course 8: Quext Smart Community Gateway Installation Guide (TEKTELIC Outdoor LoRaWAN Base Station)
+  {
+    id: 'mod_gateway_installation',
+    number: '08',
+    title: 'Quext Smart Community Gateway Installation Guide',
+    code: 'QXT-GW-TEKTELIC',
+    category: 'IoT Infrastructure & Gateways',
+    hardwareImage: '/src/partner-academy/assets/images/tektelic_gateway_iot_1791238061805.jpg',
+    officialDeviceName: 'TEKTELIC Outdoor LoRaWAN Macro Gateway Base Station',
+    officialModel: 'QXT-GW-LR8 / KONA Macro',
+    durationMinutes: 45,
+    difficulty: 'Core Field',
+    shortDescription: 'Master physical mounting, dual Unistrut channels, 10\' EMT conduit mast, IP67 waterproof gland, T568B pinout, and live cloud verification for Quext LoRaWAN Gateways.',
+    overview: 'This certified field course trains installers on the complete mechanical and electrical standards for deploying the Quext Smart Community Gateway. Technicians learn site planning (inside vs. outside parapet), dual Unistrut channel anchoring, 10-foot EMT conduit mast clamping, waterproof cable gland assembly, T568B RJ45 crimping, PoE injector connection, and live verification with Quext Support at 806-993-3200 Option 4.',
+    keyTakeaways: [
+      'Plan mounting geometry (Inside vs. Outside Roof Mount) for maximum 360-degree line-of-sight elevation',
+      'Anchor dual 2\' 12 GA Unistrut channels with weatherproof sealant into structural studs or masonry',
+      'Clamp 10\' 1/2" EMT conduit using universal pipe clamps and position omni antenna above metallic conduit',
+      'Assemble the IP67 waterproof connector gland and terminate RJ45 using EIA/TIA-568B on both ends',
+      'Connect gateway cable strictly to the PoE injector "POE" port and call Quext Support (806-993-3200 • Option 4) for live sign-off',
+    ],
+    chapters: [
+      {
+        id: 'ch_gw_ch1',
+        title: 'Chapter 1: Site Planning, Materials & Weatherproof Anchoring',
+        lessons: [
+          {
+            id: 'les_gw_materials_prep',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch1',
+            title: 'Lesson 1: Required Materials, Tools & Substrate Planning',
+            durationMinutes: 8,
+            type: 'hardware_install',
+            brief: 'Verify the mandatory 10\' EMT conduit, dual 12 GA Unistrut channels, universal pipe clamps, and UV-rated network cable before ascending to the roof.',
+            introParagraph: 'The Quext Smart Community Gateway serves as the long-range LoRaWAN radio backbone for residential thermostats, leak detectors, and IoT devices. Ensuring all heavy-gauge materials are staged prevents repeat roof trips and guarantees wind shear compliance.',
+            stepList: [
+              {
+                label: 'Step 1: Verify Core Hardware Kit',
+                text: 'Stage 10\' 1/2" EMT conduit (silver), two 2\' 12 GA Unistrut channels (silver), 1 package of 5 Unistrut spring nuts, and two 1/2" universal pipe clamps.',
+              },
+              {
+                label: 'Step 2: Inspect Network Cable Rating',
+                text: 'Confirm network cable is outdoor UV-rated Cat5e or Cat6 with heavy polyethylene black/blue jacket. Standard indoor PVC cable will deteriorate in sunlight.',
+              },
+              {
+                label: 'Step 3: Staging Tools & Safety Equipment',
+                text: 'Equip cordless hammer drill, 5/16" or 3/8" masonry drill bits, stud finder, torpedo level, polyurethane sealant, and fall-protection harness for roof work.',
+              },
+            ],
+            alertWarning: 'Never substitute light-gauge electrical strut for 12 GA Unistrut. Roof parapets experience severe continuous wind shear.',
+            infoBox: 'OEM Specification: TEKTELIC Outdoor LoRaWAN Gateway Base Station (Model QXT-GW-LR8).',
+          },
+          {
+            id: 'les_gw_mounting_location',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch1',
+            title: 'Lesson 2: Planning Mounting Location: Inside vs. Outside Parapet',
+            durationMinutes: 10,
+            type: 'concept',
+            brief: 'Evaluate the roof architecture to select between Inside Roof Wall Mount and Outside Roof Mount for optimal 360-degree RF coverage.',
+            introParagraph: 'Choosing the right mounting location directly governs the radio range across the community. The omnidirectional antenna tip must extend clear above rooflines and parapet caps to prevent Fresnel zone obstruction.',
+            stepList: [
+              {
+                label: 'Option A: Inside Roof Wall Mount',
+                text: 'Unistrut is bolted to the interior vertical face of the parapet. Keeps equipment protected from street-level sightlines and permits safe rooftop servicing while extending the 10\' EMT mast above the parapet cap.',
+              },
+              {
+                label: 'Option B: Outside Roof Mount',
+                text: 'Unistrut is mounted to the exterior facade just below the roofline. Maximizes horizon clearance in courtyard-constrained properties where interior parapets are blocked by large mechanical HVAC penthouses.',
+              },
+              {
+                label: 'Structural Substrate Verification',
+                text: 'Wood framing: identify load-bearing studs using a stud sensor. Masonry/CMU: confirm solid wall web with a pilot test hole before driving sleeve anchors.',
+              },
+            ],
+            infoBox: 'Maintain a minimum 10-foot radial buffer away from commercial cellular antennas or high-power Wi-Fi APs to prevent front-end receiver saturation.',
+          },
+          {
+            id: 'les_gw_drill_seal',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch1',
+            title: 'Lesson 3: Mark, Drill & Weatherproof Seal',
+            durationMinutes: 8,
+            type: 'hardware_install',
+            brief: 'Layout hole spacing, pre-drill structural substrate, and apply polyurethane sealant to prevent building water penetration.',
+            introParagraph: 'Any roof wall penetration represents a potential water infiltration risk if not properly detailed. Follow strict sealing protocols to guarantee waterproofing integrity.',
+            stepList: [
+              {
+                label: 'Step 1: Level and Mark Pre-Punched Holes',
+                text: 'Hold the first Unistrut channel against the wall, check plumb and level, and mark anchor points through the pre-punched channel slots.',
+              },
+              {
+                label: 'Step 2: Maintain Vertical Channel Spacing',
+                text: 'Position the second 2-foot Unistrut channel 12 to 18 inches below the upper channel to provide a broad mechanical lever arm for the mast.',
+              },
+              {
+                label: 'Step 3: Drill Pilot Holes',
+                text: 'Wood framing: pre-drill into studs with pilot bit slightly smaller than lag bolt diameter. Masonry: drill hammer-holes to full anchor depth and blow out dust.',
+              },
+              {
+                label: 'Step 4: Inject Weatherproof Sealant',
+                text: 'Inject outdoor silicone or polyurethane roofing sealant directly into each drilled hole and around the anchor flange before driving fasteners.',
+              },
+            ],
+            alertWarning: 'Never drill into roof flashing, parapet coping caps, or roofing membrane boots. All mount holes must be in vertical structural wall substrate.',
+          },
+        ],
+      },
+      {
+        id: 'ch_gw_ch2',
+        title: 'Chapter 2: Mast Clamping, Antenna Elevation & Gateway Bracket',
+        lessons: [
+          {
+            id: 'les_gw_unistrut_mast',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch2',
+            title: 'Lesson 4: Mount Unistrut & Clamp 10\' EMT Conduit Mast',
+            durationMinutes: 10,
+            type: 'hardware_install',
+            brief: 'Secure the dual channel backplane and lock the 10-foot EMT conduit mast using universal pipe clamps.',
+            introParagraph: 'The vertical mast supports the high-gain 915 MHz omnidirectional LoRaWAN antenna. Firm dual-point clamping prevents vibration and antenna swaying during severe storms.',
+            stepList: [
+              {
+                label: 'Step 1: Fasten Unistrut Channels',
+                text: 'Fasten both 2-foot channels against the sealed wall holes. Torque lag bolts snugly without crushing the Unistrut profile lips.',
+              },
+              {
+                label: 'Step 2: Insert Universal Pipe Clamps',
+                text: 'Slide two 1/2" universal pipe clamps into the channel tracks—one clamp in the top channel and one in the bottom channel.',
+              },
+              {
+                label: 'Step 3: Seat 10\' EMT Conduit',
+                text: 'Insert the 10-foot EMT conduit into both pipe clamps. Check true vertical plumb with a torpedo level on two axes (front and side).',
+              },
+              {
+                label: 'Step 4: Torque Clamping Bolts',
+                text: 'Tighten clamp hex nuts until the pipe clamps lock firmly around the conduit with zero slip under manual twist pressure.',
+              },
+              {
+                label: 'Step 5: Mount Omnidirectional LoRa Antenna',
+                text: 'Secure the fiberglass antenna to the top of the conduit using the supplied stainless U-bolts. Ensure the fiberglass radiating element extends completely ABOVE the metallic conduit.',
+              },
+            ],
+            alertWarning: 'The fiberglass radiating cylinder must extend entirely ABOVE the metal pipe. Metallic conduit running alongside the fiberglass cylinder will distort the 915 MHz radiation pattern.',
+          },
+          {
+            id: 'les_gw_chassis_bracket',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch2',
+            title: 'Lesson 5: Reference: Gateway Chassis Bracket Mounting',
+            durationMinutes: 8,
+            type: 'hardware_install',
+            brief: 'Attach the heavy-duty TEKTELIC chassis bracket to the Unistrut track and mount the gateway with heatsink fins vertical.',
+            introParagraph: 'The TEKTELIC outdoor macro gateway uses an aluminum die-cast enclosure with integrated cooling fins. Proper bracket alignment ensures convective cooling and easy bottom port access.',
+            stepList: [
+              {
+                label: 'Step 1: Mate Bracket to Chassis Bosses',
+                text: 'Fasten the OEM powder-coated mounting bracket to the rear bosses of the TEKTELIC gateway chassis using the supplied machine screws and split washers.',
+              },
+              {
+                label: 'Step 2: Insert Spring Channel Nuts',
+                text: 'Slide Unistrut spring nuts into the lower channel track at the desired gateway mounting position.',
+              },
+              {
+                label: 'Step 3: Bolt Bracket to Unistrut',
+                text: 'Bolt the bracket arms to the spring channel nuts using Grade 5 hex bolts. Torque securely.',
+              },
+              {
+                label: 'Step 4: Verify Heatsink Convective Flow',
+                text: 'Ensure the rear heatsink cooling fins are oriented vertically so warm air rises naturally out of the heatsink channels.',
+              },
+            ],
+            infoBox: 'Leave at least 6 to 8 inches of clear space below the gateway enclosure for easy hand access to the waterproof cable gland and RF coax connector.',
+          },
+        ],
+      },
+      {
+        id: 'ch_gw_ch3',
+        title: 'Chapter 3: Waterproof Wiring, T568B Termination & PoE Connection',
+        lessons: [
+          {
+            id: 'les_gw_waterproof_wiring',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch3',
+            title: 'Lesson 6: Waterproof PoE Cable Gland Assembly & T568B Crimping',
+            durationMinutes: 10,
+            type: 'hardware_install',
+            brief: 'Assemble the IP67 water-tight connector gland in correct sequence and terminate RJ45 using EIA/TIA-568B.',
+            introParagraph: 'Water intrusion through the Ethernet port is the #1 cause of premature outdoor gateway failure. Adhere strictly to gland assembly sequence before crimping.',
+            stepList: [
+              {
+                label: 'Step 1: Thread Gland Before Crimping',
+                text: 'Slide the gland compression nut, rubber sealing grommet, and threaded gland body onto the raw cable BEFORE crimping the RJ45 plug.',
+              },
+              {
+                label: 'Step 2: Terminate EIA/TIA-568B (T568B)',
+                text: 'Strip jacket 1/2", untwist pairs minimally, and crimp RJ45: Pin 1 White/Orange, 2 Orange, 3 White/Green, 4 Blue, 5 White/Blue, 6 Green, 7 White/Brown, 8 Brown.',
+              },
+              {
+                label: 'Step 3: Click RJ45 into Gateway Port',
+                text: 'Insert the RJ45 plug into the internal gateway Ethernet jack until the locking tab audibly clicks.',
+              },
+              {
+                label: 'Step 4: Compress Water-Tight Gland',
+                text: 'Push gland body into chassis port threads, slide rubber grommet into place, and hand-tighten compression nut until the rubber forms a tight weatherproof seal.',
+              },
+              {
+                label: 'Step 5: Connect RF Coax with Drip Loop',
+                text: 'Thread N-type coaxial cable from the antenna to the gateway RF port, hand-tighten plus 1/4 turn, and dress a downward moisture drip loop.',
+              },
+            ],
+            alertWarning: 'If you crimp the RJ45 plug before sliding the gland parts onto the cable, you will have to cut off the connector and re-crimp.',
+          },
+          {
+            id: 'les_gw_poe_data_closet',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch3',
+            title: 'Lesson 7: Data Closet Head-End & PoE Injector Connection',
+            durationMinutes: 8,
+            type: 'hardware_install',
+            brief: 'Terminate the data-closet end, connect the provided PoE injector, and connect network backhaul to router or switch.',
+            introParagraph: 'The TEKTELIC gateway is powered exclusively over Ethernet via a dedicated 48V-56V PoE injector. Correct port assignment is critical to avoid damaging network switches.',
+            stepList: [
+              {
+                label: 'Step 1: Terminate Data-Closet End with T568B',
+                text: 'Crimp RJ45 or punch down to keystone jack using the identical T568B pinout standard verified on a cable tester.',
+              },
+              {
+                label: 'Step 2: Plug into "POE" Port on Injector',
+                text: 'Plug the cable coming directly from the roof gateway strictly into the port labeled "POE" on the provided PoE injector.',
+              },
+              {
+                label: 'Step 3: Connect "LAN" Port to Switch or Router',
+                text: 'Run a standard patch cable from the port labeled "LAN" or "DATA" on the PoE injector into the property network switch or Quext cellular gateway router.',
+              },
+              {
+                label: 'Step 4: Connect AC Power to UPS',
+                text: 'Plug the PoE injector into an unswitched surge-protected battery backup (UPS) receptacle in the equipment rack.',
+              },
+            ],
+            alertWarning: 'CRITICAL: Never plug a standard network switch port into the "POE" port of the injector. Doing so can damage non-PoE switch ports.',
+          },
+        ],
+      },
+      {
+        id: 'ch_gw_ch4',
+        title: 'Chapter 4: Final Inspection & Live Cloud Verification',
+        lessons: [
+          {
+            id: 'les_gw_final_inspection',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch4',
+            title: 'Lesson 8: 08 • Pre-Power Final Checklist & Sign-Off',
+            durationMinutes: 8,
+            type: 'qa_checklist',
+            brief: 'Verify all 5 inspection points before requesting cloud commissioning.',
+            introParagraph: 'Execute this 5-point mechanical and electrical sweep while tools are still accessible on site.',
+            stepList: [
+              {
+                label: 'Check 1: Fasteners Tight',
+                text: 'Confirm lag bolts, Unistrut nuts, pipe clamps, and gateway chassis bolts are torqued down firmly.',
+              },
+              {
+                label: 'Check 2: Antenna Plumb and Secure',
+                text: 'Verify the 10\' EMT mast is plumb on both axes with zero wobble under manual shake test.',
+              },
+              {
+                label: 'Check 3: Unistrut Top Channel Sealed',
+                text: 'Ensure the top channel ends are capped or sealed to prevent rainwater accumulation inside the strut.',
+              },
+              {
+                label: 'Check 4: Water-Tight Connector Seated',
+                text: 'Confirm the compression nut is tight and the rubber grommet is visibly compressed around the cable jacket.',
+              },
+              {
+                label: 'Check 5: T568B Pinout Verified',
+                text: 'Confirm pin-to-pin continuity on cable tester with zero open or reversed pairs.',
+              },
+            ],
+            infoBox: 'Three-Phase Sign-Off: 01 MOUNTING (Secure & sealed) · 02 WIRING (Gateway & PoE connected) · 03 CONNECTIVITY (Verify with Quext).',
+          },
+          {
+            id: 'les_gw_cloud_verification',
+            moduleId: 'mod_gateway_installation',
+            chapterId: 'ch_gw_ch4',
+            title: 'Lesson 9: Calling Quext Support for Live On-Site Cloud Sign-Off',
+            durationMinutes: 8,
+            type: 'concept',
+            brief: 'Contact Quext Support at 806-993-3200 Option 4 to confirm packet telemetry, RSSI levels, and complete commissioning.',
+            introParagraph: 'Do not pack up your ladders or leave the roof until Quext Implementation Support confirms active packet telemetry from the gateway.',
+            stepList: [
+              {
+                label: 'Step 1: Locate Gateway MAC & Serial Number',
+                text: 'Read the MAC Address and Serial Number from the barcode label affixed to the side of the TEKTELIC chassis.',
+              },
+              {
+                label: 'Step 2: Call Quext Implementation Hotline',
+                text: 'Dial 806-993-3200 and select OPTION 4 to connect directly with the Quext Gateway Commissioning Desk.',
+              },
+              {
+                label: 'Step 3: Confirm Cloud Check-in & RSSI',
+                text: 'The support engineer will ping the gateway, check backhaul latency, and verify that LoRa packets from test nodes report stronger than -110 dBm.',
+              },
+              {
+                label: 'Step 4: Receive Field Sign-Off',
+                text: 'Once verified, the support engineer marks the gateway as "Active / Commissioned" in the property database, unlocking thermostat and lock onboarding.',
+              },
+            ],
+            infoBox: 'Official Quext Support Hotline: 806-993-3200 · OPTION 4 · support@onequext.com.',
+          },
+        ],
+      },
+    ],
+    lessons: [],
+    practiceQuiz: GATEWAY_INSTALLATION_QUIZ_PACKAGE.practiceQuiz,
+    quiz: GATEWAY_INSTALLATION_QUIZ_PACKAGE.certificationExam,
   },
 ];
 

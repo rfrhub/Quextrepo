@@ -17,6 +17,7 @@ import { LoginModal } from './components/LoginModal';
 import { PortalInstallerGuide } from './components/PortalInstallerGuide';
 import { WalletUpgradeGuide } from './components/WalletUpgradeGuide';
 import { IntegrationChecklists } from './components/IntegrationChecklists';
+import { GatewayInstallerGuide } from './components/GatewayInstallerGuide';
 import { QrIntercomGuide } from './components/QrIntercomGuide';
 import { LeakSensorsGuide } from './components/LeakSensorsGuide';
 import { BefeLocksGuide } from './components/BefeLocksGuide';
@@ -345,6 +346,13 @@ const MainApp: React.FC<{
           {/* View 2.6: Official Integration Checklists (Brivo + Quext) */}
           {currentTab === 'integration_checklists' && (
             <IntegrationChecklists
+              onOpenCourse={(modId) => handleStartCourse(modId)}
+            />
+          )}
+
+          {/* View 2.65: Quext Smart Community Gateway Installation Guide */}
+          {currentTab === 'gateway_guide' && (
+            <GatewayInstallerGuide
               onOpenCourse={(modId) => handleStartCourse(modId)}
             />
           )}
