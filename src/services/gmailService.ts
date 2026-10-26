@@ -105,6 +105,14 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
       // User intentionally closed the popup window; return null quietly.
       return null;
     }
+    if (code === 'auth/unauthorized-domain') {
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+      const err = new Error(
+        `Firebase Authentication error (auth/unauthorized-domain): "${host}" is not on the Firebase Authorized Domains list. When testing on mobile or local network IP addresses, you can use "Open in Gmail Web" to send without API sign-in, or access via "http://localhost:3000".`
+      );
+      (err as any).code = 'auth/unauthorized-domain';
+      throw err;
+    }
     throw new Error(
       error?.message || 'Unable to complete Google Sign-In. Please check popup permissions.'
     );
@@ -116,6 +124,14 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 export const htmlToPlainText = (html: string): string => {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(
+      /<a\s+[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi,
+      (_match, url, text) => {
+        const cleanText = text.replace(/<[^>]+>/g, '').trim();
+        if (!cleanText || cleanText.includes(url)) return url;
+        return `${cleanText} (${url})`;
+      }
+    )
     .replace(/<\/(th|td)>/gi, ' | ')
     .replace(/<\/(p|div|h1|h2|h3|h4|li|tr)>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')

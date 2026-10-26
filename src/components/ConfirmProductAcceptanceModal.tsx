@@ -67,6 +67,11 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
 
   const defaultSubject = `Action Required: Confirm & Sign Product Acceptance Portal - ${project.propertyName}`;
 
+  const isNetworkHost =
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
+
   const [recipientInput, setRecipientInput] = useState<string>(defaultCustomerEmail);
   const [subjectInput, setSubjectInput] = useState<string>(defaultSubject);
   const [authUserEmail, setAuthUserEmail] = useState<string | null>(null);
@@ -74,6 +79,7 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
   const [isSending, setIsSending] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState<boolean>(isNetworkHost);
 
   const portalLink = buildProductAcceptancePortalUrl(project.id);
 
@@ -240,6 +246,15 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
       return;
     }
 
+    // If on a network IP (phone or local network) and not yet authenticated,
+    // Google popup sign-in throws auth/unauthorized-domain in Firebase.
+    // Seamlessly open pre-filled in Gmail Web and log the dispatch!
+    if (needsAuth && isUnauthorizedDomain) {
+      window.open(gmailComposeUrl, '_blank', 'noopener,noreferrer');
+      handleLogAndCompleteWithoutApi(true);
+      return;
+    }
+
     setIsSending(true);
     try {
       if (needsAuth) {
@@ -267,13 +282,20 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
       });
       onClose();
     } catch (err: any) {
-      if (err?.message === 'NOT_AUTHENTICATED') {
+      const code = err?.code || '';
+      const message = err?.message || '';
+      if (code === 'auth/unauthorized-domain' || message.includes('unauthorized-domain')) {
+        setIsUnauthorizedDomain(true);
+        setErrorMsg(
+          `Domain/IP "${typeof window !== 'undefined' ? window.location.hostname : 'current domain'}" is not on Firebase's Authorized Domains list for direct popup sign-ins. You can send this email immediately using "Send via Gmail Web" below (or access via http://localhost:3000 on your laptop).`
+        );
+      } else if (err?.message === 'NOT_AUTHENTICATED') {
         setNeedsAuth(true);
         setErrorMsg(
           'Please sign in with Google so we can send this email from your authorized Gmail account.'
         );
       } else {
-        setErrorMsg(err?.message || 'Failed to send email via Gmail API.');
+        setErrorMsg(message || 'Failed to send email via Gmail API.');
       }
     } finally {
       setIsSending(false);
@@ -331,24 +353,30 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
             className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
               !needsAuth
                 ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                : isUnauthorizedDomain
+                ? 'bg-sky-50 border-sky-300 text-sky-950'
                 : 'bg-amber-50 border-amber-300 text-amber-950'
             }`}
           >
             <div className="flex items-start gap-2.5">
               <ShieldCheck
                 className={`w-4 h-4 shrink-0 mt-0.5 ${
-                  !needsAuth ? 'text-emerald-600' : 'text-amber-600'
+                  !needsAuth ? 'text-emerald-600' : isUnauthorizedDomain ? 'text-sky-600' : 'text-amber-600'
                 }`}
               />
               <div>
                 <div className="font-bold text-xs">
                   {!needsAuth
                     ? `Gmail Connected: ${authUserEmail || 'Authenticated User'}`
+                    : isUnauthorizedDomain
+                    ? `Mobile / Local Network IP Mode (${typeof window !== 'undefined' ? window.location.hostname : ''})`
                     : 'Connect Gmail to Email Customer Directly'}
                 </div>
                 <p className="text-[11px] opacity-90 mt-0.5">
                   {!needsAuth
                     ? 'Emails will be sent from your Google Account directly to the customer.'
+                    : isUnauthorizedDomain
+                    ? 'Direct popup sign-in is restricted by Firebase on local network IPs. You can email the customer with 1-click via Gmail Web below!'
                     : 'Sign in with Google for direct delivery, or use "Open in Gmail Web" below.'}
                 </p>
               </div>
@@ -356,10 +384,30 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
 
             <div className="shrink-0 flex items-center gap-2">
               {needsAuth ? (
-                <GoogleSignInButton
-                  onSuccess={() => setErrorMsg(null)}
-                  onError={(msg) => setErrorMsg(msg)}
-                />
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href={gmailComposeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleLogAndCompleteWithoutApi(true)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-2xs transition-colors cursor-pointer"
+                    title="Open pre-filled in Gmail Web Compose"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open in Gmail Web</span>
+                  </a>
+                  {!isUnauthorizedDomain && (
+                    <GoogleSignInButton
+                      onSuccess={() => setErrorMsg(null)}
+                      onError={(msg) => {
+                        if (msg.includes('unauthorized-domain')) {
+                          setIsUnauthorizedDomain(true);
+                        }
+                        setErrorMsg(msg);
+                      }}
+                    />
+                  )}
+                </div>
               ) : (
                 <button
                   type="button"
@@ -523,9 +571,25 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
           </div>
 
           {errorMsg && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-medium flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <span>{errorMsg}</span>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-medium space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>{errorMsg}</span>
+              </div>
+              {isUnauthorizedDomain && (
+                <div className="pl-6 pt-1 flex items-center gap-2">
+                  <a
+                    href={gmailComposeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleLogAndCompleteWithoutApi(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-2xs transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Send Pre-Filled via Gmail Web Instead &rarr;</span>
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -563,20 +627,34 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSending}
-                  className="px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-60"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>
-                    {isSending
-                      ? 'Sending to Customer...'
-                      : needsAuth
-                      ? 'Sign In & Send via Gmail'
-                      : 'Confirm & Send to Customer via Gmail'}
-                  </span>
-                </button>
+                {needsAuth && isUnauthorizedDomain ? (
+                  <a
+                    href={gmailComposeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleLogAndCompleteWithoutApi(true)}
+                    className="px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    title="Open pre-filled in Gmail Web and record dispatch in project log"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Send via Gmail Web &amp; Log Dispatch</span>
+                  </a>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSending}
+                    className="px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-60"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>
+                      {isSending
+                        ? 'Sending to Customer...'
+                        : needsAuth
+                        ? 'Sign In & Send via Gmail'
+                        : 'Confirm & Send to Customer via Gmail'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
