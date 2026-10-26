@@ -1497,7 +1497,10 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
       {activeTopTab === 'operations' && (
         <div className="flex-1 flex flex-col min-w-0">
           {/* Sub-Navigation Bar inside the myquext.com Operations Tab */}
-          <div data-tutorial-id="operations-subnav-bar" className="bg-white border-b border-slate-200 px-4 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <div
+            data-tutorial-id="operations-subnav-bar"
+            className="sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-xs transition-all"
+          >
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-2 flex items-center gap-1">
                 <Layers className="w-3.5 h-3.5 text-blue-600" />

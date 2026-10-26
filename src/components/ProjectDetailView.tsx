@@ -1640,7 +1640,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
       )}
 
       {/* Project Workspace Tab Navigation + Mobile Quick Section Jump Bar */}
-      <div className="sticky top-[88px] lg:top-16 z-30 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-2 shadow-xs space-y-2 overflow-visible">
+      <div className="sticky top-[104px] z-30 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-2 shadow-xs space-y-2 overflow-visible">
         <div className="flex flex-wrap items-center justify-between gap-2 overflow-visible">
           <div className="flex flex-wrap items-center gap-1.5 overflow-visible">
             <button
