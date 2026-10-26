@@ -24,6 +24,7 @@ import {
   getCSMCalendarBookingProfile,
   QUEXT_TRAINING_HELP_ARTICLE_URL,
   PendingInstallationChange,
+  buildCustomerKickoffPortalUrl,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
@@ -853,9 +854,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   };
 
   const handleCopyKickoffLink = () => {
-    const origin = window.location.origin;
-    const pathname = window.location.pathname;
-    const link = `${origin}${pathname}#/customer-kickoff/${project.id}`;
+    const link = buildCustomerKickoffPortalUrl(project.id);
     navigator.clipboard.writeText(link).then(() => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);

@@ -1371,3 +1371,14 @@ export function getCategoryDisplayName(category: string): string {
   }
 }
 
+export function buildCustomerKickoffPortalUrl(projectId: string): string {
+  if (typeof window === 'undefined') return `#/customer-kickoff/${projectId}`;
+  const origin = window.location.origin;
+  let path = window.location.pathname || '/';
+  path = path.replace(/index\.html$/i, '');
+  if (!path.endsWith('/')) {
+    path = `${path}/`;
+  }
+  return `${origin}${path}#/customer-kickoff/${projectId}`;
+}
+

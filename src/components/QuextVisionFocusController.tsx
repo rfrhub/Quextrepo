@@ -12,6 +12,7 @@ import {
   Quote,
   calculateProjectScheduleHealth,
   getProjectIntegratorPartners,
+  buildCustomerKickoffPortalUrl,
 } from '../types';
 import { ProjectDetailView } from './ProjectDetailView';
 import { ShippingDockSection } from './ShippingDockSection';
@@ -1163,7 +1164,7 @@ const QuextVisionStepWindow: React.FC<{
   const [newDoorArea, setNewDoorArea] = useState<string>('Main Clubhouse');
 
   // Step 4 (Project Kickoff) Customer PMS Reminder message
-  const walkthroughUrl = `${window.location.origin}${window.location.pathname}#/customer-kickoff/${project.id}`;
+  const walkthroughUrl = buildCustomerKickoffPortalUrl(project.id);
   const [pmsCustomerMsg, setPmsCustomerMsg] = useState<string>(
     `Hi ${project.clientName} Team,\n\nHere is your direct Customer Kickoff Walkthrough link (${walkthroughUrl}). Please kindly complete the required steps for your chosen PMS integration (${intake.pmsSoftware || 'Yardi'}) so our engineering team can finalize your property synchronization.\n\nThank you,\n${project.assignedPM.name}`
   );

@@ -10,6 +10,7 @@ import {
   ProjectActivityNotification,
   normalizeFieldTech,
   projectHasGatewayOrHubOnBOM,
+  buildCustomerKickoffPortalUrl,
 } from '../types';
 import { loadStoredQuotes } from '../data/initialData';
 import {
@@ -456,7 +457,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
   };
 
   const handleCopyLink = () => {
-    const shareableUrl = `${window.location.origin}/#/customer-kickoff/${project.id}`;
+    const shareableUrl = buildCustomerKickoffPortalUrl(project.id);
     navigator.clipboard.writeText(shareableUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);

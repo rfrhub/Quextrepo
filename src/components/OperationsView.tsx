@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { OperationProject, ProjectStatusTag, Quote, calculateProjectScheduleHealth } from '../types';
+import { OperationProject, ProjectStatusTag, Quote, calculateProjectScheduleHealth, buildCustomerKickoffPortalUrl } from '../types';
 import { OverallDashboard } from './OverallDashboard';
 import { AllProjectsTab } from './AllProjectsTab';
 import { ProjectDetailView } from './ProjectDetailView';
@@ -270,7 +270,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            const url = `${window.location.origin}/#/customer-kickoff/${project.id}`;
+                            const url = buildCustomerKickoffPortalUrl(project.id);
                             navigator.clipboard.writeText(url);
                           }}
                           className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"

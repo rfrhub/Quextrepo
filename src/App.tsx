@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Quote,
   OperationProject,
@@ -50,7 +50,45 @@ import {
   resolveMyQuextEmailIdentity,
   PARTNER_IDENTITY_DIRECTORY,
 } from './partner-academy/utils/projectCoursePackager';
-import { RotateCcw, ArrowLeft } from 'lucide-react';
+import { RotateCcw, ArrowLeft, Building2, Mail, Eye } from 'lucide-react';
+
+function extractKickoffIdFromLocation(): string | null {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  const searchParams = new URLSearchParams(
+    search || (hash.includes('?') ? hash.split('?')[1] : '')
+  );
+
+  const queryId = searchParams.get('customer-kickoff') || searchParams.get('kickoff');
+  if (queryId) return decodeURIComponent(queryId.trim());
+
+  if (hash.includes('/customer-kickoff/')) {
+    const parts = hash.split('/customer-kickoff/');
+    if (parts[1]) {
+      return decodeURIComponent(parts[1].split('?')[0].replace(/\/+$/, '').trim());
+    }
+  }
+  if (hash.includes('/kickoff/')) {
+    const parts = hash.split('/kickoff/');
+    if (parts[1]) {
+      return decodeURIComponent(parts[1].split('?')[0].replace(/\/+$/, '').trim());
+    }
+  }
+  return null;
+}
+
+function extractAcceptanceIdFromLocation(): string | null {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash || '';
+  if (hash.includes('/product-acceptance/')) {
+    const parts = hash.split('/product-acceptance/');
+    if (parts[1]) {
+      return decodeURIComponent(parts[1].split('?')[0].replace(/\/+$/, '').trim());
+    }
+  }
+  return null;
+}
 
 export default function App() {
   const [quotes, setQuotes] = useState<Quote[]>(() => loadStoredQuotes());
@@ -91,8 +129,12 @@ export default function App() {
     const initialQuotes = loadStoredQuotes();
     return initialQuotes[0]?.id || '0SD2YXBmJXWZa1qM7Rk4';
   });
-  const [standaloneKickoffProjectId, setStandaloneKickoffProjectId] = useState<string | null>(null);
-  const [standaloneAcceptanceProjectId, setStandaloneAcceptanceProjectId] = useState<string | null>(null);
+  const [standaloneKickoffProjectId, setStandaloneKickoffProjectId] = useState<string | null>(
+    extractKickoffIdFromLocation
+  );
+  const [standaloneAcceptanceProjectId, setStandaloneAcceptanceProjectId] = useState<string | null>(
+    extractAcceptanceIdFromLocation
+  );
 
   // PM Onboarding Tutorial Guidance Feature State
   const [isPMTutorialOpen, setIsPMTutorialOpen] = useState<boolean>(false);
@@ -230,29 +272,27 @@ export default function App() {
         }
       }
 
-      // Check if standalone product acceptance portal link is accessed
-      if (hash.includes('/product-acceptance/')) {
-        const parts = hash.split('/product-acceptance/');
-        if (parts[1]) {
-          const cleanId = parts[1].split('?')[0];
-          setStandaloneAcceptanceProjectId(cleanId);
-          setStandaloneKickoffProjectId(null);
-          return;
-        }
-      } else {
-        setStandaloneAcceptanceProjectId(null);
-      }
-
       // Check if standalone customer kickoff link is accessed
-      if (hash.includes('/customer-kickoff/')) {
-        const parts = hash.split('/customer-kickoff/');
-        if (parts[1]) {
-          const cleanId = parts[1].split('?')[0];
-          setStandaloneKickoffProjectId(cleanId);
-          return;
-        }
+      // Supports #/customer-kickoff/:id, #/kickoff/:id, or ?customer-kickoff=:id or ?kickoff=:id
+      const detectedKickoffId = extractKickoffIdFromLocation();
+      if (detectedKickoffId) {
+        setStandaloneKickoffProjectId(detectedKickoffId);
+        setStandaloneAcceptanceProjectId(null);
+        setLoggedInFieldTech(null);
+        setLoggedInPartnerAcademy(null);
+        return;
       } else {
         setStandaloneKickoffProjectId(null);
+      }
+
+      // Check if standalone product acceptance portal link is accessed
+      const detectedAcceptanceId = extractAcceptanceIdFromLocation();
+      if (detectedAcceptanceId) {
+        setStandaloneAcceptanceProjectId(detectedAcceptanceId);
+        setStandaloneKickoffProjectId(null);
+        return;
+      } else {
+        setStandaloneAcceptanceProjectId(null);
       }
 
       if (hash.includes('/analysis/')) {
@@ -723,65 +763,231 @@ export default function App() {
           onClose={() => handleGoToOperationsProject(standaloneAcceptanceProject.id)}
           onUpdateProject={handleUpdateProject}
         />
-        <RightNotificationsDock
-          mode="pm"
-          projects={projects}
-          latestNotification={latestNotification}
-          autoPopTriggerKey={autoPopTriggerKey}
-          onSelectProject={handleGoToOperationsProject}
-        />
+        {signedInUser && (
+          <RightNotificationsDock
+            mode="pm"
+            projects={projects}
+            latestNotification={latestNotification}
+            autoPopTriggerKey={autoPopTriggerKey}
+            onSelectProject={handleGoToOperationsProject}
+          />
+        )}
       </>
     );
   }
 
-  // Check if standalone customer kickoff view should be displayed
-  const standaloneProject = standaloneKickoffProjectId
-    ? projects.find((p) => p.id === standaloneKickoffProjectId)
-    : null;
+  // Resolves the project for the standalone customer kickoff portal.
+  // Supports automated projects (converted from Deal Won quotes) and manual projects (created via modal).
+  const standaloneProject = useMemo(() => {
+    if (!standaloneKickoffProjectId) return null;
+    const target = standaloneKickoffProjectId.trim().toLowerCase();
 
-  if (standaloneProject) {
+    // 1. Search in current in-memory projects
+    let matched = projects.find(
+      (p) =>
+        p.id.toLowerCase() === target ||
+        (p.quoteId && p.quoteId.toLowerCase() === target) ||
+        (p.quoteNumber && p.quoteNumber.toLowerCase() === target)
+    );
+
+    // 2. Search in localStorage stored projects (handles direct refresh or freshly created manual projects)
+    if (!matched) {
+      try {
+        const stored = loadStoredProjects();
+        matched = stored.find(
+          (p) =>
+            p.id.toLowerCase() === target ||
+            (p.quoteId && p.quoteId.toLowerCase() === target) ||
+            (p.quoteNumber && p.quoteNumber.toLowerCase() === target)
+        );
+      } catch (err) {
+        console.error('Error loading stored projects for standalone kickoff', err);
+      }
+    }
+
+    // 3. Fallback to INITIAL_PROJECTS
+    if (!matched) {
+      matched = INITIAL_PROJECTS.find(
+        (p) =>
+          p.id.toLowerCase() === target ||
+          (p.quoteId && p.quoteId.toLowerCase() === target) ||
+          (p.quoteNumber && p.quoteNumber.toLowerCase() === target)
+      );
+    }
+
+    // 4. Fuzzy fallback by alphanumeric match (handles slugified IDs or property names)
+    if (!matched) {
+      const cleanAlpha = target.replace(/[^a-z0-9]/g, '');
+      const pool = [...projects, ...loadStoredProjects(), ...INITIAL_PROJECTS];
+      matched = pool.find(
+        (p) =>
+          p.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAlpha ||
+          (p.propertyName &&
+            p.propertyName.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAlpha)
+      );
+    }
+
+    return matched || null;
+  }, [standaloneKickoffProjectId, projects]);
+
+  // If a standalone customer kickoff link is accessed, render the customer portal
+  if (standaloneKickoffProjectId) {
+    if (standaloneProject) {
+      return (
+        <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-['Inter']">
+          {/* Customer Portal Clean White Header */}
+          <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+            <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <QuextLogo />
+                <div className="h-4 w-px bg-slate-300"></div>
+                <span className="text-xs font-bold text-slate-800 tracking-wide uppercase">
+                  Customer Kickoff Portal
+                </span>
+                <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  {standaloneProject.isManuallyCreated ? 'Dedicated Property Onboarding' : 'Official Community Kickoff'}
+                </span>
+              </div>
+
+              {/* Property & Client Info Banner */}
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg text-xs font-semibold text-slate-700">
+                <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                <span>{standaloneProject.propertyName}</span>
+                {standaloneProject.clientName && (
+                  <>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-500">{standaloneProject.clientName}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Controls / Support */}
+              <div className="flex items-center gap-2">
+                {signedInUser ? (
+                  // Internal Quext Employee Preview Control
+                  <div className="flex items-center gap-2">
+                    <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-800 rounded-md text-[11px] font-mono font-bold">
+                      <Eye className="w-3 h-3 text-amber-600" />
+                      Quext Team Preview
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleGoToOperationsProject(standaloneProject.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back to PM Workspace</span>
+                    </button>
+                  </div>
+                ) : (
+                  // External Customer View: NO internal buttons! Only PM Contact & Support
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <div className="hidden sm:flex flex-col text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Assigned Project Manager
+                      </span>
+                      <span className="font-bold text-slate-800 text-xs">
+                        {standaloneProject.assignedPM?.name || 'Quext Implementation Team'}
+                      </span>
+                    </div>
+                    {standaloneProject.assignedPM?.email && (
+                      <a
+                        href={`mailto:${standaloneProject.assignedPM.email}?subject=Question about ${encodeURIComponent(standaloneProject.propertyName)} Kickoff`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold rounded-lg text-xs transition-colors"
+                        title="Email your assigned Quext Implementation PM"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Contact PM</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <CustomerKickoffWalkthrough
+              project={standaloneProject}
+              onUpdateProject={handleUpdateProject}
+              isStandaloneClientView={true}
+            />
+          </main>
+
+          {/* Customer Portal Clean Footer */}
+          <footer className="bg-white border-t border-slate-200 py-4 px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500 font-mono">
+            &copy; {new Date().getFullYear()} Quext (OneQuext). Official Multifamily Smart Community Kickoff Portal. Need assistance? Contact{' '}
+            <a href="mailto:support@onequext.com" className="text-emerald-700 hover:underline">
+              support@onequext.com
+            </a>
+          </footer>
+        </div>
+      );
+    }
+
+    // Standalone customer kickoff ID was given, but project was not found in storage:
+    // Render clean Customer Portal 404/Loading screen, NEVER dropping customer into employee login!
     return (
       <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-['Inter']">
-        {/* Customer Portal Clean White Header */}
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
-          <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <QuextLogo />
-              <div className="h-4 w-px bg-slate-300"></div>
-              <span className="text-xs font-bold text-slate-800 tracking-wide uppercase">
-                Customer Kickoff Portal
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleGoToOperationsProject(standaloneProject.id)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Return to Operations Workspace</span>
-              </button>
-            </div>
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center px-4 sm:px-8 shadow-xs">
+          <div className="flex items-center gap-3">
+            <QuextLogo />
+            <div className="h-4 w-px bg-slate-300"></div>
+            <span className="text-xs font-bold text-slate-800 tracking-wide uppercase">
+              Customer Kickoff Portal
+            </span>
           </div>
         </header>
 
-        <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <CustomerKickoffWalkthrough
-            project={standaloneProject}
-            onUpdateProject={handleUpdateProject}
-            isStandaloneClientView={true}
-            onBackToTechnicalBOM={() => handleGoToOperationsProject(standaloneProject.id)}
-          />
-        </main>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-lg text-center space-y-4">
+            <div className="w-14 h-14 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mx-auto text-amber-600">
+              <Building2 className="w-7 h-7" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Kickoff Walkthrough Not Found
+            </h2>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              We couldn&apos;t find the Customer Kickoff Walkthrough matching reference{' '}
+              <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-bold">
+                {standaloneKickoffProjectId}
+              </code>
+              . Please check the link sent by your Quext Implementation Project Manager.
+            </p>
+            <div className="pt-2">
+              <a
+                href="mailto:support@onequext.com"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                <span>Contact Quext Support</span>
+              </a>
+            </div>
 
-        <RightNotificationsDock
-          mode="pm"
-          projects={projects}
-          latestNotification={latestNotification}
-          autoPopTriggerKey={autoPopTriggerKey}
-          onSelectProject={handleGoToOperationsProject}
-        />
+            {signedInUser && (
+              <div className="pt-4 border-t border-slate-100 text-left space-y-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  PM Quick Switch (Internal Only):
+                </span>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      window.location.hash = `#/customer-kickoff/${e.target.value}`;
+                    }
+                  }}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800"
+                >
+                  <option value="">Select a project to preview kickoff...</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.propertyName} ({p.isManuallyCreated ? 'Manual' : 'Automated'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     );
   }

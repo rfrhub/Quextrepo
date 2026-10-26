@@ -7,6 +7,7 @@ import {
   getCSMCalendarBookingProfile,
   CSM_CALENDAR_BOOKING_DIRECTORY,
   QUEXT_TRAINING_HELP_ARTICLE_URL,
+  buildCustomerKickoffPortalUrl,
 } from '../types';
 import {
   subscribeToGmailAuth,
@@ -77,7 +78,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     return unsub;
   }, []);
 
-  const clientPortalUrl = `${window.location.origin}${window.location.pathname}#/customer-kickoff/${project.id}`;
+  const clientPortalUrl = buildCustomerKickoffPortalUrl(project.id);
 
   const handleCopyPortalUrl = () => {
     navigator.clipboard.writeText(clientPortalUrl);
