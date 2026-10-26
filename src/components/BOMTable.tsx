@@ -51,12 +51,33 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   const [activeLockFinishItem, setActiveLockFinishItem] = useState<BOMItem | null>(null);
   // Row inline drawer expansion state
   const [expandedRowLogs, setExpandedRowLogs] = useState<Record<string, boolean>>({});
+  // Lock finish expanded options card state (per row)
+  const [expandedFinishRows, setExpandedFinishRows] = useState<Record<string, boolean>>({});
 
   const toggleRowLogs = (itemId: string) => {
     setExpandedRowLogs((prev) => ({
       ...prev,
       [itemId]: !prev[itemId],
     }));
+  };
+
+  const toggleExpandFinish = (itemId: string) => {
+    setExpandedFinishRows((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  };
+
+  const lockItems = items.filter((i) => isLockBOMItem(i));
+  const hasLocksOnBOM = lockItems.length > 0;
+  const allLocksExpanded = hasLocksOnBOM && lockItems.every((i) => expandedFinishRows[i.id]);
+
+  const toggleExpandAllFinishes = () => {
+    const nextState: Record<string, boolean> = {};
+    lockItems.forEach((i) => {
+      nextState[i.id] = !allLocksExpanded;
+    });
+    setExpandedFinishRows(nextState);
   };
 
   const getCategoryIcon = (category: string) => {
@@ -142,6 +163,18 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                 </option>
               ))}
           </select>
+
+          {hasLocksOnBOM && (
+            <button
+              type="button"
+              onClick={toggleExpandAllFinishes}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors cursor-pointer shrink-0"
+              title="Expand or collapse all lock hardware option specifications across the table"
+            >
+              <Tag className="w-3.5 h-3.5 text-sky-600" />
+              <span>{allLocksExpanded ? 'Collapse All Lock Options' : 'Expand All Lock Options'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -190,14 +223,14 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                         <div className="p-1.5 rounded-lg bg-slate-100 border border-slate-200 mt-0.5">
                           {getCategoryIcon(item.category)}
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <div className="font-semibold text-slate-900 text-xs sm:text-sm">{item.name}</div>
                           {item.overAllocationDenied && (
                             <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-100 text-rose-900 border border-rose-300 text-[10px] font-extrabold animate-pulse">
                               <span>⚠️ Offset Exceeded: +{item.overAllocationOffset} units Denied by PM (Requires Change Order)</span>
                             </div>
                           )}
-                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-mono">
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-mono">
                             <span>SKU: {item.model}</span>
                             <span>·</span>
                             <span className="text-slate-600 font-sans">{dispCategory}</span>
@@ -236,32 +269,45 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                             {isLockBOMItem(item) && (
                               <div className="inline-flex items-center gap-1.5 ml-1">
                                 {item.lockFinishConfig ? (
-                                  <button
-                                    type="button"
-                                    disabled={isReadOnly}
-                                    onClick={() => setActiveLockFinishItem(item)}
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all shadow-xs border ${
-                                      isReadOnly
-                                        ? 'cursor-default'
-                                        : 'cursor-pointer hover:ring-2 hover:ring-sky-400 hover:scale-[1.02]'
-                                    } bg-slate-900 text-white border-slate-700`}
-                                    title="Click to modify lock trim style, color finish, lever type, and subtype settings"
-                                  >
-                                    <span
-                                      className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
-                                      style={{
-                                        backgroundColor: getLockFinishColorHex(
-                                          item.lockFinishConfig.befeColorFinish ||
-                                          item.lockFinishConfig.ndeColorFinish ||
-                                          item.lockFinishConfig.xe360ColorFinish
-                                        ),
-                                      }}
-                                    />
-                                    <span className="truncate max-w-[260px]">
-                                      {getLockFinishSummaryTag(item.lockFinishConfig)}
-                                    </span>
-                                    {!isReadOnly && <span className="text-[9px] text-sky-300 font-semibold">✎ Edit</span>}
-                                  </button>
+                                  <div className="inline-flex items-center gap-1 bg-slate-900 text-white rounded-full p-0.5 border border-slate-700 shadow-xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleExpandFinish(item.id)}
+                                      className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-0.5 text-[10px] font-bold hover:text-sky-300 transition-colors cursor-pointer"
+                                      title={expandedFinishRows[item.id] ? "Click to collapse lock hardware options" : "Click to expand all lock hardware specifications and options"}
+                                    >
+                                      <span
+                                        className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
+                                        style={{
+                                          backgroundColor: getLockFinishColorHex(
+                                            item.lockFinishConfig.befeColorFinish ||
+                                            item.lockFinishConfig.ndeColorFinish ||
+                                            item.lockFinishConfig.xe360ColorFinish
+                                          ),
+                                        }}
+                                      />
+                                      <span className="font-semibold">{getLockFinishSummaryTag(item.lockFinishConfig)}</span>
+                                      <span className="inline-flex items-center gap-0.5 text-[9px] text-sky-300 font-bold bg-slate-800 px-1.5 py-0.2 rounded-full border border-slate-700">
+                                        <span>{expandedFinishRows[item.id] ? 'Hide' : 'Options'}</span>
+                                        {expandedFinishRows[item.id] ? (
+                                          <ChevronUp className="w-2.5 h-2.5" />
+                                        ) : (
+                                          <ChevronDown className="w-2.5 h-2.5" />
+                                        )}
+                                      </span>
+                                    </button>
+
+                                    {!isReadOnly && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveLockFinishItem(item)}
+                                        className="text-[9px] text-sky-300 hover:text-white font-semibold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 border-l border-slate-700 cursor-pointer transition-colors"
+                                        title="Click to modify lock trim style, color finish, lever type, and subtype settings"
+                                      >
+                                        ✎ Edit
+                                      </button>
+                                    )}
+                                  </div>
                                 ) : (
                                   <button
                                     type="button"
@@ -280,6 +326,170 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                               </div>
                             )}
                           </div>
+
+                          {/* Expanded Full Lock Options Card */}
+                          {isLockBOMItem(item) && item.lockFinishConfig && expandedFinishRows[item.id] && (
+                            <div className="mt-2.5 p-3 bg-slate-950 text-white rounded-xl border border-slate-800 shadow-md space-y-2.5 text-xs animate-in fade-in duration-200 max-w-xl">
+                              <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3.5 h-3.5 rounded-full border border-white/60 shadow-sm shrink-0"
+                                    style={{
+                                      backgroundColor: getLockFinishColorHex(
+                                        item.lockFinishConfig.befeColorFinish ||
+                                        item.lockFinishConfig.ndeColorFinish ||
+                                        item.lockFinishConfig.xe360ColorFinish
+                                      ),
+                                    }}
+                                  />
+                                  <span className="font-bold text-sky-400 text-xs">
+                                    All Lock Hardware Options &amp; Specifications
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {!isReadOnly && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setActiveLockFinishItem(item)}
+                                      className="text-[10px] font-bold text-sky-300 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer transition-colors"
+                                    >
+                                      ✎ Edit Settings
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpandFinish(item.id)}
+                                    className="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer flex items-center gap-1 transition-colors"
+                                  >
+                                    <ChevronUp className="w-3 h-3" />
+                                    <span>Collapse</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                                {/* Family */}
+                                <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                    Hardware Family
+                                  </span>
+                                  <span className="font-bold text-slate-100">
+                                    {item.lockFinishConfig.family === 'befe'
+                                      ? 'Schlage Control (BE467 / FE410)'
+                                      : item.lockFinishConfig.family === 'nde'
+                                      ? 'Schlage NDE Series'
+                                      : `Schlage XE360 ${item.lockFinishConfig.xe360Subtype || ''}`}
+                                  </span>
+                                </div>
+
+                                {/* Color Finish */}
+                                <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                    Color Finish
+                                  </span>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span
+                                      className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
+                                      style={{
+                                        backgroundColor: getLockFinishColorHex(
+                                          item.lockFinishConfig.befeColorFinish ||
+                                          item.lockFinishConfig.ndeColorFinish ||
+                                          item.lockFinishConfig.xe360ColorFinish
+                                        ),
+                                      }}
+                                    />
+                                    <span className="font-bold text-slate-100">
+                                      {item.lockFinishConfig.befeColorFinish ||
+                                        item.lockFinishConfig.ndeColorFinish ||
+                                        item.lockFinishConfig.xe360ColorFinish ||
+                                        'Standard Finish'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Trim / Escutcheon Style (BE/FE) */}
+                                {item.lockFinishConfig.befeTrimStyle && (
+                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                      Trim / Escutcheon Style
+                                    </span>
+                                    <span className="font-bold text-slate-100">
+                                      {item.lockFinishConfig.befeTrimStyle}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Lever Type (NDE) */}
+                                {item.lockFinishConfig.ndeLeverType && (
+                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                      Lever Style / Design
+                                    </span>
+                                    <span className="font-bold text-slate-100">
+                                      {item.lockFinishConfig.ndeLeverType}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Lever Style (XE360) */}
+                                {item.lockFinishConfig.xe360LeverStyle && (
+                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                      Lever Style
+                                    </span>
+                                    <span className="font-bold text-slate-100">
+                                      {item.lockFinishConfig.xe360LeverStyle}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Security Grade (XE360 Tubular / Mortise) */}
+                                {(item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade) && (
+                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                      ANSI/BHMA Grade
+                                    </span>
+                                    <span className="font-bold text-emerald-400">
+                                      {item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Interior Function (XE360) */}
+                                {(item.lockFinishConfig.xe360ExitTrimFunction || item.lockFinishConfig.xe360TubularFunction || item.lockFinishConfig.xe360MortiseFunction) && (
+                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                      Interior Function
+                                    </span>
+                                    <span className="font-semibold text-sky-200">
+                                      {item.lockFinishConfig.xe360ExitTrimFunction ||
+                                        item.lockFinishConfig.xe360TubularFunction ||
+                                        item.lockFinishConfig.xe360MortiseFunction}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Crashbar Compatibility (XE360 Exit Trim) */}
+                                {item.lockFinishConfig.xe360ExitTrimCrashbar && (
+                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800 sm:col-span-2">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                      Crashbar Compatibility
+                                    </span>
+                                    <span className="font-semibold text-slate-200">
+                                      {item.lockFinishConfig.xe360ExitTrimCrashbar}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Custom Door / Scope Notes */}
+                              {item.lockFinishConfig.customNotes && (
+                                <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-300">
+                                  <span className="font-bold text-slate-400">Door / Scope Notes:</span> {item.lockFinishConfig.customNotes}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
