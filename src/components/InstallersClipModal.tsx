@@ -215,8 +215,6 @@ const InstallersClipModalInternal: React.FC<InstallersClipProps> = ({
     };
   }, []);
 
-  if (!isOpen) return null;
-
   const assignedPM = normalizeAssignedPM(activeProject?.assignedPM);
 
   // Filtered projects for the Landing Screen
@@ -1347,6 +1345,7 @@ const InstallersClipModalInternal: React.FC<InstallersClipProps> = ({
 };
 
 export const InstallersClipModal: React.FC<InstallersClipProps> = (props) => {
+  if (!props.isOpen) return null;
   return (
     <InstallersClipErrorBoundary onClose={props.onClose}>
       <InstallersClipModalInternal {...props} />
