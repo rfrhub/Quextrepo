@@ -22,9 +22,27 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const STORAGE_KEY_USERS = 'quext_academy_users_v3';
-const STORAGE_KEY_COMPANIES = 'quext_academy_companies_v3';
-const STORAGE_KEY_CURRENT_USER = 'quext_academy_current_user_v3';
+const STORAGE_KEY_USERS = 'quext_academy_users_v4';
+const STORAGE_KEY_COMPANIES = 'quext_academy_companies_v4';
+const STORAGE_KEY_CURRENT_USER = 'quext_academy_current_user_v4';
+
+export function isQuextEmployeeUser(
+  user?: Partial<User> | null,
+  company?: Partial<PartnerCompany> | null
+): boolean {
+  if (!user) return false;
+  if (user.role === 'quext_director') return true;
+  if (user.companyId === 'comp_quext_hq') return true;
+  if (company?.id === 'comp_quext_hq') return true;
+  if (
+    user.email &&
+    (user.email.toLowerCase().endsWith('@onequext.com') ||
+      user.email.toLowerCase().endsWith('@quext.com'))
+  ) {
+    return true;
+  }
+  return false;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,13 +52,15 @@ export const AuthProvider: React.FC<{
   activeCompanyId?: string | null;
 }> = ({ children, activePartnerEmail, activeCompanyId }) => {
   const [companies, setCompanies] = useState<PartnerCompany[]>(() => {
+    const allowedCompanyIds = new Set(PARTNER_COMPANIES.map((c) => c.id));
     const saved = localStorage.getItem(STORAGE_KEY_COMPANIES);
     if (saved) {
       try {
         const parsed: PartnerCompany[] = JSON.parse(saved);
-        const existingIds = new Set(parsed.map((c) => c.id));
+        const validParsed = parsed.filter((c) => allowedCompanyIds.has(c.id));
+        const existingIds = new Set(validParsed.map((c) => c.id));
         const missing = PARTNER_COMPANIES.filter((c) => !existingIds.has(c.id));
-        return [...missing, ...parsed];
+        return [...missing, ...validParsed];
       } catch (e) {
         console.error(e);
       }
@@ -49,13 +69,18 @@ export const AuthProvider: React.FC<{
   });
 
   const [allUsers, setAllUsers] = useState<User[]>(() => {
+    const allowedUserIds = new Set(INITIAL_USERS.map((u) => u.id));
+    const allowedCompanyIds = new Set(PARTNER_COMPANIES.map((c) => c.id));
     const saved = localStorage.getItem(STORAGE_KEY_USERS);
     if (saved) {
       try {
         const parsed: User[] = JSON.parse(saved);
-        const existingIds = new Set(parsed.map((u) => u.id));
+        const validParsed = parsed.filter(
+          (u) => allowedUserIds.has(u.id) || allowedCompanyIds.has(u.companyId)
+        );
+        const existingIds = new Set(validParsed.map((u) => u.id));
         const missing = INITIAL_USERS.filter((u) => !existingIds.has(u.id));
-        return [...missing, ...parsed];
+        return [...missing, ...validParsed];
       } catch (e) {
         console.error(e);
       }
@@ -132,6 +157,10 @@ export const AuthProvider: React.FC<{
   };
 
   const switchRole = (role: UserRole) => {
+    // Only Quext employees can hold or switch to quext_director role
+    if (role === 'quext_director' && !isQuextEmployeeUser(currentUser, currentCompany)) {
+      return;
+    }
     // Find first user with that role in current company, or any company
     const matchingInCompany = companyUsers.find(u => u.role === role);
     if (matchingInCompany) {
@@ -140,6 +169,10 @@ export const AuthProvider: React.FC<{
     }
     const matchingAny = allUsers.find(u => u.role === role);
     if (matchingAny) {
+      // If matchingAny is a Quext employee but current user isn't, don't allow
+      if (matchingAny.role === 'quext_director' && !isQuextEmployeeUser(currentUser, currentCompany)) {
+        return;
+      }
       setCurrentUserId(matchingAny.id);
     }
   };
@@ -365,8 +398,8 @@ export const AuthProvider: React.FC<{
   };
 
   const logout = () => {
-    // switch to first installer
-    setCurrentUserId('user_tech_marcus');
+    // switch to first partner installer
+    setCurrentUserId('user_skbm_lead');
   };
 
   return (

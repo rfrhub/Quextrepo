@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { OperationProject, getProjectIntegratorPartners } from '../../types';
 import { CourseModule } from '../types';
 import { COURSE_MODULES } from '../data/mockData';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isQuextEmployeeUser } from '../context/AuthContext';
 import {
   buildProjectPrePackagedBundle,
   PrePackagedProjectCourseBundle,
+  PARTNER_IDENTITY_DIRECTORY,
 } from '../utils/projectCoursePackager';
 import {
   ArrowLeft,
@@ -49,13 +50,41 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
   onOpenInstallersClip,
   onUpdateProject,
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentCompany } = useAuth();
+  const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
+
+  // Map currentCompany to its corresponding Operations Integrator Partner name
+  const currentPartnerShortName = useMemo(() => {
+    const compNameLower = currentCompany.name.toLowerCase();
+    const compIdLower = currentCompany.id.toLowerCase();
+
+    for (const dir of PARTNER_IDENTITY_DIRECTORY) {
+      if (
+        dir.companyId.toLowerCase() === compIdLower ||
+        compNameLower.includes(dir.partnerShortName.toLowerCase()) ||
+        dir.aliases.some((a) => compNameLower.includes(a) || compIdLower.includes(a))
+      ) {
+        return dir.partnerShortName;
+      }
+    }
+    return null;
+  }, [currentCompany]);
+
+  const partners = getProjectIntegratorPartners(project);
+
+  const isAssigned = useMemo(() => {
+    if (isQuextEmployee) return true;
+    if (!currentPartnerShortName) return false;
+    return partners.some(
+      (p) => p.trim().toLowerCase() === currentPartnerShortName.trim().toLowerCase()
+    );
+  }, [partners, isQuextEmployee, currentPartnerShortName]);
+
   const [activeSubView, setActiveSubView] = useState<'all' | 'courses' | 'guides' | 'checklist_bom'>('all');
 
   const bundle: PrePackagedProjectCourseBundle =
     project.partnerCourseBundle || buildProjectPrePackagedBundle(project);
 
-  const partners = getProjectIntegratorPartners(project);
   const totalBomDevices = (project.bomItems || []).reduce((acc, b) => acc + (b.quantity || 0), 0);
 
   // Calculate course completion stats
@@ -73,6 +102,45 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
       (completedChecklistCount / (bundle.checklist.length || 1)) * 0.35) *
       100
   );
+
+  // If partner is not assigned to this project and is not a Quext employee, block access
+  if (!isAssigned) {
+    return (
+      <div className="space-y-6">
+        <button
+          type="button"
+          onClick={onBackToHomepage}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold transition-all cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Assigned Projects</span>
+        </button>
+
+        <div className="p-8 sm:p-12 rounded-3xl bg-[#0e121e] border border-rose-500/40 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center mx-auto text-rose-400">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            Partner Access Restricted
+          </h2>
+          <p className="text-sm text-zinc-300 max-w-xl mx-auto">
+            This installation project ({project.propertyName}) is not assigned to{' '}
+            <strong className="text-white">{currentPartnerShortName || currentCompany.name}</strong>.
+            Authorized partner accounts can only view and prepare pre-packaged bundles for projects assigned directly to their firm.
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onBackToHomepage}
+              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg transition-all cursor-pointer"
+            >
+              Return to Assigned Projects
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleChecklistItem = (itemId: string) => {
     const updatedChecklist = bundle.checklist.map((item) =>

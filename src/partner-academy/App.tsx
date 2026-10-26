@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { OperationProject } from '../types';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import React, { useState, useEffect, useMemo } from 'react';
+import { OperationProject, getProjectIntegratorPartners } from '../types';
+import { AuthProvider, useAuth, isQuextEmployeeUser } from './context/AuthContext';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { UpcomingPartnerProjectsSection } from './components/UpcomingPartnerProjectsSection';
@@ -26,6 +26,7 @@ import { ButterflyIntercomWiring } from './components/ButterflyIntercomWiring';
 import { InstallersClipModal } from '../components/InstallersClipModal';
 import { CourseModule } from './types';
 import { COURSE_MODULES } from './data/mockData';
+import { PARTNER_IDENTITY_DIRECTORY } from './utils/projectCoursePackager';
 import {
   ShieldCheck,
   ArrowRight,
@@ -62,6 +63,35 @@ const MainApp: React.FC<{
   onExitToOperationsHub,
 }) => {
   const { currentUser, currentCompany } = useAuth();
+  const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
+
+  // Map currentCompany to its corresponding Operations Integrator Partner name
+  const currentPartnerShortName = useMemo(() => {
+    const compNameLower = currentCompany.name.toLowerCase();
+    const compIdLower = currentCompany.id.toLowerCase();
+
+    for (const dir of PARTNER_IDENTITY_DIRECTORY) {
+      if (
+        dir.companyId.toLowerCase() === compIdLower ||
+        compNameLower.includes(dir.partnerShortName.toLowerCase()) ||
+        dir.aliases.some((a) => compNameLower.includes(a) || compIdLower.includes(a))
+      ) {
+        return dir.partnerShortName;
+      }
+    }
+    return null;
+  }, [currentCompany]);
+
+  // Non-Quext partners can strictly see ONLY the projects assigned to them
+  const visibleProjects = useMemo(() => {
+    if (isQuextEmployee) return projects;
+    if (!currentPartnerShortName) return [];
+    return projects.filter((p) =>
+      getProjectIntegratorPartners(p).some(
+        (partner) => partner.trim().toLowerCase() === currentPartnerShortName.trim().toLowerCase()
+      )
+    );
+  }, [projects, isQuextEmployee, currentPartnerShortName]);
 
   const [currentTab, setCurrentTab] = useState<string>('curriculum');
   const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null);
@@ -85,15 +115,32 @@ const MainApp: React.FC<{
 
   useEffect(() => {
     if (initialSelectedProjectId) {
-      setActivePrepProjectId(initialSelectedProjectId);
-      setIsViewingProjectPrepHub(true);
-      setSelectedModule(null);
-      setCurrentTab('curriculum');
+      // Validate that the project is accessible to this user
+      if (isQuextEmployee || visibleProjects.some((p) => p.id === initialSelectedProjectId)) {
+        setActivePrepProjectId(initialSelectedProjectId);
+        setIsViewingProjectPrepHub(true);
+        setSelectedModule(null);
+        setCurrentTab('curriculum');
+      } else {
+        setActivePrepProjectId(null);
+        setIsViewingProjectPrepHub(false);
+      }
     }
-  }, [initialSelectedProjectId]);
+  }, [initialSelectedProjectId, isQuextEmployee, visibleProjects]);
+
+  // Security guard: If current user changes and active project isn't theirs, reset
+  useEffect(() => {
+    if (activePrepProjectId && !isQuextEmployee) {
+      const allowed = visibleProjects.some((p) => p.id === activePrepProjectId);
+      if (!allowed) {
+        setActivePrepProjectId(null);
+        setIsViewingProjectPrepHub(false);
+      }
+    }
+  }, [activePrepProjectId, isQuextEmployee, visibleProjects]);
 
   const activePrepProject = activePrepProjectId
-    ? projects.find((p) => p.id === activePrepProjectId) || null
+    ? visibleProjects.find((p) => p.id === activePrepProjectId) || (isQuextEmployee ? projects.find((p) => p.id === activePrepProjectId) : null) || null
     : null;
 
   const handleStartCourse = (moduleId: string) => {
@@ -259,9 +306,9 @@ const MainApp: React.FC<{
           {/* View 2: Partner Academy Homepage: Upcoming Assigned Projects + Full Course Catalog */}
           {currentTab === 'curriculum' && !isViewingProjectPrepHub && !selectedModule && (
             <>
-              {projects.length > 0 && (
+              {visibleProjects.length >= 0 && (
                 <UpcomingPartnerProjectsSection
-                  projects={projects}
+                  projects={visibleProjects}
                   onSelectProjectPackage={handleSelectProjectPackage}
                 />
               )}
@@ -567,7 +614,7 @@ const MainApp: React.FC<{
       <InstallersClipModal
         isOpen={isInstallersClipOpen}
         onClose={() => setIsInstallersClipOpen(false)}
-        projects={projects}
+        projects={visibleProjects}
         onUpdateProject={(updated) => {
           if (onUpdateProject) onUpdateProject(updated);
         }}

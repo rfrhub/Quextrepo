@@ -195,14 +195,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. APX-409 or PTF-112"
+                  placeholder="e.g. SKB-101 or ATB-202"
                   value={loginCompanyCode}
                   onChange={(e) => setLoginCompanyCode(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white uppercase font-mono tracking-wider focus:outline-none focus:border-cyan-400"
                 />
               </div>
               <span className="text-[10px] text-slate-500 mt-1 block">
-                Available codes: APX-409, PTF-112, BPK-771, QXT-001
+                Official codes: SKB-101, ATB-202, SBH-303, EVB-404, JTS-505, RMR-606, AMD-707, QXT-001
               </span>
             </div>
 

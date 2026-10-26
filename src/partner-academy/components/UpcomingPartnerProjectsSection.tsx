@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { OperationProject, getProjectIntegratorPartners } from '../../types';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isQuextEmployeeUser } from '../context/AuthContext';
 import { COURSE_MODULES } from '../data/mockData';
 import {
   buildProjectPrePackagedBundle,
@@ -33,6 +33,7 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
   onSelectProjectPackage,
 }) => {
   const { currentUser, currentCompany } = useAuth();
+  const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
 
   // Map currentCompany to its corresponding Operations Integrator Partner name
   const currentPartnerShortName = useMemo(() => {
@@ -51,43 +52,43 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
     return null;
   }, [currentCompany]);
 
-  // Extract all unique integrator partners across projects
+  // Extract all unique integrator partners across projects (strictly for Quext Employees only)
   const allPartnerFilters = useMemo(() => {
+    if (!isQuextEmployee) return [];
     const set = new Set<string>();
-    if (currentPartnerShortName) set.add(currentPartnerShortName);
     projects.forEach((p) => {
       getProjectIntegratorPartners(p).forEach((partner) => {
         if (partner && partner.trim()) set.add(partner.trim());
       });
     });
     return Array.from(set);
-  }, [projects, currentPartnerShortName]);
+  }, [projects, isQuextEmployee]);
 
   const [selectedFilter, setSelectedFilter] = useState<string>('my_partner');
 
   const filteredProjects = useMemo(() => {
-    if (selectedFilter === 'all' || currentUser.role === 'quext_director') {
-      if (selectedFilter === 'my_partner' && currentUser.role === 'quext_director') {
-        return projects;
-      }
-      if (selectedFilter === 'all') {
-        return projects;
-      }
+    // Non-Quext Partner Users: Strictly isolate to projects assigned to their specific firm.
+    // They cannot view other partners' projects and do not fall back to all projects.
+    if (!isQuextEmployee) {
+      if (!currentPartnerShortName) return [];
+      return projects.filter((p) =>
+        getProjectIntegratorPartners(p).some(
+          (partner) => partner.trim().toLowerCase() === currentPartnerShortName.trim().toLowerCase()
+        )
+      );
     }
 
-    const targetPartner =
-      selectedFilter === 'my_partner' ? currentPartnerShortName : selectedFilter;
+    // Quext Employees: Full portfolio visibility with partner filtering capabilities
+    if (selectedFilter === 'all' || selectedFilter === 'my_partner') {
+      return projects;
+    }
 
-    if (!targetPartner) return projects;
-
-    const matched = projects.filter((p) =>
+    return projects.filter((p) =>
       getProjectIntegratorPartners(p).some(
-        (partner) => partner.trim().toLowerCase() === targetPartner.trim().toLowerCase()
+        (partner) => partner.trim().toLowerCase() === selectedFilter.trim().toLowerCase()
       )
     );
-
-    return matched.length > 0 ? matched : projects;
-  }, [projects, selectedFilter, currentPartnerShortName, currentUser.role]);
+  }, [projects, selectedFilter, currentPartnerShortName, isQuextEmployee]);
 
   // Calculate technician readiness for a project's pre-packaged bundle
   const getProjectReadiness = (project: OperationProject) => {
@@ -148,40 +149,25 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
             </p>
           </div>
 
-          {/* Partner Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 self-start lg:self-center bg-zinc-950/90 border border-zinc-800 p-1.5 rounded-2xl">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 px-2 flex items-center gap-1">
-              <Filter className="w-3 h-3 text-purple-400" />
-              Partner:
-            </span>
-            {currentPartnerShortName && (
+          {/* Partner Filter Controls */}
+          {isQuextEmployee ? (
+            <div className="flex flex-wrap items-center gap-1.5 self-start lg:self-center bg-zinc-950/90 border border-zinc-800 p-1.5 rounded-2xl">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 px-2 flex items-center gap-1">
+                <Filter className="w-3 h-3 text-purple-400" />
+                Quext Oversight:
+              </span>
               <button
                 type="button"
-                onClick={() => setSelectedFilter('my_partner')}
+                onClick={() => setSelectedFilter('all')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  selectedFilter === 'my_partner'
+                  selectedFilter === 'all' || selectedFilter === 'my_partner'
                     ? 'bg-purple-600 text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                 }`}
               >
-                {currentPartnerShortName} Assigned
+                All Projects ({projects.length})
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                selectedFilter === 'all' || (!currentPartnerShortName && selectedFilter === 'my_partner')
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-              }`}
-            >
-              All Projects ({projects.length})
-            </button>
-            {allPartnerFilters
-              .filter((p) => p !== currentPartnerShortName)
-              .slice(0, 5)
-              .map((partner) => (
+              {allPartnerFilters.map((partner) => (
                 <button
                   key={partner}
                   type="button"
@@ -195,12 +181,33 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
                   {partner}
                 </button>
               ))}
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 self-start lg:self-center">
+              <span className="px-3.5 py-1.5 rounded-2xl bg-purple-950/60 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center gap-2 shadow-sm">
+                <ShieldCheck className="w-4 h-4 text-purple-400" />
+                <span>
+                  {currentPartnerShortName || currentCompany.name} Assigned ({filteredProjects.length})
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Project Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredProjects.map((project) => {
+        {/* Project Cards Grid or Empty State */}
+        {filteredProjects.length === 0 ? (
+          <div className="py-12 px-6 rounded-2xl bg-zinc-950/60 border border-zinc-800 text-center space-y-3">
+            <Building2 className="w-10 h-10 text-zinc-500 mx-auto" />
+            <h3 className="text-base font-bold text-white">No Assigned Projects</h3>
+            <p className="text-xs text-zinc-400 max-w-md mx-auto">
+              There are currently no active installation projects assigned to{' '}
+              <strong className="text-purple-300">{currentPartnerShortName || currentCompany.name}</strong>.
+              Contact your Quext Implementation Project Manager for upcoming assignments.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {filteredProjects.map((project) => {
             const {
               bundle,
               passedOrCompletedCourses,
@@ -382,6 +389,7 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
             );
           })}
         </div>
+      )}
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isQuextEmployeeUser } from '../context/AuthContext';
 import { QuextLogo } from './QuextLogo';
 import { ShieldCheck, UserCheck, Building2, Award, ChevronDown, Zap } from 'lucide-react';
 
@@ -23,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   onExitToOperationsHub,
 }) => {
   const { currentUser, currentCompany, switchRole } = useAuth();
+  const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
 
   const roleLabels: Record<string, string> = {
@@ -442,25 +443,27 @@ export const Header: React.FC<HeaderProps> = ({
                     )}
                   </button>
 
-                  <button
-                    onClick={() => {
-                      switchRole('quext_director');
-                      setShowRoleMenu(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
-                      currentUser.role === 'quext_director'
-                        ? 'bg-purple-950/40 text-purple-300 font-bold border border-purple-500/30'
-                        : 'text-zinc-300 hover:bg-zinc-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Award className="w-4 h-4 text-cyan-400" />
-                      Quext Director
-                    </span>
-                    {currentUser.role === 'quext_director' && (
-                      <span className="text-[10px] text-purple-400 font-mono">ACTIVE</span>
-                    )}
-                  </button>
+                  {isQuextEmployee && (
+                    <button
+                      onClick={() => {
+                        switchRole('quext_director');
+                        setShowRoleMenu(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                        currentUser.role === 'quext_director'
+                          ? 'bg-purple-950/40 text-purple-300 font-bold border border-purple-500/30'
+                          : 'text-zinc-300 hover:bg-zinc-900'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Award className="w-4 h-4 text-cyan-400" />
+                        Quext Director
+                      </span>
+                      {currentUser.role === 'quext_director' && (
+                        <span className="text-[10px] text-purple-400 font-mono">ACTIVE</span>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <div className="border-t border-zinc-800/80 pt-1 mt-1 space-y-1">
