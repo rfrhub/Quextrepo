@@ -44,6 +44,12 @@ import {
   resolveEmailToMyQuextUser,
 } from './components/MyQuextLoginPage';
 import { syncLiveOpportunitiesFromMyQuext } from './services/myquextLiveSync';
+import {
+  subscribeToLiveProjects,
+  subscribeToLiveQuotes,
+  saveLiveProject,
+  saveLiveQuote,
+} from './services/realtimeSyncService';
 import PartnerAcademyApp from './partner-academy/App';
 import {
   buildProjectPrePackagedBundle,
@@ -159,6 +165,22 @@ export default function App() {
       // ignore
     }
   }, [pmTutorialStep]);
+
+  // Real-Time Cloud Firestore Sync for multi-user out-of-state collaboration
+  useEffect(() => {
+    const unsubProjects = subscribeToLiveProjects((liveProjects) => {
+      setProjects(liveProjects);
+    });
+
+    const unsubQuotes = subscribeToLiveQuotes((liveQuotes) => {
+      setQuotes(liveQuotes);
+    });
+
+    return () => {
+      unsubProjects();
+      unsubQuotes();
+    };
+  }, []);
 
   // Secret 4-Part Focus Mode / Quext Vision states
   const [focusMode, setFocusMode] = useState<FocusModeType>('none');
@@ -346,6 +368,10 @@ export default function App() {
 
     setQuotes(updatedQuotes);
     saveStoredQuotes(updatedQuotes);
+    const updatedQ = updatedQuotes.find((q) => q.id === quoteId);
+    if (updatedQ) {
+      saveLiveQuote(updatedQ).catch((e) => console.warn('[Cloud Sync] Quote save deferred:', e));
+    }
 
     // If marked as Deal Won, check if project exists; if not, create one!
     if (newStage === 'Deal Won') {
@@ -373,6 +399,7 @@ export default function App() {
           const updatedProjects = [newProject, ...projects];
           setProjects(updatedProjects);
           saveStoredProjects(updatedProjects);
+          saveLiveProject(newProject).catch((e) => console.warn('[Cloud Sync] Project save deferred:', e));
           setLatestNotification(notif);
           setAutoPopTriggerKey((k) => k + 1);
         }
@@ -385,12 +412,14 @@ export default function App() {
     const updatedQuotes = [newQuote, ...quotes];
     setQuotes(updatedQuotes);
     saveStoredQuotes(updatedQuotes);
+    saveLiveQuote(newQuote).catch((e) => console.warn('[Cloud Sync] Quote save deferred:', e));
 
     if (markWonImmediately) {
       const newProject = createProjectFromQuote(newQuote);
       const updatedProjects = [newProject, ...projects];
       setProjects(updatedProjects);
       saveStoredProjects(updatedProjects);
+      saveLiveProject(newProject).catch((e) => console.warn('[Cloud Sync] Project save deferred:', e));
     }
   };
 
@@ -625,6 +654,9 @@ export default function App() {
     );
     setProjects(updatedProjects);
     saveStoredProjects(updatedProjects);
+    saveLiveProject(enrichedProject).catch((e) =>
+      console.warn('[Cloud Sync] Background project save failed:', e)
+    );
 
     if (triggeredNotif) {
       setLatestNotification(triggeredNotif);
@@ -641,6 +673,9 @@ export default function App() {
     const updatedProjects = [enrichedManual, ...projects];
     setProjects(updatedProjects);
     saveStoredProjects(updatedProjects);
+    saveLiveProject(enrichedManual).catch((e) =>
+      console.warn('[Cloud Sync] Background manual project save failed:', e)
+    );
   };
 
   // Update status tag directly

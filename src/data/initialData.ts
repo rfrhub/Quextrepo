@@ -1919,7 +1919,7 @@ export function normalizeProjectMilestones(
   });
 }
 
-function enrichProjectDefaults(p: OperationProject): OperationProject {
+export function enrichProjectDefaults(p: OperationProject): OperationProject {
   const initProj = INITIAL_PROJECTS.find((ip) => ip.id === p.id);
   const partners =
     p.integratorPartners && p.integratorPartners.length > 0

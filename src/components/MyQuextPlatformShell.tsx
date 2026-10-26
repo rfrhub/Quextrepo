@@ -40,6 +40,7 @@ import {
   GraduationCap,
   Zap,
 } from 'lucide-react';
+import { CloudSyncIndicator } from './CloudSyncIndicator';
 
 export type MyQuextTopTab =
   | 'salesHub'
@@ -503,6 +504,9 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               </div>
             )}
           </div>
+
+          {/* Real-time Multi-User Cloud Sync Indicator */}
+          <CloudSyncIndicator />
 
           {/* Live Sync from myquext.com Firestore button (Small Square Reload Symbol) */}
           <button

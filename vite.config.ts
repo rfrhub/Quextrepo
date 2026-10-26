@@ -137,6 +137,7 @@ function sowWebhookPlugin(): Plugin {
 
 export default defineConfig(() => {
   return {
+    base: './',
     plugins: [react(), tailwindcss(), sowWebhookPlugin()],
     resolve: {
       alias: {
