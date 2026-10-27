@@ -97,7 +97,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [acknowledgedRoadblocks, setAcknowledgedRoadblocks] = useState<Record<string, boolean>>({});
   const [activeRoadblockCategory, setActiveRoadblockCategory] = useState<'all' | 'municipal' | 'supply_chain' | 'internal_assist'>('all');
   const [financialSortBy, setFinancialSortBy] = useState<'profit' | 'revenue' | 'margin' | 'collection'>('profit');
-  const [isFinancialProjectsMinimized, setIsFinancialProjectsMinimized] = useState<boolean>(false);
+  const [isFinancialProjectsMinimized, setIsFinancialProjectsMinimized] = useState<boolean>(true);
 
   // Pop-up modal state for "Assistance Provided"
   const [assistModalProject, setAssistModalProject] = useState<OperationProject | null>(null);
