@@ -169,7 +169,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
         operationsSubTab: 'all-projects',
       },
       message:
-        'Use this button to manually spin up pilot rollouts, internal hardware lab staging, or retrofit contracts without needing an upstream CRM sales quote.',
+        'Use this button to manually spin up pilot rollouts, internal hardware lab staging, or retrofit contracts without needing an upstream CRM sales quote. PMs can also search quotes directly by name within the creation modal.',
       tryItOutPrompt: 'Click Next to learn about Milestone 1: Kickoff!',
     },
     {
@@ -253,7 +253,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
         projectDetailTab: 'field-bom',
       },
       message:
-        'Click "🎨 Set Lock Finish" on lock items to configure BE467 / FE410, NDEB Series, or XE360 models, finishes (Matte Black, Satin Nickel, Aged Bronze), and split finish distributions between residential units and common amenities.',
+        'Click "🎨 Set Lock Finish" on lock items to configure Schlage BE467 / FE410, NDEB Series (properly matched to NDEB Lock Model & Type), or XE360, selecting Matte Black, Satin Nickel, or Aged Bronze with custom residential vs. amenity split finish distributions.',
       tryItOutPrompt: 'Click anywhere in the BOM table to advance!',
     },
     {
@@ -285,7 +285,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
         projectDetailTab: 'field-bom',
       },
       message:
-        'Tracks quoted hardware vs. installed progress. Next to Quoted Hardware, clicking the invisible "BOM OVERIDE" button 7 times unlocks BOM OVERRIDE mode, allowing PMs to add catalog items or delete line items with quote variance warnings and permanent audit logging.',
+        'Tracks quoted hardware vs. installed progress. Next to Quoted Hardware, clicking the invisible "BOM OVERIDE" button 7 times unlocks the red BOM OVERRIDE mode. PMs can add catalog items directly or delete line items with quote variance warnings and permanent audit logging.',
       tryItOutPrompt: 'Click anywhere in the BOM table to advance!',
     },
     {
@@ -302,7 +302,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
         projectDetailTab: 'field-bom',
       },
       message:
-        'Tracks freight carriers (FedEx Freight, Old Dominion, Estes), pallet manifests, and tracking numbers. Confirm delivery on-site before deploying installers.',
+        'Manage logistics with dispatch carriers including FedEx, UPS, Quext Local Delivery, Customer Pickup, Omega TMS, SAIA LTL Freight, and Old Dominion. Track pallet manifests and tracking numbers to confirm delivery on-site before deploying installers.',
       tryItOutPrompt: 'Click anywhere in the Shipping Dock section to advance!',
     },
     {
