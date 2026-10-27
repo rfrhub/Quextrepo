@@ -555,11 +555,16 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
                 />
               </div>
               <div>
-                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full">
-                  21-Minute Productivity Session Unlocked
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full">
+                    21-Minute Productivity Session
+                  </span>
+                  <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-300 rounded-full">
+                    Hotkey: ⌘+Q+W / Ctrl+Q+W
+                  </span>
+                </div>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-['Plus_Jakarta_Sans'] mt-1">
-                  Quext Focus Mode Activated
+                  Quext Vision Activated
                 </h2>
               </div>
             </div>
@@ -576,7 +581,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-5">
             Select the project you are working on below and choose how you would like to run your{' '}
-            <strong>21-minute distraction-free focus session</strong>. Your progress is automatically saved so you can pick up right where you left off at any time.
+            <strong>21-minute distraction-free Quext Vision session</strong>. You can also toggle Quext Vision at any time using <strong>⌘+Q+W</strong> (Mac) or <strong>Ctrl+Q+W</strong> (Windows). Your progress is automatically saved so you can pick up right where you left off.
           </p>
 
           {/* Project Selector */}
@@ -628,7 +633,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
             >
               <div>
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-500 group-hover:text-emerald-700 mb-1">
-                  Standard Focus Mode
+                  Quext Vision (Standard Mode)
                 </div>
                 <div className="text-sm font-extrabold text-slate-900 leading-snug">
                   &ldquo;I know what I need to do outta my way.&rdquo;
@@ -711,7 +716,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
           <div className="flex items-center gap-3 min-w-0">
             <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {focusMode === 'quext-vision' ? 'Quext Vision Mode' : 'Standard Focus Mode'}
+              {focusMode === 'quext-vision' ? 'Quext Vision (Guided)' : 'Quext Vision (Standard)'}
             </span>
 
             <select
@@ -745,8 +750,8 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
               <Eye className="w-3.5 h-3.5 text-emerald-300" />
               <span>
                 {focusMode === 'quext-vision'
-                  ? 'Switch to Standard Focus'
-                  : 'Use Quext Vision'}
+                  ? 'Switch to Standard Vision'
+                  : 'Use Guided Vision'}
               </span>
             </button>
 
@@ -844,7 +849,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Your 21-minute focus session for <strong>{project.propertyName}</strong> ({activeMilestoneTitle}) has finished. Your progress has been saved automatically. Would you like to stay in Focus Mode or return to the normal mode of the site?
+              Your 21-minute Quext Vision session for <strong>{project.propertyName}</strong> ({activeMilestoneTitle}) has finished. Your progress has been saved automatically. Would you like to stay in Quext Vision or return to the normal mode of the site?
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
@@ -867,7 +872,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
                 }}
                 className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                Stay in Focus Mode (+21 Min)
+                Stay in Quext Vision (+21 Min)
               </button>
             </div>
           </div>

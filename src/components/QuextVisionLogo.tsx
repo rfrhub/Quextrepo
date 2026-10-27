@@ -72,6 +72,7 @@ export const QuextVisionLogo: React.FC<QuextVisionLogoProps> = ({
         setClickStreak(0);
       }}
       aria-label="Quext Vision"
+      title="Quext Vision (Click 10x or press ⌘+Q+W / Ctrl+Q+W)"
       role="button"
     >
       {/* 
