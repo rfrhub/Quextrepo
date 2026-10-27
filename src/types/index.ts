@@ -574,8 +574,14 @@ export interface SOWForecastItem {
 }
 
 export type ShippingCarrier =
+  | 'FedEx'
   | 'FedEx Freight'
+  | 'UPS'
   | 'UPS Supply Chain'
+  | 'Quext Local Delivery'
+  | 'Customer Pickup'
+  | 'Omega TMS'
+  | 'SAIA LTL Freight'
   | 'DHL Express'
   | 'Old Dominion LTL'
   | 'Direct Integrator Courier';

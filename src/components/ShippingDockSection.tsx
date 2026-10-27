@@ -1353,8 +1353,14 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
                 onChange={(e) => setCarrier(e.target.value as ShippingCarrier)}
                 className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900"
               >
+                <option value="FedEx">FedEx</option>
                 <option value="FedEx Freight">FedEx Freight</option>
+                <option value="UPS">UPS</option>
                 <option value="UPS Supply Chain">UPS Supply Chain</option>
+                <option value="Quext Local Delivery">Quext Local Delivery</option>
+                <option value="Customer Pickup">Customer Pickup</option>
+                <option value="Omega TMS">Omega TMS</option>
+                <option value="SAIA LTL Freight">SAIA LTL Freight</option>
                 <option value="DHL Express">DHL Express</option>
                 <option value="Old Dominion LTL">Old Dominion LTL</option>
                 <option value="Direct Integrator Courier">Direct Integrator Courier</option>
@@ -1717,8 +1723,14 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
                         }
                         className="text-xs bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 font-medium"
                       >
+                        <option value="FedEx">FedEx</option>
                         <option value="FedEx Freight">FedEx Freight</option>
+                        <option value="UPS">UPS</option>
                         <option value="UPS Supply Chain">UPS Supply Chain</option>
+                        <option value="Quext Local Delivery">Quext Local Delivery</option>
+                        <option value="Customer Pickup">Customer Pickup</option>
+                        <option value="Omega TMS">Omega TMS</option>
+                        <option value="SAIA LTL Freight">SAIA LTL Freight</option>
                         <option value="DHL Express">DHL Express</option>
                         <option value="Old Dominion LTL">Old Dominion LTL</option>
                         <option value="Direct Integrator Courier">Direct Integrator Courier</option>

@@ -432,6 +432,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
             <button
               type="button"
+              data-tutorial-id="top-nav-product-catalog"
               onClick={() => onSelectTopTab('productCatalog')}
               className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-colors cursor-pointer whitespace-nowrap ${
                 activeTopTab === 'productCatalog'

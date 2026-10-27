@@ -2968,7 +2968,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           </div>
 
           {/* COMMON AREA DOORS LOCATION TREE & DEVICE COMMISSIONING TRACKER */}
-          <div id="pm-common-doors" className="scroll-mt-36 bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div id="pm-common-doors" data-tutorial-id="common-doors-section" className="scroll-mt-36 bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">

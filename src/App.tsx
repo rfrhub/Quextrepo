@@ -890,6 +890,14 @@ export default function App() {
       return;
     }
 
+    if (target.portal === 'productCatalog' || target.operationsMainTab === 'productCatalog') {
+      setLoggedInFieldTech(null);
+      setLoggedInPartnerAcademy(null);
+      setIsMyQuextShellMode(true);
+      setMyQuextTopTab('productCatalog');
+      return;
+    }
+
     // Portal === 'operations'
     setLoggedInFieldTech(null);
     setLoggedInPartnerAcademy(null);
