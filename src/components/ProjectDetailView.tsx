@@ -2696,7 +2696,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           </div>
 
           {/* Shipping Dock (Under BOM Section) + Product Acceptance Portal */}
-          <div data-tutorial-id="shipping-dock-section">
+          <div id="shipping-dock-section" data-tutorial-id="shipping-dock-section" className="scroll-mt-36">
             <ShippingDockSection
               project={project}
               onUpdateProject={onUpdateProject}
@@ -2704,7 +2704,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           </div>
 
           {/* SOW Forecaster Section (Installer Scope Forecast Matched Against BOM Line Items) */}
-          <div data-tutorial-id="sow-and-mitigation-section">
+          <div id="sow-and-mitigation-section" data-tutorial-id="sow-and-mitigation-section" className="scroll-mt-36">
             <SOWForecasterSection
               project={project}
               onUpdateProject={onUpdateProject}

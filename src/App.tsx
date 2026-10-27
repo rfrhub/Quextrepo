@@ -699,13 +699,26 @@ export default function App() {
   };
 
   // Switch to project under Operations
-  const handleGoToOperationsProject = (projectId: string) => {
+  const handleGoToOperationsProject = (projectId: string, sectionTargetId?: string) => {
     setStandaloneKickoffProjectId(null);
     setFocusedProjectId(projectId);
     setMainTab('operations');
     setOperationsSubTab(projectId);
     setMyQuextTopTab('operations');
     window.location.hash = `/operations/${projectId}`;
+
+    if (sectionTargetId) {
+      setTimeout(() => {
+        const cleanId = sectionTargetId.replace(/^#/, '');
+        const target =
+          document.getElementById(cleanId) ||
+          document.querySelector(`[data-tutorial-id="${cleanId}"]`) ||
+          document.querySelector(sectionTargetId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 350);
+    }
   };
 
   // Switch directly to Installation Overview Dashboard under Operations
@@ -933,6 +946,7 @@ export default function App() {
               latestNotification={latestNotification}
               autoPopTriggerKey={autoPopTriggerKey}
               onSelectProject={handleGoToOperationsProject}
+              currentUserName={signedInUser?.name}
             />
           )}
         </div>
@@ -1297,6 +1311,8 @@ export default function App() {
           fieldTech={loggedInFieldTech}
           latestNotification={latestNotification}
           autoPopTriggerKey={autoPopTriggerKey}
+          onSelectProject={handleGoToOperationsProject}
+          currentUserName={loggedInFieldTech || undefined}
         />
         {isPMTutorialOpen && (
           <PMTutorialGuide
@@ -1562,6 +1578,7 @@ export default function App() {
           latestNotification={latestNotification}
           autoPopTriggerKey={autoPopTriggerKey}
           onSelectProject={handleGoToOperationsProject}
+          currentUserName={signedInUser?.name}
         />
       </>
     );
@@ -1688,6 +1705,7 @@ export default function App() {
         latestNotification={latestNotification}
         autoPopTriggerKey={autoPopTriggerKey}
         onSelectProject={handleGoToOperationsProject}
+        currentUserName={signedInUser?.name}
       />
 
       {/* Unified myquext.com Email Identity Router & Portal Switcher Modal */}

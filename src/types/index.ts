@@ -687,6 +687,17 @@ export interface Quote {
   bomItems: BOMItem[];
 }
 
+export type ProjectNotificationSection =
+  | 'all'
+  | 'kickoff'
+  | 'bom'
+  | 'shipping'
+  | 'sow'
+  | 'common_doors'
+  | 'installer_logs'
+  | 'notes'
+  | 'milestones';
+
 export interface ProjectActivityNotification {
   id: string;
   projectId: string;
@@ -695,16 +706,25 @@ export interface ProjectActivityNotification {
   assignedFieldTech: FieldTechName;
   timestamp: string;
   createdAtIso: string;
-  audience: 'pm' | 'field_tech';
+  audience: 'pm' | 'field_tech' | 'all';
   category:
     | 'customer_kickoff_submission'
     | 'customer_walkthrough_update'
     | 'customer_acceptance'
     | 'pm_update'
-    | 'installer_log';
+    | 'installer_log'
+    | 'bom_update'
+    | 'shipping_update'
+    | 'sow_update'
+    | 'common_door_update'
+    | 'note_update'
+    | 'milestone_update';
+  section?: ProjectNotificationSection;
+  sectionTargetId?: string; // HTML element ID for smooth scrolling (e.g. 'pm-bom-table')
   title: string;
   details: string;
   actorName: string;
+  actorRole?: 'pm' | 'field_tech' | 'installer_partner' | 'customer' | 'system';
   badgeLabel: string;
 }
 
