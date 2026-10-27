@@ -109,9 +109,51 @@ export async function syncLiveOpportunitiesFromMyQuext(
   const docs: any[] = data.documents || [];
 
   const quotesMap = new Map(existingQuotes.map((q) => [q.id, { ...q }]));
-  const projectsMap = new Map(existingProjects.map((p) => [p.id, { ...p }]));
+  
+  // CRITICAL SAFEGUARD: Never overwrite, mutate, or alter ANY existing project information!
+  // Index all existing projects by ID, quoteId, quoteNumber, and propertyName to guarantee
+  // that existing projects and their full state (BOM, SOW, milestones, notes, dock items, etc.) are 100% preserved.
+  const existingProjectIds = new Set(existingProjects.map((p) => p.id));
+  const existingQuoteIds = new Set(existingProjects.map((p) => p.quoteId).filter(Boolean));
+  const existingQuoteNumbers = new Set(
+    existingProjects.map((p) => (p.quoteNumber || '').trim().toLowerCase()).filter(Boolean)
+  );
+  const existingPropertyNames = new Set(
+    existingProjects.map((p) => (p.propertyName || '').trim().toLowerCase()).filter(Boolean)
+  );
+  const existingAlphaNames = new Set(
+    existingProjects
+      .map((p) => (p.propertyName || '').toLowerCase().replace(/[^a-z0-9]/g, ''))
+      .filter(Boolean)
+  );
+
+  const hasMatchingExistingProject = (pId: string, qNum?: string, propN?: string): boolean => {
+    if (pId && (existingProjectIds.has(pId) || existingQuoteIds.has(pId))) return true;
+    if (qNum && existingQuoteNumbers.has(qNum.trim().toLowerCase())) return true;
+    if (propN) {
+      const cleanProp = propN.trim().toLowerCase();
+      const cleanAlpha = propN.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cleanProp && existingPropertyNames.has(cleanProp)) return true;
+      if (cleanAlpha && existingAlphaNames.has(cleanAlpha)) return true;
+    }
+    return false;
+  };
+
+  const newProjectsMap = new Map<string, OperationProject>();
   let syncedCount = 0;
   let newWonCount = 0;
+
+  const registerNewWonProject = (newProj: OperationProject) => {
+    newProjectsMap.set(newProj.id, newProj);
+    existingProjectIds.add(newProj.id);
+    if (newProj.quoteId) existingQuoteIds.add(newProj.quoteId);
+    if (newProj.quoteNumber) existingQuoteNumbers.add(newProj.quoteNumber.trim().toLowerCase());
+    if (newProj.propertyName) {
+      existingPropertyNames.add(newProj.propertyName.trim().toLowerCase());
+      existingAlphaNames.add(newProj.propertyName.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    }
+    newWonCount++;
+  };
 
   docs.forEach((doc, idx) => {
     const id = String(doc.name || '').split('/').pop() || '';
@@ -138,10 +180,10 @@ export async function syncLiveOpportunitiesFromMyQuext(
         existingQ.stage = 'Deal Won';
         existingQ.myquextStage = rawStage;
         quotesMap.set(id, existingQ);
-        if (!projectsMap.has(id)) {
+        // SAFEGUARD: Never overwrite an existing project! Only instantiate a new project if none exists.
+        if (!hasMatchingExistingProject(id, existingQ.quoteNumber, existingQ.propertyName)) {
           const newProj = createProjectFromQuote(existingQ);
-          projectsMap.set(id, newProj);
-          newWonCount++;
+          registerNewWonProject(newProj);
         }
       }
       return;
@@ -226,15 +268,23 @@ export async function syncLiveOpportunitiesFromMyQuext(
     };
 
     quotesMap.set(id, newQuote);
-    if (mappedStage === 'Deal Won' && !projectsMap.has(id)) {
-      projectsMap.set(id, createProjectFromQuote(newQuote));
-      newWonCount++;
+    if (mappedStage === 'Deal Won') {
+      // SAFEGUARD: Never overwrite an existing project! Only instantiate a new project if none exists.
+      if (!hasMatchingExistingProject(id, newQuote.quoteNumber, newQuote.propertyName)) {
+        const newProj = createProjectFromQuote(newQuote);
+        registerNewWonProject(newProj);
+      }
     }
   });
 
   return {
     quotes: Array.from(quotesMap.values()),
-    projects: Array.from(projectsMap.values()),
+    // SAFEGUARD: All existing project instances are preserved 100% untouched.
+    // Only newly discovered won projects that don't match any existing project are appended.
+    projects: [
+      ...existingProjects,
+      ...Array.from(newProjectsMap.values()),
+    ],
     syncedCount,
     newWonCount,
   };

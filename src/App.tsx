@@ -243,10 +243,52 @@ export default function App() {
       const res = await syncLiveOpportunitiesFromMyQuext(quotes as any, projects);
       setQuotes(res.quotes);
       saveStoredQuotes(res.quotes);
-      if (res.newWonCount > 0) {
-        setProjects(res.projects);
-        saveStoredProjects(res.projects);
-      }
+
+      // CRITICAL SAFEGUARD: Never overwrite any project information when live sync runs!
+      // All existing projects remain 100% immutable and intact.
+      setProjects((currentProjects) => {
+        const existingProjectIds = new Set(currentProjects.map((p) => p.id));
+        const existingQuoteIds = new Set(currentProjects.map((p) => p.quoteId).filter(Boolean));
+        const existingQuoteNumbers = new Set(
+          currentProjects.map((p) => (p.quoteNumber || '').trim().toLowerCase()).filter(Boolean)
+        );
+        const existingPropNames = new Set(
+          currentProjects.map((p) => (p.propertyName || '').trim().toLowerCase()).filter(Boolean)
+        );
+        const existingAlphaNames = new Set(
+          currentProjects
+            .map((p) => (p.propertyName || '').toLowerCase().replace(/[^a-z0-9]/g, ''))
+            .filter(Boolean)
+        );
+
+        // Filter for truly new projects that don't match any existing project by ID, quoteId, quoteNumber, or propertyName
+        const trulyNewProjects = (res.projects || []).filter((p) => {
+          const pId = p.id;
+          const qId = p.quoteId;
+          const qNum = (p.quoteNumber || '').trim().toLowerCase();
+          const propName = (p.propertyName || '').trim().toLowerCase();
+          const alphaName = (p.propertyName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+          if (existingProjectIds.has(pId)) return false;
+          if (qId && existingQuoteIds.has(qId)) return false;
+          if (qNum && existingQuoteNumbers.has(qNum)) return false;
+          if (propName && existingPropNames.has(propName)) return false;
+          if (alphaName && existingAlphaNames.has(alphaName)) return false;
+
+          return true;
+        });
+
+        if (trulyNewProjects.length === 0) {
+          // Zero modifications to existing projects
+          return currentProjects;
+        }
+
+        // Only append truly new won projects; all existing projects remain untouched
+        const merged = [...currentProjects, ...trulyNewProjects];
+        saveStoredProjects(merged);
+        return merged;
+      });
+
       setLastSyncedInfo(
         `Synced ${res.syncedCount} live myquext.com opportunities (${res.newWonCount} newly won) at ${new Date().toLocaleTimeString()}`
       );
