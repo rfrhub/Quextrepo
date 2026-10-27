@@ -25,7 +25,7 @@ import {
   Maximize2,
   FileText,
   ListChecks,
-  HardDrive,
+  Camera,
   Info,
 } from 'lucide-react';
 
@@ -35,9 +35,9 @@ interface GatewayInstallerGuideProps {
 
 export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ onOpenCourse }) => {
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'slides' | 'continuous' | 'materials'>('slides');
+  const [viewMode, setViewMode] = useState<'steps' | 'continuous' | 'materials'>('steps');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; caption?: string } | null>(null);
 
   // Materials Checklist State for technicians on site
   const [checkedMaterials, setCheckedMaterials] = useState<Record<string, boolean>>({});
@@ -87,11 +87,11 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono tracking-wider uppercase">
                 Official OEM Field Manual
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono">
                 {GATEWAY_GUIDE_METADATA.documentCode}
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 font-mono">
-                12 Slide Manual
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 font-mono">
+                Standard Field SOP
               </span>
             </div>
 
@@ -162,15 +162,15 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
           <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-zinc-800">
             <button
               type="button"
-              onClick={() => setViewMode('slides')}
+              onClick={() => setViewMode('steps')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'slides'
+                viewMode === 'steps'
                   ? 'bg-purple-600 text-white shadow-xs'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Slide-by-Slide Deck</span>
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Step-by-Step SOP</span>
             </button>
 
             <button
@@ -182,8 +182,8 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Full Manual Deck</span>
+              <Layers className="w-3.5 h-3.5" />
+              <span>Full Field Manual (All Steps)</span>
             </button>
 
             <button
@@ -200,16 +200,17 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
             </button>
           </div>
 
-          {/* Quick Step Indicators */}
-          {viewMode === 'slides' && (
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-mono">
-              <span>Slide {activeStepIndex + 1} of {GATEWAY_GUIDE_STEPS.length}</span>
-              <div className="flex items-center gap-1 ml-2">
+          {/* Step Counter in Step Mode */}
+          {viewMode === 'steps' && (
+            <div className="flex items-center gap-2 text-xs text-zinc-400 font-mono">
+              <span>Step {activeStepIndex + 1} of {GATEWAY_GUIDE_STEPS.length}</span>
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   disabled={activeStepIndex === 0}
                   onClick={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}
-                  className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-zinc-200"
+                  className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-zinc-200 transition-colors"
+                  title="Previous Step"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -217,7 +218,8 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                   type="button"
                   disabled={activeStepIndex === GATEWAY_GUIDE_STEPS.length - 1}
                   onClick={() => setActiveStepIndex((prev) => Math.min(GATEWAY_GUIDE_STEPS.length - 1, prev + 1))}
-                  className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-zinc-200"
+                  className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-zinc-200 transition-colors"
+                  title="Next Step"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -227,171 +229,304 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
         </div>
       </div>
 
-      {/* VIEW MODE 1: SLIDE-BY-SLIDE INTERACTIVE DECK */}
-      {viewMode === 'slides' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Visual Slide Preview */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="bg-black border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl relative group">
-              <img
-                src={currentStep.slideImage}
-                alt={currentStep.stepTitle}
-                className="w-full h-auto object-contain max-h-[640px] bg-black cursor-zoom-in"
-                onClick={() => setLightboxImage(currentStep.slideImage)}
-              />
-
-              {/* Lightbox prompt overlay on hover */}
-              <button
-                type="button"
-                onClick={() => setLightboxImage(currentStep.slideImage)}
-                className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/80 hover:bg-black text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold transition-all flex items-center gap-1.5 opacity-0 group-hover:opacity-100 cursor-pointer shadow-lg"
-              >
-                <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
-                <span>Zoom Slide</span>
-              </button>
-
-              {/* Bottom Caption Pill */}
-              <div className="p-3 bg-zinc-950 border-t border-zinc-800/80 flex items-center justify-between text-xs text-zinc-400">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-white">STEP {currentStep.stepNumber}</span>
-                  <span>·</span>
-                  <span className="text-purple-300 font-mono">{currentStep.category}</span>
-                </div>
-                <div className="text-[11px] text-zinc-500 font-mono">
-                  Official Quext Slide
-                </div>
-              </div>
-            </div>
-
-            {/* Thumbnail Strip */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-700">
-              {GATEWAY_GUIDE_STEPS.map((step, idx) => {
-                const isSelected = idx === activeStepIndex;
-                return (
-                  <button
-                    key={step.stepNumber}
-                    type="button"
-                    onClick={() => setActiveStepIndex(idx)}
-                    className={`shrink-0 w-20 rounded-xl overflow-hidden border transition-all text-left cursor-pointer ${
-                      isSelected
-                        ? 'border-purple-500 ring-2 ring-purple-500/30 opacity-100'
-                        : 'border-zinc-800 opacity-60 hover:opacity-100 hover:border-zinc-700'
-                    }`}
-                  >
-                    <img
-                      src={step.slideImage}
-                      alt={step.stepTitle}
-                      className="w-full h-12 object-cover bg-black"
-                    />
-                    <div className="p-1 bg-zinc-900 text-[9px] font-bold text-center truncate text-zinc-300">
-                      Step {step.stepNumber}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+      {/* ============================================================== */}
+      {/* VIEW MODE 1: STEP-BY-STEP SOP GUIDE (NO SLIDES, PHOTOS ON 3/6/7)*/}
+      {/* ============================================================== */}
+      {viewMode === 'steps' && (
+        <div className="space-y-5">
+          {/* Step Selector Pills Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-700">
+            {GATEWAY_GUIDE_STEPS.map((step, idx) => {
+              const isSelected = idx === activeStepIndex;
+              return (
+                <button
+                  key={step.stepNumber}
+                  type="button"
+                  onClick={() => setActiveStepIndex(idx)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 ring-2 ring-purple-400/40'
+                      : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                  }`}
+                >
+                  <span>Step {step.stepNumber}</span>
+                  {step.hasVisualPhoto && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-purple-950 text-purple-300 border border-purple-700/50 text-[9px] font-mono">
+                      <Camera className="w-2.5 h-2.5" />
+                      <span>Photo</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Right Column: Step Explanation & Field Notes */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
-              <div>
-                <div className="text-xs font-mono font-bold text-purple-400 uppercase tracking-widest">
-                  Step {currentStep.stepNumber} · {currentStep.category}
+          {/* Step Body */}
+          {currentStep.hasVisualPhoto && currentStep.photoImage ? (
+            /* Layout for Steps WITH Visual Photo (Step 03, Step 06, Step 07) */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Field Installation Photo Card */}
+              <div className="lg:col-span-6 space-y-3">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl relative group">
+                  {/* Photo Header */}
+                  <div className="p-3.5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                        <Camera className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-bold text-white text-xs">
+                        {currentStep.photoLabel || 'Field Installation Photo Reference'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLightboxImage({
+                          src: currentStep.photoImage!,
+                          caption: currentStep.photoCaption,
+                        })
+                      }
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+                    >
+                      <Maximize2 className="w-3 h-3" />
+                      <span>Zoom Fullscreen</span>
+                    </button>
+                  </div>
+
+                  {/* High-res Photo Container */}
+                  <div
+                    className="bg-black flex items-center justify-center cursor-zoom-in relative p-2"
+                    onClick={() =>
+                      setLightboxImage({
+                        src: currentStep.photoImage!,
+                        caption: currentStep.photoCaption,
+                      })
+                    }
+                  >
+                    <img
+                      src={currentStep.photoImage}
+                      alt={currentStep.photoLabel || currentStep.stepTitle}
+                      className="w-full h-auto object-contain max-h-[540px] rounded-lg transition-transform group-hover:scale-[1.01]"
+                    />
+
+                    {/* Hover pill */}
+                    <div className="absolute bottom-4 right-4 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-xs text-zinc-300 text-[11px] font-bold border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 shadow-lg">
+                      <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Click to Zoom</span>
+                    </div>
+                  </div>
+
+                  {/* Detailed Caption */}
+                  {currentStep.photoCaption && (
+                    <div className="p-3.5 bg-zinc-950/90 border-t border-zinc-800/80 text-[11px] text-zinc-300 leading-relaxed">
+                      <span className="font-bold text-purple-400 mr-1.5">Official SOP Standard:</span>
+                      {currentStep.photoCaption}
+                    </div>
+                  )}
                 </div>
-                <h2 className="text-xl font-bold text-white mt-1">
-                  {currentStep.stepTitle}
-                </h2>
-                <p className="text-xs text-zinc-300 mt-2 leading-relaxed">
-                  {currentStep.summary}
-                </p>
               </div>
 
-              {/* Bullet Points */}
-              <div className="space-y-2.5 pt-2 border-t border-zinc-800">
-                {currentStep.bulletPoints.map((bp, bIdx) => (
-                  <div
-                    key={bp.title}
-                    className="p-3 rounded-xl bg-black/40 border border-zinc-800/80 hover:border-zinc-700 transition-colors"
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-purple-950 text-purple-300 border border-purple-700/60 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
-                        {bIdx + 1}
-                      </span>
+              {/* Right Column: Execution Instructions */}
+              <div className="lg:col-span-6 space-y-4">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xl">
+                  <div>
+                    <div className="text-xs font-mono font-bold text-purple-400 uppercase tracking-widest">
+                      Step {currentStep.stepNumber} · {currentStep.category}
+                    </div>
+                    <h2 className="text-xl font-bold text-white mt-1">
+                      {currentStep.stepTitle}
+                    </h2>
+                    <p className="text-xs text-zinc-300 mt-2 leading-relaxed">
+                      {currentStep.summary}
+                    </p>
+                  </div>
+
+                  {/* Bullet Points */}
+                  <div className="space-y-2.5 pt-2 border-t border-zinc-800">
+                    {currentStep.bulletPoints.map((bp, bIdx) => (
+                      <div
+                        key={bp.title}
+                        className="p-3 rounded-xl bg-black/40 border border-zinc-800/80 hover:border-zinc-700 transition-colors"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span className="w-5 h-5 rounded-full bg-purple-950 text-purple-300 border border-purple-700/60 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            {bIdx + 1}
+                          </span>
+                          <div>
+                            <div className="text-xs font-bold text-white">{bp.title}</div>
+                            <div className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                              {bp.description}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Warning Alert if present */}
+                  {currentStep.warningAlert && (
+                    <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-600/40 text-amber-200 text-xs flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                       <div>
-                        <div className="text-xs font-bold text-white">{bp.title}</div>
-                        <div className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
-                          {bp.description}
+                        <div className="font-bold text-amber-300">Critical Field Rule</div>
+                        <div className="text-[11px] text-amber-200/90 mt-0.5 leading-relaxed">
+                          {currentStep.warningAlert}
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  )}
 
-              {/* Warning Alert if present */}
-              {currentStep.warningAlert && (
-                <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-600/40 text-amber-200 text-xs flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-bold text-amber-300">Critical Field Rule</div>
-                    <div className="text-[11px] text-amber-200/90 mt-0.5 leading-relaxed">
-                      {currentStep.warningAlert}
+                  {/* Pro Tips */}
+                  {currentStep.proTips && currentStep.proTips.length > 0 && (
+                    <div className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-700/40 text-purple-200 text-xs space-y-1.5">
+                      <div className="font-bold text-purple-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Quext Engineering Pro Tips</span>
+                      </div>
+                      <ul className="space-y-1 text-[11px] text-purple-200/90 list-disc list-inside">
+                        {currentStep.proTips.map((tip, idx) => (
+                          <li key={idx} className="leading-relaxed">{tip}</li>
+                        ))}
+                      </ul>
                     </div>
+                  )}
+
+                  {/* Step Navigation Buttons */}
+                  <div className="pt-2 flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      disabled={activeStepIndex === 0}
+                      onClick={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}
+                      className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Previous Step</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={activeStepIndex === GATEWAY_GUIDE_STEPS.length - 1}
+                      onClick={() => setActiveStepIndex((prev) => Math.min(GATEWAY_GUIDE_STEPS.length - 1, prev + 1))}
+                      className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-colors flex items-center gap-1 shadow-md shadow-purple-600/30 cursor-pointer"
+                    >
+                      <span>Next Step</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              )}
-
-              {/* Pro Tips */}
-              {currentStep.proTips && currentStep.proTips.length > 0 && (
-                <div className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-700/40 text-purple-200 text-xs space-y-1.5">
-                  <div className="font-bold text-purple-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Quext Engineering Pro Tips</span>
-                  </div>
-                  <ul className="space-y-1 text-[11px] text-purple-200/90 list-disc list-inside">
-                    {currentStep.proTips.map((tip, idx) => (
-                      <li key={idx} className="leading-relaxed">{tip}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Step Navigation Buttons */}
-              <div className="pt-2 flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  disabled={activeStepIndex === 0}
-                  onClick={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}
-                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Previous Step</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={activeStepIndex === GATEWAY_GUIDE_STEPS.length - 1}
-                  onClick={() => setActiveStepIndex((prev) => Math.min(GATEWAY_GUIDE_STEPS.length - 1, prev + 1))}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-colors flex items-center gap-1 shadow-md shadow-purple-600/30 cursor-pointer"
-                >
-                  <span>Next Step</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Full-Width Layout for Steps WITHOUT Photo (No slide images!) */
+            <div className="max-w-4xl mx-auto space-y-4">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 space-y-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-4">
+                  <div>
+                    <div className="text-xs font-mono font-bold text-purple-400 uppercase tracking-widest">
+                      Step {currentStep.stepNumber} · {currentStep.category}
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white mt-1">
+                      {currentStep.stepTitle}
+                    </h2>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-zinc-800 text-zinc-300 border border-zinc-700 w-fit">
+                    Standard Procedure
+                  </span>
+                </div>
+
+                <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
+                  {currentStep.summary}
+                </p>
+
+                {/* Numbered Execution Points in 2-Column Responsive Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                  {currentStep.bulletPoints.map((bp, bIdx) => (
+                    <div
+                      key={bp.title}
+                      className="p-3.5 rounded-xl bg-black/40 border border-zinc-800/80 hover:border-zinc-700 transition-colors"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-full bg-purple-950 text-purple-300 border border-purple-700/60 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                          {bIdx + 1}
+                        </span>
+                        <div>
+                          <div className="text-xs sm:text-sm font-bold text-white">{bp.title}</div>
+                          <div className="text-[11px] sm:text-xs text-zinc-400 mt-1 leading-relaxed">
+                            {bp.description}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Warning Alert if present */}
+                {currentStep.warningAlert && (
+                  <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-600/40 text-amber-200 text-xs sm:text-sm flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-amber-300">Critical Field Rule</div>
+                      <div className="text-xs text-amber-200/90 mt-1 leading-relaxed">
+                        {currentStep.warningAlert}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pro Tips */}
+                {currentStep.proTips && currentStep.proTips.length > 0 && (
+                  <div className="p-4 rounded-xl bg-purple-950/30 border border-purple-700/40 text-purple-200 text-xs space-y-2">
+                    <div className="font-bold text-purple-300 flex items-center gap-2 text-xs sm:text-sm">
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <span>Quext Engineering Field Pro Tips</span>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-purple-200/90 list-disc list-inside">
+                      {currentStep.proTips.map((tip, idx) => (
+                        <li key={idx} className="leading-relaxed">{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Step Navigation Buttons */}
+                <div className="pt-4 border-t border-zinc-800 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    disabled={activeStepIndex === 0}
+                    onClick={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}
+                    className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous Step</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={activeStepIndex === GATEWAY_GUIDE_STEPS.length - 1}
+                    onClick={() => setActiveStepIndex((prev) => Math.min(GATEWAY_GUIDE_STEPS.length - 1, prev + 1))}
+                    className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer"
+                  >
+                    <span>Next Step</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* VIEW MODE 2: CONTINUOUS FULL MANUAL DECK */}
+      {/* ============================================================== */}
+      {/* VIEW MODE 2: CONTINUOUS FULL MANUAL (PHOTOS ONLY ON 3, 6, 7)    */}
+      {/* ============================================================== */}
       {viewMode === 'continuous' && (
         <div className="space-y-8">
-          {GATEWAY_GUIDE_STEPS.map((step, idx) => (
+          {GATEWAY_GUIDE_STEPS.map((step) => (
             <div
               key={step.stepNumber}
               className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5"
             >
+              {/* Step Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
                 <div className="flex items-center gap-3">
                   <span className="w-8 h-8 rounded-xl bg-purple-600 text-white font-extrabold text-sm flex items-center justify-center">
@@ -402,31 +537,96 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                     <span className="text-xs font-mono text-purple-400">{step.category}</span>
                   </div>
                 </div>
-                <div className="text-xs text-zinc-500 font-mono">
-                  Slide {idx + 1} of {GATEWAY_GUIDE_STEPS.length}
-                </div>
+                {step.hasVisualPhoto && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-950 text-purple-300 border border-purple-800/60 font-mono">
+                    <Camera className="w-3 h-3" />
+                    <span>Includes Visual Hardware Photo</span>
+                  </span>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                <div className="md:col-span-5 bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-md">
-                  <img
-                    src={step.slideImage}
-                    alt={step.stepTitle}
-                    className="w-full h-auto object-contain max-h-[380px] bg-black cursor-zoom-in hover:opacity-95 transition-opacity"
-                    onClick={() => setLightboxImage(step.slideImage)}
-                  />
-                </div>
+              {/* Step Content: Conditional layout depending on whether it has a photo */}
+              {step.hasVisualPhoto && step.photoImage ? (
+                /* Steps WITH Photo (03, 06, 07) */
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                  <div className="md:col-span-5 bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-md group">
+                    <div
+                      className="cursor-zoom-in relative p-2"
+                      onClick={() =>
+                        setLightboxImage({
+                          src: step.photoImage!,
+                          caption: step.photoCaption,
+                        })
+                      }
+                    >
+                      <img
+                        src={step.photoImage}
+                        alt={step.photoLabel || step.stepTitle}
+                        className="w-full h-auto object-contain max-h-[380px] bg-black rounded-lg transition-transform group-hover:scale-[1.01]"
+                      />
+                      <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/80 text-zinc-300 text-[10px] font-bold border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <Maximize2 className="w-3 h-3 text-purple-400" />
+                        <span>Zoom</span>
+                      </div>
+                    </div>
+                    {step.photoCaption && (
+                      <div className="p-3 bg-zinc-950 border-t border-zinc-800 text-[11px] text-zinc-400">
+                        {step.photoCaption}
+                      </div>
+                    )}
+                  </div>
 
-                <div className="md:col-span-7 space-y-3">
+                  <div className="md:col-span-7 space-y-3">
+                    <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
+                      {step.summary}
+                    </p>
+
+                    <div className="space-y-2">
+                      {step.bulletPoints.map((bp, bIdx) => (
+                        <div
+                          key={bp.title}
+                          className="p-2.5 rounded-lg bg-black/40 border border-zinc-800 text-xs"
+                        >
+                          <span className="font-bold text-white mr-1.5">{bIdx + 1}. {bp.title}:</span>
+                          <span className="text-zinc-400">{bp.description}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {step.warningAlert && (
+                      <div className="p-3 rounded-lg bg-amber-950/40 border border-amber-600/40 text-amber-200 text-xs flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <span>{step.warningAlert}</span>
+                      </div>
+                    )}
+
+                    {step.proTips && step.proTips.length > 0 && (
+                      <div className="p-3 rounded-lg bg-purple-950/30 border border-purple-700/40 text-purple-200 text-xs space-y-1">
+                        <div className="font-bold text-purple-300 flex items-center gap-1.5">
+                          <Sparkles className="w-3 h-3 text-purple-400" />
+                          <span>Engineering Tips</span>
+                        </div>
+                        <ul className="text-[11px] text-purple-200/90 list-disc list-inside">
+                          {step.proTips.map((tip, idx) => (
+                            <li key={idx}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Steps WITHOUT Photo (01, 02, 04, 05, 08, 09, 10) - Full Width */
+                <div className="space-y-3">
                   <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
                     {step.summary}
                   </p>
 
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                     {step.bulletPoints.map((bp, bIdx) => (
                       <div
                         key={bp.title}
-                        className="p-2.5 rounded-lg bg-black/40 border border-zinc-800 text-xs"
+                        className="p-3 rounded-xl bg-black/40 border border-zinc-800 text-xs"
                       >
                         <span className="font-bold text-white mr-1.5">{bIdx + 1}. {bp.title}:</span>
                         <span className="text-zinc-400">{bp.description}</span>
@@ -440,14 +640,30 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                       <span>{step.warningAlert}</span>
                     </div>
                   )}
+
+                  {step.proTips && step.proTips.length > 0 && (
+                    <div className="p-3 rounded-lg bg-purple-950/30 border border-purple-700/40 text-purple-200 text-xs space-y-1">
+                      <div className="font-bold text-purple-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-purple-400" />
+                        <span>Engineering Tips</span>
+                      </div>
+                      <ul className="text-[11px] text-purple-200/90 list-disc list-inside">
+                        {step.proTips.map((tip, idx) => (
+                          <li key={idx}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* VIEW MODE 3: MATERIALS & TOOLS CHECKLIST + T568B PINOUT */}
+      {/* ============================================================== */}
+      {/* VIEW MODE 3: MATERIALS & TOOLS CHECKLIST + T568B PINOUT        */}
+      {/* ============================================================== */}
       {viewMode === 'materials' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Bill of Materials Checklist */}
@@ -585,13 +801,18 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setLightboxImage(null)}
         >
-          <div className="max-w-4xl max-h-[90vh] relative">
+          <div className="max-w-4xl max-h-[90vh] relative space-y-2">
             <img
-              src={lightboxImage}
-              alt="Gateway Slide Enclosure"
-              className="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-2xl border border-zinc-700"
+              src={lightboxImage.src}
+              alt="Installation Hardware Photo"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl border border-zinc-700 bg-black"
             />
-            <div className="text-center text-xs text-zinc-400 mt-2 font-mono">
+            {lightboxImage.caption && (
+              <div className="p-3 bg-zinc-950/90 rounded-xl border border-zinc-800 text-xs text-zinc-300 text-center max-w-2xl mx-auto">
+                {lightboxImage.caption}
+              </div>
+            )}
+            <div className="text-center text-xs text-zinc-400 font-mono">
               Click anywhere to close full-size view
             </div>
           </div>

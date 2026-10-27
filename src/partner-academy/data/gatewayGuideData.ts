@@ -2,7 +2,11 @@ export interface GatewayGuideStep {
   stepNumber: string;
   stepTitle: string;
   category: 'Overview' | 'Preparation' | 'Mounting' | 'Wiring' | 'PoE & Data' | 'Verification';
-  slideImage: string;
+  hasVisualPhoto?: boolean;
+  photoImage?: string;
+  photoLabel?: string;
+  photoCaption?: string;
+  slideImage?: string;
   summary: string;
   bulletPoints: {
     title: string;
@@ -116,6 +120,10 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '03',
     stepTitle: '02 • Plan the mounting location: Inside vs. Outside Parapet',
     category: 'Mounting',
+    hasVisualPhoto: true,
+    photoImage: '/src/partner-academy/assets/images/gateway-guide/slide_05.png',
+    photoLabel: 'Field Reference: Inside vs. Outside Parapet Mounting',
+    photoCaption: 'Official installation photos demonstrating Inside Roof Wall Mount (left) and Outside Roof Mount (right) with EMT conduit mast extending antenna above roofline.',
     slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_05.png',
     summary: 'Identify the ideal mounting geometry: Inside Roof Wall Mount vs. Outside Roof Mount for optimal LoRa RF coverage.',
     bulletPoints: [
@@ -221,6 +229,10 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '06',
     stepTitle: '05 • Reference: Gateway Bracket Mounting',
     category: 'Mounting',
+    hasVisualPhoto: true,
+    photoImage: '/src/partner-academy/assets/images/gateway-guide/slide_08.png',
+    photoLabel: 'Field Reference: Gateway Chassis Bracket Mounting to Unistrut',
+    photoCaption: 'Official installation photo showing the powder-coated bracket secured to the lower Unistrut channel with spring nuts and vertical heatsink orientation.',
     slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_08.png',
     summary: 'Mounting the heavy-duty TEKTELIC chassis bracket to the lower Unistrut channel for easy servicing and cooling.',
     bulletPoints: [
@@ -252,6 +264,10 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '07',
     stepTitle: '06 • Gateway Wiring: Waterproof PoE & Antenna Connection',
     category: 'Wiring',
+    hasVisualPhoto: true,
+    photoImage: '/src/partner-academy/assets/images/gateway-guide/slide_09.png',
+    photoLabel: 'Field Reference: Waterproof PoE Cable Gland & Antenna Drip Loop',
+    photoCaption: 'Official installation photo showing bottom view of gateway chassis with IP67 sealed compression gland for PoE and heavy-gauge N-type RF antenna coax with drip loop.',
     slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_09.png',
     summary: 'Assembling the IP67 water-tight connector gland, terminating T568B RJ45, and dressing the N-type RF antenna coaxial cable.',
     bulletPoints: [
