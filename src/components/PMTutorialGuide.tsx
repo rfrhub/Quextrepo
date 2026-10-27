@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   GraduationCap,
   ChevronRight,
@@ -91,7 +91,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     }
   }, [isOpen]);
 
-  const COMPACT_STEPS: CompactTutorialStep[] = [
+  const COMPACT_STEPS: CompactTutorialStep[] = useMemo(() => [
     {
       id: 'step-1-top-ops',
       number: 1,
@@ -402,7 +402,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
         'Congratulations! You\'ve completed the PM Onboarding Tutorial across all 7 project milestones. Re-launch this training anytime in Manual or Auto Learn mode by clicking your profile avatar here.',
       tryItOutPrompt: 'Click Finish to complete your onboarding tutorial!',
     },
-  ];
+  ], [primaryProject.id]);
 
   const safeStepIndex = Math.max(0, Math.min(currentStepIndex, COMPACT_STEPS.length - 1));
   const activeStep = COMPACT_STEPS[safeStepIndex];
@@ -424,6 +424,26 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
   const [isFading, setIsFading] = useState<boolean>(false);
   const isAdvancingRef = useRef<boolean>(false);
+
+  const prevTargetRectRef = useRef<ElementRect | null>(null);
+  const prevPopoverPosRef = useRef<{
+    top: number;
+    left: number;
+    arrowPlacement: 'top' | 'bottom' | 'left' | 'right';
+    arrowOffset: number;
+  }>({
+    top: 100,
+    left: 20,
+    arrowPlacement: 'bottom',
+    arrowOffset: 50,
+  });
+
+  const safeStepIndexRef = useRef(safeStepIndex);
+  safeStepIndexRef.current = safeStepIndex;
+
+  const goToStepRef = useRef<(idx: number) => void>(() => {});
+  const onCloseRef = useRef<() => void>(() => {});
+  onCloseRef.current = onClose;
 
   // Helper to safely find the element or a reliable fallback so the spotlight never disappears
   const resolveTargetElement = useCallback((selector: string): HTMLElement | null => {
@@ -480,26 +500,46 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     const maxLeft = Math.max(minLeft, window.innerWidth - popoverWidth - 16);
 
     if (!el) {
-      setTargetRect(null);
-      // Safe fallback: anchored in visible bottom-right corner, 100% inside viewport
-      setPopoverPos({
-        top: maxTop,
-        left: maxLeft,
-        arrowPlacement: 'bottom',
-        arrowOffset: 50,
-      });
+      if (prevTargetRectRef.current !== null) {
+        prevTargetRectRef.current = null;
+        setTargetRect(null);
+      }
+      if (
+        prevPopoverPosRef.current.top !== maxTop ||
+        prevPopoverPosRef.current.left !== maxLeft ||
+        prevPopoverPosRef.current.arrowPlacement !== 'bottom'
+      ) {
+        const nextPos = {
+          top: maxTop,
+          left: maxLeft,
+          arrowPlacement: 'bottom' as const,
+          arrowOffset: 50,
+        };
+        prevPopoverPosRef.current = nextPos;
+        setPopoverPos(nextPos);
+      }
       return;
     }
 
     const rect = el.getBoundingClientRect();
-    setTargetRect({
-      top: rect.top,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
-      bottom: rect.bottom,
-      right: rect.right,
-    });
+    if (
+      !prevTargetRectRef.current ||
+      Math.abs(prevTargetRectRef.current.top - rect.top) > 1 ||
+      Math.abs(prevTargetRectRef.current.left - rect.left) > 1 ||
+      Math.abs(prevTargetRectRef.current.width - rect.width) > 1 ||
+      Math.abs(prevTargetRectRef.current.height - rect.height) > 1
+    ) {
+      const nextRect: ElementRect = {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        bottom: rect.bottom,
+        right: rect.right,
+      };
+      prevTargetRectRef.current = nextRect;
+      setTargetRect(nextRect);
+    }
 
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
@@ -563,13 +603,23 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     // STRICT GUARANTEE: clamped inside viewport fold
     const clampTop = Math.max(minTop, Math.min(maxTop, top));
     const clampLeft = Math.max(minLeft, Math.min(maxLeft, left));
+    const finalArrowOffset = Math.max(24, Math.min(popoverWidth - 24, arrowOffset));
 
-    setPopoverPos({
-      top: clampTop,
-      left: clampLeft,
-      arrowPlacement: placement,
-      arrowOffset: Math.max(24, Math.min(popoverWidth - 24, arrowOffset)),
-    });
+    if (
+      Math.abs(prevPopoverPosRef.current.top - clampTop) > 1 ||
+      Math.abs(prevPopoverPosRef.current.left - clampLeft) > 1 ||
+      prevPopoverPosRef.current.arrowPlacement !== placement ||
+      Math.abs(prevPopoverPosRef.current.arrowOffset - finalArrowOffset) > 1
+    ) {
+      const nextPos = {
+        top: clampTop,
+        left: clampLeft,
+        arrowPlacement: placement,
+        arrowOffset: finalArrowOffset,
+      };
+      prevPopoverPosRef.current = nextPos;
+      setPopoverPos(nextPos);
+    }
   }, [isOpen, isMinimized, showModeModal, activeStep, resolveTargetElement]);
 
   // Step transition with view navigation & smooth fade
@@ -577,6 +627,10 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     (index: number) => {
       if (isAdvancingRef.current) return;
       isAdvancingRef.current = true;
+      // Auto-release lock after max 800ms
+      setTimeout(() => {
+        isAdvancingRef.current = false;
+      }, 800);
 
       const targetIndex = Math.max(0, Math.min(index, COMPACT_STEPS.length - 1));
       const targetStep = COMPACT_STEPS[targetIndex];
@@ -612,6 +666,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     },
     [COMPACT_STEPS, onNavigateToView, onStepChange, updatePosition]
   );
+  goToStepRef.current = goToStep;
 
   const handleNext = useCallback(() => {
     if (safeStepIndex < COMPACT_STEPS.length - 1) {
@@ -637,26 +692,28 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
 
   // Auto Learn: 7 seconds per step automated progression
   useEffect(() => {
-    if (!isOpen || showModeModal || isMinimized || tutorialMode !== 'auto' || isAutoPaused || isFading) {
+    if (!isOpen || showModeModal || isMinimized || tutorialMode !== 'auto' || isAutoPaused) {
       return;
     }
 
     const timer = setInterval(() => {
       setAutoLearnSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          if (safeStepIndex < COMPACT_STEPS.length - 1) {
-            goToStep(safeStepIndex + 1);
+        const nextVal = prev - 1;
+        if (nextVal <= 0) {
+          const currentIndex = safeStepIndexRef.current;
+          if (currentIndex < COMPACT_STEPS.length - 1) {
+            goToStepRef.current(currentIndex + 1);
           } else {
-            onClose();
+            onCloseRef.current();
           }
           return 7;
         }
-        return prev - 1;
+        return nextVal;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, showModeModal, isMinimized, tutorialMode, isAutoPaused, isFading, safeStepIndex, COMPACT_STEPS.length, goToStep, onClose]);
+  }, [isOpen, showModeModal, isMinimized, tutorialMode, isAutoPaused, COMPACT_STEPS.length]);
 
   // When step changes, reset auto-learn timer to 7
   useEffect(() => {
@@ -747,10 +804,14 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
 
     let animFrame: number;
     let isRunning = true;
+    let frameCount = 0;
     const syncLoop = () => {
       if (!isRunning) return;
       updatePosition();
-      animFrame = requestAnimationFrame(syncLoop);
+      frameCount++;
+      if (frameCount < 45) {
+        animFrame = requestAnimationFrame(syncLoop);
+      }
     };
     animFrame = requestAnimationFrame(syncLoop);
 
