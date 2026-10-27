@@ -613,15 +613,43 @@ export interface ShippingDockItem {
   lastNotifiedCustomerAt?: string;
   customerAccepted?: boolean;
   customerScenarioNotes?: string;
+  damagedBoxesCount?: number;
+  damagedBoxPhotos?: DamagedBoxPhoto[];
+}
+
+export interface DamagedBoxPhoto {
+  id: string;
+  url: string; // Base64 image data URL
+  caption: string;
+  boxLabelOrItem?: string;
+  uploadedAt: string;
+}
+
+export interface PalletInspectionRecord {
+  palletIdOrNumber: string;
+  carrierOrBatch: string;
+  palletCondition: 'intact' | 'wrap_torn' | 'crushed_boxes' | 'broken_pallet' | 'water_damage';
+  sealIntact: boolean;
+  boxCountMatches: boolean;
+  notes?: string;
 }
 
 export interface ProductAcceptanceSubmission {
   signedByName: string;
   signedByTitle: string;
   signedByEmail: string;
+  signedByPhone?: string;
   signatureText: string;
+  signatureDrawDataUrl?: string; // Touch/mouse canvas signature data URL
   signedAt: string;
   overallDeliveryNotes?: string;
+  stagingLocation?: string;
+  palletsInspectedCount?: number;
+  totalPalletsExpected?: number;
+  palletConditionSummary?: 'all_good' | 'minor_wear' | 'damaged_reported';
+  palletInspections?: PalletInspectionRecord[];
+  damagedBoxesCount?: number;
+  damagedBoxPhotos?: DamagedBoxPhoto[];
 }
 
 export interface KickoffCustomerIntake {

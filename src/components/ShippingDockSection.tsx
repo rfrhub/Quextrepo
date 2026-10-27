@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   OperationProject,
   ShippingDockItem,
@@ -6,6 +6,8 @@ import {
   ShipmentDockStatus,
   CustomerCommsLog,
   BOMItem,
+  DamagedBoxPhoto,
+  ProductAcceptanceSubmission,
   getProjectIntegratorPartners,
   buildProductAcceptancePortalUrl,
   getLockFinishSummaryTag,
@@ -25,9 +27,24 @@ import {
   ChevronUp,
   ChevronDown,
   Eye,
+  Camera,
+  Upload,
+  QrCode,
+  Smartphone,
+  Boxes,
+  ShieldCheck,
+  AlertTriangle,
+  ZoomIn,
+  Copy,
+  Printer,
+  RotateCcw,
+  Image as ImageIcon,
+  MapPin,
+  Phone,
 } from 'lucide-react';
 import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
 import { ConfirmProductAcceptanceModal } from './ConfirmProductAcceptanceModal';
+import { ProductAcceptanceQRCode } from './ProductAcceptanceQRCode';
 
 interface ShippingDockSectionProps {
   project: OperationProject;
@@ -75,6 +92,7 @@ export const ProductAcceptancePortalModal: React.FC<{
   const dockItems: ShippingDockItem[] = project.shippingDockItems || [];
   const bomItems = project.bomItems || [];
   const existingSub = project.productAcceptanceSubmission;
+  const portalLink = buildProductAcceptancePortalUrl(project.id);
 
   const [localItems, setLocalItems] = useState<ShippingDockItem[]>(dockItems);
   const [signedByName, setSignedByName] = useState<string>(
@@ -94,13 +112,178 @@ export const ProductAcceptancePortalModal: React.FC<{
       project.customerIntake?.communityEmail ||
       'leasing@property.com'
   );
+  const [signedByPhone, setSignedByPhone] = useState<string>(
+    existingSub?.signedByPhone ||
+      project.customerIntake?.sitePhoneNumber ||
+      '(555) 382-9102'
+  );
   const [signatureText, setSignatureText] = useState<string>(
     existingSub?.signatureText || ''
+  );
+  const [signatureMode, setSignatureMode] = useState<'draw' | 'type'>(
+    existingSub?.signatureDrawDataUrl ? 'draw' : 'draw'
+  );
+  const [signatureDrawDataUrl, setSignatureDrawDataUrl] = useState<string>(
+    existingSub?.signatureDrawDataUrl || ''
   );
   const [overallNotes, setOverallNotes] = useState<string>(
     existingSub?.overallDeliveryNotes || ''
   );
   const [isSubmitted, setIsSubmitted] = useState<boolean>(Boolean(existingSub));
+
+  // Pallet Inspection State
+  const [palletsInspectedCount, setPalletsInspectedCount] = useState<number>(
+    existingSub?.palletsInspectedCount || Math.max(1, dockItems.length)
+  );
+  const [palletConditionSummary, setPalletConditionSummary] = useState<
+    'all_good' | 'minor_wear' | 'damaged_reported'
+  >(existingSub?.palletConditionSummary || 'all_good');
+  const [isSealIntact, setIsSealIntact] = useState<boolean>(true);
+  const [stagingLocation, setStagingLocation] = useState<string>(
+    existingSub?.stagingLocation || 'Clubhouse Secure Storage Room B'
+  );
+
+  // Damaged Boxes State & Photo Uploads
+  const [damagedBoxesCount, setDamagedBoxesCount] = useState<number>(
+    existingSub?.damagedBoxesCount || (existingSub?.damagedBoxPhotos?.length || 0)
+  );
+  const [damagedBoxPhotos, setDamagedBoxPhotos] = useState<DamagedBoxPhoto[]>(
+    existingSub?.damagedBoxPhotos || []
+  );
+  const [activePhotoPreview, setActivePhotoPreview] = useState<DamagedBoxPhoto | null>(null);
+
+  // Mobile QR Code Popover
+  const [showMobileQrModal, setShowMobileQrModal] = useState<boolean>(false);
+
+  // Canvas drawing ref and handlers
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState<boolean>(false);
+
+  // Sync canvas with existing drawn signature
+  useEffect(() => {
+    if (signatureMode === 'draw' && canvasRef.current && signatureDrawDataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+          }
+        }
+      };
+      img.src = signatureDrawDataUrl;
+    }
+  }, [signatureMode, signatureDrawDataUrl]);
+
+  const getCanvasCoordinates = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ('touches' in e && e.touches[0]) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      };
+    }
+    const mouseEvent = e as React.MouseEvent<HTMLCanvasElement>;
+    return {
+      x: (mouseEvent.clientX - rect.left) * scaleX,
+      y: (mouseEvent.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const handleStartDraw = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const coords = getCanvasCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+  };
+
+  const handleDrawMove = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const coords = getCanvasCoordinates(e);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#047857';
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+  };
+
+  const handleEndDraw = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setSignatureDrawDataUrl(canvas.toDataURL());
+    }
+  };
+
+  const handleClearSignature = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    setSignatureDrawDataUrl('');
+  };
+
+  // Photo Upload Handler for Damaged Boxes
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (uploadEvt) => {
+        const dataUrl = uploadEvt.target?.result as string;
+        if (dataUrl) {
+          const newPhoto: DamagedBoxPhoto = {
+            id: `dmg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            url: dataUrl,
+            caption: `Damaged carton identified on dock (${file.name})`,
+            boxLabelOrItem: localItems[0]?.shipmentBatchLabel || 'Pallet Shipment Batch',
+            uploadedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setDamagedBoxPhotos((prev) => [...prev, newPhoto]);
+          setDamagedBoxesCount((prev) => Math.max(prev + 1, 1));
+          setPalletConditionSummary('damaged_reported');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleRemovePhoto = (photoId: string) => {
+    setDamagedBoxPhotos((prev) => {
+      const updated = prev.filter((p) => p.id !== photoId);
+      setDamagedBoxesCount(updated.length);
+      if (updated.length === 0 && palletConditionSummary === 'damaged_reported') {
+        setPalletConditionSummary('all_good');
+      }
+      return updated;
+    });
+  };
 
   const handleToggleItemAccepted = (id: string) => {
     setLocalItems((prev) =>
@@ -124,21 +307,34 @@ export const ProductAcceptancePortalModal: React.FC<{
 
   const handleSignAndSubmitAcceptance = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signatureText.trim() || !signedByName.trim()) return;
+    if (!signedByName.trim()) return;
+    if (signatureMode === 'type' && !signatureText.trim()) return;
+
+    const effectiveSigText = signatureText.trim() || signedByName.trim();
 
     const finalizedItems: ShippingDockItem[] = localItems.map((item) => ({
       ...item,
       customerAccepted: true,
       status: 'Accepted by Customer',
+      damagedBoxesCount: damagedBoxesCount > 0 ? damagedBoxesCount : 0,
+      damagedBoxPhotos: damagedBoxPhotos,
     }));
 
-    const submission = {
+    const submission: ProductAcceptanceSubmission = {
       signedByName: signedByName.trim(),
       signedByTitle: signedByTitle.trim(),
       signedByEmail: signedByEmail.trim(),
-      signatureText: signatureText.trim(),
+      signedByPhone: signedByPhone.trim(),
+      signatureText: effectiveSigText,
+      signatureDrawDataUrl: signatureDrawDataUrl || undefined,
       signedAt: new Date().toLocaleString(),
       overallDeliveryNotes: overallNotes.trim(),
+      stagingLocation: stagingLocation.trim(),
+      palletsInspectedCount,
+      totalPalletsExpected: Math.max(palletsInspectedCount, dockItems.length),
+      palletConditionSummary,
+      damagedBoxesCount,
+      damagedBoxPhotos,
     };
 
     const newLog: CustomerCommsLog = {
@@ -152,8 +348,8 @@ export const ProductAcceptancePortalModal: React.FC<{
       }),
       type: 'product_acceptance_request',
       recipientEmail: signedByEmail.trim(),
-      subject: `Product Acceptance Signed: ${project.propertyName}`,
-      summary: `Customer (${signedByName.trim()}) confirmed receipt and signed the Product Acceptance Portal for ${finalizedItems.length} shipment line items.`,
+      subject: `Product Acceptance Confirmed: ${project.propertyName}`,
+      summary: `On-site staff (${signedByName.trim()} · ${signedByTitle.trim()}) inspected ${palletsInspectedCount} pallets (${palletConditionSummary}) and submitted digital signature. Damaged boxes: ${damagedBoxesCount} (${damagedBoxPhotos.length} photo(s) recorded). Staging: ${stagingLocation || 'On-site'}.`,
       sentBy: signedByName.trim(),
       status: 'Delivered',
     };
@@ -171,7 +367,7 @@ export const ProductAcceptancePortalModal: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden text-slate-800">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden text-slate-800 font-['Inter']">
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-emerald-950 text-white p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -182,29 +378,56 @@ export const ProductAcceptancePortalModal: React.FC<{
             <span className="text-slate-400 text-xs">·</span>
             <span className="text-xs text-slate-300 font-mono">Quote #{project.quoteNumber}</span>
           </div>
-          {onClose && (
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
-              className="text-slate-300 hover:text-white text-xs px-2.5 py-1 rounded border border-white/20 flex items-center gap-1 cursor-pointer"
+              onClick={() => setShowMobileQrModal(!showMobileQrModal)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer"
+              title="Open mobile link & QR code for on-site staff"
             >
-              <X className="w-3.5 h-3.5" />
-              <span>Close Portal</span>
+              <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Mobile QR Code</span>
             </button>
-          )}
+
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-slate-300 hover:text-white text-xs px-2.5 py-1 rounded border border-white/20 flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Close Portal</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <h2 className="text-2xl sm:text-3xl font-extrabold font-['Plus_Jakarta_Sans'] tracking-tight">
           Hardware Delivery &amp; Product Acceptance Sign-Off
         </h2>
         <p className="text-slate-200 text-xs sm:text-sm mt-1.5 max-w-3xl leading-relaxed">
-          Please review the hardware shipments communicated for <strong>{project.propertyName}</strong>. Confirm receipt of each BOM line item, add notes to explain any delivery scenarios (e.g., partial boxes, staging room location, or damaged packaging) on each line item, and sign below.
+          Dedicated portal for on-site property staff for <strong>{project.propertyName}</strong>. Inspect received pallets, upload photos of any damaged boxes directly from your smartphone, confirm hardware counts, and provide your digital signature below.
         </p>
+
+        {/* Collapsible Mobile Link & QR Code Drawer in Header */}
+        {showMobileQrModal && (
+          <div className="mt-4 pt-4 border-t border-white/15 animate-fadeIn">
+            <ProductAcceptanceQRCode
+              url={portalLink}
+              propertyName={project.propertyName}
+              quoteNumber={project.quoteNumber}
+              size={120}
+              compact
+            />
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSignAndSubmitAcceptance} className="p-6 sm:p-8 space-y-6 text-xs">
+        {/* Status Alert if Already Submitted */}
         {isSubmitted && project.productAcceptanceSubmission && (
-          <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-emerald-950 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
@@ -213,25 +436,310 @@ export const ProductAcceptancePortalModal: React.FC<{
                 </div>
                 <p className="text-xs text-emerald-800 mt-0.5">
                   Signed by <strong>{project.productAcceptanceSubmission.signedByName}</strong> ({project.productAcceptanceSubmission.signedByTitle}) on{' '}
-                  <span className="font-mono">{project.productAcceptanceSubmission.signedAt}</span>. You can update line-item scenario notes below at any time.
+                  <span className="font-mono">{project.productAcceptanceSubmission.signedAt}</span>.
                 </p>
+                <div className="flex flex-wrap items-center gap-2 mt-2 text-[11px]">
+                  <span className="px-2 py-0.5 bg-white border border-emerald-300 rounded font-bold text-emerald-800">
+                    Pallets: {project.productAcceptanceSubmission.palletsInspectedCount || 1} Inspected
+                  </span>
+                  <span className="px-2 py-0.5 bg-white border border-emerald-300 rounded font-bold text-emerald-800">
+                    Staging: {project.productAcceptanceSubmission.stagingLocation || 'On-site'}
+                  </span>
+                  {project.productAcceptanceSubmission.damagedBoxesCount ? (
+                    <span className="px-2 py-0.5 bg-amber-100 border border-amber-300 rounded font-bold text-amber-900">
+                      Damaged Boxes: {project.productAcceptanceSubmission.damagedBoxesCount} ({project.productAcceptanceSubmission.damagedBoxPhotos?.length || 0} Photos)
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-white border border-emerald-300 rounded font-bold text-emerald-800">
+                      No Box Damage
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <span className="px-2.5 py-1 bg-white border border-emerald-300 rounded-lg font-mono font-bold text-emerald-800 shrink-0">
-              Signature: {project.productAcceptanceSubmission.signatureText}
-            </span>
+
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              {project.productAcceptanceSubmission.signatureDrawDataUrl ? (
+                <div className="bg-white border border-emerald-300 rounded-lg p-1.5 shadow-2xs">
+                  <img
+                    src={project.productAcceptanceSubmission.signatureDrawDataUrl}
+                    alt="Digital Signature"
+                    className="h-10 w-auto max-w-[160px] object-contain"
+                  />
+                </div>
+              ) : (
+                <span className="px-3 py-1.5 bg-white border border-emerald-300 rounded-lg font-serif italic font-bold text-emerald-900 text-sm">
+                  {project.productAcceptanceSubmission.signatureText}
+                </span>
+              )}
+              <span className="text-[10px] text-emerald-700 font-mono">Digital Signature Record</span>
+            </div>
           </div>
         )}
 
-        {/* Shipped Line Items with Customer Scenario Notes */}
+        {/* SECTION 1: Pallet Inspection & On-Site Staging Location */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800">
+                <Boxes className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Step 1: On-Site Pallet Inspection</h3>
+                <p className="text-[11px] text-slate-500">
+                  Inspect freight pallets upon truck unloading to confirm physical condition
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-700">Pallets Received:</span>
+              <div className="inline-flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setPalletsInspectedCount((prev) => Math.max(1, prev - 1))}
+                  className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
+                >
+                  -
+                </button>
+                <span className="px-3 py-1 font-mono font-bold text-slate-900 text-xs">
+                  {palletsInspectedCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPalletsInspectedCount((prev) => prev + 1)}
+                  className="px-2.5 py-1 text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Pallet Condition Selector */}
+            <div className="md:col-span-2 space-y-2">
+              <label className="block font-bold text-slate-800 text-xs">
+                Overall Pallet Freight Condition *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPalletConditionSummary('all_good')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    palletConditionSummary === 'all_good'
+                      ? 'bg-emerald-50 border-emerald-400 text-emerald-950 ring-2 ring-emerald-500/30'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>All Pallets Intact</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Shrink wrap tight, no crushed boxes, freight upright
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPalletConditionSummary('minor_wear')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    palletConditionSummary === 'minor_wear'
+                      ? 'bg-amber-50 border-amber-400 text-amber-950 ring-2 ring-amber-500/30'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-xs">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>Minor Wrap Wear</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Light tear in wrap, but cartons appear unharmed
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPalletConditionSummary('damaged_reported')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    palletConditionSummary === 'damaged_reported'
+                      ? 'bg-red-50 border-red-400 text-red-950 ring-2 ring-red-500/30'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-xs">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span>Damaged Boxes Found</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Boxes crushed, punctured, or water damaged (upload photos below)
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Security Seal & Staging Location */}
+            <div className="space-y-2">
+              <label className="block font-bold text-slate-800 text-xs">
+                On-Site Staging Location *
+              </label>
+              <div className="relative">
+                <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <input
+                  type="text"
+                  required
+                  value={stagingLocation}
+                  onChange={(e) => setStagingLocation(e.target.value)}
+                  placeholder="e.g. Clubhouse Storage Room B"
+                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <label className="inline-flex items-center gap-2 mt-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isSealIntact}
+                  onChange={(e) => setIsSealIntact(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                />
+                <span className="text-[11px] font-semibold text-slate-700">
+                  Carrier security seal &amp; shrink wrap intact upon arrival
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: Upload Photos of Any Damaged Boxes */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-sky-100 border border-sky-300 flex items-center justify-center text-sky-800">
+                <Camera className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Step 2: Upload Photos of Any Damaged Boxes
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Capture photos directly with your smartphone camera or upload carton images
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer">
+                <Camera className="w-3.5 h-3.5" />
+                <span>+ Take / Upload Damage Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Damaged Boxes Count Counter & Guidance */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-white border border-slate-200 rounded-xl">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className={`w-4 h-4 ${damagedBoxesCount > 0 ? 'text-amber-600' : 'text-slate-400'}`} />
+              <span className="font-bold text-slate-800 text-xs">
+                Total Damaged / Compromised Boxes Documented:
+              </span>
+              <span className={`px-2 py-0.5 rounded-full font-mono font-bold text-xs ${
+                damagedBoxesCount > 0 ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-100 text-slate-700'
+              }`}>
+                {damagedBoxesCount}
+              </span>
+            </div>
+
+            <span className="text-[11px] text-slate-500">
+              {damagedBoxPhotos.length} photo(s) attached
+            </span>
+          </div>
+
+          {/* Photo Gallery Grid */}
+          {damagedBoxPhotos.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {damagedBoxPhotos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2 relative group"
+                >
+                  <div className="relative rounded-lg overflow-hidden bg-slate-100 aspect-video flex items-center justify-center">
+                    <img
+                      src={photo.url}
+                      alt={photo.caption}
+                      className="w-full h-full object-cover cursor-pointer"
+                      onClick={() => setActivePhotoPreview(photo)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setActivePhotoPreview(photo)}
+                      className="absolute bottom-1.5 right-1.5 p-1 bg-black/60 hover:bg-black/80 text-white rounded cursor-pointer"
+                      title="Enlarge photo"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <span className="font-semibold text-sky-800">{photo.boxLabelOrItem || 'Shipment Carton'}</span>
+                      <span className="font-mono">{photo.uploadedAt}</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={photo.caption}
+                      onChange={(e) => {
+                        const newCap = e.target.value;
+                        setDamagedBoxPhotos((prev) =>
+                          prev.map((p) => (p.id === photo.id ? { ...p, caption: newCap } : p))
+                        );
+                      }}
+                      placeholder="Caption damage details..."
+                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-800"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(photo.id)}
+                    className="w-full py-1 text-[11px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Remove Photo</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 bg-white border border-dashed border-slate-300 rounded-xl text-center space-y-2">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 mx-auto flex items-center justify-center">
+                <Check className="w-5 h-5" />
+              </div>
+              <div className="font-bold text-slate-800 text-xs">No Damaged Boxes Reported</div>
+              <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                If any cartons arrive punctured, wet, crushed, or opened, use your phone camera to snap photos before opening the packaging.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 3: Communicated Shipment Line Items & 1:1 Qty Verification */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <PackageCheck className="w-4 h-4 text-emerald-600" />
-              <span>Communicated Shipment Line Items ({localItems.length})</span>
+              <span>Step 3: Communicated Shipment Line Items ({localItems.length})</span>
             </h3>
             <span className="text-[11px] text-slate-500">
-              Add scenario notes on any line item if quantities or conditions differ
+              Confirm receipt and add scenario notes on individual line items
             </span>
           </div>
 
@@ -268,7 +776,7 @@ export const ProductAcceptancePortalModal: React.FC<{
                             onChange={() => handleToggleItemAccepted(item.id)}
                             className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
                           />
-                          <span className={item.customerAccepted ? 'text-emerald-700' : 'text-slate-600'}>
+                          <span className={item.customerAccepted ? 'text-emerald-700 font-bold' : 'text-slate-600'}>
                             {item.customerAccepted ? 'Received ✓' : 'Confirm'}
                           </span>
                         </label>
@@ -349,16 +857,43 @@ export const ProductAcceptancePortalModal: React.FC<{
           </div>
         </div>
 
-        {/* Customer Sign-Off Block */}
-        <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-          <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
-            <FileSignature className="w-4 h-4 text-emerald-600" />
-            <span>Official Customer Product Acceptance Signature</span>
+        {/* SECTION 4: Digital Signature Confirming Delivered Inventory */}
+        <div className="p-5 sm:p-6 bg-slate-50 border-2 border-emerald-300/80 rounded-2xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+            <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <FileSignature className="w-4 h-4 text-emerald-600" />
+              <span>Step 4: Digital Signature Confirming Delivered Inventory</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-300 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setSignatureMode('draw')}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer transition-colors ${
+                  signatureMode === 'draw'
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Draw Signature (Touch / Pen)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSignatureMode('type')}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer transition-colors ${
+                  signatureMode === 'type'
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Type Legal Name
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Full Name *</label>
+              <label className="block font-semibold text-slate-700 mb-1">Signee Full Name *</label>
               <input
                 type="text"
                 required
@@ -387,50 +922,143 @@ export const ProductAcceptancePortalModal: React.FC<{
                 className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Digital Signature (Type Full Name to Sign) *
-              </label>
+              <label className="block font-semibold text-slate-700 mb-1">Phone Number (Optional)</label>
               <input
                 type="text"
-                required
-                value={signatureText}
-                onChange={(e) => setSignatureText(e.target.value)}
-                placeholder="Type your full name as digital signature..."
-                className="w-full px-3 py-2 bg-amber-50/60 border-2 border-amber-300 rounded-lg text-slate-900 font-serif italic text-sm font-bold focus:outline-none focus:border-emerald-600"
+                value={signedByPhone}
+                onChange={(e) => setSignedByPhone(e.target.value)}
+                placeholder="(555) 000-0000"
+                className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900"
               />
             </div>
+          </div>
+
+          {/* Signature Canvas Pad OR Typed Legal Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Overall Staging / Receiving Notes (Optional)
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-semibold text-slate-700 text-xs">
+                  {signatureMode === 'draw'
+                    ? 'Draw Digital Signature on Canvas * (Use touch or cursor)'
+                    : 'Type Legal Signature *'}
+                </label>
+                {signatureMode === 'draw' && (
+                  <button
+                    type="button"
+                    onClick={handleClearSignature}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Clear Pad</span>
+                  </button>
+                )}
+              </div>
+
+              {signatureMode === 'draw' ? (
+                <div className="bg-white border-2 border-emerald-300 rounded-xl overflow-hidden relative shadow-inner">
+                  <canvas
+                    ref={canvasRef}
+                    width={500}
+                    height={120}
+                    onMouseDown={handleStartDraw}
+                    onMouseMove={handleDrawMove}
+                    onMouseUp={handleEndDraw}
+                    onMouseLeave={handleEndDraw}
+                    onTouchStart={handleStartDraw}
+                    onTouchMove={handleDrawMove}
+                    onTouchEnd={handleEndDraw}
+                    className="w-full h-28 touch-none cursor-crosshair bg-amber-50/30"
+                  />
+                  <div className="absolute bottom-1 right-2 text-[10px] text-slate-400 select-none pointer-events-none font-mono">
+                    Sign with finger or stylus
+                  </div>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={signatureText}
+                  onChange={(e) => setSignatureText(e.target.value)}
+                  placeholder="Type your full name to sign..."
+                  className="w-full px-3 py-3 bg-amber-50/60 border-2 border-amber-300 rounded-xl text-slate-900 font-serif italic text-base font-bold focus:outline-none focus:border-emerald-600"
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1 text-xs">
+                Overall Staging &amp; Receiving Notes (Optional)
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={4}
                 value={overallNotes}
                 onChange={(e) => setOverallNotes(e.target.value)}
-                placeholder="e.g. Pallets secured in Clubhouse Storage Room B"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900"
+                placeholder="e.g. Pallets unloaded by maintenance team into Clubhouse Storage Room B. Gateways and deadbolts inspected."
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-            <span className="text-[11px] text-slate-500">
-              By signing, you confirm receipt of the communicated shipment batches subject to any line-item scenario notes above.
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200">
+            <span className="text-[11px] text-slate-500 leading-relaxed max-w-xl">
+              By submitting this digital signature, you verify receipt of the hardware inventory delivered to the property, having inspected the pallets and documented any damaged boxes or shipment exceptions above.
             </span>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-sm transition-all cursor-pointer text-xs shrink-0"
             >
               <FileSignature className="w-4 h-4" />
-              <span>{isSubmitted ? 'Update Signed Acceptance & Notes' : 'Sign & Confirm Product Acceptance'}</span>
+              <span>
+                {isSubmitted ? 'Update Signed Acceptance & Photos' : 'Sign & Confirm Product Acceptance'}
+              </span>
             </button>
           </div>
         </div>
       </form>
+
+      {/* Modal Lightbox for Enlarged Photo Preview */}
+      {activePhotoPreview && (
+        <div
+          className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setActivePhotoPreview(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <span className="font-bold text-xs">{activePhotoPreview.boxLabelOrItem}</span>
+                <p className="text-[11px] text-slate-400">{activePhotoPreview.caption}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivePhotoPreview(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-2 bg-slate-950 flex items-center justify-center max-h-[70vh]">
+              <img
+                src={activePhotoPreview.url}
+                alt={activePhotoPreview.caption}
+                className="max-h-[65vh] w-auto object-contain"
+              />
+            </div>
+            <div className="p-3 bg-white text-right">
+              <button
+                type="button"
+                onClick={() => setActivePhotoPreview(null)}
+                className="px-4 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-xs"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -638,6 +1266,7 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
   const [isAddingShipment, setIsAddingShipment] = useState<boolean>(false);
   const [isAcceptanceModalOpen, setIsAcceptanceModalOpen] = useState<boolean>(false);
   const [isSendPortalModalOpen, setIsSendPortalModalOpen] = useState<boolean>(false);
+  const [isMobileQrOpen, setIsMobileQrOpen] = useState<boolean>(false);
   const [copiedPortalLink, setCopiedPortalLink] = useState<boolean>(false);
   const [alertBanner, setAlertBanner] = useState<string | null>(null);
   const [gmailModalPayload, setGmailModalPayload] = useState<LiveGmailModalPayload | null>(null);
@@ -1061,6 +1690,17 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
 
           <button
             type="button"
+            onClick={() => setIsMobileQrOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+            title="Open on-site mobile QR code and dedicated mobile link for property staff"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Mobile QR Code</span>
+          </button>
+
+          <button
+            type="button"
+            data-tutorial-id="send-product-acceptance-btn"
             onClick={handleOpenSendProductAcceptancePortal}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors cursor-pointer"
             title="Prompt to confirm portal details and email the Product Acceptance Portal to the customer"
@@ -1427,6 +2067,75 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
             </button>
           </div>
         </form>
+      )}
+
+      {/* Customer Product Acceptance Officially Recorded Banner */}
+      {project.productAcceptanceSubmission && (
+        <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-emerald-950 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-extrabold text-sm text-emerald-950">
+                  Product Acceptance Signed &amp; Confirmed by Property
+                </span>
+                <span className="px-2 py-0.5 bg-emerald-200 text-emerald-900 rounded font-mono font-bold text-[10px] uppercase">
+                  Verified On-Site
+                </span>
+              </div>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Signed by <strong>{project.productAcceptanceSubmission.signedByName}</strong> ({project.productAcceptanceSubmission.signedByTitle}) on{' '}
+                <span className="font-mono">{project.productAcceptanceSubmission.signedAt}</span> · {project.productAcceptanceSubmission.signedByEmail}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-2 text-[11px]">
+                <span className="px-2 py-0.5 bg-white border border-emerald-300 rounded font-bold text-emerald-800">
+                  Pallets Inspected: {project.productAcceptanceSubmission.palletsInspectedCount || 1}
+                </span>
+                <span className="px-2 py-0.5 bg-white border border-emerald-300 rounded font-bold text-emerald-800">
+                  Staging: {project.productAcceptanceSubmission.stagingLocation || 'On-site'}
+                </span>
+                {project.productAcceptanceSubmission.damagedBoxesCount ? (
+                  <span className="px-2 py-0.5 bg-amber-100 border border-amber-300 rounded font-bold text-amber-900 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                    <span>
+                      Damaged Boxes: {project.productAcceptanceSubmission.damagedBoxesCount} (
+                      {project.productAcceptanceSubmission.damagedBoxPhotos?.length || 0} Photos)
+                    </span>
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 bg-white border border-emerald-300 rounded font-bold text-emerald-800">
+                    No Box Damage
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {project.productAcceptanceSubmission.signatureDrawDataUrl ? (
+              <div className="bg-white border border-emerald-300 rounded-lg p-1.5 shadow-2xs">
+                <img
+                  src={project.productAcceptanceSubmission.signatureDrawDataUrl}
+                  alt="Signature"
+                  className="h-10 w-auto max-w-[140px] object-contain"
+                />
+              </div>
+            ) : (
+              <span className="px-3 py-1.5 bg-white border border-emerald-300 rounded-lg font-serif italic font-bold text-emerald-900 text-sm">
+                {project.productAcceptanceSubmission.signatureText}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsAcceptanceModalOpen(true)}
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer"
+            >
+              View Acceptance Details
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Shipping Dock */}
@@ -1860,6 +2569,35 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Mobile QR Code Modal */}
+      {isMobileQrOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span className="font-bold text-xs">On-Site Staff Mobile QR Code</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileQrOpen(false)}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <ProductAcceptanceQRCode
+                url={buildProductAcceptancePortalUrl(project.id)}
+                propertyName={project.propertyName}
+                quoteNumber={project.quoteNumber}
+                size={160}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Product Acceptance Portal Modal */}
       {isAcceptanceModalOpen && (

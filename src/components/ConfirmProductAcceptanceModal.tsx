@@ -15,6 +15,7 @@ import {
 } from '../services/gmailService';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { getDockRowBomQuantities } from './ShippingDockSection';
+import { ProductAcceptanceQRCode } from './ProductAcceptanceQRCode';
 import {
   FileSignature,
   Mail,
@@ -222,6 +223,22 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
         <a href="${portalLink}" style="background-color: #059669; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           Open &amp; Sign Product Acceptance Portal &rarr;
         </a>
+      </div>
+
+      <!-- Dedicated On-Site Mobile QR Code for Shipping Dock & Warehouse Staff -->
+      <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
+        <div style="font-size: 12px; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
+          📱 On-Site Property Staff Mobile QR Code
+        </div>
+        <p style="font-size: 12px; color: #047857; margin: 0 0 14px 0; line-height: 1.5;">
+          Point your smartphone camera at the QR code below while on the shipping dock to <strong>inspect pallets</strong>, <strong>upload photos of any damaged boxes</strong>, and <strong>sign digitally</strong> confirming delivered inventory.
+        </p>
+        <div style="display: inline-block; background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #a7f3d0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&data=${encodeURIComponent(portalLink)}" alt="Scan Product Acceptance Portal QR Code" width="160" height="160" style="display: block; margin: 0 auto;" />
+        </div>
+        <div style="margin-top: 10px; font-size: 11px; color: #065f46; font-weight: 600;">
+          Works directly with iOS Camera and Android QR Scanner · No App Download Required
+        </div>
       </div>
 
       <div style="margin: 20px 0;">
@@ -494,63 +511,46 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
             </div>
           </div>
 
-          {/* Portal Scope & Direct Link Details */}
-          <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-emerald-700" />
-                <span className="font-bold text-slate-900 text-xs">
-                  Acceptance Portal Scope: {dockItems.length} Batches ({totalShippedUnits} Hardware Units)
-                </span>
-              </div>
+          {/* Portal Scope Header */}
+          <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-emerald-700" />
+              <span className="font-bold text-slate-900 text-xs">
+                Acceptance Scope: {dockItems.length} Batches ({totalShippedUnits} Hardware Units)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               {project.productAcceptanceSubmission ? (
                 <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[11px] font-bold flex items-center gap-1">
                   <Check className="w-3 h-3" />
-                  Already Signed by {project.productAcceptanceSubmission.signedByName}
+                  Signed by {project.productAcceptanceSubmission.signedByName}
                 </span>
               ) : (
                 <span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded text-[11px] font-bold">
                   Pending Customer Sign-off
                 </span>
               )}
-            </div>
-
-            {/* Direct Link & Preview Actions */}
-            <div className="bg-white p-3 rounded-lg border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="truncate flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Customer Portal Direct URL
-                </span>
-                <span className="font-mono text-[11px] text-emerald-900 font-semibold select-all truncate block">
-                  {portalLink}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md transition-colors cursor-pointer"
-                  title="Copy direct portal link to clipboard"
-                >
-                  {copiedLink ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                  <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onPreviewPortal();
-                  }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 hover:bg-emerald-200 border border-emerald-300 rounded-md transition-colors cursor-pointer"
-                  title="Open a full interactive preview of the Product Acceptance Portal modal"
-                >
-                  <Eye className="w-3 h-3 text-emerald-700" />
-                  <span>Preview Portal</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onPreviewPortal();
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition-colors cursor-pointer"
+                title="Open interactive preview of the Product Acceptance Portal"
+              >
+                <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Preview Portal</span>
+              </button>
             </div>
           </div>
+
+          {/* Dedicated Mobile Link and QR Code Card for On-Site Staff */}
+          <ProductAcceptanceQRCode
+            url={portalLink}
+            propertyName={project.propertyName}
+            quoteNumber={project.quoteNumber}
+            size={130}
+          />
 
           {/* Subject Line */}
           <div>

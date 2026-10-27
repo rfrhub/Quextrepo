@@ -310,7 +310,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
       number: 14,
       chapter: 'Milestone 4: Logistics',
       featureName: 'Product Acceptance Portal & Sign-Off',
-      targetSelector: '[data-tutorial-id="shipping-dock-section"]',
+      targetSelector: '[data-tutorial-id="send-product-acceptance-btn"]',
       preferredPlacement: 'top',
       navigation: {
         portal: 'operations',
@@ -320,7 +320,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
       },
       message:
         'Generates a dedicated mobile link and QR code for on-site property staff to inspect pallets, upload photos of any damaged boxes, and provide a digital signature confirming delivered inventory.',
-      tryItOutPrompt: 'Click anywhere in the Shipping Dock section to advance!',
+      tryItOutPrompt: 'Click on Send Product Acceptance Portal or anywhere to advance!',
     },
     {
       id: 'step-15-sow-diy',
@@ -473,6 +473,12 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
       return (
         (document.querySelector('[data-tutorial-id="create-manual-project-btn"]') as HTMLElement | null) ||
         (document.querySelector('[data-tutorial-id="all-projects-container"]') as HTMLElement | null)
+      );
+    }
+    if (selector.includes('send-product-acceptance-btn')) {
+      return (
+        (document.querySelector('[data-tutorial-id="send-product-acceptance-btn"]') as HTMLElement | null) ||
+        (document.querySelector('[data-tutorial-id="shipping-dock-section"]') as HTMLElement | null)
       );
     }
     if (selector.includes('subnav-')) {
