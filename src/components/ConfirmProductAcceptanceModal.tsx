@@ -549,7 +549,7 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
             url={portalLink}
             propertyName={project.propertyName}
             quoteNumber={project.quoteNumber}
-            size={130}
+            size={105}
           />
 
           {/* Subject Line */}
