@@ -106,7 +106,7 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
     };
   }, [autoPopTriggerKey, latestNotification, mode]);
 
-  // Global touch listener on mobile so sliding left from the right side of the screen pulls out the dock
+  // Global touch listener on mobile so sliding right from the left side of the screen pulls out the dock
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
       if (!e.touches || e.touches.length === 0) return;
@@ -132,14 +132,13 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
       // Ignore primarily vertical scrolling
       if (deltaY > Math.abs(deltaX)) return;
 
-      const viewportWidth = window.innerWidth;
-      // Slide left from right edge (within 48px of right screen edge)
-      if (!isTouchOpen && touchStartXRef.current >= viewportWidth - 48 && deltaX < -28) {
+      // Slide right from left edge (within 48px of left screen edge)
+      if (!isTouchOpen && touchStartXRef.current <= 48 && deltaX > 28) {
         setIsTouchOpen(true);
         touchStartXRef.current = null;
         touchStartYRef.current = null;
-      } else if (isTouchOpen && deltaX > 36) {
-        // Slide right to hide dock
+      } else if (isTouchOpen && deltaX < -36) {
+        // Slide left to hide dock
         setIsTouchOpen(false);
         setIsAutoSlidingOut(false);
         touchStartXRef.current = null;
@@ -756,22 +755,22 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
 
   return (
     <>
-      {/* Invisible Right-Edge Hover & Swipe Sensor Strip */}
+      {/* Invisible Left-Edge Hover & Swipe Sensor Strip */}
       <div
         onMouseEnter={() => setIsHovered(true)}
         onClick={() => setIsTouchOpen(true)}
-        className="fixed top-0 right-0 bottom-0 w-3.5 z-40 cursor-pointer group"
-        title="Hover or swipe left to view Notifications"
+        className="fixed top-0 left-0 bottom-0 w-3.5 z-40 cursor-pointer group"
+        title="Hover or swipe right to view Notifications"
       >
         {/* Subtle Edge Handle Pill so users know where the hidden dock lives */}
         <div
-          className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-l-xl border border-r-0 shadow-md transition-all duration-300 ${
+          className={`fixed left-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5 py-3 px-1.5 rounded-r-xl border border-l-0 shadow-md transition-all duration-300 ${
             isOpen
-              ? 'opacity-0 pointer-events-none translate-x-full'
+              ? 'opacity-0 pointer-events-none -translate-x-full'
               : 'opacity-90 hover:opacity-100 translate-x-0 bg-white border-slate-300 text-slate-700 hover:bg-sky-50 hover:border-sky-300'
           }`}
         >
-          <ChevronLeft className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
+          <ChevronRight className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
           <div className="relative">
             <Bell className="w-4 h-4 text-sky-600" />
             {filteredNotifications.length > 0 && (
@@ -800,12 +799,12 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
         />
       )}
 
-      {/* Slide-Out Right Notification Dock */}
+      {/* Slide-Out Left Notification Dock */}
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`fixed top-0 right-0 bottom-0 z-50 w-[360px] sm:w-[420px] max-w-[94vw] bg-white border-l border-slate-200 shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed top-0 left-0 bottom-0 z-50 w-[360px] sm:w-[420px] max-w-[94vw] bg-white border-r border-slate-200 shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Auto-Slide-Out 5-Second Banner when triggered by a live event */}
@@ -863,7 +862,7 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
             title="Hide Notifications Dock"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
         </div>
 
@@ -1079,3 +1078,5 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
     </>
   );
 };
+
+export const LeftNotificationsDock = RightNotificationsDock;
