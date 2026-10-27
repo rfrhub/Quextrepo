@@ -11,6 +11,19 @@ import slide10Img from '../assets/images/gateway-guide/slide_10.png';
 import slide11Img from '../assets/images/gateway-guide/slide_11.png';
 import slide12Img from '../assets/images/gateway-guide/slide_12.png';
 
+// High-resolution field installation photos uploaded by team
+import insideRoofWallMountImg from '../assets/images/gateway-guide/inside_roof_wall_mount.png';
+import outsideRoofMountImg from '../assets/images/gateway-guide/outside_roof_mount.png';
+import gatewayMountingBracketImg from '../assets/images/gateway-guide/gateway_mounting_bracket.png';
+import waterproofPoeAntennaImg from '../assets/images/gateway-guide/waterproof_poe_antenna.png';
+
+export interface GatewayPhotoItem {
+  image: string;
+  label: string;
+  caption?: string;
+  tag?: string;
+}
+
 export interface GatewayGuideStep {
   stepNumber: string;
   stepTitle: string;
@@ -19,6 +32,7 @@ export interface GatewayGuideStep {
   photoImage?: string;
   photoLabel?: string;
   photoCaption?: string;
+  photos?: GatewayPhotoItem[];
   slideImage?: string;
   summary: string;
   bulletPoints: {
@@ -134,10 +148,24 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepTitle: '02 • Plan the mounting location: Inside vs. Outside Parapet',
     category: 'Mounting',
     hasVisualPhoto: true,
-    photoImage: slide05Img,
-    photoLabel: 'Field Reference: Inside vs. Outside Parapet Mounting',
-    photoCaption: 'Official installation photos demonstrating Inside Roof Wall Mount (left) and Outside Roof Mount (right) with EMT conduit mast extending antenna above roofline.',
-    slideImage: slide05Img,
+    photoImage: insideRoofWallMountImg,
+    photoLabel: 'Field Reference: Inside Roof Wall Mount & Outside Roof Mount',
+    photoCaption: 'Official field photos: Inside Roof Wall Mount and Outside Roof Mount showing Unistrut and conduit mast extending antenna above roofline.',
+    photos: [
+      {
+        image: insideRoofWallMountImg,
+        label: 'Inside Roof Wall Mount',
+        caption: 'Inside Roof Wall Mount: Unistrut backplane mounted to interior parapet wall with EMT conduit extending antenna mast above roofline.',
+        tag: 'Inside Roof Wall Mount',
+      },
+      {
+        image: outsideRoofMountImg,
+        label: 'Outside Roof Mount',
+        caption: 'Outside Roof Mount: Exterior building wall installation with ladder access and high antenna mast elevation for 360-degree radio coverage.',
+        tag: 'Outside Roof Mount',
+      },
+    ],
+    slideImage: insideRoofWallMountImg,
     summary: 'Identify the ideal mounting geometry: Inside Roof Wall Mount vs. Outside Roof Mount for optimal LoRa RF coverage.',
     bulletPoints: [
       {
@@ -243,10 +271,18 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepTitle: '05 • Reference: Gateway Bracket Mounting',
     category: 'Mounting',
     hasVisualPhoto: true,
-    photoImage: slide08Img,
+    photoImage: gatewayMountingBracketImg,
     photoLabel: 'Field Reference: Gateway Chassis Bracket Mounting to Unistrut',
-    photoCaption: 'Official installation photo showing the powder-coated bracket secured to the lower Unistrut channel with spring nuts and vertical heatsink orientation.',
-    slideImage: slide08Img,
+    photoCaption: 'Official installation photo showing the powder-coated bracket secured to the horizontal Unistrut channels on a parapet roof wall.',
+    photos: [
+      {
+        image: gatewayMountingBracketImg,
+        label: 'Gateway Mounting Bracket',
+        caption: 'Technician securing the dual-arm bracket to the horizontal Unistrut channels on a parapet roof wall.',
+        tag: 'Gateway Mounting Bracket',
+      },
+    ],
+    slideImage: gatewayMountingBracketImg,
     summary: 'Mounting the heavy-duty TEKTELIC chassis bracket to the lower Unistrut channel for easy servicing and cooling.',
     bulletPoints: [
       {
@@ -278,10 +314,18 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepTitle: '06 • Gateway Wiring: Waterproof PoE & Antenna Connection',
     category: 'Wiring',
     hasVisualPhoto: true,
-    photoImage: slide09Img,
+    photoImage: waterproofPoeAntennaImg,
     photoLabel: 'Field Reference: Waterproof PoE Cable Gland & Antenna Drip Loop',
     photoCaption: 'Official installation photo showing bottom view of gateway chassis with IP67 sealed compression gland for PoE and heavy-gauge N-type RF antenna coax with drip loop.',
-    slideImage: slide09Img,
+    photos: [
+      {
+        image: waterproofPoeAntennaImg,
+        label: 'Waterproof PoE & Antenna Connection',
+        caption: 'Bottom view of gateway chassis showing the sealed compression gland for PoE and the heavy-gauge N-type antenna coaxial cable with drip loop.',
+        tag: 'Waterproof PoE & Antenna Connection',
+      },
+    ],
+    slideImage: waterproofPoeAntennaImg,
     summary: 'Assembling the IP67 water-tight connector gland, terminating T568B RJ45, and dressing the N-type RF antenna coaxial cable.',
     bulletPoints: [
       {

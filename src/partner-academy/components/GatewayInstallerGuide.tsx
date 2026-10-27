@@ -35,9 +35,15 @@ interface GatewayInstallerGuideProps {
 
 export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ onOpenCourse }) => {
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'steps' | 'continuous' | 'materials'>('steps');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
   const [lightboxImage, setLightboxImage] = useState<{ src: string; caption?: string } | null>(null);
+
+  // Reset selected photo when switching steps
+  React.useEffect(() => {
+    setSelectedPhotoIndex(0);
+  }, [activeStepIndex]);
 
   // Materials Checklist State for technicians on site
   const [checkedMaterials, setCheckedMaterials] = useState<Record<string, boolean>>({});
@@ -262,82 +268,157 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
           </div>
 
           {/* Step Body */}
-          {currentStep.hasVisualPhoto && currentStep.photoImage ? (
+          {currentStep.hasVisualPhoto && (currentStep.photoImage || (currentStep.photos && currentStep.photos.length > 0)) ? (
             /* Layout for Steps WITH Visual Photo (Step 03, Step 06, Step 07) */
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Field Installation Photo Card */}
-              <div className="lg:col-span-6 space-y-3">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl relative group">
-                  {/* Photo Header */}
-                  <div className="p-3.5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
-                        <Camera className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-bold text-white text-xs">
-                        {currentStep.photoLabel || 'Field Installation Photo Reference'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setLightboxImage({
-                          src: currentStep.photoImage!,
-                          caption: currentStep.photoCaption,
-                        })
-                      }
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
-                    >
-                      <Maximize2 className="w-3 h-3" />
-                      <span>Zoom Fullscreen</span>
-                    </button>
-                  </div>
-
-                  {/* High-res Photo Container */}
-                  <div
-                    className="bg-black flex items-center justify-center cursor-zoom-in relative p-2"
-                    onClick={() =>
-                      setLightboxImage({
-                        src: currentStep.photoImage!,
+            (() => {
+              const photosList =
+                currentStep.photos && currentStep.photos.length > 0
+                  ? currentStep.photos
+                  : currentStep.photoImage
+                  ? [
+                      {
+                        image: currentStep.photoImage,
+                        label: currentStep.photoLabel || 'Field Installation Photo Reference',
                         caption: currentStep.photoCaption,
-                      })
-                    }
-                  >
-                    <img
-                      src={currentStep.photoImage}
-                      alt={currentStep.photoLabel || currentStep.stepTitle}
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (!target.dataset.triedFallback) {
-                          target.dataset.triedFallback = 'true';
-                          if (currentStep.stepNumber === '03') {
-                            target.src = '/assets/images/gateway-guide/slide_05.png';
-                          } else if (currentStep.stepNumber === '06') {
-                            target.src = '/assets/images/gateway-guide/slide_08.png';
-                          } else if (currentStep.stepNumber === '07') {
-                            target.src = '/assets/images/gateway-guide/slide_09.png';
-                          }
-                        }
-                      }}
-                      className="w-full h-auto object-contain max-h-[540px] rounded-lg transition-transform group-hover:scale-[1.01]"
-                    />
+                      },
+                    ]
+                  : [];
+              const activePhoto = photosList[selectedPhotoIndex] || photosList[0];
 
-                    {/* Hover pill */}
-                    <div className="absolute bottom-4 right-4 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-xs text-zinc-300 text-[11px] font-bold border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 shadow-lg">
-                      <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Click to Zoom</span>
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Field Installation Photo Card */}
+                  <div className="lg:col-span-6 space-y-3">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl relative group">
+                      {/* Photo Header */}
+                      <div className="p-3.5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                            <Camera className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold text-white text-xs">
+                            {activePhoto?.label || currentStep.photoLabel || 'Field Installation Photo Reference'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLightboxImage({
+                              src: activePhoto.image,
+                              caption: activePhoto.caption || currentStep.photoCaption,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                          <span>Zoom Fullscreen</span>
+                        </button>
+                      </div>
+
+                      {/* Photo Switcher Tabs when multiple photos exist (e.g. Step 03: Inside vs Outside) */}
+                      {photosList.length > 1 && (
+                        <div className="flex items-center gap-1.5 p-2 bg-zinc-950/80 border-b border-zinc-800">
+                          {photosList.map((photo, pIdx) => {
+                            const isSelectedPhoto = selectedPhotoIndex === pIdx;
+                            return (
+                              <button
+                                key={photo.label}
+                                type="button"
+                                onClick={() => setSelectedPhotoIndex(pIdx)}
+                                className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                  isSelectedPhoto
+                                    ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 ring-1 ring-purple-400/50'
+                                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                                }`}
+                              >
+                                <Camera className="w-3 h-3" />
+                                <span className="truncate">{photo.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* High-res Photo Container */}
+                      <div
+                        className="bg-black flex items-center justify-center cursor-zoom-in relative p-2"
+                        onClick={() =>
+                          setLightboxImage({
+                            src: activePhoto.image,
+                            caption: activePhoto.caption || currentStep.photoCaption,
+                          })
+                        }
+                      >
+                        <img
+                          src={activePhoto.image}
+                          alt={activePhoto.label || currentStep.stepTitle}
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (!target.dataset.triedFallback) {
+                              target.dataset.triedFallback = 'true';
+                              if (activePhoto.label.toLowerCase().includes('inside')) {
+                                target.src = '/assets/images/gateway-guide/inside_roof_wall_mount.png';
+                              } else if (activePhoto.label.toLowerCase().includes('outside')) {
+                                target.src = '/assets/images/gateway-guide/outside_roof_mount.png';
+                              } else if (currentStep.stepNumber === '06') {
+                                target.src = '/assets/images/gateway-guide/gateway_mounting_bracket.png';
+                              } else if (currentStep.stepNumber === '07') {
+                                target.src = '/assets/images/gateway-guide/waterproof_poe_antenna.png';
+                              }
+                            }
+                          }}
+                          className="w-full h-auto object-contain max-h-[540px] rounded-lg transition-transform group-hover:scale-[1.01]"
+                        />
+
+                        {/* Hover pill */}
+                        <div className="absolute bottom-4 right-4 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-xs text-zinc-300 text-[11px] font-bold border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 shadow-lg">
+                          <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Click to Zoom</span>
+                        </div>
+                      </div>
+
+                      {/* Photo Thumbnails when multiple photos exist */}
+                      {photosList.length > 1 && (
+                        <div className="p-2.5 bg-zinc-950 border-t border-zinc-800 flex items-center gap-2">
+                          {photosList.map((photo, pIdx) => {
+                            const isSel = selectedPhotoIndex === pIdx;
+                            return (
+                              <button
+                                key={photo.label}
+                                type="button"
+                                onClick={() => setSelectedPhotoIndex(pIdx)}
+                                className={`flex-1 flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all cursor-pointer ${
+                                  isSel
+                                    ? 'bg-purple-950/40 border-purple-500 ring-2 ring-purple-500/40'
+                                    : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 opacity-70 hover:opacity-100'
+                                }`}
+                              >
+                                <img
+                                  src={photo.image}
+                                  alt={photo.label}
+                                  className="w-10 h-10 object-cover rounded-lg bg-black shrink-0 border border-zinc-700"
+                                />
+                                <div className="min-w-0">
+                                  <div className={`text-[11px] font-bold truncate ${isSel ? 'text-purple-300' : 'text-zinc-300'}`}>
+                                    {photo.label}
+                                  </div>
+                                  <div className="text-[9px] text-zinc-500">Click to switch</div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Detailed Caption */}
+                      {(activePhoto.caption || currentStep.photoCaption) && (
+                        <div className="p-3.5 bg-zinc-950/90 border-t border-zinc-800/80 text-[11px] text-zinc-300 leading-relaxed">
+                          <span className="font-bold text-purple-400 mr-1.5">Official SOP Standard:</span>
+                          {activePhoto.caption || currentStep.photoCaption}
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Detailed Caption */}
-                  {currentStep.photoCaption && (
-                    <div className="p-3.5 bg-zinc-950/90 border-t border-zinc-800/80 text-[11px] text-zinc-300 leading-relaxed">
-                      <span className="font-bold text-purple-400 mr-1.5">Official SOP Standard:</span>
-                      {currentStep.photoCaption}
-                    </div>
-                  )}
-                </div>
-              </div>
 
               {/* Right Column: Execution Instructions */}
               <div className="lg:col-span-6 space-y-4">
@@ -429,7 +510,9 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                 </div>
               </div>
             </div>
-          ) : (
+          );
+        })()
+      ) : (
             /* Full-Width Layout for Steps WITHOUT Photo (No slide images!) */
             <div className="max-w-4xl mx-auto space-y-4">
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-7 space-y-5 shadow-xl">
@@ -559,50 +642,79 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
               </div>
 
               {/* Step Content: Conditional layout depending on whether it has a photo */}
-              {step.hasVisualPhoto && step.photoImage ? (
+              {step.hasVisualPhoto && (step.photoImage || (step.photos && step.photos.length > 0)) ? (
                 /* Steps WITH Photo (03, 06, 07) */
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                  <div className="md:col-span-5 bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-md group">
-                    <div
-                      className="cursor-zoom-in relative p-2"
-                      onClick={() =>
-                        setLightboxImage({
-                          src: step.photoImage!,
-                          caption: step.photoCaption,
-                        })
-                      }
-                    >
-                      <img
-                        src={step.photoImage}
-                        alt={step.photoLabel || step.stepTitle}
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          if (!target.dataset.triedFallback) {
-                            target.dataset.triedFallback = 'true';
-                            if (step.stepNumber === '03') {
-                              target.src = '/assets/images/gateway-guide/slide_05.png';
-                            } else if (step.stepNumber === '06') {
-                              target.src = '/assets/images/gateway-guide/slide_08.png';
-                            } else if (step.stepNumber === '07') {
-                              target.src = '/assets/images/gateway-guide/slide_09.png';
-                            }
+                <div className="space-y-4">
+                  {step.photos && step.photos.length > 1 ? (
+                    /* Multi-Photo Grid (e.g. Step 03: Inside Roof Wall Mount vs. Outside Roof Mount) */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {step.photos.map((photo) => (
+                        <div
+                          key={photo.label}
+                          className="bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-md group cursor-zoom-in"
+                          onClick={() =>
+                            setLightboxImage({
+                              src: photo.image,
+                              caption: photo.caption,
+                            })
                           }
-                        }}
-                        className="w-full h-auto object-contain max-h-[380px] bg-black rounded-lg transition-transform group-hover:scale-[1.01]"
-                      />
-                      <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/80 text-zinc-300 text-[10px] font-bold border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <Maximize2 className="w-3 h-3 text-purple-400" />
-                        <span>Zoom</span>
-                      </div>
+                        >
+                          <div className="p-2.5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
+                            <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                              <Camera className="w-3.5 h-3.5 text-purple-400" />
+                              <span>{photo.label}</span>
+                            </span>
+                            <span className="text-[10px] text-purple-400 font-bold flex items-center gap-1">
+                              <Maximize2 className="w-3 h-3" />
+                              <span>Zoom</span>
+                            </span>
+                          </div>
+                          <div className="p-2 relative flex items-center justify-center bg-black">
+                            <img
+                              src={photo.image}
+                              alt={photo.label}
+                              className="w-full h-auto object-contain max-h-[360px] bg-black rounded-lg transition-transform group-hover:scale-[1.01]"
+                            />
+                          </div>
+                          {photo.caption && (
+                            <div className="p-2.5 bg-zinc-950 border-t border-zinc-800 text-[11px] text-zinc-400 leading-snug">
+                              {photo.caption}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    {step.photoCaption && (
-                      <div className="p-3 bg-zinc-950 border-t border-zinc-800 text-[11px] text-zinc-400">
-                        {step.photoCaption}
+                  ) : (
+                    /* Single-Photo Display */
+                    <div className="md:col-span-5 bg-black rounded-xl overflow-hidden border border-zinc-800 shadow-md group">
+                      <div
+                        className="cursor-zoom-in relative p-2"
+                        onClick={() =>
+                          setLightboxImage({
+                            src: (step.photos?.[0]?.image || step.photoImage)!,
+                            caption: step.photos?.[0]?.caption || step.photoCaption,
+                          })
+                        }
+                      >
+                        <img
+                          src={step.photos?.[0]?.image || step.photoImage}
+                          alt={step.photos?.[0]?.label || step.photoLabel || step.stepTitle}
+                          className="w-full h-auto object-contain max-h-[380px] bg-black rounded-lg transition-transform group-hover:scale-[1.01]"
+                        />
+                        <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/80 text-zinc-300 text-[10px] font-bold border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                          <Maximize2 className="w-3 h-3 text-purple-400" />
+                          <span>Zoom</span>
+                        </div>
                       </div>
-                    )}
-                  </div>
+                      {(step.photos?.[0]?.caption || step.photoCaption) && (
+                        <div className="p-3 bg-zinc-950 border-t border-zinc-800 text-[11px] text-zinc-400">
+                          {step.photos?.[0]?.caption || step.photoCaption}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                  <div className="md:col-span-7 space-y-3">
+                  <div className="space-y-3 pt-2">
                     <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
                       {step.summary}
                     </p>
@@ -630,11 +742,11 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                       <div className="p-3 rounded-lg bg-purple-950/30 border border-purple-700/40 text-purple-200 text-xs space-y-1">
                         <div className="font-bold text-purple-300 flex items-center gap-1.5">
                           <Sparkles className="w-3 h-3 text-purple-400" />
-                          <span>Engineering Tips</span>
+                          <span>Field Pro-Tip</span>
                         </div>
-                        <ul className="text-[11px] text-purple-200/90 list-disc list-inside">
-                          {step.proTips.map((tip, idx) => (
-                            <li key={idx}>{tip}</li>
+                        <ul className="list-disc list-inside text-zinc-300 space-y-0.5 pl-1">
+                          {step.proTips.map((tip, tIdx) => (
+                            <li key={tIdx}>{tip}</li>
                           ))}
                         </ul>
                       </div>
