@@ -76,17 +76,18 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     propertyName: 'Cortland Old Fourth Ward',
   };
 
-  // Learning Mode: 'manual' (click step-by-step) vs 'auto' (7s automated progression)
+  // Learning Mode: 'manual' (click step-by-step) vs 'auto' (10s automated progression)
+  const AUTO_LEARN_DURATION_SECONDS = 10;
   const [tutorialMode, setTutorialMode] = useState<'manual' | 'auto'>('manual');
   const [showModeModal, setShowModeModal] = useState<boolean>(true);
-  const [autoLearnSecondsRemaining, setAutoLearnSecondsRemaining] = useState<number>(7);
+  const [autoLearnSecondsRemaining, setAutoLearnSecondsRemaining] = useState<number>(AUTO_LEARN_DURATION_SECONDS);
   const [isAutoPaused, setIsAutoPaused] = useState<boolean>(false);
 
   // Reset mode modal when tutorial is newly opened
   useEffect(() => {
     if (isOpen) {
       setShowModeModal(true);
-      setAutoLearnSecondsRemaining(7);
+      setAutoLearnSecondsRemaining(AUTO_LEARN_DURATION_SECONDS);
       setIsAutoPaused(false);
     }
   }, [isOpen]);
@@ -699,12 +700,12 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
   const handleStartMode = (mode: 'manual' | 'auto') => {
     setTutorialMode(mode);
     setShowModeModal(false);
-    setAutoLearnSecondsRemaining(7);
+    setAutoLearnSecondsRemaining(AUTO_LEARN_DURATION_SECONDS);
     setIsAutoPaused(false);
     goToStep(0);
   };
 
-  // Auto Learn: 7 seconds per step automated progression
+  // Auto Learn: 10 seconds per step automated progression
   useEffect(() => {
     if (!isOpen || showModeModal || isMinimized || tutorialMode !== 'auto' || isAutoPaused) {
       return;
@@ -720,7 +721,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
           } else {
             onCloseRef.current();
           }
-          return 7;
+          return AUTO_LEARN_DURATION_SECONDS;
         }
         return nextVal;
       });
@@ -729,9 +730,9 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     return () => clearInterval(timer);
   }, [isOpen, showModeModal, isMinimized, tutorialMode, isAutoPaused, COMPACT_STEPS.length]);
 
-  // When step changes, reset auto-learn timer to 7
+  // When step changes, reset auto-learn timer to 10s
   useEffect(() => {
-    setAutoLearnSecondsRemaining(7);
+    setAutoLearnSecondsRemaining(AUTO_LEARN_DURATION_SECONDS);
   }, [safeStepIndex]);
 
   // AUTO-ADVANCE ON TARGET INTERACTION:
@@ -915,11 +916,11 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     </h3>
                     <span className="text-[10px] font-extrabold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-200">
-                      7s per step
+                      10s per step
                     </span>
                   </div>
                   <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                    Hands-free walkthrough. Automatically progresses through all 19 steps with 7 seconds on each milestone without requiring any clicks.
+                    Hands-free walkthrough. Automatically progresses through all 19 steps with 10 seconds on each milestone without requiring any clicks.
                   </p>
                 </div>
               </div>
@@ -1054,7 +1055,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
           </div>
         </div>
 
-        {/* Auto Learn Active Strip with 7s Countdown & Pause Toggle */}
+        {/* Auto Learn Active Strip with 10s Countdown & Pause Toggle */}
         {tutorialMode === 'auto' && (
           <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 text-white px-3 py-1.5 text-[11px] font-mono flex items-center justify-between shrink-0 border-b border-indigo-700/60 shadow-inner">
             <div className="flex items-center gap-1.5 font-bold">
@@ -1143,11 +1144,11 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
                 type="button"
                 onClick={() => {
                   setTutorialMode('auto');
-                  setAutoLearnSecondsRemaining(7);
+                  setAutoLearnSecondsRemaining(AUTO_LEARN_DURATION_SECONDS);
                   setIsAutoPaused(false);
                 }}
                 className="px-1.5 py-0.5 rounded text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors cursor-pointer flex items-center gap-1"
-                title="Switch to Auto Learn (7s per step)"
+                title="Switch to Auto Learn (10s per step)"
               >
                 <Play className="w-2.5 h-2.5 fill-indigo-600" />
                 <span>Auto Learn</span>
