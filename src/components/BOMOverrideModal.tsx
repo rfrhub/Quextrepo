@@ -20,7 +20,9 @@ import {
   Wrench,
   Cpu,
   SlidersHorizontal,
-  Info
+  Info,
+  Cloud,
+  Package
 } from 'lucide-react';
 import {
   OperationProject,
@@ -33,6 +35,61 @@ import {
   QUEUXT_HARDWARE_CATALOG,
   MYQUEXT_FULL_PRODUCT_CATALOG,
 } from '../data/catalogData';
+
+export interface UnifiedCatalogItem {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  bomCategory: BOMCategory;
+  productType: 'Hardware' | 'Software';
+  manufacturer: string;
+  unitCost: number;
+  unitPrice: number;
+  description: string;
+  billingType?: string;
+  isPopularQuickAdd?: boolean;
+  specifications?: string[];
+  typicalScope?: string;
+  isBilledPerUnit?: boolean;
+}
+
+const UNIFIED_OVERRIDE_CATALOG: UnifiedCatalogItem[] = [
+  ...QUEUXT_HARDWARE_CATALOG.map((h) => ({
+    id: h.id,
+    sku: h.sku,
+    name: h.name,
+    category: h.category,
+    bomCategory: h.category,
+    productType: 'Hardware' as const,
+    manufacturer: h.manufacturer,
+    unitCost: h.unitCost,
+    unitPrice: h.unitPrice,
+    description: h.description,
+    typicalScope: h.typicalScope,
+    isPopularQuickAdd: h.isPopularQuickAdd,
+    specifications: h.specifications,
+  })),
+  ...MYQUEXT_FULL_PRODUCT_CATALOG
+    .filter((p) => p.pricingModel === 'SaaS')
+    .map((s) => ({
+      id: s.id,
+      sku: s.sku || s.id,
+      name: s.name,
+      category: 'Software & SaaS Licenses',
+      bomCategory: s.bomCategory || 'Common Area & Utilities',
+      productType: 'Software' as const,
+      manufacturer: s.brandName || 'Quext',
+      unitCost: s.cost || 0,
+      unitPrice: s.sellPrice || s.msrp || 2.0,
+      description: s.description || `${s.name} cloud license and software subscription service.`,
+      typicalScope: s.isBilledPerUnit ? ('Per Residential Unit' as const) : ('Per Site Package' as const),
+      billingType: s.isBilledPerUnit ? 'Per Unit / Month' : 'Per Property / Month',
+      isBilledPerUnit: s.isBilledPerUnit,
+      isPopularQuickAdd: true,
+      specifications: s.specifications || [`Vendor: ${s.brandName}`, `Pricing: SaaS Monthly`],
+    })),
+];
 
 interface BOMOverrideModalProps {
   isOpen: boolean;
@@ -58,11 +115,12 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
 
   // Product search & filtering
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<'All' | 'Hardware' | 'Software'>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedBrand, setSelectedBrand] = useState<string>('All');
 
   // Selected item configuration
-  const [selectedProduct, setSelectedProduct] = useState<HardwareCatalogItem | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<UnifiedCatalogItem | null>(null);
   const [overrideQuantity, setOverrideQuantity] = useState<number>(10);
   const [overrideSpares, setOverrideSpares] = useState<number>(1);
   const [overrideLocation, setOverrideLocation] = useState<string>('All Residential Units');
@@ -71,44 +129,66 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
 
   // Category list
   const categories = useMemo(() => {
-    const list = Array.from(new Set(QUEUXT_HARDWARE_CATALOG.map((h) => h.category)));
+    const list = Array.from(new Set(UNIFIED_OVERRIDE_CATALOG.map((h) => h.category)));
     return ['All', ...list];
   }, []);
 
   // Brand list
   const brands = useMemo(() => {
-    const list = Array.from(new Set(QUEUXT_HARDWARE_CATALOG.map((h) => h.manufacturer)));
+    const list = Array.from(new Set(UNIFIED_OVERRIDE_CATALOG.map((h) => h.manufacturer))).sort();
     return ['All', ...list];
   }, []);
 
-  // Filtered hardware items
+  // Filtered catalog items (Hardware + Software)
   const filteredProducts = useMemo(() => {
-    return QUEUXT_HARDWARE_CATALOG.filter((h) => {
+    return UNIFIED_OVERRIDE_CATALOG.filter((h) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
         h.name.toLowerCase().includes(q) ||
         h.sku.toLowerCase().includes(q) ||
         h.category.toLowerCase().includes(q) ||
-        h.manufacturer.toLowerCase().includes(q);
+        h.bomCategory.toLowerCase().includes(q) ||
+        h.manufacturer.toLowerCase().includes(q) ||
+        h.productType.toLowerCase().includes(q);
 
-      const matchesCat = selectedCategory === 'All' || h.category === selectedCategory;
-      const matchesBrand = selectedBrand === 'All' || h.manufacturer === selectedBrand;
+      const matchesType =
+        selectedType === 'All' || h.productType === selectedType;
+      const matchesCat =
+        selectedCategory === 'All' || h.category === selectedCategory;
+      const matchesBrand =
+        selectedBrand === 'All' || h.manufacturer === selectedBrand;
 
-      return matchesSearch && matchesCat && matchesBrand;
+      return matchesSearch && matchesType && matchesCat && matchesBrand;
     });
-  }, [searchQuery, selectedCategory, selectedBrand]);
+  }, [searchQuery, selectedType, selectedCategory, selectedBrand]);
 
-  // Handle choosing a product
-  const handleSelectProduct = (prod: HardwareCatalogItem) => {
+  // Handle choosing a product (Hardware or Software)
+  const handleSelectProduct = (prod: UnifiedCatalogItem) => {
     setSelectedProduct(prod);
-    setOverrideUnitPrice(prod.unitPrice || prod.unitCost || 100);
-    if (prod.typicalScope === 'Per Residential Unit') {
-      setOverrideLocation('All Residential Units');
-    } else if (prod.typicalScope === 'Central Infrastructure / Riser') {
-      setOverrideLocation('Clubhouse Rooftop & Riser Closets');
+    setOverrideUnitPrice(prod.unitPrice || prod.unitCost || (prod.productType === 'Software' ? 2 : 100));
+
+    if (prod.productType === 'Software') {
+      if (prod.isBilledPerUnit || prod.typicalScope === 'Per Residential Unit') {
+        setOverrideQuantity(project.unitsCount || 180);
+        setOverrideLocation('Software and Services (All Units)');
+      } else {
+        setOverrideQuantity(1);
+        setOverrideLocation('Software and Services (Property License)');
+      }
+      setOverrideSpares(0);
+      setOverrideReason('Customer change order: Added software subscription / cloud license to project contract');
     } else {
-      setOverrideLocation('Common Area Amenities & Leasing Office');
+      setOverrideQuantity(10);
+      setOverrideSpares(1);
+      if (prod.typicalScope === 'Per Residential Unit') {
+        setOverrideLocation('All Residential Units');
+      } else if (prod.typicalScope === 'Central Infrastructure / Riser') {
+        setOverrideLocation('Clubhouse Rooftop & Riser Closets');
+      } else {
+        setOverrideLocation('Common Area Amenities & Leasing Office');
+      }
+      setOverrideReason('Customer change order: Scope addition approved by property owner');
     }
   };
 
@@ -154,12 +234,14 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
       id: `bom-override-${Date.now()}`,
       name: selectedProduct.name,
       model: selectedProduct.sku,
-      category: selectedProduct.category,
+      category: selectedProduct.bomCategory,
       quantity: overrideQuantity,
       installedCount: 0,
       sparesCount: overrideSpares,
       unitPrice: overrideUnitPrice,
-      location: overrideLocation.trim() || 'Project Site',
+      location:
+        overrideLocation.trim() ||
+        (selectedProduct.productType === 'Software' ? 'Software and Services' : 'Project Site'),
       description: selectedProduct.description,
       postItLogs: [
         {
@@ -170,9 +252,13 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
           itemId: `bom-override-${Date.now()}`,
           itemName: selectedProduct.name,
           quantityCompleted: 0,
-          locationCompleted: overrideLocation.trim() || 'Project Site',
+          locationCompleted:
+            overrideLocation.trim() ||
+            (selectedProduct.productType === 'Software' ? 'Software and Services' : 'Project Site'),
           statusCheck: 'Verified & Online',
-          notes: `⚡ BOM OVERRIDE: Added directly from myquext.com Product Catalog (${selectedProduct.manufacturer} ${selectedProduct.name}). Reason: ${overrideReason}`,
+          notes: `⚡ BOM OVERRIDE: Added directly from myquext.com Product Catalog (${
+            selectedProduct.productType === 'Software' ? 'Software SaaS License' : 'Hardware'
+          }: ${selectedProduct.manufacturer} ${selectedProduct.name}). Reason: ${overrideReason}`,
         },
       ],
     };
@@ -217,6 +303,63 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
         {/* STEP 1: Select Product from Catalog & Configure */}
         {step === 'select' && (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+            {/* Catalog Type Switcher: All | Hardware | Software */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedType('All');
+                    if (selectedCategory === 'Software & SaaS Licenses') setSelectedCategory('All');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    selectedType === 'All'
+                      ? 'bg-white text-slate-950 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Products ({UNIFIED_OVERRIDE_CATALOG.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedType('Hardware');
+                    if (selectedCategory === 'Software & SaaS Licenses') setSelectedCategory('All');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    selectedType === 'Hardware'
+                      ? 'bg-white text-slate-950 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Hardware Devices (67)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedType('Software');
+                    setSelectedCategory('All');
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    selectedType === 'Software'
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-purple-700 hover:bg-purple-50'
+                  }`}
+                >
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>Software Catalog (18)</span>
+                </button>
+              </div>
+
+              <div className="text-[11px] text-slate-500 font-mono">
+                {selectedType === 'Software'
+                  ? '18 Software SaaS items'
+                  : selectedType === 'Hardware'
+                  ? '67 Hardware items'
+                  : '85 Total catalog items'}
+              </div>
+            </div>
+
             {/* Search and Brand Filters */}
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -224,7 +367,7 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    placeholder="Search hardware by name, SKU, or manufacturer (Schlage, Quext, Eagle Eye, Resideo)..."
+                    placeholder="Search hardware & software by name, SKU, manufacturer, or license (Brivo, Schlage, Quext, ButterflyMX)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
@@ -253,14 +396,23 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      if (cat === 'Software & SaaS Licenses') {
+                        setSelectedType('Software');
+                      }
+                    }}
                     className={`px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                       selectedCategory === cat
-                        ? 'bg-amber-500 text-slate-950 shadow-2xs font-bold'
+                        ? cat === 'Software & SaaS Licenses'
+                          ? 'bg-purple-600 text-white shadow-2xs font-bold'
+                          : 'bg-amber-500 text-slate-950 shadow-2xs font-bold'
+                        : cat === 'Software & SaaS Licenses'
+                        ? 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {cat}
+                    {cat === 'Software & SaaS Licenses' ? '⚡ Software & SaaS' : cat}
                   </button>
                 ))}
               </div>
@@ -271,7 +423,14 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
               <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
                 <span>Select a product from the official catalog ({filteredProducts.length} available)</span>
                 {selectedProduct && (
-                  <span className="text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  <span
+                    className={`font-semibold px-2 py-0.5 rounded border text-[11px] flex items-center gap-1 ${
+                      selectedProduct.productType === 'Software'
+                        ? 'text-purple-900 bg-purple-50 border-purple-300'
+                        : 'text-amber-800 bg-amber-50 border-amber-200'
+                    }`}
+                  >
+                    {selectedProduct.productType === 'Software' && <Cloud className="w-3 h-3 text-purple-600" />}
                     Selected: {selectedProduct.name}
                   </span>
                 )}
@@ -280,6 +439,7 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-1 border border-slate-200 rounded-xl bg-slate-50/50">
                 {filteredProducts.map((prod) => {
                   const isSelected = selectedProduct?.id === prod.id;
+                  const isSoftware = prod.productType === 'Software';
                   return (
                     <div
                       key={prod.id}
@@ -287,30 +447,55 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
                       onClick={() => handleSelectProduct(prod)}
                       className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
                         isSelected
-                          ? 'bg-amber-50/80 border-amber-500 ring-2 ring-amber-500/20'
+                          ? isSoftware
+                            ? 'bg-purple-50/90 border-purple-500 ring-2 ring-purple-500/20'
+                            : 'bg-amber-50/80 border-amber-500 ring-2 ring-amber-500/20'
+                          : isSoftware
+                          ? 'bg-purple-50/25 border-purple-200/80 hover:border-purple-400 hover:bg-purple-50/50'
                           : 'bg-white border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       <div>
                         <div className="flex items-start justify-between gap-1.5">
                           <span className="font-bold text-slate-900 text-xs line-clamp-1">{prod.name}</span>
-                          <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded shrink-0">
-                            {prod.sku}
+                          <span
+                            className={`font-mono text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${
+                              isSoftware
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {isSoftware && <Cloud className="w-2.5 h-2.5 text-purple-600" />}
+                            {isSoftware ? 'Software SaaS' : prod.sku}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[11px]">
-                          <span className="font-bold text-slate-900">${prod.unitPrice} retail</span>
+                          <span className={`font-bold ${isSoftware ? 'text-purple-900' : 'text-slate-900'}`}>
+                            ${prod.unitPrice} {isSoftware ? '/mo' : 'retail'}
+                          </span>
                           <span className="text-slate-400">•</span>
-                          <span className="text-slate-500 font-mono">Cost: ${prod.unitCost}</span>
+                          <span className="text-slate-500 font-mono text-[10px]">
+                            {isSoftware ? prod.billingType || 'Monthly' : `Cost: $${prod.unitCost}`}
+                          </span>
                           <span className="text-slate-400">•</span>
-                          <span className="text-sky-700 font-medium">{prod.manufacturer}</span>
+                          <span className="text-sky-700 font-medium text-[10px]">{prod.manufacturer}</span>
                         </div>
                         <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{prod.description}</p>
                       </div>
 
                       <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500">{prod.category}</span>
-                        <span className={`font-bold ${isSelected ? 'text-amber-800' : 'text-slate-600'}`}>
+                        <span className="text-slate-500 text-[10px]">
+                          {isSoftware ? `${prod.bomCategory} (Software)` : prod.category}
+                        </span>
+                        <span
+                          className={`font-bold text-[11px] ${
+                            isSelected
+                              ? isSoftware
+                                ? 'text-purple-800 font-extrabold'
+                                : 'text-amber-800'
+                              : 'text-slate-600'
+                          }`}
+                        >
                           {isSelected ? '✓ Selected' : 'Click to select'}
                         </span>
                       </div>
@@ -323,16 +508,25 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
             {/* Line Item Configuration Form */}
             {selectedProduct && (
               <form onSubmit={handleProceedToWarning} className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
                   <span className="font-bold text-xs uppercase tracking-wider text-slate-700">
                     Configure Line Item Scope for {project.propertyName}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                      selectedProduct.productType === 'Software'
+                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                        : 'bg-amber-100 text-amber-900 border border-amber-200'
+                    }`}
+                  >
+                    {selectedProduct.productType === 'Software' ? 'Software / SaaS License' : 'Hardware Device'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Override Quantity *
+                      {selectedProduct.productType === 'Software' ? 'License Quantity *' : 'Override Quantity *'}
                     </label>
                     <input
                       type="number"
@@ -346,20 +540,25 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Spares Allocated
+                      {selectedProduct.productType === 'Software' ? 'Spares (N/A for SaaS)' : 'Spares Allocated'}
                     </label>
                     <input
                       type="number"
                       min={0}
+                      disabled={selectedProduct.productType === 'Software'}
                       value={overrideSpares}
                       onChange={(e) => setOverrideSpares(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-900"
+                      className={`w-full px-3 py-1.5 border rounded-lg text-xs font-mono ${
+                        selectedProduct.productType === 'Software'
+                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                          : 'bg-white border-slate-300 text-slate-900'
+                      }`}
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Unit Price ($) *
+                      {selectedProduct.productType === 'Software' ? 'Monthly Price ($/mo) *' : 'Unit Price ($) *'}
                     </label>
                     <input
                       type="number"
@@ -375,19 +574,32 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Designated Installation Location *
+                    Designated Installation / Deployment Location *
                   </label>
                   <input
                     type="text"
                     value={overrideLocation}
                     onChange={(e) => setOverrideLocation(e.target.value)}
-                    placeholder="e.g. All Residential Units, Clubhouse & Amenities, Gate Entry..."
+                    placeholder="e.g. Software and Services, All Residential Units, Clubhouse & Amenities..."
                     className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900"
                     required
                   />
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     <span className="text-[10px] text-slate-500">Quick suggestions:</span>
-                    {['All Residential Units', 'Clubhouse & Leasing Office', 'Amenity Gates & Pool', 'Building Risers & Exterior'].map((loc) => (
+                    {(selectedProduct.productType === 'Software'
+                      ? [
+                          'Software and Services (All Units)',
+                          'Software and Services (Property License)',
+                          'Clubhouse & Leasing Admin Portal',
+                          'Resident Mobile App & Cloud',
+                        ]
+                      : [
+                          'All Residential Units',
+                          'Clubhouse & Leasing Office',
+                          'Amenity Gates & Pool',
+                          'Building Risers & Exterior',
+                        ]
+                    ).map((loc) => (
                       <button
                         key={loc}
                         type="button"
@@ -515,21 +727,33 @@ export const BOMOverrideModal: React.FC<BOMOverrideModalProps> = ({
                     </tr>
                     <tr className="hover:bg-slate-50/50">
                       <td className="py-3 px-4 font-sans font-semibold text-slate-900">
-                        Hardware Line Item
+                        {selectedProduct.productType === 'Software' ? 'Software SaaS Line Item' : 'Hardware Line Item'}
                       </td>
                       <td className="py-3 px-4 text-slate-400 font-sans italic">
                         Not in original quote
                       </td>
                       <td className="py-3 px-4 font-sans text-slate-900">
-                        <strong>{selectedProduct.name}</strong> ({selectedProduct.sku})
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <strong>{selectedProduct.name}</strong>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                              selectedProduct.productType === 'Software'
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {selectedProduct.productType === 'Software' ? 'SaaS License' : selectedProduct.sku}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-amber-700 font-sans font-bold text-right">
-                        +{overrideQuantity} units (+{overrideSpares} spares)
+                        +{overrideQuantity} {selectedProduct.productType === 'Software' ? 'licenses' : 'units'}
+                        {overrideSpares > 0 ? ` (+${overrideSpares} spares)` : ''}
                       </td>
                     </tr>
                     <tr className="hover:bg-slate-50/50">
                       <td className="py-3 px-4 font-sans font-semibold text-slate-900">
-                        Installation Area
+                        Deployment Area
                       </td>
                       <td className="py-3 px-4 text-slate-400 font-sans italic">—</td>
                       <td className="py-3 px-4 font-sans text-slate-700" colSpan={2}>
