@@ -17,6 +17,11 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({ className = 'h-7 sm:h-8', 
         src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
         alt="Quext"
         className={`${className} w-auto object-contain`}
+        onError={(e) => {
+          if (e.currentTarget.src !== '/quext-logo-boxed.png') {
+            e.currentTarget.src = '/quext-logo-boxed.png';
+          }
+        }}
       />
     </button>
   );

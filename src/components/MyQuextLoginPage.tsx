@@ -196,15 +196,16 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
           <div className="flex flex-col items-start mb-6">
             {/* Quext Black Box Logo matching Screenshot 2 */}
             <div className="mb-5 flex items-center">
-              <div className="relative border-[2.5px] border-slate-900 px-2.5 py-1 flex items-center justify-center">
-                <span className="text-xl font-bold tracking-tight text-slate-900 font-['Inter_Tight',sans-serif] leading-none">
-                  quext
-                </span>
-                <div className="w-2 h-2 border-r-[2.5px] border-b-[2.5px] border-slate-900 bg-white rotate-45 absolute -bottom-[6px] left-3" />
-              </div>
-              <span className="text-[8px] font-bold text-slate-500 self-end ml-0.5 leading-none">
-                ®
-              </span>
+              <img
+                src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
+                alt="Quext"
+                className="h-10 sm:h-11 w-auto object-contain"
+                onError={(e) => {
+                  if (e.currentTarget.src !== '/quext-logo-boxed.png') {
+                    e.currentTarget.src = '/quext-logo-boxed.png';
+                  }
+                }}
+              />
             </div>
 
             <div className="mb-2">
