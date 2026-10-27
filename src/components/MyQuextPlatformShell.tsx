@@ -4,6 +4,7 @@ import {
   OperationProject,
   DealStage,
   AVAILABLE_PMS,
+  buildPartnerAcademyPortalUrl,
 } from '../types';
 import { MyQuextSignedInUser, resolveEmailToMyQuextUser } from './MyQuextLoginPage';
 import {
@@ -171,6 +172,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   const [globalSearch, setGlobalSearch] = useState('');
   const [showGlobalSearchDropdown, setShowGlobalSearchDropdown] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [copiedPartnerAcademyLink, setCopiedPartnerAcademyLink] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [repFilter, setRepFilter] = useState<string>('all');
   const [opportunitySearchTerm, setOpportunitySearchTerm] = useState<string>('');
@@ -671,6 +673,38 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       </div>
                       <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     </button>
+
+                    {/* Partner Academy Portal */}
+                    {onOpenPartnerAcademy && (
+                      <div className="w-full px-4 py-1.5 flex items-center justify-between hover:bg-purple-50/70 transition-colors">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            onOpenPartnerAcademy();
+                          }}
+                          className="flex items-center gap-2 text-sm font-semibold text-purple-900 cursor-pointer flex-1 text-left"
+                          title="Open Quext Partner Training & Certification Academy Portal"
+                        >
+                          <BookOpen className="w-4 h-4 text-purple-600 shrink-0" />
+                          <span>Partner Academy Portal</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const url = buildPartnerAcademyPortalUrl();
+                            navigator.clipboard.writeText(url);
+                            setCopiedPartnerAcademyLink(true);
+                            setTimeout(() => setCopiedPartnerAcademyLink(false), 2500);
+                          }}
+                          className="p-1 px-1.5 rounded text-[10px] font-bold text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer shrink-0"
+                          title="Copy shareable link to send to Integrator Partners"
+                        >
+                          {copiedPartnerAcademyLink ? 'Copied!' : 'Copy Link'}
+                        </button>
+                      </div>
+                    )}
 
                     <button
                       type="button"

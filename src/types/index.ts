@@ -1496,6 +1496,27 @@ export function buildProductAcceptancePortalUrl(projectId: string): string {
   return `${origin}${path}#/product-acceptance/${projectId}`;
 }
 
+export function buildPartnerAcademyPortalUrl(partnerCodeOrShortName?: string, projectId?: string): string {
+  if (typeof window === 'undefined') {
+    const params = new URLSearchParams();
+    if (partnerCodeOrShortName) params.set('partner', partnerCodeOrShortName);
+    if (projectId) params.set('project', projectId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return `#/partner-academy${qs}`;
+  }
+  const origin = window.location.origin;
+  let path = window.location.pathname || '/';
+  path = path.replace(/index\.html$/i, '');
+  if (!path.endsWith('/')) {
+    path = `${path}/`;
+  }
+  const params = new URLSearchParams();
+  if (partnerCodeOrShortName) params.set('partner', partnerCodeOrShortName);
+  if (projectId) params.set('project', projectId);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return `${origin}${path}#/partner-academy${qs}`;
+}
+
 // ==========================================
 // Lock Finishes, Trim & Lever Specifications
 // ==========================================

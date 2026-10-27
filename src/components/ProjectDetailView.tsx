@@ -26,6 +26,7 @@ import {
   QUEXT_TRAINING_HELP_ARTICLE_URL,
   PendingInstallationChange,
   buildCustomerKickoffPortalUrl,
+  buildPartnerAcademyPortalUrl,
   CustomerCommsLog,
   getLockFinishSummaryTag,
   isLockBOMItem,
@@ -121,6 +122,14 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     initialTab === 'customer-kickoff' ? 'customer-kickoff' : initialTab === 'customer-comms' ? 'customer-comms' : 'field-bom'
   );
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
+  const [copiedPartnerAcademyLink, setCopiedPartnerAcademyLink] = useState<boolean>(false);
+
+  const handleCopyPartnerAcademyLink = (partnerName?: string) => {
+    const url = buildPartnerAcademyPortalUrl(partnerName, project.id);
+    navigator.clipboard.writeText(url);
+    setCopiedPartnerAcademyLink(true);
+    setTimeout(() => setCopiedPartnerAcademyLink(false), 2500);
+  };
 
   useEffect(() => {
     if (initialTab) {
@@ -1874,6 +1883,21 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     Academy View
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const primaryPartner =
+                      partnerCourseEvaluation.partnerStatuses[0]?.partnerShortName ||
+                      getProjectIntegratorPartners(project)[0] ||
+                      'SKBM';
+                    handleCopyPartnerAcademyLink(primaryPartner);
+                  }}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-purple-800 bg-white hover:bg-purple-50 border border-purple-200 transition-colors cursor-pointer shadow-2xs"
+                  title="Copy shareable Partner Academy link for this project's assigned partner firm"
+                >
+                  <Share2 className="w-2.5 h-2.5 text-purple-600" />
+                  <span>{copiedPartnerAcademyLink ? 'Copied!' : 'Copy Partner Link'}</span>
+                </button>
               </div>
             </div>
           </div>

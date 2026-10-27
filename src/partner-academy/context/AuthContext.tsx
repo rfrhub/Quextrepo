@@ -151,7 +151,19 @@ export const AuthProvider: React.FC<{
   const companyUsers = allUsers.filter(u => u.companyId === currentCompany.id);
 
   const loginAsUser = (userId: string) => {
-    if (allUsers.some(u => u.id === userId)) {
+    const target = allUsers.find((u) => u.id === userId);
+    if (
+      target &&
+      (target.role === 'quext_director' ||
+        target.companyId === 'comp_quext_hq' ||
+        target.email.toLowerCase().endsWith('@onequext.com') ||
+        target.email.toLowerCase().endsWith('@quext.com'))
+    ) {
+      if (!isQuextEmployeeUser(currentUser, currentCompany)) {
+        return;
+      }
+    }
+    if (allUsers.some((u) => u.id === userId)) {
       setCurrentUserId(userId);
     }
   };

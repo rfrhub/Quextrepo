@@ -5,6 +5,7 @@ import {
   AVAILABLE_PMS,
   getProjectIntegratorPartners,
   getAllIntegratorPartners,
+  buildPartnerAcademyPortalUrl,
 } from '../types';
 import { QuextVisionLogo } from './QuextVisionLogo';
 import {
@@ -30,6 +31,9 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Share2,
+  Check,
+  Copy,
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -58,6 +62,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [partnerProgressFilter, setPartnerProgressFilter] = useState<'all' | 'completed' | 'in_progress'>('all');
   const [areProjectCardsMinimized, setAreProjectCardsMinimized] = useState<boolean>(false);
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
+  const [copiedPartnerKey, setCopiedPartnerKey] = useState<string | null>(null);
+
+  const handleCopyPartnerLink = (partnerName?: string) => {
+    const url = buildPartnerAcademyPortalUrl(partnerName);
+    navigator.clipboard.writeText(url);
+    const key = partnerName || 'general';
+    setCopiedPartnerKey(key);
+    setTimeout(() => {
+      setCopiedPartnerKey((current) => (current === key ? null : current));
+    }, 2500);
+  };
 
   // Listen for live Partner Academy course updates
   useEffect(() => {
@@ -737,6 +752,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               )}
             </button>
 
+            <button
+              type="button"
+              onClick={() => handleCopyPartnerLink()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs transition-colors cursor-pointer"
+              title="Copy dedicated Partner Academy link to send to field integrators"
+            >
+              {copiedPartnerKey === 'general' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5 text-purple-600" />}
+              <span>{copiedPartnerKey === 'general' ? 'Link Copied!' : 'Copy Partner Invite Link'}</span>
+            </button>
+
             {onOpenPartnerAcademy && (
               <button
                 type="button"
@@ -994,11 +1019,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </div>
 
                   {/* Card Footer: Open Partner in Academy */}
-                  {onOpenPartnerAcademy && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-slate-500">
-                        {overall.region}
-                      </span>
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPartnerLink(overall.partnerShortName)}
+                      className="text-[11px] font-semibold text-slate-600 hover:text-purple-700 inline-flex items-center gap-1 cursor-pointer"
+                      title={`Copy dedicated invite link for ${overall.partnerShortName}`}
+                    >
+                      {copiedPartnerKey === overall.partnerShortName ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-700 font-bold">Link Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="w-3 h-3 text-purple-600" />
+                          <span>Copy Partner Link</span>
+                        </>
+                      )}
+                    </button>
+                    {onOpenPartnerAcademy && (
                       <button
                         type="button"
                         onClick={() =>
@@ -1012,8 +1052,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <span>View in Partner Academy</span>
                         <ArrowRight className="w-3 h-3" />
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )
             )}

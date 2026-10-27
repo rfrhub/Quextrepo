@@ -13,10 +13,14 @@ import {
   X,
   BookOpen,
   Zap,
+  Share2,
+  Check,
+  Copy,
 } from 'lucide-react';
 import { QuextLogo } from './QuextLogo';
 import { initAuth, subscribeToGmailAuth, logout } from '../services/gmailService';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { buildPartnerAcademyPortalUrl } from '../types';
 
 interface HeaderProps {
   currentMainTab: 'home' | 'operations' | 'timeline' | 'quotes' | 'analysis';
@@ -40,6 +44,14 @@ export const Header: React.FC<HeaderProps> = ({
   const [needsAuth, setNeedsAuth] = useState<boolean>(true);
   const [gmailUserEmail, setGmailUserEmail] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [copiedAcademyLink, setCopiedAcademyLink] = useState<boolean>(false);
+
+  const handleCopyPartnerAcademyLink = () => {
+    const url = buildPartnerAcademyPortalUrl();
+    navigator.clipboard.writeText(url);
+    setCopiedAcademyLink(true);
+    setTimeout(() => setCopiedAcademyLink(false), 2500);
+  };
 
   useEffect(() => {
     const unsubInit = initAuth(
@@ -201,16 +213,27 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {onOpenPartnerAcademy && (
-              <button
-                type="button"
-                onClick={onOpenPartnerAcademy}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
-                title="Open Quext Partner Training & Certification Academy Portal"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-purple-600" />
-                <span className="hidden sm:inline">Partner Academy</span>
-                <span className="sm:hidden">Academy</span>
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={onOpenPartnerAcademy}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                  title="Open Quext Partner Training & Certification Academy Portal"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-purple-600" />
+                  <span className="hidden sm:inline">Partner Academy</span>
+                  <span className="sm:hidden">Academy</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyPartnerAcademyLink}
+                  className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-purple-800 bg-white hover:bg-purple-50 border border-purple-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                  title="Copy shareable Partner Academy invite link to clipboard"
+                >
+                  {copiedAcademyLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5 text-purple-600" />}
+                  <span className="hidden md:inline">{copiedAcademyLink ? 'Link Copied!' : 'Copy Link'}</span>
+                </button>
+              </div>
             )}
 
             {onOpenLoginModal && (

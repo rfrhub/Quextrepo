@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth, isQuextEmployeeUser } from '../context/AuthContext';
 import { QuextLogo } from './QuextLogo';
-import { ShieldCheck, UserCheck, Building2, Award, ChevronDown, Zap, Menu, X } from 'lucide-react';
+import { ShieldCheck, UserCheck, Building2, Award, ChevronDown, Zap, Menu, X, Copy, Check, Share2 } from 'lucide-react';
+import { buildPartnerAcademyPortalUrl } from '../../types';
 
 interface HeaderProps {
   currentTab: string;
@@ -26,6 +27,14 @@ export const Header: React.FC<HeaderProps> = ({
   const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyPartnerLink = () => {
+    const url = buildPartnerAcademyPortalUrl(currentCompany?.name || undefined);
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
 
   const roleLabels: Record<string, string> = {
     partner_installer: 'Field Installer',
@@ -510,6 +519,18 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Sign Out</span>
             </button>
           )}
+
+          {/* Share Partner Academy Link Button */}
+          <button
+            type="button"
+            onClick={handleCopyPartnerLink}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-full transition-colors cursor-pointer shrink-0"
+            title="Copy dedicated Partner Academy link to send to field integrators"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
+            <span className="hidden sm:inline">{copiedLink ? 'Link Copied!' : 'Copy Partner Link'}</span>
+            <span className="sm:hidden">{copiedLink ? 'Copied' : 'Share'}</span>
+          </button>
 
           {/* Portal Sign-in */}
           <button

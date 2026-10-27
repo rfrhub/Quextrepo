@@ -126,7 +126,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
             </div>
 
             <div className="space-y-2.5">
-              {allUsers.map((user) => {
+              {allUsers
+                .filter(
+                  (user) =>
+                    user.role !== 'quext_director' &&
+                    user.companyId !== 'comp_quext_hq' &&
+                    !user.email.toLowerCase().endsWith('@onequext.com') &&
+                    !user.email.toLowerCase().endsWith('@quext.com')
+                )
+                .map((user) => {
                 const isCurrent = user.id === currentUser.id;
                 const comp = companies.find((c) => c.id === user.companyId);
 
@@ -168,7 +176,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                           ? 'Field Installer'
                           : user.role === 'partner_admin'
                           ? 'Partner Admin'
-                          : 'Quext Director'}
+                          : 'Certified Specialist'}
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono">
                         {user.fieldIdNumber}
@@ -202,7 +210,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                 />
               </div>
               <span className="text-[10px] text-slate-500 mt-1 block">
-                Official codes: SKB-101, ATB-202, SBH-303, EVB-404, JTS-505, RMR-606, AMD-707, QXT-001
+                Official codes: SKB-101, ATB-202, SBH-303, EVB-404, JTS-505, RMR-606, AMD-707
               </span>
             </div>
 

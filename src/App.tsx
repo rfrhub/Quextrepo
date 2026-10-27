@@ -56,6 +56,7 @@ import {
   buildProjectPrePackagedBundle,
   resolveMyQuextEmailIdentity,
   PARTNER_IDENTITY_DIRECTORY,
+  isPartnerMatching,
 } from './partner-academy/utils/projectCoursePackager';
 import { RotateCcw, ArrowLeft, Building2, Mail, Eye } from 'lucide-react';
 
@@ -97,14 +98,64 @@ function extractAcceptanceIdFromLocation(): string | null {
   return null;
 }
 
+function parsePartnerAcademyFromLocation(): {
+  email: string;
+  companyId?: string;
+  partnerShortName?: string;
+  selectedProjectId?: string | null;
+} | null {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  const isAcademy =
+    hash.includes('/partner-academy') ||
+    hash.includes('#partner-academy') ||
+    search.includes('portal=partner-academy');
+
+  if (!isAcademy) return null;
+
+  const searchParams = new URLSearchParams(
+    search || (hash.includes('?') ? hash.split('?')[1] : '')
+  );
+  const partnerParam = searchParams.get('partner') || searchParams.get('company');
+  const projectParam = searchParams.get('project') || searchParams.get('projectId');
+
+  let target = PARTNER_IDENTITY_DIRECTORY[0];
+  if (partnerParam) {
+    const found = PARTNER_IDENTITY_DIRECTORY.find(
+      (p) =>
+        isPartnerMatching(p.partnerShortName, partnerParam) ||
+        p.companyId.toLowerCase() === partnerParam.toLowerCase() ||
+        p.companyCode.toLowerCase() === partnerParam.toLowerCase() ||
+        p.aliases.some((a) => a.toLowerCase().includes(partnerParam.toLowerCase()))
+    );
+    if (found) target = found;
+  }
+
+  return {
+    email: target.defaultEmail,
+    companyId: target.companyId,
+    partnerShortName: target.partnerShortName,
+    selectedProjectId: projectParam || null,
+  };
+}
+
 export default function App() {
   const [quotes, setQuotes] = useState<Quote[]>(() => loadStoredQuotes());
   const [projects, setProjects] = useState<OperationProject[]>(() => loadStoredProjects());
 
   // Signed-in myquext.com user state (null = show myquext.com Welcome Back login screen)
   const [signedInUser, setSignedInUser] = useState<MyQuextSignedInUser | null>(() => {
-    if (typeof window !== 'undefined' && window.location.hash.includes('/login')) {
-      return null;
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      if (
+        hash.includes('/login') ||
+        hash.includes('/partner-academy') ||
+        hash.includes('/customer-kickoff/') ||
+        hash.includes('/product-acceptance/')
+      ) {
+        return null;
+      }
     }
     return resolveEmailToMyQuextUser('raul.recalde@onequext.com');
   });
@@ -117,17 +168,9 @@ export default function App() {
     companyId?: string;
     partnerShortName?: string;
     selectedProjectId?: string | null;
-  } | null>(() => {
-    if (typeof window !== 'undefined' && window.location.hash.includes('/partner-academy')) {
-      return {
-        email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
-        companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
-        partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
-        selectedProjectId: null,
-      };
-    }
-    return null;
-  });
+  } | null>(() => parsePartnerAcademyFromLocation());
+  const signedInUserRef = useRef(signedInUser);
+  signedInUserRef.current = signedInUser;
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isSowHubOpen, setIsSowHubOpen] = useState<boolean>(false);
 
@@ -358,16 +401,19 @@ export default function App() {
         return;
       }
 
-      // Check if Partner Academy hash is accessed directly
-      if (hash.includes('/partner-academy')) {
+      // Check if Partner Academy hash or portal link is accessed directly
+      const detectedAcademy = parsePartnerAcademyFromLocation();
+      if (detectedAcademy) {
         setLoggedInFieldTech(null);
-        setLoggedInPartnerAcademy((prev) =>
-          prev || {
-            email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
-            companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
-            partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
-          }
-        );
+        setLoggedInPartnerAcademy((prev) => ({
+          email: detectedAcademy.email,
+          companyId: detectedAcademy.companyId,
+          partnerShortName: detectedAcademy.partnerShortName,
+          selectedProjectId:
+            detectedAcademy.selectedProjectId !== undefined
+              ? detectedAcademy.selectedProjectId
+              : prev?.selectedProjectId || null,
+        }));
         return;
       }
 
@@ -409,14 +455,35 @@ export default function App() {
         setStandaloneAcceptanceProjectId(null);
       }
 
-      if (hash.includes('/partner-academy') || hash.includes('#partner-academy')) {
-        setLoggedInPartnerAcademy((prev) => prev || {
-          email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
-          companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
-          partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
-          selectedProjectId: null,
-        });
-        return;
+      // Route Quarantine: External partners and customers CANNOT access internal PM Workspace routes
+      const isInternalRoute =
+        hash.includes('/operations') ||
+        hash.includes('/home') ||
+        hash.includes('/quotes') ||
+        hash.includes('/timeline') ||
+        hash.includes('/analysis');
+
+      if (isInternalRoute) {
+        const isInternalTeamMember =
+          signedInUserRef.current && signedInUserRef.current.accountType === 'team_member';
+        if (!isInternalTeamMember) {
+          if (loggedInPartnerAcademy || hash.includes('/partner-academy')) {
+            window.location.hash = '#/partner-academy';
+            return;
+          }
+          if (standaloneKickoffProjectId || hash.includes('/customer-kickoff/')) {
+            const kId = standaloneKickoffProjectId || extractKickoffIdFromLocation();
+            window.location.hash = kId ? `#/customer-kickoff/${kId}` : '#/login';
+            return;
+          }
+          if (standaloneAcceptanceProjectId || hash.includes('/product-acceptance/')) {
+            const aId = standaloneAcceptanceProjectId || extractAcceptanceIdFromLocation();
+            window.location.hash = aId ? `#/product-acceptance/${aId}` : '#/login';
+            return;
+          }
+          window.location.hash = '#/login';
+          return;
+        }
       }
 
       if (hash.includes('/analysis/')) {
@@ -1057,42 +1124,29 @@ export default function App() {
               </div>
 
               {/* Controls / Support */}
-              <div className="flex items-center gap-2">
-                {signedInUser ? (
-                  <div className="flex items-center gap-2">
-                    <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-800 rounded-md text-[11px] font-mono font-bold">
-                      <Eye className="w-3 h-3 text-amber-600" />
-                      Quext Team Preview
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleGoToOperationsProject(standaloneAcceptanceProject.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Back to PM Workspace</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2.5 text-xs">
-                    <div className="hidden sm:flex flex-col text-right">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                        Assigned Project Manager
-                      </span>
-                      <span className="font-bold text-slate-800 text-xs">
-                        {standaloneAcceptanceProject.assignedPM?.name || 'Quext Operations Team'}
-                      </span>
-                    </div>
-                    {standaloneAcceptanceProject.assignedPM?.email && (
-                      <a
-                        href={`mailto:${standaloneAcceptanceProject.assignedPM.email}?subject=Question regarding Product Acceptance for ${encodeURIComponent(standaloneAcceptanceProject.propertyName)}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200 rounded-lg font-bold text-xs transition-colors"
-                      >
-                        <Mail className="w-3.5 h-3.5 text-sky-600" />
-                        <span>Contact PM</span>
-                      </a>
-                    )}
-                  </div>
+              <div className="flex items-center gap-2.5 text-xs">
+                {signedInUser?.accountType === 'team_member' && (
+                  <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-800 rounded-md text-[11px] font-mono font-bold">
+                    <Eye className="w-3 h-3 text-amber-600" />
+                    Delivery Acceptance Mode
+                  </span>
+                )}
+                <div className="hidden sm:flex flex-col text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    Assigned Project Manager
+                  </span>
+                  <span className="font-bold text-slate-800 text-xs">
+                    {standaloneAcceptanceProject.assignedPM?.name || 'Quext Operations Team'}
+                  </span>
+                </div>
+                {standaloneAcceptanceProject.assignedPM?.email && (
+                  <a
+                    href={`mailto:${standaloneAcceptanceProject.assignedPM.email}?subject=Question regarding Product Acceptance for ${encodeURIComponent(standaloneAcceptanceProject.propertyName)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200 rounded-lg font-bold text-xs transition-colors"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Contact PM</span>
+                  </a>
                 )}
               </div>
             </div>
@@ -1101,9 +1155,9 @@ export default function App() {
           <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <ProductAcceptancePortalModal
               project={standaloneAcceptanceProject}
-              onClose={signedInUser ? () => handleGoToOperationsProject(standaloneAcceptanceProject.id) : undefined}
+              onClose={undefined}
               onUpdateProject={handleUpdateProject}
-              isStandaloneClientView={!signedInUser}
+              isStandaloneClientView={true}
             />
           </main>
 
@@ -1114,17 +1168,6 @@ export default function App() {
               support@onequext.com
             </a>
           </footer>
-
-          {signedInUser && (
-            <RightNotificationsDock
-              mode="pm"
-              projects={projects}
-              latestNotification={latestNotification}
-              autoPopTriggerKey={autoPopTriggerKey}
-              onSelectProject={handleGoToOperationsProject}
-              currentUserName={signedInUser?.name}
-            />
-          )}
         </div>
       );
     }
@@ -1255,45 +1298,30 @@ export default function App() {
               </div>
 
               {/* Controls / Support */}
-              <div className="flex items-center gap-2">
-                {signedInUser ? (
-                  // Internal Quext Employee Preview Control
-                  <div className="flex items-center gap-2">
-                    <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-800 rounded-md text-[11px] font-mono font-bold">
-                      <Eye className="w-3 h-3 text-amber-600" />
-                      Quext Team Preview
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleGoToOperationsProject(standaloneProject.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Back to PM Workspace</span>
-                    </button>
-                  </div>
-                ) : (
-                  // External Customer View: NO internal buttons! Only PM Contact & Support
-                  <div className="flex items-center gap-2.5 text-xs">
-                    <div className="hidden sm:flex flex-col text-right">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                        Assigned Project Manager
-                      </span>
-                      <span className="font-bold text-slate-800 text-xs">
-                        {standaloneProject.assignedPM?.name || 'Quext Implementation Team'}
-                      </span>
-                    </div>
-                    {standaloneProject.assignedPM?.email && (
-                      <a
-                        href={`mailto:${standaloneProject.assignedPM.email}?subject=Question about ${encodeURIComponent(standaloneProject.propertyName)} Kickoff`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold rounded-lg text-xs transition-colors"
-                        title="Email your assigned Quext Implementation PM"
-                      >
-                        <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Contact PM</span>
-                      </a>
-                    )}
-                  </div>
+              <div className="flex items-center gap-2.5 text-xs">
+                {signedInUser?.accountType === 'team_member' && (
+                  <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-800 rounded-md text-[11px] font-mono font-bold">
+                    <Eye className="w-3 h-3 text-amber-600" />
+                    Customer Kickoff Mode
+                  </span>
+                )}
+                <div className="hidden sm:flex flex-col text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    Assigned Project Manager
+                  </span>
+                  <span className="font-bold text-slate-800 text-xs">
+                    {standaloneProject.assignedPM?.name || 'Quext Implementation Team'}
+                  </span>
+                </div>
+                {standaloneProject.assignedPM?.email && (
+                  <a
+                    href={`mailto:${standaloneProject.assignedPM.email}?subject=Question about ${encodeURIComponent(standaloneProject.propertyName)} Kickoff`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold rounded-lg text-xs transition-colors"
+                    title="Email your assigned Quext Implementation PM"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Contact PM</span>
+                  </a>
                 )}
               </div>
             </div>
@@ -1356,32 +1384,61 @@ export default function App() {
                 <span>Contact Quext Support</span>
               </a>
             </div>
-
-            {signedInUser && (
-              <div className="pt-4 border-t border-slate-100 text-left space-y-2">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  PM Quick Switch (Internal Only):
-                </span>
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      window.location.hash = `#/customer-kickoff/${e.target.value}`;
-                    }
-                  }}
-                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800"
-                >
-                  <option value="">Select a project to preview kickoff...</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.propertyName} ({p.isManuallyCreated ? 'Manual' : 'Automated'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
         </main>
       </div>
+    );
+  }
+
+  // Check if Partner Academy Portal is accessed (via direct link #/partner-academy, integrator partner login, or active academy session)
+  const isDirectPartnerAcademyHash = Boolean(parsePartnerAcademyFromLocation());
+
+  if (loggedInPartnerAcademy || signedInUser?.accountType === 'integrator_partner' || isDirectPartnerAcademyHash) {
+    const isInternalQuextPM = signedInUser?.accountType === 'team_member';
+    const activePartnerEmail =
+      loggedInPartnerAcademy?.email ||
+      (signedInUser?.accountType === 'integrator_partner' ? signedInUser.email : null) ||
+      PARTNER_IDENTITY_DIRECTORY[0].defaultEmail;
+    const activePartnerCompanyId =
+      loggedInPartnerAcademy?.companyId ||
+      (signedInUser?.accountType === 'integrator_partner' ? signedInUser.partnerCompanyId : null) ||
+      PARTNER_IDENTITY_DIRECTORY[0].companyId;
+
+    return (
+      <>
+        <PartnerAcademyApp
+          projects={projects}
+          onUpdateProject={handleUpdateProject}
+          activePartnerEmail={activePartnerEmail}
+          activeCompanyId={activePartnerCompanyId}
+          initialSelectedProjectId={loggedInPartnerAcademy?.selectedProjectId || null}
+          onOpenUnifiedSignInModal={undefined}
+          onExitToOperationsHub={
+            isInternalQuextPM
+              ? () => {
+                  // Internal PM team member returning to Operations Hub
+                  setLoggedInPartnerAcademy(null);
+                  window.location.hash = '#/home';
+                }
+              : undefined // External partners have ZERO access or exit button to PM Workspace!
+          }
+        />
+        {isPMTutorialOpen && isInternalQuextPM && (
+          <PMTutorialGuide
+            isOpen={isPMTutorialOpen}
+            onClose={() => setIsPMTutorialOpen(false)}
+            onNavigateToView={handleTutorialNavigate}
+            projects={projects}
+            currentPortal="partner-academy"
+            currentStepIndex={pmTutorialStep}
+            onStepChange={setPmTutorialStep}
+            tutorialMode={pmTutorialMode}
+            onModeChange={setPmTutorialMode}
+            showModeModal={pmTutorialShowModeModal}
+            onShowModeModalChange={setPmTutorialShowModeModal}
+          />
+        )}
+      </>
     );
   }
 
@@ -1407,59 +1464,6 @@ export default function App() {
           }
         }}
       />
-    );
-  }
-
-  // If logged in to the Quext Partner Training & Certification Academy Portal (via Integrator Partner login or project prep bundle)
-  if (loggedInPartnerAcademy || signedInUser.accountType === 'integrator_partner') {
-    const activePartnerEmail =
-      loggedInPartnerAcademy?.email ||
-      signedInUser.email ||
-      PARTNER_IDENTITY_DIRECTORY[0].defaultEmail;
-    const activePartnerCompanyId =
-      loggedInPartnerAcademy?.companyId ||
-      signedInUser.partnerCompanyId ||
-      PARTNER_IDENTITY_DIRECTORY[0].companyId;
-
-    return (
-      <>
-        <PartnerAcademyApp
-          projects={projects}
-          onUpdateProject={handleUpdateProject}
-          activePartnerEmail={activePartnerEmail}
-          activeCompanyId={activePartnerCompanyId}
-          initialSelectedProjectId={loggedInPartnerAcademy?.selectedProjectId || null}
-          onOpenUnifiedSignInModal={undefined}
-          onExitToOperationsHub={() => {
-            if (signedInUser.accountType === 'integrator_partner') {
-              // Integrator Partners do not have access to internal myquext.com — Sign Out returns to the myquext.com login screen
-              setLoggedInPartnerAcademy(null);
-              setLoggedInFieldTech(null);
-              setSignedInUser(null);
-              window.location.hash = '#/login';
-            } else {
-              // Internal team member returning from viewing a project's Partner Academy bundle
-              setLoggedInPartnerAcademy(null);
-              window.location.hash = '#/home';
-            }
-          }}
-        />
-        {isPMTutorialOpen && (
-          <PMTutorialGuide
-            isOpen={isPMTutorialOpen}
-            onClose={() => setIsPMTutorialOpen(false)}
-            onNavigateToView={handleTutorialNavigate}
-            projects={projects}
-            currentPortal="partner-academy"
-            currentStepIndex={pmTutorialStep}
-            onStepChange={setPmTutorialStep}
-            tutorialMode={pmTutorialMode}
-            onModeChange={setPmTutorialMode}
-            showModeModal={pmTutorialShowModeModal}
-            onShowModeModalChange={setPmTutorialShowModeModal}
-          />
-        )}
-      </>
     );
   }
 
