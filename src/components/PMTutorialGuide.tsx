@@ -286,7 +286,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
         projectDetailTab: 'field-bom',
       },
       message:
-        'Tracks quoted hardware vs. installed progress. Next to Quoted Hardware, clicking the invisible "BOM OVERIDE" button 7 times unlocks the red BOM OVERRIDE mode. PMs can add catalog items directly or delete line items with quote variance warnings and permanent audit logging.',
+        'Tracks quoted hardware vs. installed progress. Next to Quoted Hardware, clicking the invisible "BOM OVERRIDE" button 7 times unlocks the red BOM OVERRIDE mode. PMs can add catalog items directly or delete line items with quote variance warnings and permanent audit logging.',
       tryItOutPrompt: 'Click anywhere in the BOM table to advance!',
     },
     {

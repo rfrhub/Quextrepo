@@ -185,11 +185,11 @@ export const BOMTable: React.FC<BOMTableProps> = ({
             <h3 className="text-base font-bold text-slate-900">Smart Community Bill of Materials (BOM)</h3>
             <span className="text-xs text-slate-500">· Pulled directly from Quoted Hardware</span>
 
-            {/* Invisible Button: Called BOM OVERIDE - Only way to access this feature, turns red on click */}
+            {/* Invisible Button: Called BOM OVERRIDE - Only way to access this feature, turns red on click */}
             <button
               type="button"
-              aria-label="BOM OVERIDE"
-              title={isOverrideUnlocked ? "BOM OVERRIDE Mode Active - Click to Add Catalog Items" : "BOM OVERIDE"}
+              aria-label="BOM OVERRIDE"
+              title={isOverrideUnlocked ? "BOM OVERRIDE Mode Active - Click to Add Catalog Items" : "BOM OVERRIDE"}
               onClick={handleInvisibleOverrideClick}
               className={`select-none cursor-pointer px-1.5 py-0.5 text-[9px] uppercase font-mono tracking-widest transition-all rounded ${
                 isOverrideUnlocked
@@ -199,7 +199,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                   : 'opacity-0 hover:opacity-60 text-red-600'
               }`}
             >
-              {isOverrideUnlocked ? 'BOM OVERRIDE (ACTIVE)' : 'BOM OVERIDE'}
+              {isOverrideUnlocked ? 'BOM OVERRIDE (ACTIVE)' : 'BOM OVERRIDE'}
             </button>
 
             {/* Overridden Status Badge */}
