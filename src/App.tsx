@@ -382,13 +382,16 @@ export default function App() {
           setMainTab('analysis');
           setMyQuextTopTab('operations');
         }
-      } else if (hash.includes('/operations/')) {
-        const parts = hash.split('/operations/');
-        if (parts[1]) {
-          setMainTab('operations');
-          setOperationsSubTab(parts[1]);
-          setMyQuextTopTab('operations');
+      } else if (hash.includes('/operations')) {
+        const parts = hash.split('/operations');
+        const sub = parts[1] ? parts[1].replace(/^\//, '') : '';
+        setMainTab('operations');
+        if (sub) {
+          setOperationsSubTab(sub);
         }
+        setMyQuextTopTab('operations');
+      } else if (hash.includes('#/catalog') || hash.includes('#catalog')) {
+        setMyQuextTopTab('productCatalog');
       } else if (hash.includes('#/timeline') || hash.includes('#timeline')) {
         setMainTab('timeline');
         setMyQuextTopTab('operations');

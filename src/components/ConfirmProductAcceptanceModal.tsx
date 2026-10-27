@@ -349,30 +349,30 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs animate-fadeIn font-['Inter']">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh]">
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-emerald-950 text-white px-6 py-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400">
-              <FileSignature className="w-5 h-5" />
+        <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-emerald-950 text-white px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
+              <FileSignature className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-white">
+              <h3 className="font-bold text-xs sm:text-base text-white">
                 Confirm &amp; Send Product Acceptance Portal
               </h3>
-              <p className="text-[11px] text-slate-300">
-                Confirm customer details, shipment scope, and message before emailing the portal link
+              <p className="text-[10px] sm:text-[11px] text-slate-300">
+                Confirm customer details, shipment scope, and message before emailing
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleConfirmAndSend} className="p-6 space-y-4 overflow-y-auto text-xs flex-1">
+        <form onSubmit={handleConfirmAndSend} className="p-3.5 sm:p-6 space-y-4 overflow-y-auto text-xs flex-1">
           {/* Google Account Connection Banner */}
           <div
             className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
@@ -603,14 +603,14 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
 
           {/* Footer Actions */}
           <div className="pt-3 border-t border-slate-200 flex flex-col gap-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               <div className="flex flex-wrap items-center gap-2">
                 <a
                   href={gmailComposeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handleLogAndCompleteWithoutApi(true)}
-                  className="px-3 py-2 rounded-xl text-[11px] font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 flex items-center gap-1.5 transition-colors"
+                  className="flex-1 sm:flex-none justify-center px-3 py-2 rounded-xl text-[11px] font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 flex items-center gap-1.5 transition-colors"
                   title="Open pre-filled message in Gmail Web Compose tab and log dispatch"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -619,7 +619,7 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                 <button
                   type="button"
                   onClick={() => handleLogAndCompleteWithoutApi(false)}
-                  className="px-3 py-2 rounded-xl text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-none justify-center px-3 py-2 rounded-xl text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
                   title="Record dispatch in project log without sending external email"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -641,25 +641,25 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => handleLogAndCompleteWithoutApi(true)}
-                    className="px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    className="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                     title="Open pre-filled in Gmail Web and record dispatch in project log"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Send via Gmail Web &amp; Log Dispatch</span>
+                    <span>Send via Gmail Web &amp; Log</span>
                   </a>
                 ) : (
                   <button
                     type="submit"
                     disabled={isSending}
-                    className="px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-60"
+                    className="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer disabled:opacity-60"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>
                       {isSending
                         ? 'Sending to Customer...'
                         : needsAuth
-                        ? 'Sign In & Send via Gmail'
-                        : 'Confirm & Send to Customer via Gmail'}
+                        ? 'Sign In & Send'
+                        : 'Confirm & Send to Customer'}
                     </span>
                   </button>
                 )}

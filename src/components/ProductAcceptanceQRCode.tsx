@@ -286,15 +286,15 @@ export const ProductAcceptanceQRCode: React.FC<ProductAcceptanceQRCodeProps> = (
           </div>
 
           {/* Direct URL input and actions */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-emerald-950 font-semibold truncate select-all">
-                {url}
-              </div>
+          <div className="space-y-2 pt-1">
+            <div className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-emerald-950 font-semibold truncate select-all">
+              {url}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
                 title="Copy dedicated mobile portal link"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -303,7 +303,7 @@ export const ProductAcceptanceQRCode: React.FC<ProductAcceptanceQRCodeProps> = (
               <button
                 type="button"
                 onClick={handlePrintSheet}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
                 title="Print or save on-site QR inspection sheet"
               >
                 <Printer className="w-3.5 h-3.5 text-emerald-700" />
@@ -313,7 +313,7 @@ export const ProductAcceptanceQRCode: React.FC<ProductAcceptanceQRCodeProps> = (
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer shrink-0"
+                className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer shrink-0"
                 title="Open mobile portal in new tab"
               >
                 <ExternalLink className="w-3.5 h-3.5" />

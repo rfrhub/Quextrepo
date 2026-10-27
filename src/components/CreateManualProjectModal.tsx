@@ -376,7 +376,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 text-xs text-slate-800">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto space-y-5 text-xs text-slate-800">
           {/* General Information */}
           <div className="space-y-3">
             <div className="font-bold text-slate-900 text-sm flex items-center justify-between">

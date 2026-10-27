@@ -135,14 +135,14 @@ export const SearchablePropertyPicker: React.FC<SearchablePropertyPickerProps> =
   };
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative block sm:inline-block w-full sm:w-auto ${className}`}>
       {/* Trigger Button / Picker Input */}
       <button
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full min-w-[200px] sm:min-w-[240px] max-w-xs px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center justify-between gap-2 cursor-pointer shadow-2xs ${
+        className={`w-full min-w-[160px] sm:min-w-[240px] max-w-full sm:max-w-xs px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center justify-between gap-2 cursor-pointer shadow-2xs ${
           isOpen
             ? 'bg-white border-sky-500 ring-2 ring-sky-500/20 text-slate-900'
             : selectedProject

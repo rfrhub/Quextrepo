@@ -454,7 +454,14 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     if (selector.includes('top-nav-product-catalog')) {
       return (
         (document.querySelector('[data-tutorial-id="top-nav-product-catalog"]') as HTMLElement | null) ||
+        (document.querySelector('[data-tutorial-id="top-nav-product-catalog-mobile"]') as HTMLElement | null) ||
         (document.querySelector('[data-tutorial-id="top-nav-operations"]') as HTMLElement | null)
+      );
+    }
+    if (selector.includes('top-nav-operations')) {
+      return (
+        (document.querySelector('[data-tutorial-id="top-nav-operations"]') as HTMLElement | null) ||
+        (document.querySelector('[data-tutorial-id="top-nav-operations-mobile"]') as HTMLElement | null)
       );
     }
     if (selector.includes('common-doors-section')) {
