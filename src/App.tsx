@@ -365,6 +365,16 @@ export default function App() {
         setStandaloneAcceptanceProjectId(null);
       }
 
+      if (hash.includes('/partner-academy') || hash.includes('#partner-academy')) {
+        setLoggedInPartnerAcademy((prev) => prev || {
+          email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+          companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
+          partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
+          selectedProjectId: null,
+        });
+        return;
+      }
+
       if (hash.includes('/analysis/')) {
         const parts = hash.split('/analysis/');
         if (parts[1]) {

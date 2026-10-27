@@ -199,8 +199,8 @@ const MainApp: React.FC<{
 
       {/* Persistent Context Bar when studying a Course or Guide launched from a Project's Pre-Packaged Prep Bundle */}
       {activePrepProject && !isViewingProjectPrepHub && (
-        <div className="bg-gradient-to-r from-purple-950/90 via-indigo-950/90 to-cyan-950/90 border-b border-purple-500/40 px-4 lg:px-8 py-2.5 sticky top-[61px] z-30 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div className="bg-gradient-to-r from-purple-950/90 via-indigo-950/90 to-cyan-950/90 border-b border-purple-500/40 px-4 sm:px-6 lg:px-8 py-2.5 sticky top-[61px] z-30 backdrop-blur-md">
+          <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2 text-purple-200">
               <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
               <span>
@@ -249,7 +249,7 @@ const MainApp: React.FC<{
           />
         )}
 
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-10">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-10">
           {/* View 0: Dedicated Pre-Packaged Project Installation Prep View when a partner clicks a project card */}
           {currentTab === 'curriculum' && isViewingProjectPrepHub && activePrepProject && (
             <ProjectCoursePackageView
@@ -544,8 +544,8 @@ const MainApp: React.FC<{
       </main>
 
       {/* Official Quext Footer */}
-      <footer className="border-t border-zinc-800/80 bg-[#050505] py-10 px-4 lg:px-8 text-xs text-zinc-400 no-print">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="border-t border-zinc-800/80 bg-[#050505] py-10 px-4 sm:px-6 lg:px-8 text-xs text-zinc-400 no-print">
+        <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <span className="inline-block border border-white px-2 py-0.5 text-white font-extrabold text-xs rounded">
               quext

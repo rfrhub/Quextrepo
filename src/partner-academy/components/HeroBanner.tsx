@@ -45,7 +45,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       <div className="absolute bottom-0 right-10 -z-10 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-12 left-10 -z-10 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left Column */}
           <div className="lg:col-span-7 space-y-4">

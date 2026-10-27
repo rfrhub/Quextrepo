@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, isQuextEmployeeUser } from '../context/AuthContext';
 import { QuextLogo } from './QuextLogo';
-import { ShieldCheck, UserCheck, Building2, Award, ChevronDown, Zap } from 'lucide-react';
+import { ShieldCheck, UserCheck, Building2, Award, ChevronDown, Zap, Menu, X } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: string;
@@ -25,6 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { currentUser, currentCompany, switchRole } = useAuth();
   const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const roleLabels: Record<string, string> = {
     partner_installer: 'Field Installer',
@@ -131,33 +132,33 @@ export const Header: React.FC<HeaderProps> = ({
   const isSchematicsWiringActive = schematicsWiringItems.some((item) => item.id === currentTab);
 
   return (
-    <header className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-zinc-800 px-4 lg:px-8 py-3.5 transition-colors">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 transition-colors">
+      <div className="w-full flex items-center justify-between gap-2 sm:gap-4">
         {/* Zone 1: Single text element wordmark */}
         <button
           onClick={() => setCurrentTab('curriculum')}
-          className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 rounded-md cursor-pointer"
+          className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 rounded-md cursor-pointer shrink-0"
         >
-          <QuextLogo size="md" />
+          <QuextLogo size="md" showSubtitle={false} />
         </button>
 
         {/* Zone 2: Navigation bar consolidated like myquext.com & onequext.com */}
-        <nav className="hidden md:flex items-center gap-1.5 lg:gap-2 text-sm font-semibold text-zinc-300">
-          {/* 1. Field Courses (kept where it is) */}
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 text-xs font-semibold text-zinc-300 min-w-0">
+          {/* 1. Field Courses */}
           <button
             onClick={() => setCurrentTab('curriculum')}
-            className={`px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap cursor-pointer ${
+            className={`px-2.5 py-1 rounded-full transition-all whitespace-nowrap cursor-pointer shrink-0 ${
               currentTab === 'curriculum'
                 ? 'bg-purple-500/15 text-purple-300 font-bold border border-purple-500/30 shadow-sm'
                 : 'text-zinc-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            Field Courses
+            <span className="hidden 2xl:inline">Field </span>Courses
           </button>
 
           {/* 2. Guides Parent Dropdown Tab */}
           <div
-            className="relative"
+            className="relative shrink-0"
             onMouseEnter={() => setOpenDropdown('guides')}
             onMouseLeave={() => setOpenDropdown(null)}
           >
@@ -169,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
                   setCurrentTab('wallet_guide');
                 }
               }}
-              className={`px-3.5 py-1.5 rounded-full transition-all inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 py-1 rounded-full transition-all inline-flex items-center gap-1 whitespace-nowrap cursor-pointer ${
                 isGuidesActive
                   ? 'bg-purple-500/15 text-purple-300 font-bold border border-purple-500/30 shadow-sm'
                   : 'text-zinc-300 hover:text-white hover:bg-white/5'
@@ -237,7 +238,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* 3. Schematics and Wiring Parent Dropdown Tab */}
           <div
-            className="relative"
+            className="relative shrink-0"
             onMouseEnter={() => setOpenDropdown('schematics_wiring')}
             onMouseLeave={() => setOpenDropdown(null)}
           >
@@ -249,13 +250,13 @@ export const Header: React.FC<HeaderProps> = ({
                   setCurrentTab('butterfly_wiring');
                 }
               }}
-              className={`px-3.5 py-1.5 rounded-full transition-all inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 py-1 rounded-full transition-all inline-flex items-center gap-1 whitespace-nowrap cursor-pointer ${
                 isSchematicsWiringActive
                   ? 'bg-purple-500/15 text-purple-300 font-bold border border-purple-500/30 shadow-sm'
                   : 'text-zinc-300 hover:text-white hover:bg-white/5'
               }`}
             >
-              <span>Schematics and Wiring</span>
+              <span><span className="hidden 2xl:inline">Wiring &amp; </span>Schematics</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 transition-transform duration-200 ${
                   openDropdown === 'schematics_wiring' ? 'rotate-180 text-purple-300' : 'text-zinc-400'
@@ -315,31 +316,32 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* 4. Spec Sheets Manuals and Cut sheets */}
+          {/* 4. Spec Sheets, Manuals & Cut Sheets */}
           <button
             onClick={() => setCurrentTab('spec_sheets')}
-            className={`px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap cursor-pointer ${
+            className={`px-2.5 py-1 rounded-full transition-all whitespace-nowrap cursor-pointer shrink-0 ${
               currentTab === 'spec_sheets'
                 ? 'bg-purple-500/15 text-purple-300 font-bold border border-purple-500/30 shadow-sm'
                 : 'text-zinc-300 hover:text-white hover:bg-white/5'
             }`}
+            title="Spec Sheets, OEM Manuals, Templates & Cut Sheets"
           >
-            Spec Sheets Manuals and Cut sheets
+            <span>Spec Sheets</span>
           </button>
 
           {/* 5. Certificates */}
           <button
             onClick={onOpenCertModal}
-            className="px-3.5 py-1.5 rounded-full text-zinc-300 hover:text-white hover:bg-white/5 transition-all whitespace-nowrap cursor-pointer"
+            className="px-2.5 py-1 rounded-full text-zinc-300 hover:text-white hover:bg-white/5 transition-all whitespace-nowrap cursor-pointer shrink-0"
           >
             Certificates
           </button>
 
-          {/* 5. Company Portal (for admin/director roles) */}
+          {/* 6. Company Portal (for admin/director roles) */}
           {currentUser.role !== 'partner_installer' && (
             <button
               onClick={() => setCurrentTab('admin_portal')}
-              className={`px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 py-1 rounded-full transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 currentTab === 'admin_portal'
                   ? 'bg-purple-500/15 text-purple-300 font-bold border border-purple-500/30 shadow-sm'
                   : 'text-zinc-300 hover:text-white hover:bg-white/5'
@@ -350,41 +352,40 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </nav>
 
-        {/* Zone 3: 1-2 primary actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Zone 3: Actions - guaranteed shrink-0 ml-auto so it never cuts off */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
           {/* Installers Clip Field App Action Button */}
           <button
             type="button"
             onClick={onOpenInstallersClip || (() => setCurrentTab('installers_clip'))}
-            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md border border-sky-400/40 transition-all cursor-pointer active:scale-95 shrink-0"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md border border-sky-400/40 transition-all cursor-pointer active:scale-95 shrink-0"
             title="Open Installers Clip — In-the-Field Logging App for Integrator Partners"
           >
             <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
-            <span className="hidden sm:inline">Installers Clip</span>
-            <span className="sm:hidden">Clip</span>
-            <span className="px-1.5 py-0.2 bg-white/20 rounded text-[9px] font-black uppercase tracking-wider">
+            <span>Installers Clip</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded text-[9px] font-black uppercase tracking-wider hidden 2xl:inline">
               Field
             </span>
           </button>
 
           {/* Quick Role & Company Context Trigger */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               onClick={() => setShowRoleMenu(!showRoleMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#111111] border border-zinc-800 hover:border-zinc-700 text-left text-xs transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-2 sm:px-2.5 py-1 rounded-full bg-[#111111] border border-zinc-800 hover:border-zinc-700 text-left text-xs transition-colors cursor-pointer shrink-0"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px] shadow-sm">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px] shadow-sm shrink-0">
                 {currentUser.name.charAt(0)}
               </div>
               <div className="hidden sm:block">
-                <div className="font-semibold text-white max-w-[120px] truncate leading-tight">
+                <div className="font-semibold text-white max-w-[95px] xl:max-w-[125px] truncate leading-tight">
                   {currentUser.name}
                 </div>
-                <div className="text-[10px] text-purple-400 font-medium leading-none mt-0.5 font-mono">
-                  {roleLabels[currentUser.role]} · {currentCompany.code}
+                <div className="text-[10px] text-purple-400 font-medium leading-none mt-0.5 font-mono truncate max-w-[95px] xl:max-w-[125px]">
+                  {currentCompany.code} · {roleLabels[currentUser.role]?.replace('Partner ', '')}
                 </div>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 ml-0.5" />
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 ml-0.5 shrink-0" />
             </button>
 
             {/* Dropdown for role selection */}
@@ -503,7 +504,7 @@ export const Header: React.FC<HeaderProps> = ({
           {onExitToOperationsHub && (
             <button
               onClick={onExitToOperationsHub}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-full transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-full transition-colors cursor-pointer shrink-0"
               title="Sign out of Partner Academy"
             >
               <span>Sign Out</span>
@@ -513,12 +514,105 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Portal Sign-in */}
           <button
             onClick={onOpenLoginModal}
-            className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-500 hover:to-purple-500 rounded-full shadow-md transition-all whitespace-nowrap active:scale-95 cursor-pointer"
+            className="px-3 sm:px-4 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-500 hover:to-purple-500 rounded-full shadow-md transition-all whitespace-nowrap active:scale-95 cursor-pointer shrink-0"
           >
-            Partner Portal
+            <span className="hidden sm:inline">Partner Portal</span>
+            <span className="sm:hidden">Portal</span>
+          </button>
+
+          {/* Mobile Nav Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Dropdown */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-zinc-800 mt-3 pt-3 pb-2 space-y-1">
+          <button
+            onClick={() => {
+              setCurrentTab('curriculum');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold ${
+              currentTab === 'curriculum'
+                ? 'bg-purple-950/50 text-purple-300 font-bold border border-purple-500/30'
+                : 'text-zinc-300 hover:bg-zinc-900'
+            }`}
+          >
+            Field Courses
+          </button>
+          <button
+            onClick={() => {
+              setCurrentTab('wallet_guide');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold ${
+              isGuidesActive
+                ? 'bg-purple-950/50 text-purple-300 font-bold border border-purple-500/30'
+                : 'text-zinc-300 hover:bg-zinc-900'
+            }`}
+          >
+            Field Installation Guides
+          </button>
+          <button
+            onClick={() => {
+              setCurrentTab('butterfly_wiring');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold ${
+              isSchematicsWiringActive
+                ? 'bg-purple-950/50 text-purple-300 font-bold border border-purple-500/30'
+                : 'text-zinc-300 hover:bg-zinc-900'
+            }`}
+          >
+            Schematics &amp; Wiring
+          </button>
+          <button
+            onClick={() => {
+              setCurrentTab('spec_sheets');
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold ${
+              currentTab === 'spec_sheets'
+                ? 'bg-purple-500/15 text-purple-300 font-bold border border-purple-500/30'
+                : 'text-zinc-300 hover:bg-zinc-900'
+            }`}
+          >
+            Spec Sheets, Manuals &amp; Cut Sheets
+          </button>
+          <button
+            onClick={() => {
+              onOpenCertModal();
+              setMobileMenuOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-zinc-300 hover:bg-zinc-900"
+          >
+            Certificates
+          </button>
+          {currentUser.role !== 'partner_installer' && (
+            <button
+              onClick={() => {
+                setCurrentTab('admin_portal');
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold ${
+                currentTab === 'admin_portal'
+                  ? 'bg-purple-500/15 text-purple-300 font-bold border border-purple-500/30'
+                  : 'text-zinc-300 hover:bg-zinc-900'
+              }`}
+            >
+              Company Portal
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 };

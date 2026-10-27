@@ -40,7 +40,7 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
       </div>
 
       {showSubtitle && (
-        <div className="hidden sm:flex flex-col leading-none border-l border-zinc-700/80 pl-3">
+        <div className="hidden xl:flex flex-col leading-none border-l border-zinc-700/80 pl-3 shrink-0">
           <span className="text-xs uppercase tracking-[0.18em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-300 to-cyan-400">
             Partner Academy
           </span>
