@@ -87,6 +87,7 @@ import {
   X,
   FileCheck,
   GraduationCap,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   getProjectPartnerCourseCompletion,
@@ -152,6 +153,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const [showEntrataPassword, setShowEntrataPassword] = useState<boolean>(true);
   const [gmailModalPayload, setGmailModalPayload] = useState<LiveGmailModalPayload | null>(null);
   const [headerEmailSuccessBanner, setHeaderEmailSuccessBanner] = useState<string | null>(null);
+  const [showMitigationPlan, setShowMitigationPlan] = useState<boolean>(false);
 
   // Common Area Door Quick Add state
   const [isAddingDoor, setIsAddingDoor] = useState<boolean>(false);
@@ -1887,6 +1889,45 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 )}
               </div>
 
+              {/* Small Text Button to Expand/Minimize Mitigation Plan */}
+              <div className="pt-1.5 border-t border-slate-200/70 w-full flex items-center justify-between sm:justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMitigationPlan((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-bold cursor-pointer transition-colors ${
+                    showMitigationPlan
+                      ? 'text-indigo-700 hover:text-indigo-900 underline'
+                      : 'text-slate-500 hover:text-indigo-600'
+                  }`}
+                  title={showMitigationPlan ? 'Minimize Mitigation Plan' : 'Open tailored Mitigation Plan'}
+                >
+                  <ShieldAlert
+                    className={`w-3.5 h-3.5 ${
+                      health.effectiveTag === 'High Risk'
+                        ? 'text-rose-500'
+                        : health.effectiveTag === 'Behind Schedule'
+                        ? 'text-amber-500'
+                        : 'text-slate-400'
+                    }`}
+                  />
+                  <span>{showMitigationPlan ? 'Hide Mitigation Plan' : 'Mitigation Plan'}</span>
+                  <span className="text-[9px] text-slate-400 font-normal">
+                    {showMitigationPlan ? '▲' : '▼'}
+                  </span>
+                  {(health.effectiveTag === 'Behind Schedule' || health.effectiveTag === 'High Risk') && (
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                        health.effectiveTag === 'High Risk'
+                          ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                          : 'bg-amber-100 text-amber-700 border border-amber-200'
+                      }`}
+                    >
+                      Active
+                    </span>
+                  )}
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -2076,13 +2117,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         </div>
       )}
 
-      {/* PMP Tailored Mitigation & Schedule Recovery Plan (Active for Behind Schedule & High Risk Projects) */}
-      {(health.effectiveTag === 'Behind Schedule' || health.effectiveTag === 'High Risk') && (
-        <PMPMitigationPlanPanel
-          project={project}
-          onUpdateProject={onUpdateProject}
-          variant="full"
-        />
+      {/* PMP Tailored Mitigation & Schedule Recovery Plan (Minimized behind small text button on Project Health Tag section) */}
+      {showMitigationPlan && (
+        <div id="pmp-mitigation-plan-container" className="scroll-mt-36 animate-in fade-in duration-200">
+          <PMPMitigationPlanPanel
+            project={project}
+            onUpdateProject={onUpdateProject}
+            variant="full"
+            onMinimize={() => setShowMitigationPlan(false)}
+          />
+        </div>
       )}
 
       {/* Project Workspace Tab Navigation + Mobile Quick Section Jump Bar */}

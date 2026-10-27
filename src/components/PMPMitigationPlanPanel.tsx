@@ -36,6 +36,7 @@ interface PMPMitigationPlanPanelProps {
   onUpdateProject: (updated: OperationProject) => void;
   variant?: 'full' | 'compact';
   defaultExpanded?: boolean;
+  onMinimize?: () => void;
 }
 
 const STRATEGY_OPTIONS: PMPMitigationStrategyType[] = [
@@ -57,6 +58,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
   onUpdateProject,
   variant = 'full',
   defaultExpanded = true,
+  onMinimize,
 }) => {
   const health = calculateProjectScheduleHealth(
     project.targetCompletionDate,
@@ -744,6 +746,18 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
               >
                 {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
+
+              {onMinimize && (
+                <button
+                  type="button"
+                  onClick={onMinimize}
+                  className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200"
+                  title="Minimize Mitigation Plan"
+                >
+                  <X className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Minimize Plan</span>
+                </button>
+              )}
             </>
           ) : (
             <>
