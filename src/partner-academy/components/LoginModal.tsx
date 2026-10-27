@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { PartnerCompany, UserRole } from '../types';
-import { Building2, Key, Mail, Shield, UserCheck, Award, X, Check, PlusCircle } from 'lucide-react';
+import { Building2, Key, Mail, Shield, UserCheck, Award, X, Check, PlusCircle, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
+import { generateCompanyCodeFromName, registerNewPartnerSecureCode } from '../utils/partnerSecurity';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -31,6 +32,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
   const [regCode, setRegCode] = useState('');
   const [regRegion, setRegRegion] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [hasManuallyEditedCode, setHasManuallyEditedCode] = useState(false);
+
+  const handleCompanyNameChange = (val: string) => {
+    setRegName(val);
+    if (!hasManuallyEditedCode && val.trim().length > 0) {
+      setRegCode(generateCompanyCodeFromName(val));
+    }
+  };
+
+  const handleGenerateNewCompanyCode = () => {
+    const generated = generateCompanyCodeFromName(regName || 'New Partner');
+    setRegCode(generated);
+    setHasManuallyEditedCode(true);
+  };
 
   const handleCredentialsLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +62,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     e.preventDefault();
     if (!regName || !regCode || !regEmail) return;
 
-    registerCompany({
+    const newComp = registerCompany({
       name: regName,
       code: regCode.toUpperCase(),
       region: regRegion || 'National Integration',
@@ -55,6 +70,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
       activeTechnicians: 1,
       contactEmail: regEmail,
     });
+
+    if (newComp && newComp.id) {
+      registerNewPartnerSecureCode(
+        newComp.id,
+        regName.split(' ')[0] || regName,
+        regName,
+        regCode.toUpperCase(),
+        regEmail,
+        regRegion || 'National Integration'
+      );
+    }
 
     onClose();
   };
@@ -177,22 +203,52 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                 required
                 placeholder="e.g. Horizon Smart Living Integrators"
                 value={regName}
-                onChange={(e) => setRegName(e.target.value)}
+                onChange={(e) => handleCompanyNameChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-slate-300 block mb-1">Company Code (3-4 chars)</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. HRZ-201"
-                  value={regCode}
-                  onChange={(e) => setRegCode(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-mono uppercase focus:outline-none focus:border-cyan-400"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-300 block font-semibold">
+                    Company Code (3-4 chars)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateNewCompanyCode}
+                    className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Generate a new company code"
+                  >
+                    <RefreshCw className="w-3 h-3 text-cyan-400" />
+                    <span>Generate</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <Key className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. HRZ-201"
+                    value={regCode}
+                    onChange={(e) => {
+                      setRegCode(e.target.value.toUpperCase());
+                      setHasManuallyEditedCode(true);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-16 py-2.5 text-xs text-white font-mono uppercase tracking-wider focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateNewCompanyCode}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 rounded-md text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    Generate
+                  </button>
+                </div>
+                <div className="mt-1 flex items-center gap-1.5 text-[11px] text-cyan-400 font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>Note: Used for login</span>
+                </div>
               </div>
 
               <div>

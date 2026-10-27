@@ -28,6 +28,61 @@ const DEFAULT_SECURE_CODES: Record<string, string> = {
   comp_diy: 'QX-DIY-100A-0000',
 };
 
+// Helper to generate a 3-4 char company code from company name
+export function generateCompanyCodeFromName(companyName = ''): string {
+  const words = companyName.trim().split(/\s+/).filter(Boolean);
+  let prefix = '';
+  if (words.length >= 3) {
+    prefix = words.map((w) => w[0]).join('').slice(0, 4).toUpperCase();
+  } else if (words.length === 2) {
+    prefix = (words[0].slice(0, 2) + words[1].slice(0, 1)).toUpperCase();
+  } else if (words.length === 1 && words[0].length >= 3) {
+    prefix = words[0].slice(0, 3).toUpperCase();
+  } else {
+    prefix = 'QXT';
+  }
+  const randomSuffix = Math.floor(100 + Math.random() * 900);
+  return `${prefix}-${randomSuffix}`;
+}
+
+// Register a newly created partner firm into the security vault
+export function registerNewPartnerSecureCode(
+  companyId: string,
+  partnerShortName: string,
+  companyName: string,
+  companyCode: string,
+  defaultEmail: string,
+  region: string
+): PartnerSecurityCredential {
+  const all = loadPartnerSecurityCredentials();
+  const cleanCode = companyCode.trim().toUpperCase();
+  const prefix = cleanCode.startsWith('QX-')
+    ? cleanCode.slice(0, 7)
+    : `QX-${cleanCode.slice(0, 4).replace(/[^A-Z0-9]/g, '')}`;
+  const secureCode = cleanCode.startsWith('QX-')
+    ? cleanCode
+    : `${prefix}-${Math.floor(1000 + Math.random() * 9000)}-${Math.random()
+        .toString(36)
+        .substring(2, 6)
+        .toUpperCase()}`;
+
+  const cred: PartnerSecurityCredential = {
+    companyId,
+    partnerShortName,
+    companyName,
+    legacyCode: cleanCode,
+    secureAccessCode: secureCode,
+    defaultEmail,
+    leadName: `${partnerShortName} Lead`,
+    region: region || 'National Deployment',
+    lastGeneratedAt: new Date().toISOString(),
+  };
+
+  all[companyId] = cred;
+  savePartnerSecurityCredentials(all);
+  return cred;
+}
+
 // Generate an alphanumeric secure token
 export function generateSecurePartnerCode(prefix = 'QX-PRT'): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // base32 without confusing 0/O/1/I
