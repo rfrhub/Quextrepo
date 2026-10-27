@@ -41,6 +41,7 @@ import {
   Lightbulb,
   GraduationCap,
   Zap,
+  X,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
@@ -165,6 +166,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [repFilter, setRepFilter] = useState<string>('all');
+  const [opportunitySearchTerm, setOpportunitySearchTerm] = useState<string>('');
   const [toastBanner, setToastBanner] = useState<{
     propertyName: string;
     projectId: string;
@@ -208,6 +210,9 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
   // Filtered opportunities for Sales Hub tables/lists
   const filteredOpportunities = useMemo(() => {
+    const oppSearch = opportunitySearchTerm.trim().toLowerCase();
+    const globSearch = globalSearch.trim().toLowerCase();
+
     return quotes.filter((q) => {
       const effectiveMyQuextStage = q.myquextStage || (q.stage === 'Deal Won' ? 'Deal Won' : q.stage);
       const matchesStage =
@@ -215,16 +220,28 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
         q.stage === stageFilter ||
         effectiveMyQuextStage.toLowerCase() === stageFilter.toLowerCase();
       const matchesRep = repFilter === 'all' || q.assignedSalesLead === repFilter;
-      const matchesSearch =
-        !globalSearch.trim() ||
-        q.propertyName.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        q.clientName.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        q.city.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        q.state.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        (q.assignedSalesLead || '').toLowerCase().includes(globalSearch.toLowerCase());
-      return matchesStage && matchesRep && matchesSearch;
+      const matchesGlobalSearch =
+        !globSearch ||
+        q.propertyName.toLowerCase().includes(globSearch) ||
+        q.clientName.toLowerCase().includes(globSearch) ||
+        q.city.toLowerCase().includes(globSearch) ||
+        q.state.toLowerCase().includes(globSearch) ||
+        (q.assignedSalesLead || '').toLowerCase().includes(globSearch);
+
+      // On-page search specifically targeting property / opportunity name, client, quote #, address
+      const matchesOpportunitySearch =
+        !oppSearch ||
+        q.propertyName.toLowerCase().includes(oppSearch) ||
+        (q.quoteNumber || '').toLowerCase().includes(oppSearch) ||
+        q.clientName.toLowerCase().includes(oppSearch) ||
+        (q.address || '').toLowerCase().includes(oppSearch) ||
+        q.city.toLowerCase().includes(oppSearch) ||
+        q.state.toLowerCase().includes(oppSearch) ||
+        (q.assignedSalesLead || '').toLowerCase().includes(oppSearch);
+
+      return matchesStage && matchesRep && matchesGlobalSearch && matchesOpportunitySearch;
     });
-  }, [quotes, stageFilter, repFilter, globalSearch]);
+  }, [quotes, stageFilter, repFilter, globalSearch, opportunitySearchTerm]);
 
   const handleStageChangeWithToast = (quote: ExtendedQuote, selectedLabel: string) => {
     const matched = MYQUEXT_STAGE_OPTIONS.find((o) => o.label === selectedLabel);
@@ -1183,8 +1200,29 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       </p>
                     </div>
 
-                    {/* Stage & Rep Filters */}
+                    {/* Stage & Rep Filters and Property/Opportunity Search */}
                     <div className="flex items-center gap-2 flex-wrap">
+                      <div className="relative min-w-[200px] sm:min-w-[240px]">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={opportunitySearchTerm}
+                          onChange={(e) => setOpportunitySearchTerm(e.target.value)}
+                          placeholder="Search property / opportunity..."
+                          className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-2xs"
+                        />
+                        {opportunitySearchTerm && (
+                          <button
+                            type="button"
+                            onClick={() => setOpportunitySearchTerm('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                            title="Clear search"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+
                       <select
                         value={stageFilter}
                         onChange={(e) => setStageFilter(e.target.value)}
@@ -1348,78 +1386,130 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             {/* ---------------------------------------------------------------
                 SALES HUB -> PIPELINE / QUOTES / LEADS / OTHER SUB-TABS
             --------------------------------------------------------------- */}
-            {salesSubTab !== 'dashboard' && (
+            {salesSubTab !== 'dashboard' && (() => {
+              const tableOpportunities = filteredOpportunities.filter((q) =>
+                salesSubTab === 'leads' ? q.myquextSource === 'lead' : true
+              );
+
+              return (
               <div className="max-w-7xl mx-auto space-y-5">
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                        myquext.com Sales Hub
-                      </span>
-                      <span className="text-xs text-slate-400">•</span>
-                      <span className="text-xs text-slate-500 capitalize font-medium">
-                        {salesSubTab}
-                      </span>
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                          myquext.com Sales Hub
+                        </span>
+                        <span className="text-xs text-slate-400">•</span>
+                        <span className="text-xs text-slate-500 capitalize font-medium">
+                          {salesSubTab}
+                        </span>
+                      </div>
+                      <h1 className="text-2xl font-semibold text-slate-900 font-['Inter_Tight',sans-serif] mt-1">
+                        {salesSubTab === 'leads'
+                          ? 'AI Prospecting & Targeting Leads'
+                          : salesSubTab === 'pipeline'
+                          ? 'Deal Stage Pipeline & Operations Handoff'
+                          : 'All myquext.com Quotes & Opportunities'}
+                      </h1>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Changing any opportunity&apos;s stage to{' '}
+                        <strong className="text-emerald-700">Deal Won</strong> immediately creates its
+                        project inside the <strong>Operations</strong> workspace with its Smart
+                        Community BOM.
+                      </p>
                     </div>
-                    <h1 className="text-2xl font-semibold text-slate-900 font-['Inter_Tight',sans-serif] mt-1">
-                      {salesSubTab === 'leads'
-                        ? 'AI Prospecting & Targeting Leads'
-                        : salesSubTab === 'pipeline'
-                        ? 'Deal Stage Pipeline & Operations Handoff'
-                        : 'All myquext.com Quotes & Opportunities'}
-                    </h1>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Changing any opportunity&apos;s stage to{' '}
-                      <strong className="text-emerald-700">Deal Won</strong> immediately creates its
-                      project inside the <strong>Operations</strong> workspace with its Smart
-                      Community BOM.
-                    </p>
+
+                    <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsNewAnalysisModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>New Opportunity</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <select
-                      value={stageFilter}
-                      onChange={(e) => setStageFilter(e.target.value)}
-                      className="px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-700 cursor-pointer"
-                    >
-                      <option value="all">All Stages ({quotes.length})</option>
-                      <option value="Deal Won">
-                        ★ Deal Won / Project Kickoff (
-                        {quotes.filter((q) => q.stage === 'Deal Won').length})
-                      </option>
-                      <option value="Proposal Sent">
-                        Estimate Sent ({quotes.filter((q) => q.stage === 'Proposal Sent').length})
-                      </option>
-                      <option value="Needs Analysis">
-                        Survey/Design Requested (
-                        {quotes.filter((q) => q.stage === 'Needs Analysis').length})
-                      </option>
-                      <option value="Prospect">
-                        Draft / Leads ({quotes.filter((q) => q.stage === 'Prospect').length})
-                      </option>
-                    </select>
+                  {/* Search by Property / Opportunity Name & Filter Toolbar */}
+                  <div className="pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="relative flex-1 max-w-xl">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={opportunitySearchTerm}
+                        onChange={(e) => setOpportunitySearchTerm(e.target.value)}
+                        placeholder="Search by property or opportunity name (e.g. Lido Square, Cortland, Manistique)..."
+                        className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-2xs"
+                      />
+                      {opportunitySearchTerm && (
+                        <button
+                          type="button"
+                          onClick={() => setOpportunitySearchTerm('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                          title="Clear search"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
 
-                    <select
-                      value={repFilter}
-                      onChange={(e) => setRepFilter(e.target.value)}
-                      className="px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-700 cursor-pointer"
-                    >
-                      <option value="all">All Sales Reps</option>
-                      {salesReps.map((rep) => (
-                        <option key={rep} value={rep}>
-                          {rep}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select
+                        value={stageFilter}
+                        onChange={(e) => setStageFilter(e.target.value)}
+                        className="px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors"
+                      >
+                        <option value="all">All Stages ({quotes.length})</option>
+                        <option value="Deal Won">
+                          ★ Deal Won / Project Kickoff (
+                          {quotes.filter((q) => q.stage === 'Deal Won').length})
                         </option>
-                      ))}
-                    </select>
+                        <option value="Proposal Sent">
+                          Estimate Sent ({quotes.filter((q) => q.stage === 'Proposal Sent').length})
+                        </option>
+                        <option value="Needs Analysis">
+                          Survey/Design Requested (
+                          {quotes.filter((q) => q.stage === 'Needs Analysis').length})
+                        </option>
+                        <option value="Prospect">
+                          Draft / Leads ({quotes.filter((q) => q.stage === 'Prospect').length})
+                        </option>
+                      </select>
 
-                    <button
-                      type="button"
-                      onClick={() => setIsNewAnalysisModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>New Opportunity</span>
-                    </button>
+                      <select
+                        value={repFilter}
+                        onChange={(e) => setRepFilter(e.target.value)}
+                        className="px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors"
+                      >
+                        <option value="all">All Sales Reps</option>
+                        {salesReps.map((rep) => (
+                          <option key={rep} value={rep}>
+                            {rep}
+                          </option>
+                        ))}
+                      </select>
+
+                      {(opportunitySearchTerm.trim() || stageFilter !== 'all' || repFilter !== 'all') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpportunitySearchTerm('');
+                            setStageFilter('all');
+                            setRepFilter('all');
+                          }}
+                          className="px-2.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                          title="Reset search and filters"
+                        >
+                          Clear
+                        </button>
+                      )}
+
+                      <span className="text-xs text-slate-500 font-medium pl-1 hidden sm:inline whitespace-nowrap">
+                        {tableOpportunities.length} {tableOpportunities.length === 1 ? 'opportunity' : 'opportunities'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1439,11 +1529,33 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-xs">
-                        {filteredOpportunities
-                          .filter((q) =>
-                            salesSubTab === 'leads' ? q.myquextSource === 'lead' : true
-                          )
-                          .map((opp) => {
+                        {tableOpportunities.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="py-12 text-center">
+                              <div className="flex flex-col items-center justify-center space-y-2 text-slate-400">
+                                <Search className="w-8 h-8 text-slate-300" />
+                                <p className="text-sm font-semibold text-slate-700">
+                                  No opportunities found {opportunitySearchTerm ? `matching "${opportunitySearchTerm}"` : ''}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  Try searching for another property name, address, or clearing active filters.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpportunitySearchTerm('');
+                                    setStageFilter('all');
+                                    setRepFilter('all');
+                                  }}
+                                  className="mt-2 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold cursor-pointer transition-colors"
+                                >
+                                  Reset Search &amp; Filters
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          tableOpportunities.map((opp) => {
                             const isWon = opp.stage === 'Deal Won';
                             const currentLabel =
                               opp.myquextStage || (isWon ? 'Deal Won' : 'Estimate Sent');
@@ -1541,13 +1653,15 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                                 </td>
                               </tr>
                             );
-                          })}
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
               </div>
-            )}
+            );
+          })()}
           </div>
         </div>
       )}
