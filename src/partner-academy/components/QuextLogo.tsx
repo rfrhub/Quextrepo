@@ -1,5 +1,6 @@
 import React from 'react';
-import boxedLogoWhite from '../assets/images/quext-logo-boxed-white.png';
+import whiteLogo from '../assets/images/quext-powered-by-gfiber-white.png';
+import { QUEXT_GFIBER_WHITE_LOGO_BASE64 } from '../assets/images/quext-gfiber-white-base64';
 
 interface QuextLogoProps {
   className?: string;
@@ -21,16 +22,17 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
 
   return (
     <div className={`flex items-center gap-3.5 ${className}`}>
-      {/* Official Quext Boxed Logo White PNG */}
+      {/* Official Quext Powered by GFiber Logo with 4-Color Icon */}
       <div className="relative inline-flex items-center justify-center transition-transform hover:scale-[1.02]">
         <img
-          src={boxedLogoWhite}
-          alt="Quext"
+          src={QUEXT_GFIBER_WHITE_LOGO_BASE64 || whiteLogo}
+          alt="Quext powered by GFiber"
           className={`${logoHeights[size]} w-auto object-contain flex-shrink-0 drop-shadow-sm`}
           loading="eager"
+          decoding="sync"
           onError={(e) => {
-            if (e.currentTarget.src !== '/quext-logo-boxed-white.png') {
-              e.currentTarget.src = '/quext-logo-boxed-white.png';
+            if (e.currentTarget.src !== '/quext-powered-by-gfiber-white.png') {
+              e.currentTarget.src = '/quext-powered-by-gfiber-white.png';
             }
           }}
         />
