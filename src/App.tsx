@@ -1466,6 +1466,7 @@ export default function App() {
           activeCompanyId={activePartnerCompanyId}
           initialSelectedProjectId={loggedInPartnerAcademy?.selectedProjectId || null}
           onOpenUnifiedSignInModal={undefined}
+          initialShowLoginModal={isPMTutorialOpen && isInternalQuextPM ? false : true}
           onExitToOperationsHub={
             isInternalQuextPM
               ? () => {

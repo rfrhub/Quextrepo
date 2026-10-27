@@ -48,6 +48,7 @@ interface PartnerAcademyPortalProps {
   initialSelectedProjectId?: string | null;
   onOpenUnifiedSignInModal?: () => void;
   onExitToOperationsHub?: () => void;
+  initialShowLoginModal?: boolean;
 }
 
 const MainApp: React.FC<{
@@ -56,12 +57,14 @@ const MainApp: React.FC<{
   initialSelectedProjectId?: string | null;
   onOpenUnifiedSignInModal?: () => void;
   onExitToOperationsHub?: () => void;
+  initialShowLoginModal?: boolean;
 }> = ({
   projects,
   onUpdateProject,
   initialSelectedProjectId,
   onOpenUnifiedSignInModal,
   onExitToOperationsHub,
+  initialShowLoginModal = true,
 }) => {
   const { currentUser, currentCompany } = useAuth();
   const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
@@ -99,7 +102,7 @@ const MainApp: React.FC<{
   const [activeQuizModule, setActiveQuizModule] = useState<CourseModule | null>(null);
   const [activeQuizMode, setActiveQuizMode] = useState<'practice_quiz' | 'certification_exam'>('certification_exam');
   const [showCertModal, setShowCertModal] = useState<boolean>(false);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(initialShowLoginModal);
   const [certTargetUserId, setCertTargetUserId] = useState<string | undefined>(undefined);
 
   // Installers Clip standalone field logging app state
@@ -650,6 +653,7 @@ export default function PartnerAcademyApp({
   initialSelectedProjectId,
   onOpenUnifiedSignInModal,
   onExitToOperationsHub,
+  initialShowLoginModal = true,
 }: PartnerAcademyPortalProps) {
   return (
     <AuthProvider activePartnerEmail={activePartnerEmail} activeCompanyId={activeCompanyId}>
@@ -659,6 +663,7 @@ export default function PartnerAcademyApp({
         initialSelectedProjectId={initialSelectedProjectId}
         onOpenUnifiedSignInModal={onOpenUnifiedSignInModal}
         onExitToOperationsHub={onExitToOperationsHub}
+        initialShowLoginModal={initialShowLoginModal}
       />
     </AuthProvider>
   );

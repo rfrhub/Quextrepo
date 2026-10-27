@@ -383,8 +383,10 @@ export const AuthProvider: React.FC<{
     let matchingCompany = resolvedByCode ? companies.find(c => c.id === resolvedByCode.companyId) : undefined;
 
     if (!matchingCompany) {
+      const cleanInput = companyCode.replace(/[\s-]+/g, '').toLowerCase();
       matchingCompany = companies.find(
         c => c.code.toLowerCase() === companyCode.trim().toLowerCase() ||
+             c.code.replace(/[\s-]+/g, '').toLowerCase() === cleanInput ||
              c.name.toLowerCase() === companyCode.trim().toLowerCase()
       );
     }

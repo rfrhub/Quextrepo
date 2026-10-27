@@ -28,20 +28,45 @@ const DEFAULT_SECURE_CODES: Record<string, string> = {
   comp_diy: 'QX-DIY-100A-0000',
 };
 
-// Helper to generate a 3-4 char company code from company name
-export function generateCompanyCodeFromName(companyName = ''): string {
-  const words = companyName.trim().split(/\s+/).filter(Boolean);
+// Helper to generate a company code based on initials + 7-digit randomized number
+export function generateCompanyCodeFromName(
+  companyName = '',
+  existingRandomSuffix?: string
+): string {
+  const normalized = companyName
+    .replace(/&/g, ' and ')
+    .replace(/[/\\#,+()$~%.'":*?<>{}]/g, ' ')
+    .trim();
+
+  const words = normalized
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter(Boolean);
+
   let prefix = '';
-  if (words.length >= 3) {
-    prefix = words.map((w) => w[0]).join('').slice(0, 4).toUpperCase();
-  } else if (words.length === 2) {
-    prefix = (words[0].slice(0, 2) + words[1].slice(0, 1)).toUpperCase();
-  } else if (words.length === 1 && words[0].length >= 3) {
-    prefix = words[0].slice(0, 3).toUpperCase();
+  if (words.length >= 2) {
+    // Take the first char of each word, e.g. "greg and sons" -> "GAS"
+    prefix = words.map((w) => w.charAt(0)).join('').toUpperCase();
+  } else if (words.length === 1) {
+    const single = words[0];
+    if (single.length >= 3) {
+      prefix = single.slice(0, 3).toUpperCase();
+    } else {
+      prefix = single.toUpperCase();
+    }
   } else {
     prefix = 'QXT';
   }
-  const randomSuffix = Math.floor(100 + Math.random() * 900);
+
+  // Ensure prefix contains only valid alphanumeric characters
+  prefix = prefix.replace(/[^A-Z0-9]/g, '') || 'QXT';
+
+  // 7-digit randomized number (1000000 - 9999999)
+  const randomSuffix =
+    existingRandomSuffix && /^\d{7}$/.test(existingRandomSuffix)
+      ? existingRandomSuffix
+      : Math.floor(1000000 + Math.random() * 9000000).toString();
+
   return `${prefix}-${randomSuffix}`;
 }
 
@@ -203,7 +228,20 @@ export function resolvePartnerByAccessCode(
 
     if (clean === cleanSecure || clean === cleanLegacy) {
       const dirEntry = PARTNER_IDENTITY_DIRECTORY.find((p) => p.companyId === cred.companyId);
-      return dirEntry || null;
+      if (dirEntry) return dirEntry;
+      return {
+        companyId: cred.companyId,
+        partnerShortName: cred.partnerShortName,
+        companyName: cred.companyName,
+        companyCode: cred.legacyCode,
+        secureAccessCode: cred.secureAccessCode,
+        defaultEmail: cred.defaultEmail,
+        leadName: cred.leadName,
+        region: cred.region,
+        tier: 'Authorized Partner',
+        activeTechnicians: 1,
+        aliases: [cred.companyName, cred.partnerShortName, cred.legacyCode],
+      };
     }
   }
 

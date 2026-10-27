@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { PartnerCompany, UserRole } from '../types';
 import { Building2, Key, Mail, Shield, UserCheck, Award, X, Check, PlusCircle, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
@@ -33,18 +33,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
   const [regRegion, setRegRegion] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [hasManuallyEditedCode, setHasManuallyEditedCode] = useState(false);
+  const randomSuffixRef = useRef<string>(Math.floor(1000000 + Math.random() * 9000000).toString());
 
   const handleCompanyNameChange = (val: string) => {
     setRegName(val);
     if (!hasManuallyEditedCode && val.trim().length > 0) {
-      setRegCode(generateCompanyCodeFromName(val));
+      setRegCode(generateCompanyCodeFromName(val, randomSuffixRef.current));
+    } else if (!hasManuallyEditedCode && val.trim().length === 0) {
+      setRegCode('');
     }
   };
 
   const handleGenerateNewCompanyCode = () => {
-    const generated = generateCompanyCodeFromName(regName || 'New Partner');
+    randomSuffixRef.current = Math.floor(1000000 + Math.random() * 9000000).toString();
+    const generated = generateCompanyCodeFromName(regName || 'New Partner', randomSuffixRef.current);
     setRegCode(generated);
-    setHasManuallyEditedCode(true);
+    setHasManuallyEditedCode(false);
   };
 
   const handleCredentialsLogin = (e: React.FormEvent) => {
@@ -148,14 +152,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. QX-SPR-9F4K-82A1 or SPR-101"
+                  placeholder="e.g. GAS-4829103 or QX-SPR-9F4K-82A1"
                   value={loginCompanyCode}
                   onChange={(e) => setLoginCompanyCode(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white uppercase font-mono tracking-wider focus:outline-none focus:border-cyan-400"
                 />
               </div>
               <span className="text-[10px] text-slate-500 mt-1 block">
-                Enter your company's secure cryptographic token or legacy 3-digit partner code.
+                Enter your company's partner code (e.g. GAS-4829103) or secure cryptographic access token.
               </span>
             </div>
 
@@ -201,7 +205,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
               <input
                 type="text"
                 required
-                placeholder="e.g. Horizon Smart Living Integrators"
+                placeholder="e.g. greg and sons or Horizon Smart Living"
                 value={regName}
                 onChange={(e) => handleCompanyNameChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
@@ -212,7 +216,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs text-slate-300 block font-semibold">
-                    Company Code (3-4 chars)
+                    Company Code (Initials + 7 digits)
                   </label>
                   <button
                     type="button"
@@ -229,7 +233,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. HRZ-201"
+                    placeholder="e.g. GAS-4829103"
                     value={regCode}
                     onChange={(e) => {
                       setRegCode(e.target.value.toUpperCase());
