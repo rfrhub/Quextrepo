@@ -792,6 +792,8 @@ export interface OperationProject {
   kickoffCompleted?: boolean;
   isManuallyCreated?: boolean;
   isBomLocked?: boolean;
+  isBomOverridden?: boolean;
+  originalQuoteBOM?: BOMItem[];
   manualLinkHistory?: ManualLinkQuoteHistory[];
   teamAssists?: TeamAssistEntry[];
   financialMilestones?: FinancialMilestones;

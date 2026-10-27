@@ -13,10 +13,13 @@ import {
   getLockFinishColorHex,
   getSingleLockFinishSummary,
   LockFinishConfig,
+  OperationProject,
+  Quote,
 } from '../types';
 import { PostItWindow } from './PostItWindow';
 import { LockFinishModal } from './LockFinishModal';
-import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle } from 'lucide-react';
+import { BOMOverrideModal } from './BOMOverrideModal';
+import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal } from 'lucide-react';
 
 interface BOMTableProps {
   items: BOMItem[];
@@ -30,6 +33,9 @@ interface BOMTableProps {
   onToggleSparesDelivered?: (itemId: string) => void;
   onDeleteLog?: (logId: string) => void;
   isReadOnly?: boolean;
+  project?: OperationProject;
+  quotesList?: Quote[];
+  onAddBOMItem?: (newItem: BOMItem, overrideReason: string) => void;
 }
 
 export const BOMTable: React.FC<BOMTableProps> = ({
@@ -44,6 +50,9 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   onToggleSparesDelivered,
   onDeleteLog,
   isReadOnly = false,
+  project,
+  quotesList = [],
+  onAddBOMItem,
 }) => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -56,6 +65,33 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   const [expandedRowLogs, setExpandedRowLogs] = useState<Record<string, boolean>>({});
   // Lock finish expanded options card state (per row)
   const [expandedFinishRows, setExpandedFinishRows] = useState<Record<string, boolean>>({});
+
+  // BOM Override states (triggered by clicking invisible button 7 times)
+  const [overrideClicks, setOverrideClicks] = useState<number>(0);
+  const clickCountRef = React.useRef<number>(0);
+  const [isOverrideUnlocked, setIsOverrideUnlocked] = useState<boolean>(false);
+  const [isOverrideModalOpen, setIsOverrideModalOpen] = useState<boolean>(false);
+  const clickTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleInvisibleOverrideClick = () => {
+    clickCountRef.current += 1;
+    const current = clickCountRef.current;
+    setOverrideClicks(current);
+
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      clickCountRef.current = 0;
+      setOverrideClicks(0);
+    }, 6000);
+
+    if (current >= 7) {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      clickCountRef.current = 0;
+      setOverrideClicks(0);
+      setIsOverrideUnlocked(true);
+      setIsOverrideModalOpen(true);
+    }
+  };
 
   const toggleRowLogs = (itemId: string) => {
     setExpandedRowLogs((prev) => ({
@@ -133,9 +169,49 @@ export const BOMTable: React.FC<BOMTableProps> = ({
       {/* Table Header Controls */}
       <div className="p-4 sm:p-5 border-b border-slate-200 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-bold text-slate-900">Smart Community Bill of Materials (BOM)</h3>
             <span className="text-xs text-slate-500">· Pulled directly from Quoted Hardware</span>
+
+            {/* Invisible Button: Called BOM OVERIDE - Clicked 7 times unlocks PM Override */}
+            <button
+              type="button"
+              aria-label="BOM OVERIDE"
+              title="BOM OVERIDE"
+              onClick={handleInvisibleOverrideClick}
+              className="opacity-0 select-none cursor-default px-1.5 py-0.5 text-[9px] uppercase font-mono tracking-widest text-slate-400 focus:opacity-100 transition-opacity"
+            >
+              BOM OVERIDE
+            </button>
+
+            {/* Subtle click progress indicator (shows remaining clicks when user is actively clicking) */}
+            {overrideClicks > 0 && overrideClicks < 7 && (
+              <span className="text-[10px] font-mono text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 animate-pulse">
+                {7 - overrideClicks} clicks remaining
+              </span>
+            )}
+
+            {/* Unlocked / Overridden Controls */}
+            {(isOverrideUnlocked || project?.isBomOverridden) && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsOverrideModalOpen(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-xs transition-all cursor-pointer"
+                  title="Add hardware line items directly from myquext.com Product Catalog"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Add BOM Item (Override)</span>
+                </button>
+
+                {project?.isBomOverridden && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                    <AlertTriangle className="w-3 h-3 text-amber-700" />
+                    BOM Overridden
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Tracked in locks, stats, GTWYs, and devices. Update counts live in the field and click &quot;Post-It Note&quot; to store notes inside each row.
@@ -1034,6 +1110,44 @@ export const BOMTable: React.FC<BOMTableProps> = ({
           onSave={(itemId, config) => {
             if (onUpdateLockFinishConfig) {
               onUpdateLockFinishConfig(itemId, config);
+            }
+          }}
+        />
+      )}
+
+      {/* BOM Override Modal (Triggered by 7 clicks on invisible button) */}
+      {isOverrideModalOpen && (
+        <BOMOverrideModal
+          isOpen={isOverrideModalOpen}
+          onClose={() => setIsOverrideModalOpen(false)}
+          project={
+            project || {
+              id: 'current-project',
+              quoteId: 'quote-current',
+              quoteNumber: 'QXT-PROJECT',
+              propertyName: 'Current Project Community',
+              clientName: 'Client',
+              address: '',
+              city: '',
+              state: '',
+              unitsCount: 200,
+              heroImage: '',
+              assignedPM: { name: 'Project Manager', email: '', phone: '', avatar: '', role: 'Project Manager' },
+              statusTag: 'On Track',
+              startDate: '',
+              targetCompletionDate: '',
+              bomItems: items,
+              installLogs: allProjectLogs,
+              notes: [],
+              milestones: [],
+              lastUpdated: new Date().toISOString(),
+            }
+          }
+          quotesList={quotesList}
+          currentBOMItems={items}
+          onConfirmOverride={(newItem, overrideReason) => {
+            if (onAddBOMItem) {
+              onAddBOMItem(newItem, overrideReason);
             }
           }}
         />

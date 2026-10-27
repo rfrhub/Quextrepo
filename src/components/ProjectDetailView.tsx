@@ -334,6 +334,88 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     });
   };
 
+  // Handle adding an additional BOM item from the Product Catalog via PM Override
+  const handleAddBOMItemOverride = (newItem: BOMItem, overrideReason?: string) => {
+    const linkedQuote = quotesList.find(
+      (q) => q.id === project.quoteId || q.quoteNumber === project.quoteNumber
+    );
+    const baselineQuoteBOM =
+      project.originalQuoteBOM && project.originalQuoteBOM.length > 0
+        ? project.originalQuoteBOM
+        : (linkedQuote?.bomItems && linkedQuote.bomItems.length > 0 ? linkedQuote.bomItems : [...project.bomItems]);
+
+    const prevDevicesTotal = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
+
+    const existingIndex = project.bomItems.findIndex(
+      (b) => b.model.toLowerCase() === newItem.model.toLowerCase() || b.id === newItem.id
+    );
+
+    let updatedBOM: BOMItem[];
+    if (existingIndex >= 0) {
+      updatedBOM = project.bomItems.map((b, idx) => {
+        if (idx === existingIndex) {
+          return {
+            ...b,
+            quantity: b.quantity + newItem.quantity,
+            sparesCount: (b.sparesCount || 0) + (newItem.sparesCount || 0),
+            unitPrice: newItem.unitPrice || b.unitPrice,
+            location: newItem.location || b.location,
+            postItLogs: [...(b.postItLogs || []), ...(newItem.postItLogs || [])],
+          };
+        }
+        return b;
+      });
+    } else {
+      updatedBOM = [...project.bomItems, newItem];
+    }
+
+    const newDevicesTotal = updatedBOM.reduce((acc, i) => acc + i.quantity, 0);
+    const auditText = `⚡ BOM OVERRIDE: Added ${newItem.quantity}x ${newItem.name} (${newItem.model}) to ${newItem.location}. Total project hardware increased from ${prevDevicesTotal} to ${newDevicesTotal} units. Justification: ${overrideReason || 'PM Catalog Scope Override'}.`;
+
+    const updatedProject: OperationProject = {
+      ...project,
+      bomItems: updatedBOM,
+      originalQuoteBOM: baselineQuoteBOM,
+      isBomOverridden: true,
+      lastUpdated: new Date().toISOString(),
+      notes: [
+        {
+          id: `note-override-${Date.now()}`,
+          projectId: project.id,
+          author: project.assignedPM?.name || 'Project Manager',
+          timestamp: 'Just now',
+          category: 'General Context',
+          text: auditText,
+          isPinned: true,
+        },
+        ...project.notes,
+      ],
+      activityNotifications: [
+        {
+          id: `notif-${Date.now()}`,
+          projectId: project.id,
+          propertyName: project.propertyName,
+          assignedPMName: project.assignedPM?.name || 'Project Manager',
+          assignedFieldTech: project.assignedFieldTech || 'Sean Gates',
+          timestamp: 'Just now',
+          createdAtIso: new Date().toISOString(),
+          audience: 'all',
+          category: 'bom_update',
+          actorName: project.assignedPM?.name || 'Project Manager',
+          actorRole: 'pm',
+          badgeLabel: 'BOM OVERRIDE',
+          title: 'BOM Item Added from Product Catalog',
+          details: `Added ${newItem.quantity}x ${newItem.name} (${newItem.model}). Total hardware count: ${newDevicesTotal} units.`,
+          section: 'bom',
+          sectionTargetId: 'pm-bom-table',
+        },
+        ...(project.activityNotifications || []),
+      ],
+    };
+
+    onUpdateProject(updatedProject);
+  };
+
   // Handle updating thermostat brand across all thermostat items for absolute consistency
   const handleUpdateThermostatBrandAll = (brand: ThermostatBrand) => {
     const updatedBOM = project.bomItems.map((item) => {
@@ -2742,6 +2824,9 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               onUpdateLockFinishConfig={handleUpdateLockFinishConfig}
               onToggleSparesDelivered={handleToggleSparesDelivered}
               onDeleteLog={handleDeleteLog}
+              project={project}
+              quotesList={quotesList}
+              onAddBOMItem={handleAddBOMItemOverride}
             />
           </div>
 
