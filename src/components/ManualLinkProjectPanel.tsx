@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { OperationProject, Quote, BOMItem, ManualLinkQuoteHistory } from '../types';
 import {
   Link2,
@@ -12,6 +12,10 @@ import {
   Clock,
   Sparkles,
   Lock,
+  Search,
+  X,
+  Building2,
+  Tag,
 } from 'lucide-react';
 
 interface ManualLinkProjectPanelProps {
@@ -28,6 +32,37 @@ export const ManualLinkProjectPanel: React.FC<ManualLinkProjectPanelProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string>('');
   const [showComparisonModal, setShowComparisonModal] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const filteredQuotes = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return quotesList;
+    return quotesList.filter(
+      (q) =>
+        q.propertyName.toLowerCase().includes(query) ||
+        q.quoteNumber.toLowerCase().includes(query) ||
+        (q.clientName && q.clientName.toLowerCase().includes(query)) ||
+        (q.city && q.city.toLowerCase().includes(query)) ||
+        (q.state && q.state.toLowerCase().includes(query))
+    );
+  }, [quotesList, searchQuery]);
+
+  const getStageBadgeColor = (stage: string) => {
+    switch (stage) {
+      case 'Deal Won':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Contract Review':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Proposal Sent':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Needs Analysis':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Closed Lost':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
 
   const selectedQuote = quotesList.find((q) => q.id === selectedQuoteId);
   const history = project.manualLinkHistory || [];
@@ -125,33 +160,141 @@ export const ManualLinkProjectPanel: React.FC<ManualLinkProjectPanelProps> = ({
 
       {/* Flyout Panel */}
       {isOpen && (
-        <div className="absolute bottom-full left-0 mb-2 w-96 bg-white border border-slate-200 rounded-xl shadow-xl p-4 z-40 space-y-4 text-xs text-slate-800">
+        <div className="absolute bottom-full left-0 mb-2 w-[440px] max-w-[95vw] bg-white border border-slate-200 rounded-xl shadow-2xl p-4 z-40 space-y-4 text-xs text-slate-800">
           
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div className="font-bold text-slate-900 flex items-center gap-1.5">
               <Link2 className="w-4 h-4 text-sky-600" />
               <span>Manual Quote Connection</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono">
-              Quote #{project.quoteNumber}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">
+                Linked: #{project.quoteNumber}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                title="Close"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
-          {/* Quote Selection Dropdown */}
-          <div className="space-y-1.5">
-            <label className="font-semibold text-slate-700">Select Quote to Link & Compare:</label>
-            <select
-              value={selectedQuoteId}
-              onChange={(e) => handleStartLink(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium text-xs focus:outline-none focus:border-sky-500"
-            >
-              <option value="">-- Choose Pipeline Quote --</option>
-              {quotesList.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.quoteNumber} · {q.propertyName} ({q.stage})
-                </option>
-              ))}
-            </select>
+          {/* Search Quotes by Name */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-slate-700 text-xs flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-sky-600" />
+                <span>Search Quote by Name:</span>
+              </label>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {filteredQuotes.length} of {quotesList.length} quotes
+              </span>
+            </div>
+
+            {/* Search Input Box */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search quote by property name (e.g. Broadstone, Vue)..."
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all font-medium"
+                autoFocus
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filtered Quotes List */}
+            <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 border border-slate-200 rounded-lg p-1.5 bg-slate-50/50 scrollbar-thin">
+              {filteredQuotes.length === 0 ? (
+                <div className="py-6 px-3 text-center space-y-1.5">
+                  <AlertCircle className="w-6 h-6 text-slate-400 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-600">No quotes matching "{searchQuery}"</p>
+                  <p className="text-[11px] text-slate-400">Try searching with a different property name or quote #.</p>
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="mt-1 px-2.5 py-1 text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded border border-sky-200 cursor-pointer"
+                  >
+                    Reset Search
+                  </button>
+                </div>
+              ) : (
+                filteredQuotes.map((q) => {
+                  const isCurrentQuote = String(q.quoteNumber) === String(project.quoteNumber);
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      onClick={() => handleStartLink(q.id)}
+                      className={`w-full text-left p-2.5 rounded-lg border transition-all cursor-pointer group flex flex-col gap-1 ${
+                        isCurrentQuote
+                          ? 'bg-sky-50/80 border-sky-300 hover:bg-sky-100/80'
+                          : 'bg-white border-slate-200 hover:border-sky-300 hover:bg-slate-50 shadow-2xs'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-slate-900 text-xs truncate group-hover:text-sky-700 transition-colors flex items-center gap-1.5">
+                            <span className="truncate">{q.propertyName}</span>
+                            {isCurrentQuote && (
+                              <span className="px-1.5 py-0.2 text-[9px] font-bold bg-sky-200 text-sky-800 rounded font-mono uppercase tracking-wider shrink-0">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          {q.clientName && (
+                            <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                              <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span className="truncate">{q.clientName}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-bold text-slate-900 text-xs">
+                            #{q.quoteNumber}
+                          </span>
+                          <div className="mt-0.5">
+                            <span
+                              className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold border ${getStageBadgeColor(
+                                q.stage
+                              )}`}
+                            >
+                              {q.stage}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100 mt-0.5">
+                        <span>
+                          {q.unitsCount ? `${q.unitsCount} Units` : ''}
+                          {q.city && q.state ? ` · ${q.city}, ${q.state}` : ''}
+                        </span>
+                        <span className="text-sky-600 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                          <span>Compare &amp; Link</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           {/* Connection Audit History */}
