@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   OperationProject,
   CustomerCommsLog,
@@ -36,6 +36,10 @@ import {
   AlertCircle,
   LogOut,
   Calendar,
+  Users,
+  Plus,
+  Trash2,
+  Zap,
 } from 'lucide-react';
 
 interface CustomerCommsControlPanelProps {
@@ -112,10 +116,23 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     csmHandoffMilestone?.status === 'Completed';
   const autoCloseInfo = getCsmHandoffAutoCloseInfo(project);
 
+  // Additional customer emails manually added by PM for automated and manual dispatches
+  const additionalCustomerEmails = useMemo(() => {
+    return (
+      project.additionalCustomerEmails ||
+      project.customerIntake?.additionalCustomerEmails ||
+      []
+    );
+  }, [project.additionalCustomerEmails, project.customerIntake?.additionalCustomerEmails]);
+
+  const [newCustomerEmailInput, setNewCustomerEmailInput] = useState<string>('');
+
   // Extract stakeholder emails from staffRoles / customerIntake
-  const staffRecipients = (project.customerIntake?.staffRoles || [])
-    .filter((s) => s.email && s.email.trim().length > 0)
-    .map((s) => s.email.trim());
+  const staffRecipients = useMemo(() => {
+    return (project.customerIntake?.staffRoles || [])
+      .filter((s) => s.email && s.email.trim().length > 0)
+      .map((s) => s.email.trim());
+  }, [project.customerIntake?.staffRoles]);
 
   const primaryRecipientEmail =
     project.customerIntake?.subscriberEmail ||
@@ -124,10 +141,101 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     stressTestRecipient ||
     'RFRleasing@gmail.com';
 
+  // Comprehensive recipient list including primary, onsite staff, and PM-added customer emails
+  const allConfiguredCustomerRecipients = useMemo(() => {
+    const set = new Set<string>();
+    if (primaryRecipientEmail && primaryRecipientEmail.trim()) {
+      set.add(primaryRecipientEmail.trim());
+    }
+    staffRecipients.forEach((e) => {
+      if (e.trim()) set.add(e.trim());
+    });
+    additionalCustomerEmails.forEach((e) => {
+      if (e.trim()) set.add(e.trim());
+    });
+    return Array.from(set);
+  }, [primaryRecipientEmail, staffRecipients, additionalCustomerEmails]);
+
   const defaultRecipients =
-    staffRecipients.length > 0 ? staffRecipients : [primaryRecipientEmail];
+    allConfiguredCustomerRecipients.length > 0
+      ? allConfiguredCustomerRecipients
+      : [primaryRecipientEmail];
 
   const csmBookingProfile = getCSMCalendarBookingProfile(project.assignedCSM);
+
+  const handleAddCustomerEmail = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const formEl = e?.target as HTMLElement | undefined;
+    const fallbackInputVal = formEl?.closest('form')?.querySelector('input')?.value || '';
+    const textToProcess = (newCustomerEmailInput || fallbackInputVal).trim();
+    if (!textToProcess) return;
+
+    // Parse comma or semicolon separated emails
+    const rawTokens = textToProcess
+      .split(/[,;\s]+/)
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validEmails = rawTokens.filter((email) => emailRegex.test(email));
+
+    if (validEmails.length === 0) {
+      triggerToast('Please enter a valid email address (e.g. owner@property.com).');
+      return;
+    }
+
+    const currentList = new Set(additionalCustomerEmails.map((em) => em.toLowerCase()));
+    const toAdd = validEmails.filter((em) => !currentList.has(em));
+
+    if (toAdd.length === 0) {
+      triggerToast('Entered email address is already in the customer distribution list.');
+      setNewCustomerEmailInput('');
+      return;
+    }
+
+    const updatedList = [...additionalCustomerEmails, ...toAdd];
+
+    onUpdateProject({
+      ...project,
+      additionalCustomerEmails: updatedList,
+      customerIntake: {
+        ...(project.customerIntake || {
+          pmsSoftware: 'Yardi',
+          commonAreaDoors: [],
+          staffRoles: [],
+        }),
+        additionalCustomerEmails: updatedList,
+      },
+      lastUpdated: new Date().toISOString(),
+    });
+
+    setNewCustomerEmailInput('');
+    triggerToast(
+      `Added ${toAdd.join(', ')} to automatic cadence and manual customer updates!`
+    );
+  };
+
+  const handleRemoveCustomerEmail = (emailToRemove: string) => {
+    const updatedList = additionalCustomerEmails.filter(
+      (em) => em.toLowerCase() !== emailToRemove.toLowerCase()
+    );
+
+    onUpdateProject({
+      ...project,
+      additionalCustomerEmails: updatedList,
+      customerIntake: {
+        ...(project.customerIntake || {
+          pmsSoftware: 'Yardi',
+          commonAreaDoors: [],
+          staffRoles: [],
+        }),
+        additionalCustomerEmails: updatedList,
+      },
+      lastUpdated: new Date().toISOString(),
+    });
+
+    triggerToast(`Removed ${emailToRemove} from customer communications.`);
+  };
 
   const openModalWithRecipients = (
     modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | 'stress_test'
@@ -561,6 +669,92 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     );
   };
 
+  const handleTriggerCadenceNow = async () => {
+    if (cadence === 'none') {
+      triggerToast('Automated cadence is currently paused. Please select Weekly or Bi-Weekly cadence.');
+      return;
+    }
+
+    const { subject, summary, htmlBody, logType } = buildEmailContent('digest');
+    const recipientsList = defaultRecipients;
+    const cadenceSubject = `[Automated ${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Cadence] ${subject}`;
+
+    setIsSendingLiveEmail(true);
+    try {
+      if (!needsAuth && sendRealGmailEmail) {
+        const gmailResult = await sendRealGmailEmail({
+          to: recipientsList,
+          subject: cadenceSubject,
+          htmlBody,
+        });
+
+        const nowStr = new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        const newLog: CustomerCommsLog = {
+          id: `comm-cadence-${Date.now()}`,
+          projectId: project.id,
+          timestamp: nowStr,
+          type: logType,
+          recipientEmail: gmailResult.recipients.join(', '),
+          subject: cadenceSubject,
+          summary: `Automated ${cadence} cadence triggered. Delivered to ${gmailResult.recipients.length} customer recipient(s) [Gmail ID: ${gmailResult.id}].`,
+          sentBy: gmailUserEmail || project.assignedPM.name,
+          cadence,
+          status: 'Delivered',
+        };
+
+        onUpdateProject({
+          ...project,
+          customerCommsLogs: [newLog, ...logs],
+          lastUpdated: new Date().toISOString(),
+        });
+
+        triggerToast(
+          `Automated ${cadence} cadence delivered via Gmail to ${gmailResult.recipients.join(', ')}!`
+        );
+      } else {
+        const nowStr = new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        const newLog: CustomerCommsLog = {
+          id: `comm-cadence-${Date.now()}`,
+          projectId: project.id,
+          timestamp: nowStr,
+          type: logType,
+          recipientEmail: recipientsList.join(', '),
+          subject: cadenceSubject,
+          summary: `Automated ${cadence} cadence triggered. Dispatched to ${recipientsList.length} customer recipient(s).`,
+          sentBy: gmailUserEmail || project.assignedPM.name,
+          cadence,
+          status: 'Delivered',
+        };
+
+        onUpdateProject({
+          ...project,
+          customerCommsLogs: [newLog, ...logs],
+          lastUpdated: new Date().toISOString(),
+        });
+
+        triggerToast(
+          `Automated ${cadence} cadence triggered & logged for ${recipientsList.join(', ')}!`
+        );
+      }
+    } catch (err: any) {
+      triggerToast(err?.message || 'Failed to dispatch automated cadence.');
+    } finally {
+      setIsSendingLiveEmail(false);
+    }
+  };
+
   const lastKickoffSentLog = logs.find((l) => l.type === 'kickoff_submission');
 
   return (
@@ -678,6 +872,110 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
             </button>
           )}
         </div>
+      </div>
+
+      {/* Customer Email Distribution List for Automated Cadence & Manual Updates */}
+      <div className="px-6 py-4 bg-slate-50/90 border-b border-slate-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs mt-0.5 sm:mt-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                  Customer Email Distribution List (Cadence &amp; Manual Updates)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  {allConfiguredCustomerRecipients.length} Recipient{allConfiguredCustomerRecipients.length === 1 ? '' : 's'} Subscribed
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                All customer emails listed below automatically receive recurring Weekly / Bi-Weekly milestone progress digests when cadence triggers, as well as any manual updates dispatched by PMs.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-left sm:text-right shrink-0">
+            <span className="text-[11px] font-medium text-slate-500">
+              Active Cadence: <strong className="text-slate-900 font-bold uppercase">{cadence === 'biweekly' ? 'Bi-Weekly' : cadence === 'none' ? 'Paused' : 'Weekly'}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Recipient Badges / Chips */}
+        <div className="flex flex-wrap items-center gap-2 mb-3.5">
+          {/* Primary Contact */}
+          {primaryRecipientEmail && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+              <span className="font-semibold text-slate-800">{primaryRecipientEmail}</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                Primary
+              </span>
+            </div>
+          )}
+
+          {/* Onsite Staff Roles */}
+          {staffRecipients
+            .filter((e) => e.toLowerCase() !== primaryRecipientEmail.toLowerCase())
+            .map((email) => (
+              <div key={email} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                <span className="font-semibold text-slate-800">{email}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                  Staff Role
+                </span>
+              </div>
+            ))}
+
+          {/* Manually Added Additional Customer Emails */}
+          {additionalCustomerEmails.map((email) => (
+            <div
+              key={email}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs shadow-2xs group transition-all"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="font-semibold text-emerald-950">{email}</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Added by PM
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemoveCustomerEmail(email)}
+                title={`Remove ${email} from customer distribution`}
+                className="ml-1 p-0.5 rounded text-emerald-700 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+
+          {allConfiguredCustomerRecipients.length === 0 && (
+            <span className="text-xs text-slate-400 italic">No customer recipients configured yet. Add one below.</span>
+          )}
+        </div>
+
+        {/* Add Customer Email Form */}
+        <form onSubmit={handleAddCustomerEmail} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-xl">
+          <div className="relative flex-1">
+            <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={newCustomerEmailInput}
+              onChange={(e) => setNewCustomerEmailInput(e.target.value)}
+              placeholder="Add customer email (e.g. owner@property.com, assetmgr@equity.com)"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+            />
+          </div>
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs shrink-0 cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Customer Email</span>
+          </button>
+        </form>
       </div>
 
       {/* Toast Notification */}
@@ -842,10 +1140,30 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
                     (cadence === 'none' ? 'Paused' : project.startDate)}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Cadence Recipients:</span>
+                <span className="font-bold text-slate-800">
+                  {allConfiguredCustomerRecipients.length} Recipient{allConfiguredCustomerRecipients.length === 1 ? '' : 's'}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+          <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleTriggerCadenceNow}
+              disabled={cadence === 'none' || isSendingLiveEmail}
+              className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-40"
+              title={`Trigger automated ${cadence} cadence email dispatch right now`}
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>
+                {cadence === 'none'
+                  ? 'Cadence Paused'
+                  : `Trigger ${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Cadence Now`}
+              </span>
+            </button>
             <button
               onClick={() => openModalWithRecipients('digest')}
               className="w-full py-2.5 px-3 rounded-xl bg-[#01C38D] hover:bg-[#00b07f] text-[#191E29] text-xs font-black flex items-center justify-center space-x-1.5 transition-colors cursor-pointer shadow-sm"

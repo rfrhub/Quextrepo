@@ -596,11 +596,17 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
     `;
   };
 
-  const getDefaultCustomerRecipient = (): string =>
-    project.customerIntake?.subscriberEmail ||
-    project.customerIntake?.communityEmail ||
-    project.customerIntake?.staffRoles?.[0]?.email ||
-    'RFRleasing@gmail.com';
+  const getDefaultCustomerRecipient = (): string => {
+    const list = new Set<string>();
+    const staff = (project.customerIntake?.staffRoles || []).map((s) => s.email?.trim()).filter(Boolean);
+    staff.forEach((e) => list.add(e as string));
+    const extra = (project.additionalCustomerEmails || project.customerIntake?.additionalCustomerEmails || []).map((e) => e.trim()).filter(Boolean);
+    extra.forEach((e) => list.add(e));
+    const primary = project.customerIntake?.subscriberEmail || project.customerIntake?.communityEmail || project.customerIntake?.staffRoles?.[0]?.email;
+    if (primary) list.add(primary.trim());
+    if (list.size === 0) list.add('RFRleasing@gmail.com');
+    return Array.from(list).join(', ');
+  };
 
   const handleSendSOWOverviewToCustomer = () => {
     const recipient = getDefaultCustomerRecipient();

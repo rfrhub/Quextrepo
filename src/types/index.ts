@@ -661,6 +661,7 @@ export interface KickoffCustomerIntake {
   nfcCardArtPhotoName?: string;
   nfcCardArtPhotoDataUrl?: string;
   nfcCardArtUploadedAt?: string;
+  additionalCustomerEmails?: string[]; // PM manually added customer emails for automated digests & manual dispatches
 }
 
 export interface TeamAssistEntry {
@@ -802,6 +803,7 @@ export interface OperationProject {
   customerCommsLogs?: CustomerCommsLog[];
   emailOverviewCadence?: CustomerEmailCadence;
   emailCadenceStartDate?: string; // Fillable start date for weekly/biweekly overview cadence
+  additionalCustomerEmails?: string[]; // PM manually added customer emails for automated digests & manual dispatches
   sowForecastCadenceEnabled?: boolean; // Automated weekly/biweekly SOW Forecast overview dispatch when on CSM Intro - Pre-implementation
   useNfcWallet?: boolean; // PM Checkbox: NFC Wallet Upgrade
   useQrIntercom?: boolean; // PM Checkbox: QR Intercom Feature
