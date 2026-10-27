@@ -28,6 +28,11 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
           alt="Quext powered by GFiber"
           className={`${logoHeights[size]} w-auto object-contain flex-shrink-0 drop-shadow-sm`}
           loading="eager"
+          onError={(e) => {
+            if (e.currentTarget.src !== '/quext-powered-by-gfiber-white.png') {
+              e.currentTarget.src = '/quext-powered-by-gfiber-white.png';
+            }
+          }}
         />
       </div>
 
