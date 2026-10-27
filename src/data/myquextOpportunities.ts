@@ -10146,7 +10146,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-oaTpjj-16",
         "name": "Schlage NDEB Tubular",
-        "model": "SCH-BE467",
+        "model": "SCH-NDEB",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 4,
@@ -15404,7 +15404,7 @@ export const MYQUEXT_QUOTES: (Quote & Partial<MyQuextOpportunityMeta>)[] = [
       {
         "id": "bom-DVahD7-04",
         "name": "Schlage NDEB Tubular",
-        "model": "SCH-BE467",
+        "model": "SCH-NDEB",
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 14,

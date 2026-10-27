@@ -1717,13 +1717,12 @@ export function detectLockFamily(item: {
 }): LockFamilyType {
   const s = `${item?.name || ''} ${item?.model || ''}`.toLowerCase();
   
-  // 1. BOM line item title/model dictates product family
-  if (s.includes('xe360') || s.includes('exit trim') || s.includes('tubular') || (s.includes('mortise') && !s.includes('deadbolt'))) {
-    return 'xe360';
-  }
+  // 1. NDEB / NDE commercial wireless levers (must be checked BEFORE generic 'tubular' or 'mortise' to avoid misclassifying NDEB Tubular)
   if (s.includes('ndeb') || s.includes('nde') || s.includes('wireless lever') || s.includes('cylindrical')) {
     return 'nde';
   }
+
+  // 2. BE467 / FE410 / Deadbolts & Interconnected
   if (
     s.includes('be467') ||
     s.includes('be468') ||
@@ -1737,7 +1736,12 @@ export function detectLockFamily(item: {
     return 'befe';
   }
 
-  // 2. Fall back to config family if specified and title was generic
+  // 3. XE360 architectural locks (exit trim, tubular, mortise)
+  if (s.includes('xe360') || s.includes('xe-360') || s.includes('exit trim') || s.includes('tubular') || (s.includes('mortise') && !s.includes('deadbolt'))) {
+    return 'xe360';
+  }
+
+  // 4. Fall back to config family if specified and title was generic
   if (item?.lockFinishConfig?.family) {
     return item.lockFinishConfig.family;
   }
@@ -1783,8 +1787,8 @@ export function getLockTypeDisplay(
   }
 
   if (family === 'nde') {
-    if (s.includes('NDEB')) return 'NDEB Wireless Lock';
-    return 'NDE Wireless Lock';
+    if (s.includes('NDEB')) return 'NDEB Series';
+    return 'NDE Series';
   }
 
   // family === 'befe'

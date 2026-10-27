@@ -116,7 +116,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
 
       const itemSubtype: Xe360Subtype = item.name.toLowerCase().includes('exit')
         ? 'Exit Trim'
-        : item.name.toLowerCase().includes('tubular')
+        : item.name.toLowerCase().includes('tubular') && !item.name.toLowerCase().includes('ndeb') && !item.name.toLowerCase().includes('nde')
         ? 'Tubular'
         : 'Mortise';
       setXe360Subtype(cfg?.xe360Subtype || itemSubtype);

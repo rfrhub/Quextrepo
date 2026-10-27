@@ -1994,6 +1994,11 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
           fixedModel = 'SCH-MT20';
         }
       }
+      if (/ndeb/i.test(b.name)) {
+        if (/be467/i.test(b.model) || !b.model || b.model === 'nZTfIgKvltchDW54DbMm') {
+          fixedModel = 'SCH-NDEB';
+        }
+      }
       // If it is NOT a lock (e.g. Schlage Enrollment Reader MT20W, Readers, Gate Readers, Intercoms), strip any mistakenly applied lockFinishConfig
       if (!isLockBOMItem({ ...b, model: fixedModel }) && b.lockFinishConfig) {
         const cleaned = { ...b, model: fixedModel };
