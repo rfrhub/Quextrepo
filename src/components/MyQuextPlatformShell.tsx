@@ -1760,30 +1760,6 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               >
                 Installation Timeline
               </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectOperationsMainTab('quotes')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  operationsMainTab === 'quotes'
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                Quotes &amp; Deal Stage Sync ({quotes.length})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectOperationsMainTab('analysis')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  operationsMainTab === 'analysis'
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                Quote Analysis
-              </button>
             </div>
 
             <div className="flex items-center gap-2">
