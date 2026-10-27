@@ -7,6 +7,7 @@ import {
   getProjectIntegratorPartners,
   PendingInstallationChange,
   InstallLogEntry,
+  isDiyPartner,
 } from '../types';
 import {
   ClipboardList,
@@ -40,6 +41,91 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
   const sowItems: SOWForecastItem[] = project.sowForecastItems || [];
   const bomItems = project.bomItems || [];
   const partners = getProjectIntegratorPartners(project);
+  const isDiy = project.isDiyInstallation || partners.some((p) => isDiyPartner(p));
+
+  const handleToggleDiy = () => {
+    const nextDiy = !isDiy;
+    let nextPartners = [...partners];
+
+    if (nextDiy) {
+      if (!nextPartners.some((p) => isDiyPartner(p))) {
+        nextPartners = ['DIY (Customer Self-Install)', ...nextPartners];
+      }
+      let nextSowItems = sowItems;
+      if (sowItems.length > 0) {
+        if (
+          window.confirm(
+            'DIY Installation Mode enabled: Customer is doing the installation themselves.\n\nWould you like to clear the third-party SOW forecast entries? (You can also clear them later).'
+          )
+        ) {
+          nextSowItems = [];
+        }
+      }
+
+      const updatedProject: OperationProject = {
+        ...project,
+        isDiyInstallation: true,
+        integratorPartners: nextPartners,
+        sowForecastItems: nextSowItems,
+        lastUpdated: new Date().toISOString(),
+        notes: [
+          {
+            id: `note-diy-${Date.now()}`,
+            projectId: project.id,
+            author: editorName || project.assignedPM.name || 'Project Manager',
+            timestamp: 'Just now',
+            category: 'General Context',
+            text: '🔧 DIY Partner Integrator Activated: Customer property team is self-installing all hardware. SOW Forecaster third-party installer scope bypassed.',
+            isPinned: true,
+          },
+          ...project.notes,
+        ],
+      };
+      onUpdateProject(updatedProject);
+      setSentAlert('DIY Mode Activated: Customer self-install enabled. 0 SOW entries permitted.');
+    } else {
+      nextPartners = nextPartners.filter((p) => !isDiyPartner(p));
+      if (nextPartners.length === 0) {
+        nextPartners = ['SKBM'];
+      }
+
+      const updatedProject: OperationProject = {
+        ...project,
+        isDiyInstallation: false,
+        integratorPartners: nextPartners,
+        lastUpdated: new Date().toISOString(),
+        notes: [
+          {
+            id: `note-diy-off-${Date.now()}`,
+            projectId: project.id,
+            author: editorName || project.assignedPM.name || 'Project Manager',
+            timestamp: 'Just now',
+            category: 'General Context',
+            text: 'DIY Mode Deactivated: Restored third-party integrator installation partner scope.',
+            isPinned: false,
+          },
+          ...project.notes,
+        ],
+      };
+      onUpdateProject(updatedProject);
+      setSentAlert('DIY Mode Deactivated: Third-party integrator installer restored.');
+    }
+  };
+
+  const handleClearAllSOWForDIY = () => {
+    if (
+      window.confirm(
+        'Clear all SOW Forecaster entries for DIY installation? (Customer is doing the installation themselves).'
+      )
+    ) {
+      onUpdateProject({
+        ...project,
+        sowForecastItems: [],
+        lastUpdated: new Date().toISOString(),
+      });
+      setSentAlert('All SOW entries cleared for DIY Customer Self-Install.');
+    }
+  };
 
   const getDefaultBomForecastQty = (b: BOMItem): number => {
     const rem = Math.max(0, b.quantity - (b.installedCount || 0));
@@ -674,6 +760,27 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
             <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded font-bold uppercase">
               CSM Intro - Pre-Implementation Ready
             </span>
+
+            {/* DIY TAG TOGGLE BUTTON */}
+            <button
+              type="button"
+              onClick={handleToggleDiy}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                isDiy
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border-amber-300 ring-2 ring-amber-400/20 shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-300'
+              }`}
+              title="Click to toggle DIY installation (Customer is doing the installation themselves)"
+            >
+              <Wrench className={`w-3.5 h-3.5 ${isDiy ? 'text-amber-700' : 'text-slate-500'}`} />
+              <span>DIY Tag: {isDiy ? 'ON (Self-Install)' : 'OFF'}</span>
+            </button>
+
+            {isDiy && (
+              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-mono">
+                0 SOW Entries Allowed
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             Forecast scope of work for installers via line items, document what work will be completed, and adjust 1:1 quantities for each matched BOM line item with arrows or manual entry.
@@ -681,6 +788,18 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {isDiy && sowItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAllSOWForDIY}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
+              title="Clear all SOW entries because customer is handling installation directly"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-amber-700" />
+              <span>Clear SOW Entries (DIY Mode)</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleSendSOWOverviewToCustomer}
@@ -738,12 +857,24 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
           <div className="text-[10px] text-slate-500 mt-0.5">Live field installation progress</div>
         </div>
 
-        <div className="bg-white p-2.5 rounded-lg border border-indigo-200">
-          <div className="text-[10px] font-bold uppercase text-indigo-700">SOW Forecasted Scope</div>
-          <div className="text-base font-extrabold text-indigo-900 font-mono mt-0.5">
-            {totalForecastedUnits.toLocaleString()} <span className="text-xs font-normal text-indigo-700">forecasted units</span>
+        <div className={`p-2.5 rounded-lg border ${isDiy ? 'bg-amber-50/70 border-amber-300' : 'bg-white border-indigo-200'}`}>
+          <div className={`text-[10px] font-bold uppercase ${isDiy ? 'text-amber-800' : 'text-indigo-700'}`}>
+            {isDiy ? 'DIY Installation Scope' : 'SOW Forecasted Scope'}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">{sowItems.length} installer work packages</div>
+          <div className="text-base font-extrabold text-indigo-900 font-mono mt-0.5">
+            {isDiy && sowItems.length === 0 ? (
+              <span className="text-amber-950 text-sm font-bold">0 Units (Customer DIY)</span>
+            ) : (
+              <>
+                {totalForecastedUnits.toLocaleString()} <span className="text-xs font-normal text-indigo-700">forecasted units</span>
+              </>
+            )}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            {isDiy && sowItems.length === 0
+              ? 'Self-install bypasses third-party SOW'
+              : `${sowItems.length} installer work packages`}
+          </div>
         </div>
 
         <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 flex flex-col justify-between">
@@ -1092,8 +1223,29 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
           <tbody className="divide-y divide-slate-100">
             {sowItems.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-400">
-                  No SOW forecast line items documented yet. Click <strong>&quot;+ Add SOW Forecast Line Item&quot;</strong> above to match installer scope 1:1 against BOM items.
+                <td colSpan={8} className="py-8 text-center text-slate-500">
+                  {isDiy ? (
+                    <div className="max-w-md mx-auto space-y-2 p-3 bg-amber-50/60 rounded-xl border border-amber-200">
+                      <div className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-100 text-amber-800">
+                        <Wrench className="w-4 h-4" />
+                      </div>
+                      <div className="font-bold text-sm text-amber-950">
+                        DIY Customer Self-Install Active (0 SOW Entries Required)
+                      </div>
+                      <p className="text-xs text-amber-900/80 leading-relaxed">
+                        The customer property team is handling all on-site installation work directly. Third-party integrator installer forecasting is bypassed for this project.
+                      </p>
+                      <div className="pt-1">
+                        <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-200/70 text-amber-950 font-bold border border-amber-300">
+                          Partner Integrator: DIY (Customer Self-Install)
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-400">
+                      No SOW forecast line items documented yet. Click <strong>&quot;+ Add SOW Forecast Line Item&quot;</strong> above to match installer scope 1:1 against BOM items.
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (

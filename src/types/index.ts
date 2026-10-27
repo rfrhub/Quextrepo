@@ -262,6 +262,7 @@ export const OFFICIAL_CHANNEL_PARTNERS: readonly string[] = [
   'Everbase Solutions',
   'SKBM Smart Tech',
   'Southbay Hardware',
+  'DIY (Customer Self-Install)',
 ] as const;
 
 export const DEFAULT_INTEGRATOR_PARTNERS = OFFICIAL_CHANNEL_PARTNERS;
@@ -295,8 +296,23 @@ export function isOfficialChannelPartner(name: string): boolean {
     'southbay hardware',
     'southbay',
     'sbh',
+    'diy (customer self-install)',
+    'diy',
+    'customer self-install',
+    'self-install',
   ];
   return ocpMatches.includes(normalized) || OFFICIAL_CHANNEL_PARTNERS.some((p) => p.toLowerCase() === normalized);
+}
+
+export function isDiyPartner(partner?: string | null): boolean {
+  if (!partner) return false;
+  const n = partner.trim().toLowerCase();
+  return (
+    n === 'diy' ||
+    n.includes('customer self-install') ||
+    n.includes('self-install') ||
+    n.startsWith('diy')
+  );
 }
 
 export const isMainIntegratorPartner = isOfficialChannelPartner;
@@ -793,6 +809,7 @@ export interface OperationProject {
   isManuallyCreated?: boolean;
   isBomLocked?: boolean;
   isBomOverridden?: boolean;
+  isDiyInstallation?: boolean; // Customer is doing the installation themselves
   originalQuoteBOM?: BOMItem[];
   manualLinkHistory?: ManualLinkQuoteHistory[];
   teamAssists?: TeamAssistEntry[];

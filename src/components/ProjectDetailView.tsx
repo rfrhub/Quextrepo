@@ -29,6 +29,7 @@ import {
   CustomerCommsLog,
   getLockFinishSummaryTag,
   isLockBOMItem,
+  isDiyPartner,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
@@ -87,6 +88,7 @@ import {
   X,
   FileCheck,
   GraduationCap,
+  Wrench,
   ShieldAlert,
 } from 'lucide-react';
 import {
@@ -1695,9 +1697,11 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   assignedPartners={getProjectIntegratorPartners(project)}
                   projectName={project.propertyName}
                   onChange={(updatedPartners) => {
+                    const isNowDiy = updatedPartners.some(isDiyPartner);
                     const updatedProj = {
                       ...project,
                       integratorPartners: updatedPartners,
+                      isDiyInstallation: isNowDiy,
                       lastUpdated: new Date().toISOString(),
                     };
                     updatedProj.partnerCourseBundle = buildProjectPrePackagedBundle(
@@ -1708,6 +1712,57 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   }}
                 />
               </div>
+
+              {/* DIY Tag Toggle Button (Customer Self-Install) */}
+              <button
+                type="button"
+                onClick={() => {
+                  const currentPartners = getProjectIntegratorPartners(project);
+                  const isCurrentlyDiy = project.isDiyInstallation || currentPartners.some(isDiyPartner);
+                  const nextDiy = !isCurrentlyDiy;
+                  let updatedPartners = [...currentPartners];
+
+                  if (nextDiy) {
+                    if (!updatedPartners.some(isDiyPartner)) {
+                      updatedPartners = ['DIY (Customer Self-Install)', ...updatedPartners];
+                    }
+                  } else {
+                    updatedPartners = updatedPartners.filter((p) => !isDiyPartner(p));
+                    if (updatedPartners.length === 0) {
+                      updatedPartners = ['SKBM'];
+                    }
+                  }
+
+                  const updatedProj: OperationProject = {
+                    ...project,
+                    isDiyInstallation: nextDiy,
+                    integratorPartners: updatedPartners,
+                    lastUpdated: new Date().toISOString(),
+                  };
+                  updatedProj.partnerCourseBundle = buildProjectPrePackagedBundle(
+                    updatedProj,
+                    'BOM Scope Sync'
+                  );
+                  onUpdateProject(updatedProj);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                  project.isDiyInstallation || getProjectIntegratorPartners(project).some(isDiyPartner)
+                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border-amber-300 ring-2 ring-amber-400/20 shadow-2xs font-bold'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+                }`}
+                title="Toggle DIY Installation (Customer is performing hardware installation themselves)"
+              >
+                <Wrench
+                  className={`w-3.5 h-3.5 ${
+                    project.isDiyInstallation || getProjectIntegratorPartners(project).some(isDiyPartner)
+                      ? 'text-amber-700'
+                      : 'text-slate-400'
+                  }`}
+                />
+                <span>
+                  DIY Tag: {project.isDiyInstallation || getProjectIntegratorPartners(project).some(isDiyPartner) ? 'ON' : 'OFF'}
+                </span>
+              </button>
 
               {/* Assigned Integrator Partner Course Completion Status Badge */}
               <div

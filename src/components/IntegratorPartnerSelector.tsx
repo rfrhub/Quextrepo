@@ -184,6 +184,9 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
         return 'bg-cyan-50 text-cyan-800 border-cyan-200 hover:bg-cyan-100';
       case 'JTS':
         return 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100';
+      case 'DIY':
+      case 'DIY (Customer Self-Install)':
+        return 'bg-amber-100 text-amber-950 border-amber-300 hover:bg-amber-200 font-bold';
       default:
         return 'bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100';
     }

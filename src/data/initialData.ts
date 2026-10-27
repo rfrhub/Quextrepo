@@ -11,6 +11,7 @@ import {
   isLockBOMItem,
   detectLockFamily,
   sanitizeLockSplits,
+  isDiyPartner,
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
@@ -1755,9 +1756,17 @@ const STORAGE_KEY_QUOTES = 'quext_myquext_live_quotes_v1';
 const STORAGE_KEY_PROJECTS = 'quext_myquext_live_projects_v1';
 
 export function buildDefaultSOWForecastItems(project: Partial<OperationProject>): SOWForecastItem[] {
+  // If DIY Customer Self-Install, SOW Forecaster has NO entries!
+  const installer = (project.integratorPartners && project.integratorPartners[0]) || 'SKBM';
+  if (
+    project.isDiyInstallation ||
+    isDiyPartner(installer) ||
+    (project.integratorPartners && project.integratorPartners.some(isDiyPartner))
+  ) {
+    return [];
+  }
   const bom = project.bomItems || [];
   if (bom.length === 0) return [];
-  const installer = (project.integratorPartners && project.integratorPartners[0]) || 'SKBM';
   return bom.slice(0, 4).map((item, idx) => {
     const remaining = Math.max(0, item.quantity - (item.installedCount || 0));
     const forecastedQty = remaining > 0 ? remaining : item.quantity;

@@ -635,6 +635,16 @@ export const PARTNER_IDENTITY_DIRECTORY: PartnerIdentityDirectoryEntry[] = [
     region: 'Southeast & Mid-Atlantic Region',
     aliases: ['all media', 'allmedia', 'allmediaintegrations'],
   },
+  {
+    partnerShortName: 'DIY',
+    companyId: 'comp_diy',
+    companyName: 'DIY (Customer Self-Install)',
+    companyCode: 'DIY-000',
+    defaultEmail: 'customer@diy-install.com',
+    leadName: 'Customer On-Site Team (DIY Self-Install)',
+    region: 'Property Owner & Maintenance Self-Deployment',
+    aliases: ['diy', 'customer self-install', 'self-install', 'diy partner', 'customer install', 'diy@customerinstall.com'],
+  },
 ];
 
 /**

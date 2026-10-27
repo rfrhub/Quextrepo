@@ -139,7 +139,7 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     return {
       name: matchedPartner.leadName || `${matchedPartner.partnerShortName} Partner`,
       email: email.includes('@') ? email : matchedPartner.defaultEmail,
-      roleLabel: 'OFFICIAL CHANNEL PARTNER (OCP)',
+      roleLabel: matchedPartner.partnerShortName === 'DIY' ? 'CUSTOMER DIY (SELF-INSTALL)' : 'OFFICIAL CHANNEL PARTNER (OCP)',
       avatarInitial: matchedPartner.partnerShortName.charAt(0).toUpperCase(),
       accountType: 'integrator_partner',
       partnerCompanyId: matchedPartner.companyId,
@@ -435,15 +435,22 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
                 <span>Official Channel Partners (Routes Directly to Partner Academy):</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {PARTNER_IDENTITY_DIRECTORY.slice(0, 5).map((p) => (
+                {[
+                  ...PARTNER_IDENTITY_DIRECTORY.slice(0, 4),
+                  PARTNER_IDENTITY_DIRECTORY.find((p) => p.partnerShortName === 'DIY') || PARTNER_IDENTITY_DIRECTORY[4],
+                ].map((p) => (
                   <button
                     key={p.companyId}
                     type="button"
                     onClick={() => handleQuickLogin(p.defaultEmail)}
-                    className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 cursor-pointer shadow-2xs transition-colors"
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold cursor-pointer shadow-2xs transition-colors border ${
+                      p.partnerShortName === 'DIY'
+                        ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border-amber-300 font-bold'
+                        : 'bg-sky-50 hover:bg-sky-100 text-sky-900 border-sky-200'
+                    }`}
                     title={`Sign in as ${p.partnerShortName} (${p.defaultEmail}) -> Opens Partner Academy Portal`}
                   >
-                    <span className="font-bold">{p.partnerShortName}</span> · <span className="text-slate-600 font-normal">{p.leadName.split(' ')[0]}</span> ({p.defaultEmail})
+                    <span className="font-bold">{p.partnerShortName}</span> · <span className="font-normal">{p.leadName.split(' ')[0]}</span> ({p.defaultEmail})
                   </button>
                 ))}
               </div>
