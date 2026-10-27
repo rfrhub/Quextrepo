@@ -350,11 +350,16 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             className="flex items-center shrink-0 cursor-pointer group focus:outline-none"
             title="https://myquext.com/#"
           >
-            <span className="text-[22px] font-bold tracking-tight text-slate-900 font-['Inter_Tight',sans-serif] flex items-center">
-              <span className="text-blue-600 font-normal mr-0.5">[</span>
-              <span>quext</span>
-              <span className="text-blue-600 font-normal ml-0.5">]</span>
-            </span>
+            <img
+              src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
+              alt="Quext"
+              className="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+              onError={(e) => {
+                if (e.currentTarget.src !== '/quext-logo-boxed.png') {
+                  e.currentTarget.src = '/quext-logo-boxed.png';
+                }
+              }}
+            />
           </button>
 
           <nav className="hidden md:flex items-center space-x-1">
