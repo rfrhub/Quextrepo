@@ -4,6 +4,7 @@ import { OverallDashboard } from './OverallDashboard';
 import { AllProjectsTab } from './AllProjectsTab';
 import { ProjectDetailView } from './ProjectDetailView';
 import { CreateManualProjectModal } from './CreateManualProjectModal';
+import { SearchablePropertyPicker } from './SearchablePropertyPicker';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -131,27 +132,14 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
           </button>
         </div>
 
-        {/* Right Side: Quick Project Jump Dropdown + Create Manual Project Button */}
+        {/* Right Side: Searchable Property Picker + Create Manual Project Button */}
         <div className="shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between lg:justify-end gap-2 pt-1.5 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-          <select
-            aria-label="Quick Jump to Project"
-            value={selectedProject ? selectedProject.id : ''}
-            onChange={(e) => {
-              if (e.target.value) {
-                onSelectSubTab(e.target.value);
-              } else {
-                onSelectSubTab('dashboard');
-              }
-            }}
-            className="flex-1 sm:flex-initial min-w-[180px] px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-sky-500 cursor-pointer"
-          >
-            <option value="">Jump to Property...</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.propertyName} ({p.city})
-              </option>
-            ))}
-          </select>
+          <SearchablePropertyPicker
+            projects={projects}
+            selectedProjectId={selectedProject ? selectedProject.id : null}
+            onSelectProject={(projectId) => onSelectSubTab(projectId)}
+            onClearToDashboard={() => onSelectSubTab('dashboard')}
+          />
 
           <button
             type="button"
