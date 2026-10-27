@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   OperationProject,
   BOMItem,
@@ -60,6 +60,9 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
   // Active Catalog Tab for Browsing
   const [activeCatalogTab, setActiveCatalogTab] = useState<'none' | 'hardware' | 'software'>('none');
   const [catalogSearch, setCatalogSearch] = useState<string>('');
+  const [hwCategoryFilter, setHwCategoryFilter] = useState<string>('All');
+  const [swSearch, setSwSearch] = useState<string>('');
+  const [swTierFilter, setSwTierFilter] = useState<string>('All');
 
   // Selected Software Subscriptions
   const [selectedSoftwareIds, setSelectedSoftwareIds] = useState<string[]>([
@@ -310,12 +313,37 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
     onClose();
   };
 
-  const filteredHardware = QUEUXT_HARDWARE_CATALOG.filter(
-    (h) =>
+  const hwCategories: string[] = useMemo(() => {
+    const cats = Array.from(new Set(QUEUXT_HARDWARE_CATALOG.map((h) => h.category)));
+    return ['All', ...cats];
+  }, []);
+
+  const filteredHardware = QUEUXT_HARDWARE_CATALOG.filter((h) => {
+    const matchesSearch =
+      !catalogSearch.trim() ||
       h.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
       h.sku.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-      h.category.toLowerCase().includes(catalogSearch.toLowerCase())
-  );
+      h.category.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+      h.manufacturer.toLowerCase().includes(catalogSearch.toLowerCase());
+    const matchesCat = hwCategoryFilter === 'All' || h.category === hwCategoryFilter;
+    return matchesSearch && matchesCat;
+  });
+
+  const swTiers: string[] = useMemo(() => {
+    const tiers = Array.from(new Set(QUEUXT_SOFTWARE_CATALOG.map((s) => s.tier)));
+    return ['All', ...tiers];
+  }, []);
+
+  const filteredSoftware = QUEUXT_SOFTWARE_CATALOG.filter((s) => {
+    const matchesSearch =
+      !swSearch.trim() ||
+      s.name.toLowerCase().includes(swSearch.toLowerCase()) ||
+      s.sku.toLowerCase().includes(swSearch.toLowerCase()) ||
+      s.tier.toLowerCase().includes(swSearch.toLowerCase()) ||
+      s.description.toLowerCase().includes(swSearch.toLowerCase());
+    const matchesTier = swTierFilter === 'All' || s.tier === swTierFilter;
+    return matchesSearch && matchesTier;
+  });
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -566,23 +594,42 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
             {/* Hardware Catalog Drawer */}
             {activeCatalogTab === 'hardware' && (
               <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-inner">
-                <div className="flex items-center justify-between gap-3">
+                {/* Search & Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                     <input
                       type="text"
-                      placeholder="Search hardware by name, SKU, or category..."
+                      placeholder="Search hardware by name, SKU, manufacturer (Schlage, Quext, Eagle Eye, Resideo)..."
                       value={catalogSearch}
                       onChange={(e) => setCatalogSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs"
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs"
                     />
                   </div>
                   <span className="text-[11px] text-slate-500 font-mono">
-                    Showing {filteredHardware.length} products
+                    Showing {filteredHardware.length} of {QUEUXT_HARDWARE_CATALOG.length} hardware items
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1">
+                {/* Category Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {hwCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setHwCategoryFilter(cat)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                        hwCategoryFilter === cat
+                          ? 'bg-sky-600 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
                   {filteredHardware.map((hw) => {
                     const isAdded = bomItems.some((b) => b.model === hw.sku);
                     return (
@@ -591,18 +638,25 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
                         className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col justify-between gap-2 hover:border-sky-300 transition-colors"
                       >
                         <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-900 text-xs">{hw.name}</span>
-                            <span className="font-mono text-[10px] text-slate-500 bg-white px-1.5 py-0.2 rounded border">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-white text-slate-800 border">
+                                  {hw.manufacturer}
+                                </span>
+                                <span className="font-bold text-slate-900 text-xs">{hw.name}</span>
+                              </div>
+                            </div>
+                            <span className="font-mono text-[10px] text-slate-500 bg-white px-1.5 py-0.2 rounded border shrink-0">
                               {hw.sku}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-600">
-                            <span className="font-semibold text-slate-800">${hw.unitPrice} retail</span>
-                            <span> </span>
+                          <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-600">
+                            <span className="font-semibold text-slate-900">${hw.unitPrice} retail</span>
+                            <span>•</span>
                             <span className="text-slate-500 font-mono">(Cost: ${hw.unitCost})</span>
-                            <span> </span>
-                            <span className="text-sky-700">{hw.category}</span>
+                            <span>•</span>
+                            <span className="text-sky-700 font-medium">{hw.category}</span>
                           </div>
                           <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{hw.description}</p>
                         </div>
@@ -630,18 +684,48 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
             {/* Software Catalog Drawer */}
             {activeCatalogTab === 'software' && (
               <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-inner">
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Selected Software Subscriptions (Monthly Revenue: ${totalMonthlyFee.toLocaleString()}/mo)</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Search software subscriptions by module or tier..."
+                      value={swSearch}
+                      onChange={(e) => setSwSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs"
+                    />
                   </div>
-                  <span className="text-[11px] text-slate-500">
-                    Calculated for {unitsCount} units
-                  </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Monthly Revenue: ${totalMonthlyFee.toLocaleString()}/mo</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      ({unitsCount} units)
+                    </span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1">
-                  {QUEUXT_SOFTWARE_CATALOG.map((sw) => {
+                {/* Tier Filter Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {swTiers.map((tier) => (
+                    <button
+                      key={tier}
+                      type="button"
+                      onClick={() => setSwTierFilter(tier)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                        swTierFilter === tier
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {tier}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                  {filteredSoftware.map((sw) => {
                     const isSelected = selectedSoftwareIds.includes(sw.id);
                     return (
                       <div
@@ -662,7 +746,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
                             </span>
                           </div>
                           <div className="text-[10px] text-slate-500 mt-0.5">
-                            Tier: {sw.tier}   (Wholesale cost: ${sw.monthlyCost})
+                            Tier: {sw.tier} • (Wholesale cost: ${sw.monthlyCost})
                           </div>
                           <p className="text-[10px] text-slate-600 mt-1 line-clamp-2">{sw.description}</p>
                         </div>

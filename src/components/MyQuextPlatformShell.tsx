@@ -43,6 +43,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
+import { ProductCatalogView } from './ProductCatalogView';
 
 export type MyQuextTopTab =
   | 'salesHub'
@@ -1872,80 +1873,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
         </div>
       )}
 
-      {activeTopTab === 'productCatalog' && (
-        <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs">
-            <h1 className="text-2xl font-semibold text-slate-900 font-['Inter_Tight',sans-serif]">
-              myquext.com Smart Community &amp; GFiber Product Catalog
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Standardized hardware SKUs automatically mapped to Operations BOMs when opportunities
-              move to Deal Won.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                name: 'Quext Smart Deadbolt Lock / Schlage BE467',
-                sku: 'QXT-DL-900 / SCH-BE467',
-                category: 'Smart Access Control',
-                msrp: '$220.00',
-                desc: 'BLE, NFC Apple/Google Wallet & fob residential entry lock.',
-              },
-              {
-                name: 'Quext IoT Smart Thermostat (LoRaWAN)',
-                sku: 'QXT-TH-300',
-                category: 'Smart Thermostats & HVAC',
-                msrp: '$165.00',
-                desc: 'Hubless LoRaWAN smart thermostat with vacant unit HVAC automation.',
-              },
-              {
-                name: 'Quext LoRaWAN Outdoor Gateway Base Station',
-                sku: 'QXT-GW-LR8',
-                category: 'IoT Gateways & Mesh',
-                msrp: '$1,250.00',
-                desc: 'IP67 8-channel property-wide LoRaWAN head-end controller.',
-              },
-              {
-                name: 'Aeotec / Resideo L1 Smart Water Leak Detector',
-                sku: 'QXT-LK-100',
-                category: 'Sensors & Leak Protection',
-                msrp: '$55.00',
-                desc: 'Wireless water leak & freeze protection sensor for water heaters & laundry.',
-              },
-              {
-                name: 'Managed Wi-Fi 7 Wallplate & Outdoor Access Points',
-                sku: 'QXT-WF7-WP / CAM-XV2',
-                category: 'Bulk Managed Wi-Fi',
-                msrp: '$195.00',
-                desc: 'High-density tri-band Wi-Fi 7 residential & amenity access points.',
-              },
-              {
-                name: 'Quext Video Intercom & Perimeter Access Reader',
-                sku: 'QXT-IC-20',
-                category: 'Smart Access Control',
-                msrp: '$1,450.00',
-                desc: 'Touchscreen video directory intercom & mobile perimeter reader.',
-              },
-            ].map((prod) => (
-              <div
-                key={prod.sku}
-                className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 rounded">
-                    {prod.category}
-                  </span>
-                  <span className="font-mono text-xs font-bold text-slate-900">{prod.msrp}</span>
-                </div>
-                <div className="font-semibold text-sm text-slate-900">{prod.name}</div>
-                <div className="text-[11px] font-mono text-slate-400">SKU: {prod.sku}</div>
-                <p className="text-xs text-slate-500">{prod.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {activeTopTab === 'productCatalog' && <ProductCatalogView />}
 
       {/* =====================================================================
           NEW ANALYSIS / OPPORTUNITY MODAL
