@@ -761,11 +761,7 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
         onMouseEnter={() => setIsHovered(true)}
         onClick={() => setIsTouchOpen(true)}
         className="fixed top-0 right-0 bottom-0 w-3.5 z-40 cursor-pointer group"
-        title={
-          mode === 'pm'
-            ? 'Hover or swipe left to view Customer & Team Project Updates'
-            : 'Hover or swipe left to view PM Project Updates & Installer Log Notifications'
-        }
+        title="Hover or swipe left to view Notifications"
       >
         {/* Subtle Edge Handle Pill so users know where the hidden dock lives */}
         <div
@@ -788,7 +784,7 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
             className="text-[9px] font-extrabold uppercase tracking-widest text-slate-600 py-1"
             style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
           >
-            {mode === 'pm' ? 'Team Feed' : 'Field Alerts'}
+            Notifications
           </span>
         </div>
       </div>
