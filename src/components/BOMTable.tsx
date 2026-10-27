@@ -9,6 +9,7 @@ import {
   isLockBOMItem,
   getLockFinishSummaryTag,
   getLockFinishColorHex,
+  getSingleLockFinishSummary,
   LockFinishConfig,
 } from '../types';
 import { PostItWindow } from './PostItWindow';
@@ -276,17 +277,54 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                       className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-0.5 text-[10px] font-bold hover:text-sky-300 transition-colors cursor-pointer"
                                       title={expandedFinishRows[item.id] ? "Click to collapse lock hardware options" : "Click to expand all lock hardware specifications and options"}
                                     >
-                                      <span
-                                        className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
-                                        style={{
-                                          backgroundColor: getLockFinishColorHex(
-                                            item.lockFinishConfig.befeColorFinish ||
-                                            item.lockFinishConfig.ndeColorFinish ||
-                                            item.lockFinishConfig.xe360ColorFinish
-                                          ),
-                                        }}
-                                      />
-                                      <span className="font-semibold">{getLockFinishSummaryTag(item.lockFinishConfig)}</span>
+                                      {item.lockFinishConfig.isSplit && item.lockFinishConfig.splits && item.lockFinishConfig.splits.length > 0 ? (
+                                        <>
+                                          <span className="flex -space-x-1 items-center shrink-0">
+                                            {item.lockFinishConfig.splits.map((s, idx) => (
+                                              <span
+                                                key={s.id || idx}
+                                                className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
+                                                style={{
+                                                  backgroundColor: getLockFinishColorHex(
+                                                    s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish
+                                                  ),
+                                                }}
+                                              />
+                                            ))}
+                                          </span>
+                                          <span className="font-bold text-sky-200">
+                                            Split Finishes ({item.lockFinishConfig.splits.length}):
+                                          </span>
+                                          <span className="font-normal text-slate-200">
+                                            {item.lockFinishConfig.splits
+                                              .map(
+                                                (s) =>
+                                                  `${s.quantity}x ${
+                                                    s.befeColorFinish?.split(' - ')[1] ||
+                                                    s.ndeColorFinish?.split(': ')[1] ||
+                                                    s.xe360ColorFinish?.split(' - ')[1] ||
+                                                    s.befeTrimStyle ||
+                                                    'Finish'
+                                                  }`
+                                              )
+                                              .join(' · ')}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span
+                                            className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
+                                            style={{
+                                              backgroundColor: getLockFinishColorHex(
+                                                item.lockFinishConfig.befeColorFinish ||
+                                                item.lockFinishConfig.ndeColorFinish ||
+                                                item.lockFinishConfig.xe360ColorFinish
+                                              ),
+                                            }}
+                                          />
+                                          <span className="font-semibold">{getLockFinishSummaryTag(item.lockFinishConfig)}</span>
+                                        </>
+                                      )}
                                       <span className="inline-flex items-center gap-0.5 text-[9px] text-sky-300 font-bold bg-slate-800 px-1.5 py-0.2 rounded-full border border-slate-700">
                                         <span>{expandedFinishRows[item.id] ? 'Hide' : 'Options'}</span>
                                         {expandedFinishRows[item.id] ? (
@@ -329,164 +367,343 @@ export const BOMTable: React.FC<BOMTableProps> = ({
 
                           {/* Expanded Full Lock Options Card */}
                           {isLockBOMItem(item) && item.lockFinishConfig && expandedFinishRows[item.id] && (
-                            <div className="mt-2.5 p-3 bg-slate-950 text-white rounded-xl border border-slate-800 shadow-md space-y-2.5 text-xs animate-in fade-in duration-200 max-w-xl">
-                              <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3.5 h-3.5 rounded-full border border-white/60 shadow-sm shrink-0"
-                                    style={{
-                                      backgroundColor: getLockFinishColorHex(
-                                        item.lockFinishConfig.befeColorFinish ||
-                                        item.lockFinishConfig.ndeColorFinish ||
-                                        item.lockFinishConfig.xe360ColorFinish
-                                      ),
-                                    }}
-                                  />
-                                  <span className="font-bold text-sky-400 text-xs">
-                                    All Lock Hardware Options &amp; Specifications
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  {!isReadOnly && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setActiveLockFinishItem(item)}
-                                      className="text-[10px] font-bold text-sky-300 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer transition-colors"
-                                    >
-                                      ✎ Edit Settings
-                                    </button>
+                            <div className="mt-2.5 p-3.5 bg-slate-950 text-white rounded-xl border border-slate-800 shadow-md space-y-3 text-xs animate-in fade-in duration-200 max-w-2xl">
+                              {item.lockFinishConfig.isSplit && item.lockFinishConfig.splits && item.lockFinishConfig.splits.length > 0 ? (
+                                <>
+                                  {/* Split Header */}
+                                  <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="flex -space-x-1 items-center">
+                                        {item.lockFinishConfig.splits.map((s, idx) => (
+                                          <span
+                                            key={s.id || idx}
+                                            className="w-3.5 h-3.5 rounded-full border border-white/60 shadow-sm shrink-0"
+                                            style={{
+                                              backgroundColor: getLockFinishColorHex(
+                                                s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish
+                                              ),
+                                            }}
+                                          />
+                                        ))}
+                                      </span>
+                                      <div>
+                                        <span className="font-bold text-sky-400 text-xs block">
+                                          Split Finish Hardware Allocation Breakdown
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          {item.lockFinishConfig.splits.length} Groups · {item.quantity} Total Quoted Units
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setActiveLockFinishItem(item)}
+                                          className="text-[10px] font-bold text-sky-300 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer transition-colors"
+                                        >
+                                          ✎ Edit Splits
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleExpandFinish(item.id)}
+                                        className="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer flex items-center gap-1 transition-colors"
+                                      >
+                                        <ChevronUp className="w-3 h-3" />
+                                        <span>Collapse</span>
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Proportional visual distribution bar */}
+                                  <div className="space-y-1">
+                                    <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden flex border border-slate-800">
+                                      {item.lockFinishConfig.splits.map((s, idx) => {
+                                        const widthPct = Math.min(100, Math.max(0, ((s.quantity || 0) / (item.quantity || 1)) * 100));
+                                        const segHex = getLockFinishColorHex(
+                                          s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish
+                                        );
+                                        return (
+                                          <div
+                                            key={s.id || idx}
+                                            style={{ width: `${widthPct}%`, backgroundColor: segHex }}
+                                            title={`${s.label || `Group ${idx + 1}`}: ${s.quantity} units (${Math.round(widthPct)}%)`}
+                                            className="h-full border-r border-slate-950 last:border-r-0"
+                                          />
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* Individual Split Group Cards */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    {item.lockFinishConfig.splits.map((s, idx) => {
+                                      const splitHex = getLockFinishColorHex(
+                                        s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish
+                                      );
+                                      const pct = Math.round(((s.quantity || 0) / (item.quantity || 1)) * 100);
+                                      return (
+                                        <div
+                                          key={s.id || idx}
+                                          className="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 space-y-2"
+                                        >
+                                          <div className="flex items-center justify-between gap-1 border-b border-slate-800/80 pb-1.5">
+                                            <div className="flex items-center gap-2 truncate">
+                                              <span
+                                                className="w-3 h-3 rounded-full border border-white/40 shrink-0"
+                                                style={{ backgroundColor: splitHex }}
+                                              />
+                                              <span className="font-bold text-slate-100 text-xs truncate">
+                                                {s.label || `Split Group #${idx + 1}`}
+                                              </span>
+                                            </div>
+                                            <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800/60 shrink-0">
+                                              {s.quantity} units ({pct}%)
+                                            </span>
+                                          </div>
+
+                                          <div className="space-y-1 text-[11px]">
+                                            <div className="flex items-center justify-between text-slate-300">
+                                              <span className="text-slate-400">Finish:</span>
+                                              <span className="font-semibold text-slate-100">
+                                                {s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish || 'Standard'}
+                                              </span>
+                                            </div>
+
+                                            {s.befeTrimStyle && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Trim Style:</span>
+                                                <span className="font-semibold text-slate-100">{s.befeTrimStyle}</span>
+                                              </div>
+                                            )}
+
+                                            {s.ndeLeverType && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Lever:</span>
+                                                <span className="font-semibold text-slate-100">{s.ndeLeverType}</span>
+                                              </div>
+                                            )}
+
+                                            {s.xe360Subtype && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Subtype:</span>
+                                                <span className="font-semibold text-sky-300">XE360 {s.xe360Subtype}</span>
+                                              </div>
+                                            )}
+                                            {s.xe360LeverStyle && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Lever Style:</span>
+                                                <span className="font-semibold text-slate-100">{s.xe360LeverStyle}</span>
+                                              </div>
+                                            )}
+                                            {s.xe360TubularGrade && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Grade:</span>
+                                                <span className="font-semibold text-emerald-400">{s.xe360TubularGrade}</span>
+                                              </div>
+                                            )}
+                                            {s.xe360MortiseGrade && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Grade:</span>
+                                                <span className="font-semibold text-emerald-400">{s.xe360MortiseGrade}</span>
+                                              </div>
+                                            )}
+                                            {(s.xe360ExitTrimFunction || s.xe360TubularFunction || s.xe360MortiseFunction) && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Function:</span>
+                                                <span className="font-semibold text-sky-200 truncate ml-2 text-right">
+                                                  {s.xe360ExitTrimFunction || s.xe360TubularFunction || s.xe360MortiseFunction}
+                                                </span>
+                                              </div>
+                                            )}
+                                            {s.xe360ExitTrimCrashbar && (
+                                              <div className="flex items-center justify-between text-slate-300">
+                                                <span className="text-slate-400">Crashbar:</span>
+                                                <span className="font-semibold text-slate-200 truncate ml-2 text-right">
+                                                  {s.xe360ExitTrimCrashbar}
+                                                </span>
+                                              </div>
+                                            )}
+
+                                            {s.notes && (
+                                              <div className="pt-1 border-t border-slate-800 text-[10px] text-slate-400">
+                                                <span className="font-bold text-slate-300">Scope:</span> {s.notes}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {item.lockFinishConfig.customNotes && (
+                                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-300">
+                                      <span className="font-bold text-slate-400">General Notes:</span> {item.lockFinishConfig.customNotes}
+                                    </div>
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleExpandFinish(item.id)}
-                                    className="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer flex items-center gap-1 transition-colors"
-                                  >
-                                    <ChevronUp className="w-3 h-3" />
-                                    <span>Collapse</span>
-                                  </button>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                                {/* Family */}
-                                <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
-                                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                    Hardware Family
-                                  </span>
-                                  <span className="font-bold text-slate-100">
-                                    {item.lockFinishConfig.family === 'befe'
-                                      ? 'Schlage Control (BE467 / FE410)'
-                                      : item.lockFinishConfig.family === 'nde'
-                                      ? 'Schlage NDE Series'
-                                      : `Schlage XE360 ${item.lockFinishConfig.xe360Subtype || ''}`}
-                                  </span>
-                                </div>
-
-                                {/* Color Finish */}
-                                <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
-                                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                    Color Finish
-                                  </span>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span
-                                      className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
-                                      style={{
-                                        backgroundColor: getLockFinishColorHex(
-                                          item.lockFinishConfig.befeColorFinish ||
-                                          item.lockFinishConfig.ndeColorFinish ||
-                                          item.lockFinishConfig.xe360ColorFinish
-                                        ),
-                                      }}
-                                    />
-                                    <span className="font-bold text-slate-100">
-                                      {item.lockFinishConfig.befeColorFinish ||
-                                        item.lockFinishConfig.ndeColorFinish ||
-                                        item.lockFinishConfig.xe360ColorFinish ||
-                                        'Standard Finish'}
-                                    </span>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-3.5 h-3.5 rounded-full border border-white/60 shadow-sm shrink-0"
+                                        style={{
+                                          backgroundColor: getLockFinishColorHex(
+                                            item.lockFinishConfig.befeColorFinish ||
+                                            item.lockFinishConfig.ndeColorFinish ||
+                                            item.lockFinishConfig.xe360ColorFinish
+                                          ),
+                                        }}
+                                      />
+                                      <span className="font-bold text-sky-400 text-xs">
+                                        All Lock Hardware Options &amp; Specifications
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setActiveLockFinishItem(item)}
+                                          className="text-[10px] font-bold text-sky-300 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer transition-colors"
+                                        >
+                                          ✎ Edit Settings
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleExpandFinish(item.id)}
+                                        className="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer flex items-center gap-1 transition-colors"
+                                      >
+                                        <ChevronUp className="w-3 h-3" />
+                                        <span>Collapse</span>
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
 
-                                {/* Trim / Escutcheon Style (BE/FE) */}
-                                {item.lockFinishConfig.befeTrimStyle && (
-                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                      Trim / Escutcheon Style
-                                    </span>
-                                    <span className="font-bold text-slate-100">
-                                      {item.lockFinishConfig.befeTrimStyle}
-                                    </span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                                    {/* Family */}
+                                    <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                        Hardware Family
+                                      </span>
+                                      <span className="font-bold text-slate-100">
+                                        {item.lockFinishConfig.family === 'befe'
+                                          ? 'Schlage Control (BE467 / FE410)'
+                                          : item.lockFinishConfig.family === 'nde'
+                                          ? 'Schlage NDE Series'
+                                          : `Schlage XE360 ${item.lockFinishConfig.xe360Subtype || ''}`}
+                                      </span>
+                                    </div>
+
+                                    {/* Color Finish */}
+                                    <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                        Color Finish
+                                      </span>
+                                      <div className="flex items-center gap-1.5 mt-0.5">
+                                        <span
+                                          className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
+                                          style={{
+                                            backgroundColor: getLockFinishColorHex(
+                                              item.lockFinishConfig.befeColorFinish ||
+                                              item.lockFinishConfig.ndeColorFinish ||
+                                              item.lockFinishConfig.xe360ColorFinish
+                                            ),
+                                          }}
+                                        />
+                                        <span className="font-bold text-slate-100">
+                                          {item.lockFinishConfig.befeColorFinish ||
+                                            item.lockFinishConfig.ndeColorFinish ||
+                                            item.lockFinishConfig.xe360ColorFinish ||
+                                            'Standard Finish'}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Trim / Escutcheon Style (BE/FE) */}
+                                    {item.lockFinishConfig.befeTrimStyle && (
+                                      <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                          Trim / Escutcheon Style
+                                        </span>
+                                        <span className="font-bold text-slate-100">
+                                          {item.lockFinishConfig.befeTrimStyle}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Lever Type (NDE) */}
+                                    {item.lockFinishConfig.ndeLeverType && (
+                                      <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                          Lever Style / Design
+                                        </span>
+                                        <span className="font-bold text-slate-100">
+                                          {item.lockFinishConfig.ndeLeverType}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Lever Style (XE360) */}
+                                    {item.lockFinishConfig.xe360LeverStyle && (
+                                      <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                          Lever Style
+                                        </span>
+                                        <span className="font-bold text-slate-100">
+                                          {item.lockFinishConfig.xe360LeverStyle}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Security Grade (XE360 Tubular / Mortise) */}
+                                    {(item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade) && (
+                                      <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                          ANSI/BHMA Grade
+                                        </span>
+                                        <span className="font-bold text-emerald-400">
+                                          {item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Interior Function (XE360) */}
+                                    {(item.lockFinishConfig.xe360ExitTrimFunction || item.lockFinishConfig.xe360TubularFunction || item.lockFinishConfig.xe360MortiseFunction) && (
+                                      <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                          Interior Function
+                                        </span>
+                                        <span className="font-semibold text-sky-200">
+                                          {item.lockFinishConfig.xe360ExitTrimFunction ||
+                                            item.lockFinishConfig.xe360TubularFunction ||
+                                            item.lockFinishConfig.xe360MortiseFunction}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Crashbar Compatibility (XE360 Exit Trim) */}
+                                    {item.lockFinishConfig.xe360ExitTrimCrashbar && (
+                                      <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800 sm:col-span-2">
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                                          Crashbar Compatibility
+                                        </span>
+                                        <span className="font-semibold text-slate-200">
+                                          {item.lockFinishConfig.xe360ExitTrimCrashbar}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
 
-                                {/* Lever Type (NDE) */}
-                                {item.lockFinishConfig.ndeLeverType && (
-                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                      Lever Style / Design
-                                    </span>
-                                    <span className="font-bold text-slate-100">
-                                      {item.lockFinishConfig.ndeLeverType}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* Lever Style (XE360) */}
-                                {item.lockFinishConfig.xe360LeverStyle && (
-                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                      Lever Style
-                                    </span>
-                                    <span className="font-bold text-slate-100">
-                                      {item.lockFinishConfig.xe360LeverStyle}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* Security Grade (XE360 Tubular / Mortise) */}
-                                {(item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade) && (
-                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                      ANSI/BHMA Grade
-                                    </span>
-                                    <span className="font-bold text-emerald-400">
-                                      {item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* Interior Function (XE360) */}
-                                {(item.lockFinishConfig.xe360ExitTrimFunction || item.lockFinishConfig.xe360TubularFunction || item.lockFinishConfig.xe360MortiseFunction) && (
-                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                      Interior Function
-                                    </span>
-                                    <span className="font-semibold text-sky-200">
-                                      {item.lockFinishConfig.xe360ExitTrimFunction ||
-                                        item.lockFinishConfig.xe360TubularFunction ||
-                                        item.lockFinishConfig.xe360MortiseFunction}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* Crashbar Compatibility (XE360 Exit Trim) */}
-                                {item.lockFinishConfig.xe360ExitTrimCrashbar && (
-                                  <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800 sm:col-span-2">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                      Crashbar Compatibility
-                                    </span>
-                                    <span className="font-semibold text-slate-200">
-                                      {item.lockFinishConfig.xe360ExitTrimCrashbar}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Custom Door / Scope Notes */}
-                              {item.lockFinishConfig.customNotes && (
-                                <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-300">
-                                  <span className="font-bold text-slate-400">Door / Scope Notes:</span> {item.lockFinishConfig.customNotes}
-                                </div>
+                                  {/* Custom Door / Scope Notes */}
+                                  {item.lockFinishConfig.customNotes && (
+                                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-300">
+                                      <span className="font-bold text-slate-400">Door / Scope Notes:</span> {item.lockFinishConfig.customNotes}
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           )}
@@ -506,6 +723,30 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                       <div className="font-mono font-bold text-slate-800 text-xs tabular-nums">
                         {item.quantity.toLocaleString()} <span className="text-[10px] text-slate-500 font-normal">{unitLabel}</span>
                       </div>
+                      {/* Split Finishes Quantity Breakdown */}
+                      {item.lockFinishConfig?.isSplit && item.lockFinishConfig.splits && item.lockFinishConfig.splits.length > 0 && (
+                        <div className="mt-1 flex flex-col items-end gap-0.5">
+                          <div className="flex flex-wrap items-center justify-end gap-1">
+                            {item.lockFinishConfig.splits.map((s, idx) => (
+                              <span
+                                key={s.id || idx}
+                                className="inline-flex items-center gap-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200"
+                                title={`${s.label || `Split ${idx + 1}`}: ${s.quantity} units (${getSingleLockFinishSummary(s, item.lockFinishConfig!.family)})`}
+                              >
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                                  style={{
+                                    backgroundColor: getLockFinishColorHex(
+                                      s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish
+                                    ),
+                                  }}
+                                />
+                                <span>{s.quantity}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {/* Spares Option (Distinct, included in total item count but not installed count) */}
                       {(item.sparesCount ?? 0) > 0 && (
                         <div className="mt-1 flex flex-col items-end gap-1">

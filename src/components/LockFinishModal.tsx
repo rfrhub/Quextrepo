@@ -3,6 +3,7 @@ import {
   BOMItem,
   LockFamilyType,
   LockFinishConfig,
+  LockFinishSplit,
   BeFeTrimStyle,
   BeFeColorFinish,
   NdeColorFinish,
@@ -28,6 +29,7 @@ import {
   detectLockFamily,
   getLockFinishSummaryTag,
   getLockFinishColorHex,
+  getSingleLockFinishSummary,
 } from '../types';
 import {
   Lock,
@@ -40,6 +42,12 @@ import {
   Sliders,
   Sparkles,
   Info,
+  GitFork,
+  Plus,
+  Trash2,
+  AlertTriangle,
+  CheckCircle2,
+  Layers,
 } from 'lucide-react';
 
 interface LockFinishModalProps {
@@ -57,15 +65,20 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
 }) => {
   const [family, setFamily] = useState<LockFamilyType>('befe');
 
-  // BE / FE
+  // Split mode state
+  const [isSplit, setIsSplit] = useState<boolean>(false);
+  const [splits, setSplits] = useState<LockFinishSplit[]>([]);
+  const [activeSplitIndex, setActiveSplitIndex] = useState<number>(0);
+
+  // Single mode state (BE / FE)
   const [befeTrimStyle, setBefeTrimStyle] = useState<BeFeTrimStyle>('Greenwich');
   const [befeColorFinish, setBefeColorFinish] = useState<BeFeColorFinish>('622 - Matte Black');
 
-  // NDE
+  // Single mode state (NDE)
   const [ndeColorFinish, setNdeColorFinish] = useState<NdeColorFinish>('619: Satin Nickel');
   const [ndeLeverType, setNdeLeverType] = useState<NdeLeverType>('Latitude (LAT)');
 
-  // XE360
+  // Single mode state (XE360)
   const [xe360Subtype, setXe360Subtype] = useState<Xe360Subtype>('Mortise');
   const [xe360ColorFinish, setXe360ColorFinish] = useState<Xe360ColorFinish>('622 - Matte Black');
   const [xe360LeverStyle, setXe360LeverStyle] = useState<Xe360LeverStyle>('LAT - Latitude');
@@ -87,18 +100,16 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
     if (item && isOpen) {
       const detected = detectLockFamily(item);
       const cfg = item.lockFinishConfig;
+      const initialFamily = cfg?.family || detected;
+      setFamily(initialFamily);
 
-      setFamily(cfg?.family || detected);
-
-      // BE / FE
+      // Single values
       setBefeTrimStyle(cfg?.befeTrimStyle || 'Greenwich');
       setBefeColorFinish(cfg?.befeColorFinish || '622 - Matte Black');
 
-      // NDE
       setNdeColorFinish(cfg?.ndeColorFinish || '619: Satin Nickel');
       setNdeLeverType(cfg?.ndeLeverType || 'Latitude (LAT)');
 
-      // XE360
       const itemSubtype: Xe360Subtype = item.name.toLowerCase().includes('exit')
         ? 'Exit Trim'
         : item.name.toLowerCase().includes('tubular')
@@ -114,18 +125,151 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
         cfg?.xe360MortiseFunction || 'Mortise deadbolt with thumbturn and LED indicator (D)'
       );
       setCustomNotes(cfg?.customNotes || '');
+
+      // Initialize split state
+      const hasSplits = Boolean(cfg?.isSplit && cfg.splits && cfg.splits.length > 0);
+      setIsSplit(hasSplits);
+
+      if (hasSplits && cfg?.splits) {
+        setSplits(cfg.splits);
+        setActiveSplitIndex(0);
+      } else {
+        // Pre-initialize split choices with sensible distribution
+        const q = item.quantity || 1;
+        const q1 = Math.max(1, Math.round(q * 0.75));
+        const q2 = Math.max(0, q - q1);
+
+        setSplits([
+          {
+            id: 'split-1',
+            label: 'Residential / Main Units',
+            quantity: q2 > 0 ? q1 : q,
+            befeTrimStyle: cfg?.befeTrimStyle || 'Greenwich',
+            befeColorFinish: cfg?.befeColorFinish || '622 - Matte Black',
+            ndeColorFinish: cfg?.ndeColorFinish || '619: Satin Nickel',
+            ndeLeverType: cfg?.ndeLeverType || 'Latitude (LAT)',
+            xe360Subtype: cfg?.xe360Subtype || itemSubtype,
+            xe360ColorFinish: cfg?.xe360ColorFinish || '622 - Matte Black',
+            xe360LeverStyle: cfg?.xe360LeverStyle || 'LAT - Latitude',
+            xe360ExitTrimCrashbar: cfg?.xe360ExitTrimCrashbar || 'Von Duprin 98/99 / XP98/99 rim',
+            xe360ExitTrimFunction: cfg?.xe360ExitTrimFunction || 'Interior push button with LED indicator (B)',
+            xe360TubularFunction: cfg?.xe360TubularFunction || 'Push button (B) - Common areas and package rooms',
+            xe360MortiseFunction: cfg?.xe360MortiseFunction || 'Mortise deadbolt with thumbturn and LED indicator (D)',
+          },
+          {
+            id: 'split-2',
+            label: 'Clubhouse / Amenities',
+            quantity: q2 > 0 ? q2 : 0,
+            befeTrimStyle: 'Addison',
+            befeColorFinish: '619 - Satin Nickel',
+            ndeColorFinish: '622: Matte Black',
+            ndeLeverType: 'Rhodes (RHO)',
+            xe360Subtype: cfg?.xe360Subtype || itemSubtype,
+            xe360ColorFinish: '619 - Satin Nickel',
+            xe360LeverStyle: 'BRW - Broadway',
+            xe360ExitTrimCrashbar: 'Falcon 25',
+            xe360ExitTrimFunction: 'Interior LED indicator (I)',
+            xe360TubularFunction: 'Push button (B) - Common areas and package rooms',
+            xe360MortiseFunction: 'Interior push button (B)',
+          },
+        ]);
+        setActiveSplitIndex(0);
+      }
     }
   }, [item, isOpen]);
 
   if (!isOpen || !item) return null;
 
+  // Split management helpers
+  const totalAllocated = splits.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
+  const remainingQty = (item.quantity || 0) - totalAllocated;
+
+  const updateSplit = (index: number, updates: Partial<LockFinishSplit>) => {
+    setSplits((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], ...updates };
+      return copy;
+    });
+  };
+
+  const handleAddSplit = () => {
+    const newQty = remainingQty > 0 ? remainingQty : 1;
+    const newSplit: LockFinishSplit = {
+      id: `split-${Date.now()}`,
+      label: `Split Group #${splits.length + 1}`,
+      quantity: newQty,
+      befeTrimStyle: 'Greenwich',
+      befeColorFinish: '625 - Polished Chrome',
+      ndeColorFinish: '625: Bright Chrome',
+      ndeLeverType: 'Broadway (BRW)',
+      xe360Subtype: 'Mortise',
+      xe360ColorFinish: '626 - Satin Chrome',
+      xe360LeverStyle: 'LONE - Longitude-Extended',
+      xe360ExitTrimCrashbar: 'Von Duprin 98/99 / XP98/99 rim',
+      xe360ExitTrimFunction: 'Interior push button with LED indicator (B)',
+      xe360TubularFunction: 'Push button (B) - Common areas and package rooms',
+      xe360MortiseFunction: 'Interior LED indicator (I)',
+    };
+    setSplits((prev) => [...prev, newSplit]);
+    setActiveSplitIndex(splits.length);
+  };
+
+  const handleRemoveSplit = (indexToRemove: number) => {
+    if (splits.length <= 1) return;
+    setSplits((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (activeSplitIndex >= splits.length - 1) {
+      setActiveSplitIndex(Math.max(0, splits.length - 2));
+    }
+  };
+
+  const handleFamilyChange = (newFam: LockFamilyType) => {
+    setFamily(newFam);
+    setSplits((prev) =>
+      prev.map((s) => ({
+        ...s,
+        ...(newFam === 'befe' && {
+          befeTrimStyle: s.befeTrimStyle || 'Greenwich',
+          befeColorFinish: s.befeColorFinish || '622 - Matte Black',
+        }),
+        ...(newFam === 'nde' && {
+          ndeColorFinish: s.ndeColorFinish || '619: Satin Nickel',
+          ndeLeverType: s.ndeLeverType || 'Latitude (LAT)',
+        }),
+        ...(newFam === 'xe360' && {
+          xe360Subtype: s.xe360Subtype || 'Mortise',
+          xe360ColorFinish: s.xe360ColorFinish || '622 - Matte Black',
+          xe360LeverStyle: s.xe360LeverStyle || 'LAT - Latitude',
+        }),
+      }))
+    );
+  };
+
+  // Build current config object for preview and saving
   const currentConfig: LockFinishConfig = {
     family,
-    ...(family === 'befe'
-      ? { befeTrimStyle, befeColorFinish }
-      : family === 'nde'
-      ? { ndeColorFinish, ndeLeverType }
+    isSplit,
+    ...(isSplit
+      ? {
+          splits,
+          befeTrimStyle: splits[0]?.befeTrimStyle || befeTrimStyle,
+          befeColorFinish: splits[0]?.befeColorFinish || befeColorFinish,
+          ndeColorFinish: splits[0]?.ndeColorFinish || ndeColorFinish,
+          ndeLeverType: splits[0]?.ndeLeverType || ndeLeverType,
+          xe360Subtype: splits[0]?.xe360Subtype || xe360Subtype,
+          xe360ColorFinish: splits[0]?.xe360ColorFinish || xe360ColorFinish,
+          xe360LeverStyle: splits[0]?.xe360LeverStyle || xe360LeverStyle,
+          xe360ExitTrimCrashbar: splits[0]?.xe360ExitTrimCrashbar || xe360ExitTrimCrashbar,
+          xe360ExitTrimFunction: splits[0]?.xe360ExitTrimFunction || xe360ExitTrimFunction,
+          xe360TubularGrade: 'ANSI/BHMA Grade 2',
+          xe360TubularFunction: splits[0]?.xe360TubularFunction || xe360TubularFunction,
+          xe360MortiseGrade: 'ANSI/BHMA Grade 1',
+          xe360MortiseFunction: splits[0]?.xe360MortiseFunction || xe360MortiseFunction,
+        }
       : {
+          befeTrimStyle,
+          befeColorFinish,
+          ndeColorFinish,
+          ndeLeverType,
           xe360Subtype,
           xe360ColorFinish,
           xe360LeverStyle,
@@ -148,18 +292,17 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
   };
 
   const previewTag = getLockFinishSummaryTag(currentConfig);
-  const colorHex = getLockFinishColorHex(
-    family === 'befe' ? befeColorFinish : family === 'nde' ? ndeColorFinish : xe360ColorFinish
-  );
 
   const handleSave = () => {
     onSave(item.id, currentConfig);
     onClose();
   };
 
+  const activeSplit = splits[activeSplitIndex] || splits[0];
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs animate-fadeIn font-['Inter']">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -174,7 +317,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
                 </span>
               </h3>
               <p className="text-[11px] text-slate-300">
-                Define the exact trim style, lever type, and finish for BOM line item: <strong>{item.name}</strong>
+                Define the trim style, lever type, and finish options for BOM line item: <strong>{item.name}</strong>
               </p>
             </div>
           </div>
@@ -194,18 +337,88 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
             <div>
               <span className="font-bold text-slate-900 block">{item.name}</span>
               <span className="font-mono text-[11px] text-slate-500">
-                Model: {item.model} · Quoted Qty: {item.quantity} units · {item.location}
+                Model: {item.model} · Quoted Qty: <strong>{item.quantity} units</strong> · {item.location}
               </span>
             </div>
             {previewTag && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-300 rounded-lg shadow-2xs font-semibold text-slate-800">
-                <span
-                  className="w-3 h-3 rounded-full border border-slate-400 shrink-0"
-                  style={{ backgroundColor: colorHex }}
-                />
-                <span className="font-bold">{previewTag}</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-300 rounded-lg shadow-2xs font-semibold text-slate-800 max-w-full">
+                {isSplit ? (
+                  <span className="flex -space-x-1 items-center shrink-0">
+                    {splits.map((s, idx) => (
+                      <span
+                        key={s.id || idx}
+                        className="w-3 h-3 rounded-full border border-slate-400 shrink-0"
+                        style={{
+                          backgroundColor: getLockFinishColorHex(
+                            family === 'befe'
+                              ? s.befeColorFinish
+                              : family === 'nde'
+                              ? s.ndeColorFinish
+                              : s.xe360ColorFinish
+                          ),
+                        }}
+                      />
+                    ))}
+                  </span>
+                ) : (
+                  <span
+                    className="w-3 h-3 rounded-full border border-slate-400 shrink-0"
+                    style={{
+                      backgroundColor: getLockFinishColorHex(
+                        family === 'befe' ? befeColorFinish : family === 'nde' ? ndeColorFinish : xe360ColorFinish
+                      ),
+                    }}
+                  />
+                )}
+                <span className="font-bold truncate text-[11px]">{previewTag}</span>
               </div>
             )}
+          </div>
+
+          {/* Single vs Split Mode Selection Banner */}
+          <div className="bg-slate-100/80 p-2.5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-700">
+                <GitFork className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-bold text-slate-900 block text-xs">Finish Distribution Mode</span>
+                <span className="text-[11px] text-slate-500">
+                  Does the customer require uniform finishes or a split between units/amenities?
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-300 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setIsSplit(false)}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  !isSplit
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                Single Finish (All {item.quantity} Units)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSplit(true);
+                  if (splits.length === 0) {
+                    handleAddSplit();
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isSplit
+                    ? 'bg-sky-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <GitFork className="w-3.5 h-3.5" />
+                <span>Split Finish Choices</span>
+              </button>
+            </div>
           </div>
 
           {/* Lock Family Selector */}
@@ -216,7 +429,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => setFamily('befe')}
+                onClick={() => handleFamilyChange('befe')}
                 className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   family === 'befe'
                     ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20'
@@ -234,7 +447,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setFamily('nde')}
+                onClick={() => handleFamilyChange('nde')}
                 className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   family === 'nde'
                     ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20'
@@ -252,7 +465,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setFamily('xe360')}
+                onClick={() => handleFamilyChange('xe360')}
                 className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   family === 'xe360'
                     ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20'
@@ -270,347 +483,865 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
             </div>
           </div>
 
-          {/* FAMILY 1: BE467 / FE410 CONFIGURATION */}
-          {family === 'befe' && (
-            <div className="space-y-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200 animate-fadeIn">
-              {/* Trim Style */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                  <DoorClosed className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Trim Style *</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {BE_FE_TRIM_STYLES.map((trim) => (
+          {/* ============================================================== */}
+          {/* SPLIT FINISH CHOICES SECTION                                    */}
+          {/* ============================================================== */}
+          {isSplit ? (
+            <div className="space-y-4 bg-slate-50/90 p-4 rounded-xl border border-sky-200 animate-fadeIn">
+              {/* Allocation Progress Bar & Summary */}
+              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-sky-600" />
+                    <span className="font-bold text-slate-900 text-xs">
+                      Quantity Allocation: {totalAllocated} of {item.quantity} units
+                    </span>
+                  </div>
+                  {totalAllocated === item.quantity ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>100% Balanced ({item.quantity} Units)</span>
+                    </span>
+                  ) : remainingQty > 0 ? (
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                        <span>{remainingQty} units unallocated</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (splits[activeSplitIndex]) {
+                            updateSplit(activeSplitIndex, {
+                              quantity: (splits[activeSplitIndex].quantity || 0) + remainingQty,
+                            });
+                          }
+                        }}
+                        className="text-[10px] font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer"
+                        title="Add unallocated units to currently selected split group"
+                      >
+                        + Add {remainingQty} to current group
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Exceeds line item by {Math.abs(remainingQty)} units</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Multi-colored Visual Distribution Bar */}
+                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex border border-slate-300">
+                  {splits.map((s, idx) => {
+                    const widthPct = Math.min(100, Math.max(0, ((s.quantity || 0) / (item.quantity || 1)) * 100));
+                    const segHex = getLockFinishColorHex(
+                      family === 'befe'
+                        ? s.befeColorFinish
+                        : family === 'nde'
+                        ? s.ndeColorFinish
+                        : s.xe360ColorFinish
+                    );
+                    return (
+                      <div
+                        key={s.id || idx}
+                        style={{
+                          width: `${widthPct}%`,
+                          backgroundColor: segHex,
+                        }}
+                        title={`${s.label || `Group ${idx + 1}`}: ${s.quantity} units (${Math.round(widthPct)}%)`}
+                        className="h-full transition-all border-r border-white/40 last:border-r-0"
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Split Tabs */}
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+                {splits.map((s, idx) => {
+                  const isAct = idx === activeSplitIndex;
+                  const splitHex = getLockFinishColorHex(
+                    family === 'befe'
+                      ? s.befeColorFinish
+                      : family === 'nde'
+                      ? s.ndeColorFinish
+                      : s.xe360ColorFinish
+                  );
+                  return (
                     <button
-                      key={trim}
+                      key={s.id || idx}
                       type="button"
-                      onClick={() => setBefeTrimStyle(trim)}
-                      className={`py-2 px-3 rounded-lg border font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                        befeTrimStyle === trim
-                          ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                      onClick={() => setActiveSplitIndex(idx)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all cursor-pointer shrink-0 ${
+                        isAct
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                           : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
                       }`}
                     >
-                      <span>{trim}</span>
-                      {befeTrimStyle === trim && <Check className="w-3.5 h-3.5" />}
+                      <span
+                        className="w-3 h-3 rounded-full border border-white/60 shrink-0"
+                        style={{ backgroundColor: splitHex }}
+                      />
+                      <span>{s.label || `Split Group #${idx + 1}`}</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                          isAct ? 'bg-slate-800 text-sky-300' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {s.quantity} units
+                      </span>
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={handleAddSplit}
+                  className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-dashed border-sky-400 text-sky-700 hover:bg-sky-50 flex items-center gap-1 cursor-pointer shrink-0 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Add Another Split</span>
+                </button>
               </div>
 
-              {/* Color Finish */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Color Finish *</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {BE_FE_COLOR_FINISHES.map((finish) => {
-                    const isSel = befeColorFinish === finish;
-                    const hex = getLockFinishColorHex(finish);
-                    return (
-                      <button
-                        key={finish}
-                        type="button"
-                        onClick={() => setBefeColorFinish(finish)}
-                        className={`p-2.5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isSel
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
-                            : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className="w-4 h-4 rounded-full border border-slate-400 shrink-0 shadow-2xs"
-                            style={{ backgroundColor: hex }}
-                          />
-                          <span className="text-xs">{finish}</span>
-                        </div>
-                        {isSel && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* FAMILY 2: NDE / NDEB CONFIGURATION */}
-          {family === 'nde' && (
-            <div className="space-y-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200 animate-fadeIn">
-              {/* Color Finish */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Color Finish * (9 Standard Architectural Finishes)</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {NDE_COLOR_FINISHES.map((finish) => {
-                    const isSel = ndeColorFinish === finish;
-                    const hex = getLockFinishColorHex(finish);
-                    return (
-                      <button
-                        key={finish}
-                        type="button"
-                        onClick={() => setNdeColorFinish(finish)}
-                        className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isSel
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
-                            : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <span
-                            className="w-3.5 h-3.5 rounded-full border border-slate-400 shrink-0 shadow-2xs"
-                            style={{ backgroundColor: hex }}
-                          />
-                          <span className="text-xs truncate">{finish}</span>
-                        </div>
-                        {isSel && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Lever Type */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Lever Type *</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {NDE_LEVER_TYPES.map((lever) => {
-                    const isSel = ndeLeverType === lever;
-                    return (
-                      <button
-                        key={lever}
-                        type="button"
-                        onClick={() => setNdeLeverType(lever)}
-                        className={`py-2 px-3 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isSel
-                            ? 'bg-sky-600 text-white border-sky-600 shadow-xs font-bold'
-                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span>{lever}</span>
-                        {isSel && <Check className="w-3.5 h-3.5" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* FAMILY 3: XE360 CONFIGURATION */}
-          {family === 'xe360' && (
-            <div className="space-y-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200 animate-fadeIn">
-              {/* XE360 Subtype */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-sky-600" />
-                  <span>XE360 Hardware Subtype *</span>
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {XE360_SUBTYPES.map((sub) => (
-                    <button
-                      key={sub}
-                      type="button"
-                      onClick={() => setXe360Subtype(sub)}
-                      className={`py-2.5 px-3 rounded-lg border text-center font-bold text-xs transition-all cursor-pointer ${
-                        xe360Subtype === sub
-                          ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>XE360 {sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Shared Color Finish */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Color Finish * (Common across XE360 Exit Trim, Tubular &amp; Mortise)</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {XE360_COLOR_FINISHES.map((finish) => {
-                    const isSel = xe360ColorFinish === finish;
-                    const hex = getLockFinishColorHex(finish);
-                    return (
-                      <button
-                        key={finish}
-                        type="button"
-                        onClick={() => setXe360ColorFinish(finish)}
-                        className={`p-2.5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isSel
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
-                            : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className="w-4 h-4 rounded-full border border-slate-400 shrink-0 shadow-2xs"
-                            style={{ backgroundColor: hex }}
-                          />
-                          <span className="text-xs">{finish}</span>
-                        </div>
-                        {isSel && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Shared Lever Style */}
-              <div>
-                <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Lever Style *</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {XE360_LEVER_STYLES.map((lever) => {
-                    const isSel = xe360LeverStyle === lever;
-                    return (
-                      <button
-                        key={lever}
-                        type="button"
-                        onClick={() => setXe360LeverStyle(lever)}
-                        className={`py-2 px-3 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          isSel
-                            ? 'bg-sky-600 text-white border-sky-600 shadow-xs font-bold'
-                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span>{lever}</span>
-                        {isSel && <Check className="w-3.5 h-3.5" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Specific Settings for XE360 Exit Trim */}
-              {xe360Subtype === 'Exit Trim' && (
-                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3">
-                  <div className="font-bold text-amber-950 flex items-center gap-1.5 text-xs">
-                    <Info className="w-4 h-4 text-amber-600" />
-                    <span>XE360 Exit Trim Specific Settings</span>
-                  </div>
-
-                  {/* Crashbar Compatibility */}
-                  <div>
-                    <label className="block font-bold text-slate-800 mb-1 text-[11px]">
-                      Crashbar Compatibility *
-                    </label>
-                    <select
-                      value={xe360ExitTrimCrashbar}
-                      onChange={(e) => setXe360ExitTrimCrashbar(e.target.value as any)}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
-                    >
-                      {XE360_EXIT_TRIM_CRASHBARS.map((cb) => (
-                        <option key={cb} value={cb}>
-                          {cb}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Functions */}
-                  <div>
-                    <label className="block font-bold text-slate-800 mb-1 text-[11px]">
-                      Exit Trim Function *
-                    </label>
-                    <select
-                      value={xe360ExitTrimFunction}
-                      onChange={(e) => setXe360ExitTrimFunction(e.target.value as any)}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
-                    >
-                      {XE360_EXIT_TRIM_FUNCTIONS.map((fn) => (
-                        <option key={fn} value={fn}>
-                          {fn}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Specific Settings for XE360 Tubular Lock */}
-              {xe360Subtype === 'Tubular' && (
-                <div className="p-3.5 bg-sky-50/70 border border-sky-200 rounded-xl space-y-3">
-                  <div className="font-bold text-sky-950 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Info className="w-4 h-4 text-sky-600" />
-                      <span>XE360 Tubular Lock Specific Settings</span>
+              {/* Active Split Editor Card */}
+              {activeSplit && (
+                <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                  {/* Split Group Metadata (Label, Quantity, Remove) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end border-b border-slate-100 pb-3">
+                    <div className="sm:col-span-6">
+                      <label className="block font-bold text-slate-800 mb-1 text-[11px]">
+                        Split Group Label / Location
+                      </label>
+                      <input
+                        type="text"
+                        value={activeSplit.label || ''}
+                        onChange={(e) => updateSplit(activeSplitIndex, { label: e.target.value })}
+                        placeholder="e.g. Residential Units, Clubhouse, Fitness Center..."
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500 focus:bg-white"
+                      />
                     </div>
-                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-white border border-sky-300 text-sky-800 rounded">
-                      Grade: ANSI/BHMA Grade 2
-                    </span>
+
+                    <div className="sm:col-span-4">
+                      <label className="block font-bold text-slate-800 mb-1 text-[11px]">
+                        Allocated Quantity (Units)
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min="0"
+                          max={item.quantity * 2}
+                          value={activeSplit.quantity}
+                          onChange={(e) =>
+                            updateSplit(activeSplitIndex, {
+                              quantity: Math.max(0, parseInt(e.target.value, 10) || 0),
+                            })
+                          }
+                          className="w-24 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs font-bold focus:outline-none focus:border-sky-500 focus:bg-white"
+                        />
+                        <span className="text-slate-500 font-mono text-[11px]">
+                          ({Math.round(((activeSplit.quantity || 0) / (item.quantity || 1)) * 100)}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2 flex justify-end">
+                      {splits.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSplit(activeSplitIndex)}
+                          className="px-2.5 py-1.5 text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-lg font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Delete this split group"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Functions */}
+                  {/* ACTIVE SPLIT HARDWARE OPTION SELECTORS */}
+                  {/* 1. BE / FE */}
+                  {family === 'befe' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <DoorClosed className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Trim Style for {activeSplit.label || `Group #${activeSplitIndex + 1}`} *</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {BE_FE_TRIM_STYLES.map((trim) => (
+                            <button
+                              key={trim}
+                              type="button"
+                              onClick={() => updateSplit(activeSplitIndex, { befeTrimStyle: trim })}
+                              className={`py-2 px-3 rounded-lg border font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                                (activeSplit.befeTrimStyle || 'Greenwich') === trim
+                                  ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                              }`}
+                            >
+                              <span>{trim}</span>
+                              {(activeSplit.befeTrimStyle || 'Greenwich') === trim && (
+                                <Check className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <Palette className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Color Finish *</span>
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {BE_FE_COLOR_FINISHES.map((finish) => {
+                            const isSel = (activeSplit.befeColorFinish || '622 - Matte Black') === finish;
+                            const hex = getLockFinishColorHex(finish);
+                            return (
+                              <button
+                                key={finish}
+                                type="button"
+                                onClick={() => updateSplit(activeSplitIndex, { befeColorFinish: finish })}
+                                className={`p-2.5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                  isSel
+                                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+                                    : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <span
+                                    className="w-4 h-4 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                    style={{ backgroundColor: hex }}
+                                  />
+                                  <span className="text-xs">{finish}</span>
+                                </div>
+                                {isSel && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. NDE */}
+                  {family === 'nde' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <Palette className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Color Finish for {activeSplit.label || `Group #${activeSplitIndex + 1}`} *</span>
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {NDE_COLOR_FINISHES.map((finish) => {
+                            const isSel = (activeSplit.ndeColorFinish || '619: Satin Nickel') === finish;
+                            const hex = getLockFinishColorHex(finish);
+                            return (
+                              <button
+                                key={finish}
+                                type="button"
+                                onClick={() => updateSplit(activeSplitIndex, { ndeColorFinish: finish })}
+                                className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                  isSel
+                                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+                                    : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                    style={{ backgroundColor: hex }}
+                                  />
+                                  <span className="text-xs truncate">{finish}</span>
+                                </div>
+                                {isSel && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Lever Type *</span>
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {NDE_LEVER_TYPES.map((lever) => {
+                            const isSel = (activeSplit.ndeLeverType || 'Latitude (LAT)') === lever;
+                            return (
+                              <button
+                                key={lever}
+                                type="button"
+                                onClick={() => updateSplit(activeSplitIndex, { ndeLeverType: lever })}
+                                className={`py-2 px-3 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                  isSel
+                                    ? 'bg-sky-600 text-white border-sky-600 shadow-xs font-bold'
+                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                }`}
+                              >
+                                <span>{lever}</span>
+                                {isSel && <Check className="w-3.5 h-3.5" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. XE360 */}
+                  {family === 'xe360' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <Shield className="w-3.5 h-3.5 text-sky-600" />
+                          <span>XE360 Hardware Subtype *</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {XE360_SUBTYPES.map((sub) => (
+                            <button
+                              key={sub}
+                              type="button"
+                              onClick={() => updateSplit(activeSplitIndex, { xe360Subtype: sub })}
+                              className={`py-2 px-3 rounded-lg border text-center font-bold text-xs transition-all cursor-pointer ${
+                                (activeSplit.xe360Subtype || 'Mortise') === sub
+                                  ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                              }`}
+                            >
+                              <span>XE360 {sub}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <Palette className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Color Finish *</span>
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {XE360_COLOR_FINISHES.map((finish) => {
+                            const isSel = (activeSplit.xe360ColorFinish || '622 - Matte Black') === finish;
+                            const hex = getLockFinishColorHex(finish);
+                            return (
+                              <button
+                                key={finish}
+                                type="button"
+                                onClick={() => updateSplit(activeSplitIndex, { xe360ColorFinish: finish })}
+                                className={`p-2.5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                  isSel
+                                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+                                    : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <span
+                                    className="w-4 h-4 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                    style={{ backgroundColor: hex }}
+                                  />
+                                  <span className="text-xs">{finish}</span>
+                                </div>
+                                {isSel && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Lever Style *</span>
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {XE360_LEVER_STYLES.map((lever) => {
+                            const isSel = (activeSplit.xe360LeverStyle || 'LAT - Latitude') === lever;
+                            return (
+                              <button
+                                key={lever}
+                                type="button"
+                                onClick={() => updateSplit(activeSplitIndex, { xe360LeverStyle: lever })}
+                                className={`py-2 px-3 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                                  isSel
+                                    ? 'bg-sky-600 text-white border-sky-600 shadow-xs font-bold'
+                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                }`}
+                              >
+                                <span>{lever}</span>
+                                {isSel && <Check className="w-3.5 h-3.5" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Exit Trim specific options */}
+                      {(activeSplit.xe360Subtype || 'Mortise') === 'Exit Trim' && (
+                        <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+                          <span className="font-bold text-amber-950 block text-[11px]">
+                            Exit Trim Specific Settings
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                                Crashbar Device
+                              </label>
+                              <select
+                                value={activeSplit.xe360ExitTrimCrashbar || 'Von Duprin 98/99 / XP98/99 rim'}
+                                onChange={(e) =>
+                                  updateSplit(activeSplitIndex, { xe360ExitTrimCrashbar: e.target.value as any })
+                                }
+                                className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs font-semibold"
+                              >
+                                {XE360_EXIT_TRIM_CRASHBARS.map((cb) => (
+                                  <option key={cb} value={cb}>
+                                    {cb}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                                Function
+                              </label>
+                              <select
+                                value={
+                                  activeSplit.xe360ExitTrimFunction ||
+                                  'Interior push button with LED indicator (B)'
+                                }
+                                onChange={(e) =>
+                                  updateSplit(activeSplitIndex, { xe360ExitTrimFunction: e.target.value as any })
+                                }
+                                className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs font-semibold"
+                              >
+                                {XE360_EXIT_TRIM_FUNCTIONS.map((fn) => (
+                                  <option key={fn} value={fn}>
+                                    {fn}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tubular lock specific options */}
+                      {(activeSplit.xe360Subtype || 'Mortise') === 'Tubular' && (
+                        <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-xl space-y-2">
+                          <span className="font-bold text-sky-950 block text-[11px]">
+                            Tubular Lock (ANSI/BHMA Grade 2) Function
+                          </span>
+                          <select
+                            value={
+                              activeSplit.xe360TubularFunction ||
+                              'Push button (B) - Common areas and package rooms'
+                            }
+                            onChange={(e) =>
+                              updateSplit(activeSplitIndex, { xe360TubularFunction: e.target.value as any })
+                            }
+                            className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs font-semibold"
+                          >
+                            {XE360_TUBULAR_FUNCTIONS.map((fn) => (
+                              <option key={fn} value={fn}>
+                                {fn}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Mortise lock specific options */}
+                      {(activeSplit.xe360Subtype || 'Mortise') === 'Mortise' && (
+                        <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+                          <span className="font-bold text-purple-950 block text-[11px]">
+                            Mortise Lock (ANSI/BHMA Grade 1) Function
+                          </span>
+                          <select
+                            value={
+                              activeSplit.xe360MortiseFunction ||
+                              'Mortise deadbolt with thumbturn and LED indicator (D)'
+                            }
+                            onChange={(e) =>
+                              updateSplit(activeSplitIndex, { xe360MortiseFunction: e.target.value as any })
+                            }
+                            className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs font-semibold"
+                          >
+                            {XE360_MORTISE_FUNCTIONS.map((fn) => (
+                              <option key={fn} value={fn}>
+                                {fn}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Scope / Location notes for this split */}
                   <div>
-                    <label className="block font-bold text-slate-800 mb-1 text-[11px]">
-                      Tubular Lock Function (Common Areas &amp; Package Rooms) *
+                    <label className="block font-bold text-slate-700 mb-1 text-[11px]">
+                      Specific Scope / Door Notes for this Split (Optional)
                     </label>
-                    <select
-                      value={xe360TubularFunction}
-                      onChange={(e) => setXe360TubularFunction(e.target.value as any)}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
-                    >
-                      {XE360_TUBULAR_FUNCTIONS.map((fn) => (
-                        <option key={fn} value={fn}>
-                          {fn}
-                        </option>
+                    <input
+                      type="text"
+                      value={activeSplit.notes || ''}
+                      onChange={(e) => updateSplit(activeSplitIndex, { notes: e.target.value })}
+                      placeholder="e.g. Building 100-300 corridor doors, North stairwell, Leasing office suite..."
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500 focus:bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ============================================================== */
+            /* SINGLE FINISH (ALL UNITS) CONFIGURATION                        */
+            /* ============================================================== */
+            <div className="space-y-4">
+              {/* FAMILY 1: BE467 / FE410 CONFIGURATION */}
+              {family === 'befe' && (
+                <div className="space-y-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200 animate-fadeIn">
+                  {/* Trim Style */}
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <DoorClosed className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Trim Style *</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {BE_FE_TRIM_STYLES.map((trim) => (
+                        <button
+                          key={trim}
+                          type="button"
+                          onClick={() => setBefeTrimStyle(trim)}
+                          className={`py-2 px-3 rounded-lg border font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                            befeTrimStyle === trim
+                              ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{trim}</span>
+                          {befeTrimStyle === trim && <Check className="w-3.5 h-3.5" />}
+                        </button>
                       ))}
-                    </select>
+                    </div>
+                  </div>
+
+                  {/* Color Finish */}
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Color Finish *</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {BE_FE_COLOR_FINISHES.map((finish) => {
+                        const isSel = befeColorFinish === finish;
+                        const hex = getLockFinishColorHex(finish);
+                        return (
+                          <button
+                            key={finish}
+                            type="button"
+                            onClick={() => setBefeColorFinish(finish)}
+                            className={`p-2.5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                              isSel
+                                ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+                                : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span
+                                className="w-4 h-4 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                style={{ backgroundColor: hex }}
+                              />
+                              <span className="text-xs">{finish}</span>
+                            </div>
+                            {isSel && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Specific Settings for XE360 Mortise Lock */}
-              {xe360Subtype === 'Mortise' && (
-                <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-3">
-                  <div className="font-bold text-purple-950 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Info className="w-4 h-4 text-purple-600" />
-                      <span>XE360 Mortise Lock Specific Settings</span>
+              {/* FAMILY 2: NDE / NDEB CONFIGURATION */}
+              {family === 'nde' && (
+                <div className="space-y-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200 animate-fadeIn">
+                  {/* Color Finish */}
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Color Finish * (9 Standard Architectural Finishes)</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {NDE_COLOR_FINISHES.map((finish) => {
+                        const isSel = ndeColorFinish === finish;
+                        const hex = getLockFinishColorHex(finish);
+                        return (
+                          <button
+                            key={finish}
+                            type="button"
+                            onClick={() => setNdeColorFinish(finish)}
+                            className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                              isSel
+                                ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+                                : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span
+                                className="w-3.5 h-3.5 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                style={{ backgroundColor: hex }}
+                              />
+                              <span className="text-xs truncate">{finish}</span>
+                            </div>
+                            {isSel && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-white border border-purple-300 text-purple-800 rounded">
-                      Grade: ANSI/BHMA Grade 1
-                    </span>
                   </div>
 
-                  {/* Functions */}
+                  {/* Lever Type */}
                   <div>
-                    <label className="block font-bold text-slate-800 mb-1 text-[11px]">
-                      Mortise Function *
+                    <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Lever Type *</span>
                     </label>
-                    <select
-                      value={xe360MortiseFunction}
-                      onChange={(e) => setXe360MortiseFunction(e.target.value as any)}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
-                    >
-                      {XE360_MORTISE_FUNCTIONS.map((fn) => (
-                        <option key={fn} value={fn}>
-                          {fn}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {NDE_LEVER_TYPES.map((lever) => {
+                        const isSel = ndeLeverType === lever;
+                        return (
+                          <button
+                            key={lever}
+                            type="button"
+                            onClick={() => setNdeLeverType(lever)}
+                            className={`py-2 px-3 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                              isSel
+                                ? 'bg-sky-600 text-white border-sky-600 shadow-xs font-bold'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>{lever}</span>
+                            {isSel && <Check className="w-3.5 h-3.5" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                </div>
+              )}
+
+              {/* FAMILY 3: XE360 CONFIGURATION */}
+              {family === 'xe360' && (
+                <div className="space-y-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200 animate-fadeIn">
+                  {/* XE360 Subtype */}
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-sky-600" />
+                      <span>XE360 Hardware Subtype *</span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {XE360_SUBTYPES.map((sub) => (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => setXe360Subtype(sub)}
+                          className={`py-2.5 px-3 rounded-lg border text-center font-bold text-xs transition-all cursor-pointer ${
+                            xe360Subtype === sub
+                              ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>XE360 {sub}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shared Color Finish */}
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Color Finish * (Common across XE360 Exit Trim, Tubular &amp; Mortise)</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {XE360_COLOR_FINISHES.map((finish) => {
+                        const isSel = xe360ColorFinish === finish;
+                        const hex = getLockFinishColorHex(finish);
+                        return (
+                          <button
+                            key={finish}
+                            type="button"
+                            onClick={() => setXe360ColorFinish(finish)}
+                            className={`p-2.5 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                              isSel
+                                ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
+                                : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span
+                                className="w-4 h-4 rounded-full border border-slate-400 shrink-0 shadow-2xs"
+                                style={{ backgroundColor: hex }}
+                              />
+                              <span className="text-xs">{finish}</span>
+                            </div>
+                            {isSel && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Shared Lever Style */}
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Lever Style *</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {XE360_LEVER_STYLES.map((lever) => {
+                        const isSel = xe360LeverStyle === lever;
+                        return (
+                          <button
+                            key={lever}
+                            type="button"
+                            onClick={() => setXe360LeverStyle(lever)}
+                            className={`py-2 px-3 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                              isSel
+                                ? 'bg-sky-600 text-white border-sky-600 shadow-xs font-bold'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>{lever}</span>
+                            {isSel && <Check className="w-3.5 h-3.5" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Specific Settings for XE360 Exit Trim */}
+                  {xe360Subtype === 'Exit Trim' && (
+                    <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3">
+                      <div className="font-bold text-amber-950 flex items-center gap-1.5 text-xs">
+                        <Info className="w-4 h-4 text-amber-600" />
+                        <span>XE360 Exit Trim Specific Settings</span>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1 text-[11px]">
+                          Crashbar Compatibility *
+                        </label>
+                        <select
+                          value={xe360ExitTrimCrashbar}
+                          onChange={(e) => setXe360ExitTrimCrashbar(e.target.value as any)}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
+                        >
+                          {XE360_EXIT_TRIM_CRASHBARS.map((cb) => (
+                            <option key={cb} value={cb}>
+                              {cb}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1 text-[11px]">
+                          Exit Trim Function *
+                        </label>
+                        <select
+                          value={xe360ExitTrimFunction}
+                          onChange={(e) => setXe360ExitTrimFunction(e.target.value as any)}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
+                        >
+                          {XE360_EXIT_TRIM_FUNCTIONS.map((fn) => (
+                            <option key={fn} value={fn}>
+                              {fn}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Specific Settings for XE360 Tubular Lock */}
+                  {xe360Subtype === 'Tubular' && (
+                    <div className="p-3.5 bg-sky-50/70 border border-sky-200 rounded-xl space-y-3">
+                      <div className="font-bold text-sky-950 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Info className="w-4 h-4 text-sky-600" />
+                          <span>XE360 Tubular Lock Specific Settings</span>
+                        </div>
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-white border border-sky-300 text-sky-800 rounded">
+                          Grade: ANSI/BHMA Grade 2
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1 text-[11px]">
+                          Tubular Lock Function (Common Areas &amp; Package Rooms) *
+                        </label>
+                        <select
+                          value={xe360TubularFunction}
+                          onChange={(e) => setXe360TubularFunction(e.target.value as any)}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
+                        >
+                          {XE360_TUBULAR_FUNCTIONS.map((fn) => (
+                            <option key={fn} value={fn}>
+                              {fn}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Specific Settings for XE360 Mortise Lock */}
+                  {xe360Subtype === 'Mortise' && (
+                    <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-3">
+                      <div className="font-bold text-purple-950 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Info className="w-4 h-4 text-purple-600" />
+                          <span>XE360 Mortise Lock Specific Settings</span>
+                        </div>
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-white border border-purple-300 text-purple-800 rounded">
+                          Grade: ANSI/BHMA Grade 1
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1 text-[11px]">
+                          Mortise Function *
+                        </label>
+                        <select
+                          value={xe360MortiseFunction}
+                          onChange={(e) => setXe360MortiseFunction(e.target.value as any)}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold focus:outline-none focus:border-sky-500"
+                        >
+                          {XE360_MORTISE_FUNCTIONS.map((fn) => (
+                            <option key={fn} value={fn}>
+                              {fn}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Optional Notes */}
+          {/* Optional Project / Scope Notes */}
           <div>
             <label className="block font-bold text-slate-700 mb-1">
-              Custom Door / Scope Notes (Optional)
+              General Lock Notes &amp; Scope Specification (Optional)
             </label>
             <input
               type="text"
@@ -658,7 +1389,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
               className="px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-colors bg-sky-600 hover:bg-sky-700 text-white cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>Apply Lock Finish Tag</span>
+              <span>{isSplit ? 'Apply Split Finish Tags' : 'Apply Lock Finish Tag'}</span>
             </button>
           </div>
         </div>

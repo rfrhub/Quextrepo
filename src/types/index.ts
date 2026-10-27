@@ -1537,6 +1537,29 @@ export const XE360_MORTISE_FUNCTIONS: readonly Xe360MortiseFunction[] = [
   'Mortise deadbolt with thumbturn and LED indicator (D)',
 ] as const;
 
+export interface LockFinishSplit {
+  id: string;
+  label?: string; // e.g. "Residential Units", "Clubhouse", "Buildings 1-3"
+  quantity: number; // allocated units
+  // BE & FE Locks
+  befeTrimStyle?: BeFeTrimStyle;
+  befeColorFinish?: BeFeColorFinish;
+  // NDE Locks
+  ndeColorFinish?: NdeColorFinish;
+  ndeLeverType?: NdeLeverType;
+  // XE360 Locks
+  xe360Subtype?: Xe360Subtype;
+  xe360ColorFinish?: Xe360ColorFinish;
+  xe360LeverStyle?: Xe360LeverStyle;
+  xe360ExitTrimCrashbar?: Xe360ExitTrimCrashbar;
+  xe360ExitTrimFunction?: Xe360ExitTrimFunction;
+  xe360TubularGrade?: string;
+  xe360TubularFunction?: Xe360TubularFunction;
+  xe360MortiseGrade?: string;
+  xe360MortiseFunction?: Xe360MortiseFunction;
+  notes?: string;
+}
+
 export interface LockFinishConfig {
   family: LockFamilyType;
   // BE & FE Locks
@@ -1556,6 +1579,10 @@ export interface LockFinishConfig {
   xe360MortiseGrade?: string; // 'ANSI/BHMA Grade 1'
   xe360MortiseFunction?: Xe360MortiseFunction;
   customNotes?: string;
+
+  // Split finish choices across line item quantity
+  isSplit?: boolean;
+  splits?: LockFinishSplit[];
 }
 
 export function isLockBOMItem(item: { name?: string; model?: string; category?: string }): boolean {
@@ -1638,8 +1665,43 @@ export function detectLockFamily(item: {
   return 'befe';
 }
 
+export function getSingleLockFinishSummary(
+  config: {
+    befeTrimStyle?: BeFeTrimStyle;
+    befeColorFinish?: BeFeColorFinish;
+    ndeColorFinish?: NdeColorFinish;
+    ndeLeverType?: NdeLeverType;
+    xe360Subtype?: Xe360Subtype;
+    xe360ColorFinish?: Xe360ColorFinish;
+    xe360LeverStyle?: Xe360LeverStyle;
+  },
+  family: LockFamilyType
+): string {
+  if (family === 'befe') {
+    const parts = [config.befeTrimStyle, config.befeColorFinish].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : 'BE/FE Lock';
+  }
+  if (family === 'nde') {
+    const parts = [config.ndeColorFinish, config.ndeLeverType].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : 'NDE Lock';
+  }
+  if (family === 'xe360') {
+    const subtypeLabel = config.xe360Subtype ? `XE360 ${config.xe360Subtype}` : 'XE360';
+    const parts = [subtypeLabel, config.xe360ColorFinish, config.xe360LeverStyle].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : 'XE360 Lock';
+  }
+  return 'Lock';
+}
+
 export function getLockFinishSummaryTag(config?: LockFinishConfig): string | null {
   if (!config) return null;
+  if (config.isSplit && config.splits && config.splits.length > 0) {
+    const splitParts = config.splits.map((s) => {
+      const summary = getSingleLockFinishSummary(s, config.family);
+      return `${s.quantity}x ${summary}`;
+    });
+    return `Split: ${splitParts.join(' | ')}`;
+  }
   if (config.family === 'befe') {
     const parts = [config.befeTrimStyle, config.befeColorFinish].filter(Boolean);
     return parts.length > 0 ? parts.join(' · ') : null;
