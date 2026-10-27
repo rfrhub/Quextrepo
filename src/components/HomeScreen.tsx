@@ -434,7 +434,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-600 mt-1.5 max-w-2xl leading-relaxed">
-              Monitoring field operations with Project Managers <strong>Bethany Condon</strong>, <strong>Megan Rossman</strong>, and <strong>Raul Recalde</strong> across all multifamily smart community installations.
+              Monitoring field operations with Project Managers <strong>Bethany Condon</strong>, <strong>Megan Rossman</strong>, <strong>Ian Robertson</strong>, and <strong>Raul Recalde</strong> across all multifamily smart community installations.
             </p>
           </div>
 

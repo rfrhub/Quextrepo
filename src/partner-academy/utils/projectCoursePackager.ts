@@ -659,6 +659,9 @@ export function resolveMyQuextEmailIdentity(
     cleaned.includes('raul') ||
     cleaned.includes('bethany') ||
     cleaned.includes('megan') ||
+    cleaned.includes('ian') ||
+    cleaned.includes('robertson') ||
+    cleaned.includes('roberston') ||
     cleaned.includes('nicole') ||
     cleaned.includes('jasmine') ||
     cleaned.endsWith('@onequext.com')
@@ -667,6 +670,8 @@ export function resolveMyQuextEmailIdentity(
       ? 'Bethany Condon'
       : cleaned.includes('megan')
       ? 'Megan Rossman'
+      : (cleaned.includes('ian') || cleaned.includes('robertson') || cleaned.includes('roberston'))
+      ? 'Ian Robertson'
       : 'Raul Recalde';
     return {
       portal: 'pm_operations',

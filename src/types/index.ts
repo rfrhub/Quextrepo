@@ -148,6 +148,12 @@ export const AVAILABLE_PMS: ProjectManagerInfo[] = [
     role: 'Director of Operations',
     phone: '(806) 555-0193',
   },
+  {
+    name: 'Ian Robertson',
+    email: 'ian.robertson@onequext.com',
+    role: 'Project Coordinator',
+    phone: '(806) 555-0177',
+  },
 ];
 
 export type CSMName =

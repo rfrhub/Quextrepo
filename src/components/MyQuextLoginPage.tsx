@@ -78,6 +78,17 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     };
   }
 
+  if (email.includes('ian') || email.includes('robertson') || email.includes('roberston')) {
+    return {
+      name: 'Ian Robertson',
+      email: 'ian.robertson@onequext.com',
+      roleLabel: 'PROJECT COORDINATOR',
+      avatarInitial: 'I',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
   if (email.includes('blake') || email.includes('miller')) {
     return {
       name: 'Blake Miller',
@@ -385,6 +396,13 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
                   className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
                 >
                   Megan Rossman (Director of Ops)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('ian.robertson@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
+                >
+                  Ian Robertson (Coordinator)
                 </button>
                 <button
                   type="button"
