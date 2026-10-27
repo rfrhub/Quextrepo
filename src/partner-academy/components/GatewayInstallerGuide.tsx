@@ -306,6 +306,19 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                     <img
                       src={currentStep.photoImage}
                       alt={currentStep.photoLabel || currentStep.stepTitle}
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.dataset.triedFallback) {
+                          target.dataset.triedFallback = 'true';
+                          if (currentStep.stepNumber === '03') {
+                            target.src = '/assets/images/gateway-guide/slide_05.png';
+                          } else if (currentStep.stepNumber === '06') {
+                            target.src = '/assets/images/gateway-guide/slide_08.png';
+                          } else if (currentStep.stepNumber === '07') {
+                            target.src = '/assets/images/gateway-guide/slide_09.png';
+                          }
+                        }
+                      }}
                       className="w-full h-auto object-contain max-h-[540px] rounded-lg transition-transform group-hover:scale-[1.01]"
                     />
 
@@ -562,6 +575,19 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                       <img
                         src={step.photoImage}
                         alt={step.photoLabel || step.stepTitle}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.dataset.triedFallback) {
+                            target.dataset.triedFallback = 'true';
+                            if (step.stepNumber === '03') {
+                              target.src = '/assets/images/gateway-guide/slide_05.png';
+                            } else if (step.stepNumber === '06') {
+                              target.src = '/assets/images/gateway-guide/slide_08.png';
+                            } else if (step.stepNumber === '07') {
+                              target.src = '/assets/images/gateway-guide/slide_09.png';
+                            }
+                          }
+                        }}
                         className="w-full h-auto object-contain max-h-[380px] bg-black rounded-lg transition-transform group-hover:scale-[1.01]"
                       />
                       <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/80 text-zinc-300 text-[10px] font-bold border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">

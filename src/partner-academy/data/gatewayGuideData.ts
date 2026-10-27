@@ -1,3 +1,16 @@
+import slide01Img from '../assets/images/gateway-guide/slide_01.png';
+import slide02Img from '../assets/images/gateway-guide/slide_02.png';
+import slide03Img from '../assets/images/gateway-guide/slide_03.png';
+import slide04Img from '../assets/images/gateway-guide/slide_04.png';
+import slide05Img from '../assets/images/gateway-guide/slide_05.png';
+import slide06Img from '../assets/images/gateway-guide/slide_06.png';
+import slide07Img from '../assets/images/gateway-guide/slide_07.png';
+import slide08Img from '../assets/images/gateway-guide/slide_08.png';
+import slide09Img from '../assets/images/gateway-guide/slide_09.png';
+import slide10Img from '../assets/images/gateway-guide/slide_10.png';
+import slide11Img from '../assets/images/gateway-guide/slide_11.png';
+import slide12Img from '../assets/images/gateway-guide/slide_12.png';
+
 export interface GatewayGuideStep {
   stepNumber: string;
   stepTitle: string;
@@ -53,7 +66,7 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '01',
     stepTitle: 'Guide at a Glance & Scope',
     category: 'Overview',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_03.png',
+    slideImage: slide03Img,
     summary: 'High-level deployment roadmap for mounting, wiring, and verifying the Quext Smart Community Gateway across multi-family properties.',
     bulletPoints: [
       {
@@ -86,7 +99,7 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '02',
     stepTitle: '01 • Before you start: Materials & Tools',
     category: 'Preparation',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_04.png',
+    slideImage: slide04Img,
     summary: 'Standardized Bill of Materials required for a durable, weather-resistant outdoor gateway installation.',
     bulletPoints: [
       {
@@ -121,10 +134,10 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepTitle: '02 • Plan the mounting location: Inside vs. Outside Parapet',
     category: 'Mounting',
     hasVisualPhoto: true,
-    photoImage: '/src/partner-academy/assets/images/gateway-guide/slide_05.png',
+    photoImage: slide05Img,
     photoLabel: 'Field Reference: Inside vs. Outside Parapet Mounting',
     photoCaption: 'Official installation photos demonstrating Inside Roof Wall Mount (left) and Outside Roof Mount (right) with EMT conduit mast extending antenna above roofline.',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_05.png',
+    slideImage: slide05Img,
     summary: 'Identify the ideal mounting geometry: Inside Roof Wall Mount vs. Outside Roof Mount for optimal LoRa RF coverage.',
     bulletPoints: [
       {
@@ -167,7 +180,7 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '04',
     stepTitle: '03 • Mark, drill & seal: Weatherproof Anchoring',
     category: 'Mounting',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_06.png',
+    slideImage: slide06Img,
     summary: 'Proper layout, pilot drilling, and sealant application to guarantee zero roof leaks and structural stability.',
     bulletPoints: [
       {
@@ -197,7 +210,7 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '05',
     stepTitle: '04 • Mount the Unistrut & antenna Mast',
     category: 'Mounting',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_07.png',
+    slideImage: slide07Img,
     summary: 'Securing the dual channel backplane and clamping the 10-foot EMT mast with universal pipe clamps.',
     bulletPoints: [
       {
@@ -230,10 +243,10 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepTitle: '05 • Reference: Gateway Bracket Mounting',
     category: 'Mounting',
     hasVisualPhoto: true,
-    photoImage: '/src/partner-academy/assets/images/gateway-guide/slide_08.png',
+    photoImage: slide08Img,
     photoLabel: 'Field Reference: Gateway Chassis Bracket Mounting to Unistrut',
     photoCaption: 'Official installation photo showing the powder-coated bracket secured to the lower Unistrut channel with spring nuts and vertical heatsink orientation.',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_08.png',
+    slideImage: slide08Img,
     summary: 'Mounting the heavy-duty TEKTELIC chassis bracket to the lower Unistrut channel for easy servicing and cooling.',
     bulletPoints: [
       {
@@ -265,10 +278,10 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepTitle: '06 • Gateway Wiring: Waterproof PoE & Antenna Connection',
     category: 'Wiring',
     hasVisualPhoto: true,
-    photoImage: '/src/partner-academy/assets/images/gateway-guide/slide_09.png',
+    photoImage: slide09Img,
     photoLabel: 'Field Reference: Waterproof PoE Cable Gland & Antenna Drip Loop',
     photoCaption: 'Official installation photo showing bottom view of gateway chassis with IP67 sealed compression gland for PoE and heavy-gauge N-type RF antenna coax with drip loop.',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_09.png',
+    slideImage: slide09Img,
     summary: 'Assembling the IP67 water-tight connector gland, terminating T568B RJ45, and dressing the N-type RF antenna coaxial cable.',
     bulletPoints: [
       {
@@ -304,7 +317,7 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '08',
     stepTitle: '07 • Data Closet Connection: PoE Injector & LAN Backhaul',
     category: 'PoE & Data',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_10.png',
+    slideImage: slide10Img,
     summary: 'Terminating the data closet head-end, connecting the provided PoE power injector, and linking to the property switch or router.',
     bulletPoints: [
       {
@@ -337,7 +350,7 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '09',
     stepTitle: '08 • Final Checks: Pre-Power Inspection',
     category: 'Verification',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_11.png',
+    slideImage: slide11Img,
     summary: 'Comprehensive 5-point mechanical and electrical checklist before requesting cloud provisioning from Quext Support.',
     bulletPoints: [
       {
@@ -366,7 +379,7 @@ export const GATEWAY_GUIDE_STEPS: GatewayGuideStep[] = [
     stepNumber: '10',
     stepTitle: 'Finish: Ready to Go & Cloud Verification',
     category: 'Verification',
-    slideImage: '/src/partner-academy/assets/images/gateway-guide/slide_12.png',
+    slideImage: slide12Img,
     summary: 'Final completion check and live verification with Quext Implementation Support at 806-993-3200 • OPTION 4.',
     bulletPoints: [
       {
