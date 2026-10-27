@@ -775,6 +775,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
       {focusMode === 'standard' && (
         <main className="max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
           <ProjectDetailView
+            key={project.id}
             project={project}
             quotesList={quotesList}
             onUpdateProject={handleTrackedUpdateProject}

@@ -533,6 +533,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
           })()}
 
           <ProjectDetailView
+            key={selectedProject.id}
             project={selectedProject}
             quotesList={quotesList}
             onUpdateProject={onUpdateProject}

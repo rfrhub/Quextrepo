@@ -2081,7 +2081,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                           }
                         }}
                         variant="full"
-                        defaultExpanded={true}
+                        defaultExpanded={false}
                       />
                     </div>
                   ))}
@@ -3201,7 +3201,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                   }
                 }}
                 variant="full"
-                defaultExpanded={true}
+                defaultExpanded={false}
               />
             </div>
           </div>

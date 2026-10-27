@@ -57,7 +57,7 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
   project,
   onUpdateProject,
   variant = 'full',
-  defaultExpanded = true,
+  defaultExpanded = false,
   onMinimize,
 }) => {
   const health = calculateProjectScheduleHealth(
@@ -73,6 +73,11 @@ export const PMPMitigationPlanPanel: React.FC<PMPMitigationPlanPanelProps> = ({
   const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
   const [draftPlan, setDraftPlan] = useState<PMPMitigationPlan>(effectivePlan);
   const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  // Reset expanded state if project changes or defaultExpanded changes
+  useEffect(() => {
+    setIsExpanded(defaultExpanded);
+  }, [project.id, defaultExpanded]);
 
   // Keep draft synced when project or notes change (unless actively editing)
   useEffect(() => {

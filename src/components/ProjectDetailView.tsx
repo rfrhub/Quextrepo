@@ -155,6 +155,11 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const [headerEmailSuccessBanner, setHeaderEmailSuccessBanner] = useState<string | null>(null);
   const [showMitigationPlan, setShowMitigationPlan] = useState<boolean>(false);
 
+  // Ensure Mitigation plan on all projects is minimized as the default setting
+  useEffect(() => {
+    setShowMitigationPlan(false);
+  }, [project.id]);
+
   // Common Area Door Quick Add state
   const [isAddingDoor, setIsAddingDoor] = useState<boolean>(false);
   const [newDoorName, setNewDoorName] = useState<string>('');
@@ -2124,6 +2129,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             project={project}
             onUpdateProject={onUpdateProject}
             variant="full"
+            defaultExpanded={false}
             onMinimize={() => setShowMitigationPlan(false)}
           />
         </div>
