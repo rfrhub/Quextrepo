@@ -1682,16 +1682,6 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 <Wrench className="w-3.5 h-3.5 text-sky-600" />
                 <span>Field Tech Portal</span>
               </button>
-
-              <button
-                type="button"
-                onClick={onResetData}
-                title="Reset to default myquext.com opportunities & projects"
-                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden xl:inline">Reset</span>
-              </button>
             </div>
           </div>
 
