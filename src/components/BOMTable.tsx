@@ -173,44 +173,27 @@ export const BOMTable: React.FC<BOMTableProps> = ({
             <h3 className="text-base font-bold text-slate-900">Smart Community Bill of Materials (BOM)</h3>
             <span className="text-xs text-slate-500">· Pulled directly from Quoted Hardware</span>
 
-            {/* Invisible Button: Called BOM OVERIDE - Clicked 7 times unlocks PM Override */}
+            {/* Invisible Button: Called BOM OVERIDE - Only way to access this feature, turns red on click */}
             <button
               type="button"
               aria-label="BOM OVERIDE"
               title="BOM OVERIDE"
               onClick={handleInvisibleOverrideClick}
-              className="opacity-0 select-none cursor-default px-1.5 py-0.5 text-[9px] uppercase font-mono tracking-widest text-slate-400 focus:opacity-100 transition-opacity"
+              className={`select-none cursor-pointer px-1.5 py-0.5 text-[9px] uppercase font-mono tracking-widest transition-all rounded ${
+                overrideClicks > 0
+                  ? 'text-red-600 bg-red-50 border border-red-300 opacity-100 shadow-2xs font-bold'
+                  : 'opacity-0 hover:opacity-60 text-red-600'
+              }`}
             >
               BOM OVERIDE
             </button>
 
-            {/* Subtle click progress indicator (shows remaining clicks when user is actively clicking) */}
-            {overrideClicks > 0 && overrideClicks < 7 && (
-              <span className="text-[10px] font-mono text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 animate-pulse">
-                {7 - overrideClicks} clicks remaining
+            {/* Overridden Status Badge (No visible Add button — invisible button is the ONLY way) */}
+            {project?.isBomOverridden && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                <AlertTriangle className="w-3 h-3 text-amber-700" />
+                BOM Overridden
               </span>
-            )}
-
-            {/* Unlocked / Overridden Controls */}
-            {(isOverrideUnlocked || project?.isBomOverridden) && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsOverrideModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-xs transition-all cursor-pointer"
-                  title="Add hardware line items directly from myquext.com Product Catalog"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Add BOM Item (Override)</span>
-                </button>
-
-                {project?.isBomOverridden && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                    <AlertTriangle className="w-3 h-3 text-amber-700" />
-                    BOM Overridden
-                  </span>
-                )}
-              </div>
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
