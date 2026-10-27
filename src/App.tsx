@@ -59,6 +59,8 @@ import {
   PARTNER_IDENTITY_DIRECTORY,
   isPartnerMatching,
 } from './partner-academy/utils/projectCoursePackager';
+import { resolvePartnerByAccessCode } from './partner-academy/utils/partnerSecurity';
+import { PartnerAccessCodesModal } from './components/PartnerAccessCodesModal';
 import { RotateCcw, ArrowLeft, Building2, Mail, Eye } from 'lucide-react';
 
 function extractKickoffIdFromLocation(): string | null {
@@ -118,11 +120,17 @@ function parsePartnerAcademyFromLocation(): {
   const searchParams = new URLSearchParams(
     search || (hash.includes('?') ? hash.split('?')[1] : '')
   );
+  const codeParam = searchParams.get('code') || searchParams.get('accessCode') || searchParams.get('key');
   const partnerParam = searchParams.get('partner') || searchParams.get('company');
   const projectParam = searchParams.get('project') || searchParams.get('projectId');
 
   let target = PARTNER_IDENTITY_DIRECTORY[0];
-  if (partnerParam) {
+  if (codeParam) {
+    const resolved = resolvePartnerByAccessCode(codeParam);
+    if (resolved) {
+      target = resolved;
+    }
+  } else if (partnerParam) {
     const found = PARTNER_IDENTITY_DIRECTORY.find(
       (p) =>
         isPartnerMatching(p.partnerShortName, partnerParam) ||
@@ -177,6 +185,7 @@ export default function App() {
   const [isCloneWarsOpen, setIsCloneWarsOpen] = useState<boolean>(
     () => typeof window !== 'undefined' && window.location.hash.includes('/clone-wars')
   );
+  const [isPartnerCodesModalOpen, setIsPartnerCodesModalOpen] = useState<boolean>(false);
 
   // Live Right-Side Notification Dock auto-slide-out state (5-second reveal)
   const [latestNotification, setLatestNotification] = useState<ProjectActivityNotification | null>(null);
@@ -1797,6 +1806,7 @@ export default function App() {
             });
             window.location.hash = '#/partner-academy';
           }}
+          onOpenPartnerAccessCodes={() => setIsPartnerCodesModalOpen(true)}
           onOpenSowAutomation={() => setIsSowHubOpen(true)}
           onOpenCloneWars={() => {
             setIsCloneWarsOpen(true);
@@ -1838,6 +1848,26 @@ export default function App() {
           autoPopTriggerKey={autoPopTriggerKey}
           onSelectProject={handleGoToOperationsProject}
           currentUserName={signedInUser?.name}
+        />
+
+        <PartnerAccessCodesModal
+          isOpen={isPartnerCodesModalOpen}
+          onClose={() => setIsPartnerCodesModalOpen(false)}
+          projects={projects}
+          onOpenPartnerAcademy={(partnerShortName) => {
+            setIsPartnerCodesModalOpen(false);
+            const target =
+              PARTNER_IDENTITY_DIRECTORY.find((p) => p.partnerShortName === partnerShortName) ||
+              PARTNER_IDENTITY_DIRECTORY[0];
+            setLoggedInFieldTech(null);
+            setLoggedInPartnerAcademy({
+              email: target.defaultEmail,
+              companyId: target.companyId,
+              partnerShortName: target.partnerShortName,
+              selectedProjectId: null,
+            });
+            window.location.hash = `#/partner-academy?partner=${encodeURIComponent(target.partnerShortName)}`;
+          }}
         />
       </>
     );
@@ -2020,6 +2050,26 @@ export default function App() {
           onShowModeModalChange={setPmTutorialShowModeModal}
         />
       )}
+
+      <PartnerAccessCodesModal
+        isOpen={isPartnerCodesModalOpen}
+        onClose={() => setIsPartnerCodesModalOpen(false)}
+        projects={projects}
+        onOpenPartnerAcademy={(partnerShortName) => {
+          setIsPartnerCodesModalOpen(false);
+          const target =
+            PARTNER_IDENTITY_DIRECTORY.find((p) => p.partnerShortName === partnerShortName) ||
+            PARTNER_IDENTITY_DIRECTORY[0];
+          setLoggedInFieldTech(null);
+          setLoggedInPartnerAcademy({
+            email: target.defaultEmail,
+            companyId: target.companyId,
+            partnerShortName: target.partnerShortName,
+            selectedProjectId: null,
+          });
+          window.location.hash = `#/partner-academy?partner=${encodeURIComponent(target.partnerShortName)}`;
+        }}
+      />
     </div>
   );
 }

@@ -46,6 +46,7 @@ import {
   FolderKanban,
   AlertTriangle,
   GitMerge,
+  KeyRound,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
@@ -113,6 +114,7 @@ interface MyQuextPlatformShellProps {
   onViewQuoteAnalysis: (quoteId: string) => void;
   onOpenLoginModal: () => void;
   onOpenPartnerAcademy: () => void;
+  onOpenPartnerAccessCodes?: () => void;
   onOpenSowAutomation?: () => void;
   onOpenPMTutorial?: () => void;
   onOpenCloneWars?: () => void;
@@ -160,6 +162,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onViewQuoteAnalysis,
   onOpenLoginModal,
   onOpenPartnerAcademy,
+  onOpenPartnerAccessCodes,
   onOpenSowAutomation,
   onOpenPMTutorial,
   onOpenCloneWars,
@@ -687,7 +690,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                             onOpenPartnerAcademy();
                           }}
                           className="flex items-center gap-2 text-sm font-semibold text-purple-900 cursor-pointer flex-1 text-left"
-                          title="Open Quext Partner Training & Certification Academy Portal"
+                          title="Open Quext Partner Training &amp; Certification Academy Portal"
                         >
                           <BookOpen className="w-4 h-4 text-purple-600 shrink-0" />
                           <span>Partner Academy Portal</span>
@@ -707,6 +710,27 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                           {copiedPartnerAcademyLink ? 'Copied!' : 'Copy Link'}
                         </button>
                       </div>
+                    )}
+
+                    {/* Integrator Partner Access Codes for PMs */}
+                    {onOpenPartnerAccessCodes && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onOpenPartnerAccessCodes();
+                        }}
+                        className="w-full px-4 py-2 text-sm font-semibold text-cyan-900 bg-cyan-50/60 hover:bg-cyan-100/80 flex items-center justify-between cursor-pointer transition-colors border-y border-cyan-200/50"
+                        title="View and share encrypted Secure Access Codes and direct login links for Integrator Partners"
+                      >
+                        <div className="flex items-center gap-2">
+                          <KeyRound className="w-4 h-4 text-cyan-600 shrink-0" />
+                          <span className="font-bold text-cyan-950">Partner Access Codes</span>
+                        </div>
+                        <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-cyan-200 text-cyan-900 rounded-md">
+                          Codes &amp; Links
+                        </span>
+                      </button>
                     )}
 
                     <button

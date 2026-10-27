@@ -1496,10 +1496,60 @@ export function buildProductAcceptancePortalUrl(projectId: string): string {
   return `${origin}${path}#/product-acceptance/${projectId}`;
 }
 
-export function buildPartnerAcademyPortalUrl(partnerCodeOrShortName?: string, projectId?: string): string {
+export function buildPartnerAcademyPortalUrl(
+  partnerCodeOrShortName?: string,
+  projectId?: string,
+  explicitCode?: string
+): string {
+  let secureCode = explicitCode;
+  if (!secureCode && partnerCodeOrShortName) {
+    try {
+      // Inline lookup or dynamic import fallback to avoid cyclic runtime issues
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('quext_partner_secure_access_codes_v1') : null;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const norm = partnerCodeOrShortName.toLowerCase();
+        for (const cred of Object.values(parsed) as any[]) {
+          if (
+            cred.partnerShortName?.toLowerCase() === norm ||
+            cred.companyId?.toLowerCase() === norm ||
+            cred.legacyCode?.toLowerCase() === norm
+          ) {
+            secureCode = cred.secureAccessCode;
+            break;
+          }
+        }
+      }
+      if (!secureCode) {
+        const defaultMap: Record<string, string> = {
+          spirit: 'QX-SPR-9F4K-82A1',
+          engineered: 'QX-ENC-371B-94M2',
+          everbase: 'QX-EVB-883P-41K7',
+          skbm: 'QX-SKB-619X-55D2',
+          southbay: 'QX-SBH-204K-73L9',
+          atb: 'QX-ATB-582M-19N4',
+          jts: 'QX-JTS-447Q-88P3',
+          rmr: 'QX-RMR-731V-62X5',
+          'all media': 'QX-AMD-905W-34E8',
+          diy: 'QX-DIY-100A-0000',
+        };
+        const lower = partnerCodeOrShortName.toLowerCase();
+        for (const [key, code] of Object.entries(defaultMap)) {
+          if (lower.includes(key)) {
+            secureCode = code;
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+
   if (typeof window === 'undefined') {
     const params = new URLSearchParams();
     if (partnerCodeOrShortName) params.set('partner', partnerCodeOrShortName);
+    if (secureCode) params.set('code', secureCode);
     if (projectId) params.set('project', projectId);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return `#/partner-academy${qs}`;
@@ -1512,6 +1562,7 @@ export function buildPartnerAcademyPortalUrl(partnerCodeOrShortName?: string, pr
   }
   const params = new URLSearchParams();
   if (partnerCodeOrShortName) params.set('partner', partnerCodeOrShortName);
+  if (secureCode) params.set('code', secureCode);
   if (projectId) params.set('project', projectId);
   const qs = params.toString() ? `?${params.toString()}` : '';
   return `${origin}${path}#/partner-academy${qs}`;

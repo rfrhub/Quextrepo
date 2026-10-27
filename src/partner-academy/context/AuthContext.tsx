@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, PartnerCompany, UserRole, IssuedCertificate } from '../types';
 import { INITIAL_USERS, PARTNER_COMPANIES, COURSE_MODULES } from '../data/mockData';
 import { PARTNER_IDENTITY_DIRECTORY } from '../utils/projectCoursePackager';
+import { resolvePartnerByAccessCode } from '../utils/partnerSecurity';
 
 interface AuthContextType {
   currentUser: User;
@@ -378,7 +379,15 @@ export const AuthProvider: React.FC<{
   };
 
   const loginWithCredentials = (email: string, companyCode: string): boolean => {
-    const matchingCompany = companies.find(c => c.code.toLowerCase() === companyCode.trim().toLowerCase());
+    const resolvedByCode = resolvePartnerByAccessCode(companyCode);
+    let matchingCompany = resolvedByCode ? companies.find(c => c.id === resolvedByCode.companyId) : undefined;
+
+    if (!matchingCompany) {
+      matchingCompany = companies.find(
+        c => c.code.toLowerCase() === companyCode.trim().toLowerCase() ||
+             c.name.toLowerCase() === companyCode.trim().toLowerCase()
+      );
+    }
     if (!matchingCompany) return false;
 
     const matchingUser = allUsers.find(

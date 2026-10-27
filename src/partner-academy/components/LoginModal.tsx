@@ -19,7 +19,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     loginWithCredentials,
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'demo_switch' | 'credentials' | 'register_company'>('demo_switch');
+  const [activeTab, setActiveTab] = useState<'credentials' | 'register_company'>('credentials');
 
   // Credentials tab state
   const [loginEmail, setLoginEmail] = useState('');
@@ -39,7 +39,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     if (success) {
       onClose();
     } else {
-      setLoginError('Invalid partner access code or email. Please check your company code or use one of the partner presets.');
+      setLoginError('Invalid partner secure access code or email. Please check the code provided by your Quext Project Manager.');
     }
   };
 
@@ -87,16 +87,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         {/* Nav Tabs */}
         <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl my-5 text-xs font-semibold">
           <button
-            onClick={() => setActiveTab('demo_switch')}
-            className={`flex-1 py-2 rounded-lg transition-all ${
-              activeTab === 'demo_switch'
-                ? 'bg-blue-600 text-white shadow font-bold'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Role Presets (Instant)
-          </button>
-          <button
             onClick={() => setActiveTab('credentials')}
             className={`flex-1 py-2 rounded-lg transition-all ${
               activeTab === 'credentials'
@@ -104,7 +94,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Company Code Login
+            Secure Partner Code Login
           </button>
           <button
             onClick={() => setActiveTab('register_company')}
@@ -118,99 +108,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
           </button>
         </div>
 
-        {/* Tab 1: Instant Demo Switch */}
-        {activeTab === 'demo_switch' && (
-          <div className="space-y-4">
-            <div className="text-xs text-slate-400">
-              Select an authenticated partner role to test permissions, training tracks, or admin dashboards:
-            </div>
-
-            <div className="space-y-2.5">
-              {allUsers
-                .filter(
-                  (user) =>
-                    user.role !== 'quext_director' &&
-                    user.companyId !== 'comp_quext_hq' &&
-                    !user.email.toLowerCase().endsWith('@onequext.com') &&
-                    !user.email.toLowerCase().endsWith('@quext.com')
-                )
-                .map((user) => {
-                const isCurrent = user.id === currentUser.id;
-                const comp = companies.find((c) => c.id === user.companyId);
-
-                return (
-                  <button
-                    key={user.id}
-                    onClick={() => {
-                      loginAsUser(user.id);
-                      onClose();
-                    }}
-                    className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
-                      isCurrent
-                        ? 'border-cyan-400 bg-cyan-950/40 ring-1 ring-cyan-400 shadow-lg'
-                        : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow">
-                        {user.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-white flex items-center gap-2">
-                          <span>{user.name}</span>
-                          {isCurrent && (
-                            <span className="text-[10px] bg-cyan-400/20 text-cyan-300 font-mono px-1.5 py-0.5 rounded font-bold">
-                              CURRENT
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {comp?.name} · <span className="font-mono text-cyan-400">{comp?.code}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-xs font-semibold text-slate-300 capitalize block">
-                        {user.role === 'partner_installer'
-                          ? 'Field Installer'
-                          : user.role === 'partner_admin'
-                          ? 'Partner Admin'
-                          : 'Certified Specialist'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {user.fieldIdNumber}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Code Login */}
+        {/* Tab 1: Code Login */}
         {activeTab === 'credentials' && (
           <form onSubmit={handleCredentialsLogin} className="space-y-4">
             <div className="text-xs text-slate-400">
-              Enter your corporate partner company code and your technician email:
+              Enter your encrypted Partner Secure Access Code (provided by your Quext PM) and your technician email:
             </div>
 
             <div>
-              <label className="text-xs text-slate-300 block mb-1">Company Access Code</label>
+              <label className="text-xs text-slate-300 block mb-1">Partner Secure Access Code</label>
               <div className="relative">
                 <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
-                  placeholder="e.g. SKB-101 or ATB-202"
+                  placeholder="e.g. QX-SPR-9F4K-82A1 or SPR-101"
                   value={loginCompanyCode}
                   onChange={(e) => setLoginCompanyCode(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white uppercase font-mono tracking-wider focus:outline-none focus:border-cyan-400"
                 />
               </div>
               <span className="text-[10px] text-slate-500 mt-1 block">
-                Official codes: SKB-101, ATB-202, SBH-303, EVB-404, JTS-505, RMR-606, AMD-707
+                Enter your company's secure cryptographic token or legacy 3-digit partner code.
               </span>
             </div>
 

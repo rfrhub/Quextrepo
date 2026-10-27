@@ -23,9 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUnifiedSignInModal,
   onExitToOperationsHub,
 }) => {
-  const { currentUser, currentCompany, switchRole } = useAuth();
-  const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const { currentUser, currentCompany } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -34,12 +32,6 @@ export const Header: React.FC<HeaderProps> = ({
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
-  };
-
-  const roleLabels: Record<string, string> = {
-    partner_installer: 'Field Installer',
-    partner_admin: 'Partner Admin',
-    quext_director: 'Quext Director',
   };
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -148,11 +140,16 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setCurrentTab('curriculum')}
           className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 rounded-md cursor-pointer shrink-0"
         >
-          <QuextLogo size="md" showSubtitle={true} />
+          <div className="flex items-center gap-2">
+            <QuextLogo size="sm" showSubtitle={false} />
+            <span className="hidden sm:inline-block px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-gradient-to-r from-purple-900/60 to-indigo-900/60 text-purple-300 border border-purple-500/30">
+              Academy
+            </span>
+          </div>
         </button>
 
         {/* Zone 2: Navigation bar consolidated like myquext.com & onequext.com */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 text-xs font-semibold text-zinc-300 min-w-0">
+        <nav className="hidden xl:flex items-center gap-1 2xl:gap-1.5 text-xs font-semibold text-zinc-300 min-w-0">
           {/* 1. Field Courses */}
           <button
             onClick={() => setCurrentTab('curriculum')}
@@ -361,191 +358,68 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </nav>
 
-        {/* Zone 3: Actions - guaranteed shrink-0 ml-auto so it never cuts off */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
+        {/* Zone 3: Actions - guaranteed shrink-0 ml-auto, flex-nowrap, neatly spaced */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-auto flex-nowrap">
+          {/* Read-Only Verified Partner Identity Pill (User switching removed) */}
+          <div
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-[#111114] border border-zinc-800 text-left shrink-0 shadow-sm"
+            title={`Authenticated Partner Session: ${currentUser.name} (${currentCompany.name})`}
+          >
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-bold text-[11px] shadow-sm shrink-0">
+              {currentUser.name.charAt(0)}
+            </div>
+            <div className="min-w-0 max-w-[85px] sm:max-w-[120px] 2xl:max-w-[150px]">
+              <div className="font-semibold text-white text-xs truncate leading-tight flex items-center gap-1">
+                <span className="truncate">{currentUser.name}</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              </div>
+              <div className="text-[10px] text-purple-300/90 font-mono truncate leading-none mt-0.5">
+                {currentCompany.code || currentCompany.name}
+              </div>
+            </div>
+          </div>
+
+          {/* Copy Partner Link Button */}
+          <button
+            type="button"
+            onClick={handleCopyPartnerLink}
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 rounded-full transition-colors cursor-pointer shrink-0"
+            title="Copy pre-authenticated Partner Academy link for field integrators"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
+            <span className="hidden 2xl:inline">{copiedLink ? 'Link Copied!' : 'Copy Partner Link'}</span>
+            <span className="2xl:hidden">{copiedLink ? 'Copied' : 'Share Link'}</span>
+          </button>
+
           {/* Installers Clip Field App Action Button */}
           <button
             type="button"
             onClick={onOpenInstallersClip || (() => setCurrentTab('installers_clip'))}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md border border-sky-400/40 transition-all cursor-pointer active:scale-95 shrink-0"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md border border-sky-400/30 transition-all cursor-pointer active:scale-95 shrink-0"
             title="Open Installers Clip — In-the-Field Logging App for Integrator Partners"
           >
             <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
-            <span>Installers Clip</span>
-            <span className="px-1.5 py-0.2 bg-white/20 rounded text-[9px] font-black uppercase tracking-wider hidden 2xl:inline">
-              Field
-            </span>
+            <span className="hidden sm:inline">Installers Clip</span>
+            <span className="sm:hidden">Clip</span>
           </button>
 
-          {/* Quick Role & Company Context Trigger */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setShowRoleMenu(!showRoleMenu)}
-              className="flex items-center gap-2 px-2 sm:px-2.5 py-1 rounded-full bg-[#111111] border border-zinc-800 hover:border-zinc-700 text-left text-xs transition-colors cursor-pointer shrink-0"
-            >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px] shadow-sm shrink-0">
-                {currentUser.name.charAt(0)}
-              </div>
-              <div className="hidden sm:block">
-                <div className="font-semibold text-white max-w-[95px] xl:max-w-[125px] truncate leading-tight">
-                  {currentUser.name}
-                </div>
-                <div className="text-[10px] text-purple-400 font-medium leading-none mt-0.5 font-mono truncate max-w-[95px] xl:max-w-[125px]">
-                  {currentCompany.code} · {roleLabels[currentUser.role]?.replace('Partner ', '')}
-                </div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 ml-0.5 shrink-0" />
-            </button>
-
-            {/* Dropdown for role selection */}
-            {showRoleMenu && (
-              <div
-                className="absolute right-0 mt-2 w-72 bg-[#0d0d0d] border border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 text-xs"
-                onMouseLeave={() => setShowRoleMenu(false)}
-              >
-                <div className="px-3 py-2 border-b border-zinc-800/80 mb-1">
-                  <div className="font-bold text-white text-sm">{currentUser.name}</div>
-                  <div className="text-zinc-400 text-[11px] flex items-center gap-1.5 mt-0.5">
-                    <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                    <span>{currentCompany.name}</span>
-                  </div>
-                  <div className="text-[10px] text-zinc-500 mt-1 font-mono">
-                    FIELD ID: {currentUser.fieldIdNumber}
-                  </div>
-                </div>
-
-                <div className="py-1">
-                  <div className="px-3 py-1 text-[10px] font-bold text-zinc-500 tracking-wider uppercase font-mono">
-                    Select Active Role
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      switchRole('partner_installer');
-                      setShowRoleMenu(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
-                      currentUser.role === 'partner_installer'
-                        ? 'bg-purple-950/40 text-purple-300 font-bold border border-purple-500/30'
-                        : 'text-zinc-300 hover:bg-zinc-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-purple-400" />
-                      Field Installer
-                    </span>
-                    {currentUser.role === 'partner_installer' && (
-                      <span className="text-[10px] text-purple-400 font-mono">ACTIVE</span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      switchRole('partner_admin');
-                      setShowRoleMenu(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
-                      currentUser.role === 'partner_admin'
-                        ? 'bg-purple-950/40 text-purple-300 font-bold border border-purple-500/30'
-                        : 'text-zinc-300 hover:bg-zinc-900'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-blue-400" />
-                      Partner Admin
-                    </span>
-                    {currentUser.role === 'partner_admin' && (
-                      <span className="text-[10px] text-purple-400 font-mono">ACTIVE</span>
-                    )}
-                  </button>
-
-                  {isQuextEmployee && (
-                    <button
-                      onClick={() => {
-                        switchRole('quext_director');
-                        setShowRoleMenu(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
-                        currentUser.role === 'quext_director'
-                          ? 'bg-purple-950/40 text-purple-300 font-bold border border-purple-500/30'
-                          : 'text-zinc-300 hover:bg-zinc-900'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Award className="w-4 h-4 text-cyan-400" />
-                        Quext Director
-                      </span>
-                      {currentUser.role === 'quext_director' && (
-                        <span className="text-[10px] text-purple-400 font-mono">ACTIVE</span>
-                      )}
-                    </button>
-                  )}
-                </div>
-
-                <div className="border-t border-zinc-800/80 pt-1 mt-1 space-y-1">
-                  <button
-                    onClick={() => {
-                      setShowRoleMenu(false);
-                      onOpenLoginModal();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-900 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <Building2 className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Partner Profile &amp; Company</span>
-                  </button>
-                  {onExitToOperationsHub && (
-                    <button
-                      onClick={() => {
-                        setShowRoleMenu(false);
-                        onExitToOperationsHub();
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-400 hover:bg-zinc-900 hover:text-rose-300 transition-colors cursor-pointer"
-                    >
-                      <Award className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Sign Out</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
+          {/* Sign Out Button (if returned to operations hub or authenticated session) */}
           {onExitToOperationsHub && (
             <button
+              type="button"
               onClick={onExitToOperationsHub}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-full transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center px-2.5 sm:px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 rounded-full transition-colors cursor-pointer shrink-0"
               title="Sign out of Partner Academy"
             >
               <span>Sign Out</span>
             </button>
           )}
 
-          {/* Share Partner Academy Link Button */}
-          <button
-            type="button"
-            onClick={handleCopyPartnerLink}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-full transition-colors cursor-pointer shrink-0"
-            title="Copy dedicated Partner Academy link to send to field integrators"
-          >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
-            <span className="hidden sm:inline">{copiedLink ? 'Link Copied!' : 'Copy Partner Link'}</span>
-            <span className="sm:hidden">{copiedLink ? 'Copied' : 'Share'}</span>
-          </button>
-
-          {/* Portal Sign-in */}
-          <button
-            onClick={onOpenLoginModal}
-            className="px-3 sm:px-4 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-500 hover:to-purple-500 rounded-full shadow-md transition-all whitespace-nowrap active:scale-95 cursor-pointer shrink-0"
-          >
-            <span className="hidden sm:inline">Partner Portal</span>
-            <span className="sm:hidden">Portal</span>
-          </button>
-
           {/* Mobile Nav Toggle Button */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+            className="xl:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 ml-0.5"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -555,7 +429,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Navigation Dropdown */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-zinc-800 mt-3 pt-3 pb-2 space-y-1">
+        <div className="xl:hidden border-t border-zinc-800 mt-3 pt-3 pb-2 space-y-1">
           <button
             onClick={() => {
               setCurrentTab('curriculum');
