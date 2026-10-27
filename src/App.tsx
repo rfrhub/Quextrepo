@@ -1609,6 +1609,7 @@ export default function App() {
         <MyQuextPlatformShell
           quotes={quotes as any}
           projects={projects}
+          onCreateProject={handleCreateManualProject}
           onUpdateQuoteStage={handleUpdateQuoteStage}
           onCreateNewOpportunity={handleCreateNewOpportunity}
           onSyncLiveMyQuext={handleSyncLiveMyQuext}

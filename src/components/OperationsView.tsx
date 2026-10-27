@@ -79,81 +79,6 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      
-      {/* Operations Sub-Navigation Tabs Bar (White Theme, Mobile Optimized) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-2 sm:p-2.5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
-          {/* Sub-Tab 1: Installation Overview Dashboard */}
-          <button
-            type="button"
-            onClick={() => onSelectSubTab('dashboard')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer ${
-              activeSubTab === 'dashboard'
-                ? 'bg-slate-100 text-slate-900 shadow-xs border border-slate-300 font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-            <span>Installation Overview</span>
-          </button>
-
-          {/* Sub-Tab 2: All Projects (Directory) */}
-          <button
-            type="button"
-            onClick={() => onSelectSubTab('all-projects')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer ${
-              activeSubTab === 'all-projects'
-                ? 'bg-slate-100 text-slate-900 shadow-xs border border-slate-300 font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <FolderKanban className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-            <span>All Projects ({projects.length})</span>
-          </button>
-
-          {/* Sub-Tab 3: Kickoff Intake Attention */}
-          <button
-            type="button"
-            onClick={() => onSelectSubTab('kickoff-intake-attention')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer ${
-              activeSubTab === 'kickoff-intake-attention'
-                ? 'bg-amber-100 text-amber-950 shadow-xs border border-amber-300 font-bold'
-                : 'text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200'
-            }`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span>Kickoff Attention</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-200 text-amber-900">
-              {projects.filter((p) => {
-                const intake = p.customerIntake;
-                return !intake?.walkthroughCompleted || !intake?.pmsSoftware || intake?.pmsSoftware === 'None' || !intake?.commonAreaDoors || intake.commonAreaDoors.length === 0 || !intake?.staffRoles || intake.staffRoles.length === 0;
-              }).length}
-            </span>
-          </button>
-        </div>
-
-        {/* Right Side: Searchable Property Picker + Create Manual Project Button */}
-        <div className="shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between lg:justify-end gap-2 pt-1.5 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-          <SearchablePropertyPicker
-            projects={projects}
-            selectedProjectId={selectedProject ? selectedProject.id : null}
-            onSelectProject={(projectId) => onSelectSubTab(projectId)}
-            onClearToDashboard={() => onSelectSubTab('dashboard')}
-          />
-
-          <button
-            type="button"
-            data-tutorial-id="create-manual-project-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition-colors cursor-pointer shrink-0"
-            title="Create a project manually with custom BOM and assign PM/CSM"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Project</span>
-          </button>
-        </div>
-      </div>
-
       {/* Render Active View based on Sub-Tab */}
       {activeSubTab === 'dashboard' && (
         <OverallDashboard
@@ -186,7 +111,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
       )}
 
       {/* Sub-Tab 3 View: Kickoff Intake Attention Gathering */}
-      {activeSubTab === 'kickoff-intake-attention' && (
+      {(activeSubTab === 'kickoff-intake-attention' || activeSubTab === 'kickoff-attention') && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200">
             <div>

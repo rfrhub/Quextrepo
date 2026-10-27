@@ -42,9 +42,13 @@ import {
   GraduationCap,
   Zap,
   X,
+  FolderKanban,
+  AlertTriangle,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
+import { SearchablePropertyPicker } from './SearchablePropertyPicker';
+import { CreateManualProjectModal } from './CreateManualProjectModal';
 
 export type MyQuextTopTab =
   | 'salesHub'
@@ -109,6 +113,7 @@ interface MyQuextPlatformShellProps {
   onOpenPartnerAcademy: () => void;
   onOpenSowAutomation?: () => void;
   onOpenPMTutorial?: () => void;
+  onCreateProject?: (newProject: OperationProject) => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
   children: React.ReactNode;
@@ -154,11 +159,13 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onOpenPartnerAcademy,
   onOpenSowAutomation,
   onOpenPMTutorial,
+  onCreateProject,
   onResetData,
   onToggleStandaloneMode,
   children,
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [salesSubTab, setSalesSubTab] = useState<SalesHubSidebarTab>('dashboard');
   const [whatsHappeningFilter, setWhatsHappeningFilter] = useState<'all' | 'mentions' | 'Leading' | 'Contributing'>('all');
   const [globalSearch, setGlobalSearch] = useState('');
@@ -242,6 +249,35 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
       return matchesStage && matchesRep && matchesGlobalSearch && matchesOpportunitySearch;
     });
   }, [quotes, stageFilter, repFilter, globalSearch, opportunitySearchTerm]);
+
+  // Dynamic count of projects requiring kickoff intake attention
+  const kickoffAttentionCount = useMemo(() => {
+    return projects.filter((p) => {
+      const intake = p.customerIntake;
+      return (
+        !intake?.walkthroughCompleted ||
+        !intake?.pmsSoftware ||
+        intake?.pmsSoftware === 'None' ||
+        !intake?.commonAreaDoors ||
+        intake.commonAreaDoors.length === 0 ||
+        !intake?.staffRoles ||
+        intake.staffRoles.length === 0
+      );
+    }).length;
+  }, [projects]);
+
+  const selectedOperationsProject = useMemo(() => {
+    return projects.find((p) => p.id === operationsSubTab);
+  }, [projects, operationsSubTab]);
+
+  const handleCreatedManualProject = (newProject: OperationProject) => {
+    if (onCreateProject) {
+      onCreateProject(newProject);
+    }
+    setIsCreateProjectModalOpen(false);
+    onSelectOperationsMainTab('operations');
+    onSelectOperationsSubTab(newProject.id);
+  };
 
   const handleStageChangeWithToast = (quote: ExtendedQuote, selectedLabel: string) => {
     const matched = MYQUEXT_STAGE_OPTIONS.find((o) => o.label === selectedLabel);
@@ -1677,22 +1713,24 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             data-tutorial-id="operations-subnav-bar"
             className="sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-xs transition-all"
           >
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-2 flex items-center gap-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-2 flex items-center gap-1 shrink-0">
                 <Layers className="w-3.5 h-3.5 text-blue-600" />
                 <span>Operations Workspace:</span>
               </span>
 
+              {/* Sub-Tab 1: Installation Overview Dashboard */}
               <button
                 type="button"
                 data-tutorial-id="subnav-installation-overview"
                 onClick={onGoToOperationsDashboard}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                   operationsMainTab === 'operations' && operationsSubTab === 'dashboard'
-                    ? 'bg-blue-600 text-white shadow-2xs'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
+                <LayoutDashboard className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                 <span>Installation Overview</span>
                 <span
                   className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
@@ -1705,6 +1743,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 </span>
               </button>
 
+              {/* Sub-Tab 2: All Projects */}
               <button
                 type="button"
                 data-tutorial-id="subnav-all-projects"
@@ -1712,15 +1751,17 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                   onSelectOperationsMainTab('operations');
                   onSelectOperationsSubTab('all-projects');
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                   operationsMainTab === 'operations' && operationsSubTab === 'all-projects'
-                    ? 'bg-blue-600 text-white shadow-2xs'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                All Projects ({projects.length})
+                <FolderKanban className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                <span>All Projects ({projects.length})</span>
               </button>
 
+              {/* Sub-Tab 3: Kickoff Attention */}
               <button
                 type="button"
                 data-tutorial-id="subnav-kickoff-attention"
@@ -1728,33 +1769,39 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                   onSelectOperationsMainTab('operations');
                   onSelectOperationsSubTab('kickoff-attention');
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  operationsMainTab === 'operations' && operationsSubTab === 'kickoff-attention'
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  operationsMainTab === 'operations' && (operationsSubTab === 'kickoff-attention' || operationsSubTab === 'kickoff-intake-attention')
+                    ? 'bg-amber-500 text-white shadow-2xs font-bold'
+                    : 'text-amber-900 bg-amber-50 hover:bg-amber-100/80 border border-amber-200'
                 }`}
               >
-                Kickoff Attention
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Kickoff Attention</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-200 text-amber-900">
+                  {kickoffAttentionCount}
+                </span>
               </button>
 
+              {/* Sub-Tab 4: Live Activity Hub */}
               <button
                 type="button"
                 onClick={() => onSelectOperationsMainTab('home')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   operationsMainTab === 'home'
-                    ? 'bg-blue-600 text-white shadow-2xs'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 Live Activity Hub
               </button>
 
+              {/* Sub-Tab 5: Installation Timeline */}
               <button
                 type="button"
                 onClick={() => onSelectOperationsMainTab('timeline')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   operationsMainTab === 'timeline'
-                    ? 'bg-blue-600 text-white shadow-2xs'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
@@ -1762,12 +1809,43 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Right Side: Searchable Property Picker + New Project + Field Tech Portal */}
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {/* Searchable Property Picker */}
+              <SearchablePropertyPicker
+                projects={projects}
+                selectedProjectId={
+                  operationsMainTab === 'operations' && selectedOperationsProject
+                    ? selectedOperationsProject.id
+                    : null
+                }
+                onSelectProject={(projectId) => {
+                  onSelectOperationsMainTab('operations');
+                  onSelectOperationsSubTab(projectId);
+                }}
+                onClearToDashboard={onGoToOperationsDashboard}
+              />
+
+              {/* New Project Button */}
+              {onCreateProject && (
+                <button
+                  type="button"
+                  data-tutorial-id="create-manual-project-btn"
+                  onClick={() => setIsCreateProjectModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition-colors cursor-pointer shrink-0"
+                  title="Create a project manually with custom BOM and assign PM/CSM"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Project</span>
+                </button>
+              )}
+
+              {/* Field Tech Portal */}
               <button
                 type="button"
                 data-tutorial-id="subnav-field-tech-btn"
                 onClick={onOpenFieldTechPortal || onOpenLoginModal}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer shadow-2xs shrink-0"
               >
                 <Wrench className="w-3.5 h-3.5 text-sky-600" />
                 <span>Field Tech Portal</span>
@@ -1777,6 +1855,13 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
           {/* Embedded Operations Content */}
           <div className="flex-1">{children}</div>
+
+          {/* Modal: Create Manual Project triggered from Operations Workspace Header */}
+          <CreateManualProjectModal
+            isOpen={isCreateProjectModalOpen}
+            onClose={() => setIsCreateProjectModalOpen(false)}
+            onCreateProject={handleCreatedManualProject}
+          />
         </div>
       )}
 
