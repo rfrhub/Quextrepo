@@ -19,7 +19,7 @@ import {
 import { PostItWindow } from './PostItWindow';
 import { LockFinishModal } from './LockFinishModal';
 import { BOMOverrideModal } from './BOMOverrideModal';
-import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal } from 'lucide-react';
+import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 interface BOMTableProps {
   items: BOMItem[];
@@ -36,6 +36,7 @@ interface BOMTableProps {
   project?: OperationProject;
   quotesList?: Quote[];
   onAddBOMItem?: (newItem: BOMItem, overrideReason: string) => void;
+  onDeleteBOMItem?: (itemId: string, overrideReason: string) => void;
 }
 
 export const BOMTable: React.FC<BOMTableProps> = ({
@@ -53,6 +54,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   project,
   quotesList = [],
   onAddBOMItem,
+  onDeleteBOMItem,
 }) => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -73,7 +75,17 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState<boolean>(false);
   const clickTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Line item deletion state (active in BOM Override mode)
+  const [itemToDelete, setItemToDelete] = useState<BOMItem | null>(null);
+  const [deleteReason, setDeleteReason] = useState<string>('Scope reduction: Line item removed from BOM by PM');
+
   const handleInvisibleOverrideClick = () => {
+    if (isOverrideUnlocked) {
+      // When already in override mode, clicking re-opens the Add from Catalog modal
+      setIsOverrideModalOpen(true);
+      return;
+    }
+
     clickCountRef.current += 1;
     const current = clickCountRef.current;
     setOverrideClicks(current);
@@ -177,23 +189,52 @@ export const BOMTable: React.FC<BOMTableProps> = ({
             <button
               type="button"
               aria-label="BOM OVERIDE"
-              title="BOM OVERIDE"
+              title={isOverrideUnlocked ? "BOM OVERRIDE Mode Active - Click to Add Catalog Items" : "BOM OVERIDE"}
               onClick={handleInvisibleOverrideClick}
               className={`select-none cursor-pointer px-1.5 py-0.5 text-[9px] uppercase font-mono tracking-widest transition-all rounded ${
-                overrideClicks > 0
+                isOverrideUnlocked
+                  ? 'text-red-700 bg-red-100 border border-red-300 opacity-100 shadow-2xs font-extrabold'
+                  : overrideClicks > 0
                   ? 'text-red-600 bg-red-50 border border-red-300 opacity-100 shadow-2xs font-bold'
                   : 'opacity-0 hover:opacity-60 text-red-600'
               }`}
             >
-              BOM OVERIDE
+              {isOverrideUnlocked ? 'BOM OVERRIDE (ACTIVE)' : 'BOM OVERIDE'}
             </button>
 
-            {/* Overridden Status Badge (No visible Add button — invisible button is the ONLY way) */}
-            {project?.isBomOverridden && (
+            {/* Overridden Status Badge */}
+            {project?.isBomOverridden && !isOverrideUnlocked && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                 <AlertTriangle className="w-3 h-3 text-amber-700" />
                 BOM Overridden
               </span>
+            )}
+
+            {/* Active BOM OVERRIDE Mode Toolbar */}
+            {isOverrideUnlocked && (
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-50 border border-red-300 text-red-900 shadow-2xs animate-fadeIn">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                </span>
+                <span className="text-[11px] font-bold tracking-tight">BOM OVERRIDE MODE: Delete or Add Items</span>
+                <button
+                  type="button"
+                  onClick={() => setIsOverrideModalOpen(true)}
+                  className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Add Line Item directly from Product Catalog"
+                >
+                  + Add Item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOverrideUnlocked(false)}
+                  className="px-1.5 py-0.5 rounded text-red-700 hover:text-red-950 hover:bg-red-100 text-[10px] font-semibold transition-colors cursor-pointer"
+                  title="Exit BOM Override Mode"
+                >
+                  Done
+                </button>
+              </div>
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -254,6 +295,14 @@ export const BOMTable: React.FC<BOMTableProps> = ({
               <th className="py-3 px-3 text-right">Remaining</th>
               <th className="py-3 px-4 min-w-[140px]">Progress</th>
               {!isReadOnly && <th className="py-3 px-3 text-center">Row Notes & Logs</th>}
+              {isOverrideUnlocked && !isReadOnly && (
+                <th className="py-3 px-3 text-center text-red-700 bg-red-50/70 border-b border-red-200">
+                  <span className="flex items-center justify-center gap-1">
+                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                    <span>Override Action</span>
+                  </span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
@@ -989,12 +1038,30 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                         </div>
                       </td>
                     )}
+
+                    {/* BOM Override Mode: Delete Line Item Action */}
+                    {isOverrideUnlocked && !isReadOnly && (
+                      <td className="py-3.5 px-3 text-center bg-red-50/20">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setItemToDelete(item);
+                            setDeleteReason(`Scope reduction: ${item.name} (${item.quantity} units) deleted by PM in field BOM override`);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-300 hover:border-red-400 rounded-lg shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                          title={`Delete ${item.name} from Smart Community Bill of Materials (BOM Override)`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-600 group-hover:scale-110 transition-transform" />
+                          <span>Delete</span>
+                        </button>
+                      </td>
+                    )}
                   </tr>
 
                   {/* Inline Expanded Post-It Notes for This Corresponding Row */}
                   {isExpanded && itemLogs.length > 0 && (
                     <tr className="bg-amber-50/40 border-b border-amber-200/60">
-                      <td colSpan={7} className="p-4 pl-12">
+                      <td colSpan={isOverrideUnlocked && !isReadOnly ? 8 : 7} className="p-4 pl-12">
                         <div className="space-y-2">
                           <div className="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center justify-between">
                             <span>Post-It Notes Stored in this Row: {item.name}</span>
@@ -1134,6 +1201,117 @@ export const BOMTable: React.FC<BOMTableProps> = ({
             }
           }}
         />
+      )}
+
+      {/* BOM Override: Delete Line Item Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+            {/* Header */}
+            <div className="bg-rose-50 border-b border-rose-200 p-4 sm:p-5 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-rose-950">Delete BOM Line Item (Override)</h3>
+                  <p className="text-xs text-rose-800">
+                    Removing hardware item from Smart Community Bill of Materials
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="p-1 rounded-lg text-rose-600 hover:text-rose-900 hover:bg-rose-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4">
+              {/* Warning Callout: Numbers will not match Quote BOM */}
+              <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-900 space-y-1">
+                  <div className="font-extrabold text-amber-950">
+                    WARNING: Project Numbers Will Not Match Quote BOM
+                  </div>
+                  <div className="leading-relaxed">
+                    Deleting this item from the active Smart Community Bill of Materials will cause total hardware counts to deviate from the contractual sales Quote ({project?.quoteNumber ? `#${project.quoteNumber}` : 'baseline BOM'}).
+                    This override will update project totals, recalculate remaining devices, and be recorded in the audit history.
+                  </div>
+                </div>
+              </div>
+
+              {/* Item Details Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Item Name:</span>
+                  <span className="font-bold text-slate-900">{itemToDelete.name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Model / SKU:</span>
+                  <span className="font-mono text-slate-700">{itemToDelete.model}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Location Scope:</span>
+                  <span className="text-slate-800">{itemToDelete.location}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-slate-200 font-mono">
+                  <span className="text-slate-500 font-medium font-sans">Hardware Quantity Removed:</span>
+                  <span className="font-bold text-rose-700">-{itemToDelete.quantity} {getCategoryUnitLabel(itemToDelete.category, itemToDelete)}</span>
+                </div>
+                {itemToDelete.installedCount > 0 && (
+                  <div className="flex items-center justify-between text-amber-800 font-mono text-[11px] bg-amber-100/60 p-1.5 rounded">
+                    <span className="font-sans font-medium">Notice:</span>
+                    <span>{itemToDelete.installedCount} units were previously marked installed</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Reason / Justification Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  PM Override Justification / Reason *
+                </label>
+                <textarea
+                  rows={2}
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="State why this line item is being deleted from the BOM..."
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeleteBOMItem) {
+                    onDeleteBOMItem(itemToDelete.id, deleteReason);
+                  }
+                  setItemToDelete(null);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-xs transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirm &amp; Delete Line Item</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

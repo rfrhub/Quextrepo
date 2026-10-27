@@ -2431,6 +2431,16 @@ const QuextVisionStepWindow: React.FC<{
       });
     };
 
+    const handleDeleteBOMItem = (itemId: string) => {
+      const updatedItems = project.bomItems.filter((i) => i.id !== itemId);
+      onUpdateProject({
+        ...project,
+        bomItems: updatedItems,
+        isBomOverridden: true,
+        lastUpdated: new Date().toISOString(),
+      });
+    };
+
     return (
       <div className="bg-white border-2 border-emerald-600/50 rounded-2xl p-6 sm:p-8 shadow-xl space-y-5 animate-fadeIn">
         <div className="border-b border-slate-200 pb-3 flex flex-wrap items-center justify-between gap-2">
@@ -2466,6 +2476,8 @@ const QuextVisionStepWindow: React.FC<{
           onSaveRowLog={handleSaveRowLog}
           onUpdateThermostatBrand={handleUpdateThermostatBrand}
           onToggleSparesDelivered={handleToggleSparesDelivered}
+          project={project}
+          onDeleteBOMItem={handleDeleteBOMItem}
         />
       </div>
     );

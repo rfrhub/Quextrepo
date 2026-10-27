@@ -418,6 +418,68 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     onUpdateProject(updatedProject);
   };
 
+  const handleDeleteBOMItemOverride = (itemId: string, overrideReason?: string) => {
+    const itemToDelete = project.bomItems.find((b) => b.id === itemId);
+    if (!itemToDelete) return;
+
+    const linkedQuote = quotesList.find(
+      (q) => q.id === project.quoteId || q.quoteNumber === project.quoteNumber
+    );
+    const baselineQuoteBOM =
+      project.originalQuoteBOM && project.originalQuoteBOM.length > 0
+        ? project.originalQuoteBOM
+        : (linkedQuote?.bomItems && linkedQuote.bomItems.length > 0 ? linkedQuote.bomItems : [...project.bomItems]);
+
+    const prevDevicesTotal = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
+    const updatedBOM = project.bomItems.filter((b) => b.id !== itemId);
+    const newDevicesTotal = updatedBOM.reduce((acc, i) => acc + i.quantity, 0);
+
+    const auditText = `⚡ BOM OVERRIDE: Deleted ${itemToDelete.quantity}x ${itemToDelete.name} (${itemToDelete.model}) from ${itemToDelete.location}. Total project hardware decreased from ${prevDevicesTotal} to ${newDevicesTotal} units. Justification: ${overrideReason || 'PM Catalog Scope Override - Line Item Deleted'}.`;
+
+    const updatedProject: OperationProject = {
+      ...project,
+      bomItems: updatedBOM,
+      originalQuoteBOM: baselineQuoteBOM,
+      isBomOverridden: true,
+      lastUpdated: new Date().toISOString(),
+      notes: [
+        {
+          id: `note-override-del-${Date.now()}`,
+          projectId: project.id,
+          author: project.assignedPM?.name || 'Project Manager',
+          timestamp: 'Just now',
+          category: 'General Context',
+          text: auditText,
+          isPinned: true,
+        },
+        ...project.notes,
+      ],
+      activityNotifications: [
+        {
+          id: `notif-del-${Date.now()}`,
+          projectId: project.id,
+          propertyName: project.propertyName,
+          assignedPMName: project.assignedPM?.name || 'Project Manager',
+          assignedFieldTech: project.assignedFieldTech || 'Sean Gates',
+          timestamp: 'Just now',
+          createdAtIso: new Date().toISOString(),
+          audience: 'all',
+          category: 'bom_update',
+          actorName: project.assignedPM?.name || 'Project Manager',
+          actorRole: 'pm',
+          badgeLabel: 'BOM OVERRIDE',
+          title: 'BOM Line Item Deleted',
+          details: `Deleted ${itemToDelete.quantity}x ${itemToDelete.name} (${itemToDelete.model}). Hardware total updated to ${newDevicesTotal} units.`,
+          section: 'bom',
+          sectionTargetId: 'pm-bom-table',
+        },
+        ...(project.activityNotifications || []),
+      ],
+    };
+
+    onUpdateProject(updatedProject);
+  };
+
   // Handle updating thermostat brand across all thermostat items for absolute consistency
   const handleUpdateThermostatBrandAll = (brand: ThermostatBrand) => {
     const updatedBOM = project.bomItems.map((item) => {
@@ -2882,6 +2944,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               project={project}
               quotesList={quotesList}
               onAddBOMItem={handleAddBOMItemOverride}
+              onDeleteBOMItem={handleDeleteBOMItemOverride}
             />
           </div>
 
