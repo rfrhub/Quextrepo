@@ -788,6 +788,27 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       type="button"
                       onClick={() => {
                         setIsProfileMenuOpen(false);
+                        onSelectTopTab('operations');
+                        onSelectOperationsMainTab('home');
+                        window.location.hash = '#/home';
+                      }}
+                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
+                      title="Open Live Activity Hub — Real-time telemetry & activity feed"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Live Activity Hub</span>
+                      </div>
+                      <span className="flex h-2 w-2 relative shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
                         onOpenPMTutorial?.();
                       }}
                       className="w-full px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50/80 flex items-center justify-between cursor-pointer transition-colors group"
@@ -1968,7 +1989,30 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 </span>
               </button>
 
-              {/* Sub-Tab 2: All Projects */}
+              {/* Sub-Tab 2: Live Activity Hub */}
+              <button
+                type="button"
+                data-tutorial-id="subnav-live-activity-hub"
+                onClick={() => {
+                  onSelectOperationsMainTab('home');
+                  window.location.hash = '#/home';
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  operationsMainTab === 'home'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                title="Live Activity Hub — Real-time telemetry, Partner Academy course readiness, and field install logs"
+              >
+                <Activity className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span>Live Activity Hub</span>
+                <span className="flex h-2 w-2 relative shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              </button>
+
+              {/* Sub-Tab 3: All Projects */}
               <button
                 type="button"
                 data-tutorial-id="subnav-all-projects"

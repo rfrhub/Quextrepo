@@ -531,7 +531,13 @@ export default function App() {
       } else if (hash.includes('#/quotes') || hash.includes('#quotes')) {
         setMainTab('quotes');
         setMyQuextTopTab('salesHub');
-      } else if (hash.includes('#/home') || hash.includes('#home')) {
+      } else if (
+        hash.includes('#/home') ||
+        hash.includes('#home') ||
+        hash.includes('#/activity-hub') ||
+        hash.includes('#activity-hub') ||
+        hash.includes('/activity-hub')
+      ) {
         setMainTab('home');
         setMyQuextTopTab('operations');
       }
