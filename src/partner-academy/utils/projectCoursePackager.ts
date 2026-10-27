@@ -648,6 +648,38 @@ export const PARTNER_IDENTITY_DIRECTORY: PartnerIdentityDirectoryEntry[] = [
 ];
 
 /**
+ * Accurately determines if a project's assigned partner matches a partner academy company/user identity.
+ * Handles abbreviations ('SKBM' vs 'SKBM Smart Tech'), aliases, and company IDs.
+ */
+export function isPartnerMatching(projectPartner: string, candidatePartnerName?: string | null): boolean {
+  if (!candidatePartnerName) return false;
+  const p1 = projectPartner.trim().toLowerCase();
+  const p2 = candidatePartnerName.trim().toLowerCase();
+  if (p1 === p2 || p1.includes(p2) || p2.includes(p1)) return true;
+
+  for (const dir of PARTNER_IDENTITY_DIRECTORY) {
+    const dShort = dir.partnerShortName.toLowerCase();
+    const dComp = dir.companyName.toLowerCase();
+    const matchesCandidate =
+      dShort === p2 ||
+      dComp.includes(p2) ||
+      dir.aliases.some((a) => a.toLowerCase() === p2 || a.toLowerCase().includes(p2) || p2.includes(a.toLowerCase()));
+
+    if (matchesCandidate) {
+      if (
+        dShort === p1 ||
+        dShort.includes(p1) ||
+        p1.includes(dShort) ||
+        dir.aliases.some((a) => a.toLowerCase() === p1 || a.toLowerCase().includes(p1) || p1.includes(a.toLowerCase()))
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Given any email address or partner name, determines if it belongs to an Integrator Partner,
  * a Quext Field Tech, or a Quext PM/Director for simulated myquext.com email-based routing.
  */

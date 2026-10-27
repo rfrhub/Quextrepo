@@ -27,7 +27,7 @@ import { ButterflyIntercomWiring } from './components/ButterflyIntercomWiring';
 import { InstallersClipModal } from '../components/InstallersClipModal';
 import { CourseModule } from './types';
 import { COURSE_MODULES } from './data/mockData';
-import { PARTNER_IDENTITY_DIRECTORY } from './utils/projectCoursePackager';
+import { PARTNER_IDENTITY_DIRECTORY, isPartnerMatching } from './utils/projectCoursePackager';
 import {
   ShieldCheck,
   ArrowRight,
@@ -88,8 +88,8 @@ const MainApp: React.FC<{
     if (isQuextEmployee) return projects;
     if (!currentPartnerShortName) return [];
     return projects.filter((p) =>
-      getProjectIntegratorPartners(p).some(
-        (partner) => partner.trim().toLowerCase() === currentPartnerShortName.trim().toLowerCase()
+      getProjectIntegratorPartners(p).some((partner) =>
+        isPartnerMatching(partner, currentPartnerShortName)
       )
     );
   }, [projects, isQuextEmployee, currentPartnerShortName]);
@@ -126,6 +126,9 @@ const MainApp: React.FC<{
         setActivePrepProjectId(null);
         setIsViewingProjectPrepHub(false);
       }
+    } else {
+      setActivePrepProjectId(null);
+      setIsViewingProjectPrepHub(false);
     }
   }, [initialSelectedProjectId, isQuextEmployee, visibleProjects]);
 

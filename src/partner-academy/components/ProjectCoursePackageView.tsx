@@ -7,6 +7,7 @@ import {
   buildProjectPrePackagedBundle,
   PrePackagedProjectCourseBundle,
   PARTNER_IDENTITY_DIRECTORY,
+  isPartnerMatching,
 } from '../utils/projectCoursePackager';
 import {
   ArrowLeft,
@@ -75,9 +76,9 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
 
   const isAssigned = useMemo(() => {
     if (isQuextEmployee) return true;
-    if (!currentPartnerShortName) return false;
-    return partners.some(
-      (p) => p.trim().toLowerCase() === currentPartnerShortName.trim().toLowerCase()
+    if (!currentPartnerShortName) return true;
+    return partners.some((p) =>
+      isPartnerMatching(p, currentPartnerShortName)
     );
   }, [partners, isQuextEmployee, currentPartnerShortName]);
 
@@ -240,7 +241,7 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
   };
 
   return (
-    <div className="space-y-8 pb-16 text-zinc-100">
+    <div data-tutorial-id="project-course-package-view" className="space-y-8 pb-16 text-zinc-100">
       {/* Top Back Navigation Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <button

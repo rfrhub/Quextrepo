@@ -5,6 +5,7 @@ import { COURSE_MODULES } from '../data/mockData';
 import {
   buildProjectPrePackagedBundle,
   PARTNER_IDENTITY_DIRECTORY,
+  isPartnerMatching,
 } from '../utils/projectCoursePackager';
 import {
   Building2,
@@ -72,8 +73,8 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
     if (!isQuextEmployee) {
       if (!currentPartnerShortName) return [];
       return projects.filter((p) =>
-        getProjectIntegratorPartners(p).some(
-          (partner) => partner.trim().toLowerCase() === currentPartnerShortName.trim().toLowerCase()
+        getProjectIntegratorPartners(p).some((partner) =>
+          isPartnerMatching(partner, currentPartnerShortName)
         )
       );
     }

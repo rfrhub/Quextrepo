@@ -25,6 +25,7 @@ export interface TutorialNavigationTarget {
   projectDetailTab?: 'field-bom' | 'customer-comms' | 'customer-kickoff';
   fieldTechName?: 'Sean Gates' | 'Hector Lopez';
   partnerShortName?: string;
+  selectedProjectId?: string | null;
 }
 
 export interface CompactTutorialStep {
@@ -49,6 +50,10 @@ interface PMTutorialGuideProps {
   currentOperationsSubTab?: string;
   currentStepIndex: number;
   onStepChange: (newIndex: number) => void;
+  tutorialMode?: 'manual' | 'auto';
+  onModeChange?: (mode: 'manual' | 'auto') => void;
+  showModeModal?: boolean;
+  onShowModeModalChange?: (show: boolean) => void;
 }
 
 interface ElementRect {
@@ -70,6 +75,10 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
   currentOperationsSubTab,
   currentStepIndex,
   onStepChange,
+  tutorialMode: controlledTutorialMode,
+  onModeChange,
+  showModeModal: controlledShowModeModal,
+  onShowModeModalChange,
 }) => {
   const primaryProject = projects[0] || {
     id: '33om1u0TTgW3MYKO2FhH',
@@ -78,19 +87,32 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
 
   // Learning Mode: 'manual' (click step-by-step) vs 'auto' (10s automated progression)
   const AUTO_LEARN_DURATION_SECONDS = 10;
-  const [tutorialMode, setTutorialMode] = useState<'manual' | 'auto'>('manual');
-  const [showModeModal, setShowModeModal] = useState<boolean>(true);
+  const [internalTutorialMode, setInternalTutorialMode] = useState<'manual' | 'auto'>('manual');
+  const [internalShowModeModal, setInternalShowModeModal] = useState<boolean>(true);
+
+  const tutorialMode = controlledTutorialMode !== undefined ? controlledTutorialMode : internalTutorialMode;
+  const setTutorialMode = (mode: 'manual' | 'auto') => {
+    setInternalTutorialMode(mode);
+    onModeChange?.(mode);
+  };
+
+  const showModeModal = controlledShowModeModal !== undefined ? controlledShowModeModal : internalShowModeModal;
+  const setShowModeModal = (show: boolean) => {
+    setInternalShowModeModal(show);
+    onShowModeModalChange?.(show);
+  };
+
   const [autoLearnSecondsRemaining, setAutoLearnSecondsRemaining] = useState<number>(AUTO_LEARN_DURATION_SECONDS);
   const [isAutoPaused, setIsAutoPaused] = useState<boolean>(false);
 
-  // Reset mode modal when tutorial is newly opened
+  // Reset mode modal when tutorial is newly opened (only if uncontrolled)
   useEffect(() => {
-    if (isOpen) {
-      setShowModeModal(true);
+    if (isOpen && controlledShowModeModal === undefined) {
+      setInternalShowModeModal(true);
       setAutoLearnSecondsRemaining(AUTO_LEARN_DURATION_SECONDS);
       setIsAutoPaused(false);
     }
-  }, [isOpen]);
+  }, [isOpen, controlledShowModeModal]);
 
   const COMPACT_STEPS: CompactTutorialStep[] = useMemo(() => [
     {
@@ -359,21 +381,39 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
       id: 'step-17-partner-academy',
       number: 17,
       chapter: 'Milestone 6: Certified Partners',
-      featureName: 'Partner Academy (SOW-Catered Curriculum)',
+      featureName: 'Partner Academy (Field Integrator Portal)',
       targetSelector: '[data-tutorial-id="partner-upcoming-projects"], [data-tutorial-id="partner-academy-hub"]',
       preferredPlacement: 'bottom',
       navigation: {
         portal: 'partner-academy',
         partnerShortName: 'SKBM',
+        selectedProjectId: null,
       },
       message:
-        'Dedicated training portal for certified subcontractor integrators (SKBM, ATB, Everbase, etc.) with strict zero-pricing visibility. Partner Academy dynamically analyzes each project\'s contracted Scope of Work (SOW aka BOM line items)—from Schlage smart locks to IoT Gateways, Smart Thermostats, and QR Intercoms—to auto-package tailored installation courses, interactive wiring sandboxes, OEM door templates, and site-readiness checklists.',
+        'Dedicated training & certification portal for certified subcontractor integrators (SKBM, ATB, Everbase, etc.) with strict zero-pricing confidentiality. Integrators see their assigned projects rail below, access hardware installation SOPs, interactive low-voltage wiring sandboxes, OEM door templates, and digital field readiness checklists.',
       tryItOutPrompt:
-        'Click any assigned project card below to view its tailored SOW/BOM installation package!',
+        'Click Next or any assigned project card below to view its tailored SOW/BOM installation package!',
     },
     {
-      id: 'step-18-csm-handoff',
+      id: 'step-18-sow-catered-curriculum',
       number: 18,
+      chapter: 'Milestone 6: Certified Partners',
+      featureName: 'SOW-Catered Curriculum (Project BOM Matching)',
+      targetSelector: '[data-tutorial-id="project-course-package-view"], [data-tutorial-id="partner-upcoming-projects"], [data-tutorial-id="partner-academy-hub"]',
+      preferredPlacement: 'bottom',
+      navigation: {
+        portal: 'partner-academy',
+        partnerShortName: 'SKBM',
+        selectedProjectId: primaryProject.id,
+      },
+      message:
+        'Every project dynamically analyzes its contracted SOW (BOM line items)—from Schlage smart locks to IoT Gateways, Smart Thermostats, and QR Intercoms—to auto-package customized training courses, interactive wiring simulators, and manufacturer cut sheets specific to the hardware on contract!',
+      tryItOutPrompt:
+        'Click Next to view CSM Handoff & Auto-Close!',
+    },
+    {
+      id: 'step-19-csm-handoff',
+      number: 19,
       chapter: 'Milestone 7: Handoff & Closed',
       featureName: 'CSM Handoff & 7-Day Auto-Close',
       targetSelector: '[data-tutorial-id="milestones-tracker-rail"]',
@@ -389,8 +429,8 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
       tryItOutPrompt: 'Click Next for the final wrap-up!',
     },
     {
-      id: 'step-19-profile-menu',
-      number: 19,
+      id: 'step-20-profile-menu',
+      number: 20,
       chapter: 'Certification Complete',
       featureName: 'Profile Menu (Replay Training)',
       targetSelector: '[data-tutorial-id="top-nav-profile-menu"]',
@@ -642,10 +682,10 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
     (index: number) => {
       if (isAdvancingRef.current) return;
       isAdvancingRef.current = true;
-      // Auto-release lock after max 800ms
+      // Auto-release lock after max 1200ms
       setTimeout(() => {
         isAdvancingRef.current = false;
-      }, 800);
+      }, 1200);
 
       const targetIndex = Math.max(0, Math.min(index, COMPACT_STEPS.length - 1));
       const targetStep = COMPACT_STEPS[targetIndex];
@@ -667,8 +707,8 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
               setIsFading(false);
               isAdvancingRef.current = false;
             }, 180);
-          } else if (attempts < 10) {
-            setTimeout(pollElement, 60);
+          } else if (attempts < 25) {
+            setTimeout(pollElement, 80);
           } else {
             updatePosition();
             setIsFading(false);
@@ -676,7 +716,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
           }
         };
 
-        setTimeout(pollElement, 80);
+        setTimeout(pollElement, 100);
       }, 120);
     },
     [COMPACT_STEPS, onNavigateToView, onStepChange, updatePosition]

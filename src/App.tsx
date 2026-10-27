@@ -155,6 +155,8 @@ export default function App() {
 
   // PM Onboarding Tutorial Guidance Feature State
   const [isPMTutorialOpen, setIsPMTutorialOpen] = useState<boolean>(false);
+  const [pmTutorialMode, setPmTutorialMode] = useState<'manual' | 'auto'>('manual');
+  const [pmTutorialShowModeModal, setPmTutorialShowModeModal] = useState<boolean>(true);
   const [pmTutorialStep, setPmTutorialStep] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('quext_pm_tutorial_step');
@@ -914,13 +916,19 @@ export default function App() {
 
     if (target.portal === 'partner-academy') {
       const partnerShort = target.partnerShortName || 'SKBM';
-      const targetProjId = projects[0]?.id || null;
+      const resolved = resolveMyQuextEmailIdentity(partnerShort, projects);
+      const defaultDir =
+        PARTNER_IDENTITY_DIRECTORY.find((p) =>
+          p.partnerShortName.toLowerCase().includes(partnerShort.toLowerCase()) ||
+          p.aliases.some((a) => a.toLowerCase().includes(partnerShort.toLowerCase()))
+        ) || PARTNER_IDENTITY_DIRECTORY[0];
+
       setLoggedInFieldTech(null);
       setLoggedInPartnerAcademy({
-        email: 'skbm.tech@gmail.com',
-        companyId: 'skbm_systems',
-        partnerShortName: partnerShort,
-        selectedProjectId: targetProjId,
+        email: resolved.portal === 'partner_academy' ? resolved.email : defaultDir.defaultEmail,
+        companyId: resolved.portal === 'partner_academy' ? resolved.companyId : defaultDir.companyId,
+        partnerShortName: defaultDir.partnerShortName,
+        selectedProjectId: target.selectedProjectId !== undefined ? target.selectedProjectId : null,
       });
       window.location.hash = '#/partner-academy';
       return;
@@ -1445,6 +1453,10 @@ export default function App() {
             currentPortal="partner-academy"
             currentStepIndex={pmTutorialStep}
             onStepChange={setPmTutorialStep}
+            tutorialMode={pmTutorialMode}
+            onModeChange={setPmTutorialMode}
+            showModeModal={pmTutorialShowModeModal}
+            onShowModeModalChange={setPmTutorialShowModeModal}
           />
         )}
       </>
@@ -1491,6 +1503,10 @@ export default function App() {
             currentPortal="field-tech"
             currentStepIndex={pmTutorialStep}
             onStepChange={setPmTutorialStep}
+            tutorialMode={pmTutorialMode}
+            onModeChange={setPmTutorialMode}
+            showModeModal={pmTutorialShowModeModal}
+            onShowModeModalChange={setPmTutorialShowModeModal}
           />
         )}
       </>
@@ -1723,7 +1739,11 @@ export default function App() {
             window.location.hash = '#/partner-academy';
           }}
           onOpenSowAutomation={() => setIsSowHubOpen(true)}
-          onOpenPMTutorial={() => setIsPMTutorialOpen(true)}
+          onOpenPMTutorial={() => {
+            setIsPMTutorialOpen(true);
+            setPmTutorialStep(0);
+            setPmTutorialShowModeModal(true);
+          }}
           onResetData={handleResetData}
           onToggleStandaloneMode={() => setIsMyQuextShellMode(false)}
         >
@@ -1741,6 +1761,10 @@ export default function App() {
             currentOperationsSubTab={operationsSubTab}
             currentStepIndex={pmTutorialStep}
             onStepChange={setPmTutorialStep}
+            tutorialMode={pmTutorialMode}
+            onModeChange={setPmTutorialMode}
+            showModeModal={pmTutorialShowModeModal}
+            onShowModeModalChange={setPmTutorialShowModeModal}
           />
         )}
 
@@ -1927,6 +1951,10 @@ export default function App() {
           currentOperationsSubTab={operationsSubTab}
           currentStepIndex={pmTutorialStep}
           onStepChange={setPmTutorialStep}
+          tutorialMode={pmTutorialMode}
+          onModeChange={setPmTutorialMode}
+          showModeModal={pmTutorialShowModeModal}
+          onShowModeModalChange={setPmTutorialShowModeModal}
         />
       )}
     </div>
