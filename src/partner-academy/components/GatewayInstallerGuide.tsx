@@ -55,15 +55,15 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
     }));
   };
 
-  const handleDownloadPdf = (theme: 'white' | 'dark' = 'dark') => {
+  const handleDownloadPdf = async (theme: 'white' | 'dark' = 'white') => {
     setIsGeneratingPdf(true);
-    setTimeout(() => {
-      try {
-        generateAndDownloadGatewayPdf(theme);
-      } finally {
-        setIsGeneratingPdf(false);
-      }
-    }, 200);
+    try {
+      await generateAndDownloadGatewayPdf(theme);
+    } catch (err) {
+      console.error('Error downloading gateway PDF:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const currentStep: GatewayGuideStep = GATEWAY_GUIDE_STEPS[activeStepIndex] || GATEWAY_GUIDE_STEPS[0];
@@ -138,28 +138,28 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
               </button>
             )}
 
+            {/* Generated Field SOP PDF Downloads (Print & Digital) */}
+            <button
+              type="button"
+              disabled={isGeneratingPdf}
+              onClick={() => handleDownloadPdf('white')}
+              className="px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer disabled:opacity-50"
+              title="Generate and download custom Field SOP PDF (Print Version)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download PDF (Print)'}</span>
+            </button>
+
             <button
               type="button"
               disabled={isGeneratingPdf}
               onClick={() => handleDownloadPdf('dark')}
               className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              title="Generate Field PDF"
+              title="Generate and download custom Field SOP PDF (Digital Dark Version)"
             >
               <Download className="w-3.5 h-3.5 text-purple-400" />
-              <span>{isGeneratingPdf ? 'Generating...' : 'Field PDF'}</span>
+              <span>{isGeneratingPdf ? 'Generating...' : 'Download PDF (Dark)'}</span>
             </button>
-
-            <a
-              href={GATEWAY_GUIDE_METADATA.downloadPdfPath}
-              download="Quext_Smart_Community_Gateway_Installer_Guide.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-              title="Download OEM Original PDF"
-            >
-              <FileText className="w-3.5 h-3.5 text-cyan-400" />
-              <span>OEM PDF</span>
-            </a>
           </div>
         </div>
 

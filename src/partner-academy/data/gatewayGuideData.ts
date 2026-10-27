@@ -57,9 +57,8 @@ export const GATEWAY_GUIDE_METADATA = {
   antennaType: 'High-Gain 915 MHz Omnidirectional LoRaWAN Antenna with N-Type Coax',
   supportHotline: '806-993-3200 • OPTION 4',
   supportEmail: 'support@onequext.com',
-  totalPages: 12,
+  totalPages: 4,
   revisionDate: 'October 2026',
-  downloadPdfPath: '/assets/aistudio/Quext_Smart_Community_Gateway_Installer_Guide.pdf',
 };
 
 export const GATEWAY_REQUIRED_MATERIALS = [
