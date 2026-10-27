@@ -13,6 +13,7 @@ import {
   calculateProjectScheduleHealth,
   getProjectIntegratorPartners,
   buildCustomerKickoffPortalUrl,
+  projectHasGatewayOrHubOnBOM,
 } from '../types';
 import { ProjectDetailView } from './ProjectDetailView';
 import { ShippingDockSection } from './ShippingDockSection';
@@ -135,8 +136,10 @@ export function evaluateMilestoneChecklist(
     const hasNfcQr =
       hasExplicit('kickoff_step_6') ||
       comms.some((c) => c.id.includes('focus-nfc-qr'));
+    const hasGatewaysOnBOM = projectHasGatewayOrHubOnBOM(project.bomItems || []);
     const hasSitePlans =
       hasExplicit('kickoff_step_7') ||
+      !hasGatewaysOnBOM ||
       Boolean(intake?.sitePlanPdfName && intake?.sitePlanConfirmedEdited) ||
       comms.some((c) => c.id.includes('focus-siteplan-req'));
 
@@ -2134,7 +2137,11 @@ const QuextVisionStepWindow: React.FC<{
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="font-bold text-slate-800">Current Site Plan PDF Status: </span>
-                  {intake.sitePlanPdfName ? (
+                  {!projectHasGatewayOrHubOnBOM(project.bomItems || []) ? (
+                    <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      ✓ Completed (Not Required - No Gateway/Hub on BOM)
+                    </span>
+                  ) : intake.sitePlanPdfName ? (
                     <span className="font-mono font-bold text-emerald-700">
                       ✓ {intake.sitePlanPdfName} ({intake.sitePlanConfirmedEdited ? 'Locations Marked' : 'Pending Edit Confirmation'})
                     </span>
@@ -2218,7 +2225,9 @@ const QuextVisionStepWindow: React.FC<{
     if (!intake.pmsSoftware || intake.pmsSoftware === 'None') missingItems.push('PMS Software Selection');
     if (!intake.commonAreaDoors || intake.commonAreaDoors.length === 0) missingItems.push('Common Area Door Tree');
     if (!intake.staffRoles || intake.staffRoles.length === 0) missingItems.push('Staff Access Roster');
-    if (!intake.sitePlanPdfName) missingItems.push('Site Plan Gateway Locations PDF');
+    if (projectHasGatewayOrHubOnBOM(project.bomItems || []) && !intake.sitePlanPdfName) {
+      missingItems.push('Site Plan Gateway Locations PDF');
+    }
 
     return (
       <div className="bg-white border-2 border-emerald-600/50 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6 animate-fadeIn">

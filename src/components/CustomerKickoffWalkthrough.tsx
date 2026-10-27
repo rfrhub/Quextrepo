@@ -2194,7 +2194,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
           {/* ========================================================================= */}
           {/* CONDITIONAL: SITE MAPS GATEWAY LOCATION CONFIRMATION (ONLY IF GATEWAY/HUB ON BOM) */}
           {/* ========================================================================= */}
-          {hasGatewayOrHubOnBOM && (
+          {hasGatewayOrHubOnBOM ? (
             <div className="pt-6 border-t border-slate-200">
               <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 via-white to-sky-50 border-2 border-amber-300/90 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -2278,6 +2278,61 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="pt-6 border-t border-slate-200">
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-slate-50 border-2 border-emerald-300 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-black uppercase tracking-wider mb-1">
+                        ✓ Requirement Completed • No Gateway / Hub on BOM
+                      </div>
+                      <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                        Site Maps Gateway Location Confirmation
+                      </h3>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-xs shrink-0">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Completed as Requirement
+                  </span>
+                </div>
+
+                <div className="p-4 bg-white/95 rounded-xl border border-emerald-200 text-xs text-slate-700 leading-relaxed flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-emerald-950 mb-1">
+                      No LoRaWAN Gateways or Hubs on your Smart Community Bill of Materials:
+                    </p>
+                    <p className="text-slate-600">
+                      Your community hardware package does not include gateways requiring roof or exterior wall mounts. Because antenna RF placement markup is not required, <strong>this question has been satisfied and completed for you automatically as an approved requirement.</strong>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Optional site map upload option for customers who still want to attach plans */}
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 border-t border-slate-100">
+                  <span className="text-[11px] text-slate-500">
+                    {sitePlanPdfName
+                      ? `Optional Site Map Attached: ${sitePlanPdfName}`
+                      : 'Have an architectural property layout you want to share for general reference? (Optional)'}
+                  </span>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg font-semibold cursor-pointer text-xs transition-colors shrink-0">
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{sitePlanPdfName ? 'Replace Optional Site Map' : 'Attach Optional Site Map PDF'}</span>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handleSitePlanPdfUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               </div>
             </div>

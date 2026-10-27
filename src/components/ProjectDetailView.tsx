@@ -2845,28 +2845,50 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </span>
               </div>
 
-              <div className="p-3 bg-amber-50/50 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <div className="font-bold text-amber-950 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Site Maps Gateway PDF</span>
+              {(() => {
+                const hasGateways = projectHasGatewayOrHubOnBOM(project.bomItems);
+                const hasPdf = Boolean(project.customerIntake?.sitePlanPdfName);
+                const isCompleted = !hasGateways || hasPdf;
+
+                return (
+                  <div className={`p-3 rounded-xl flex items-center justify-between text-xs border ${
+                    !hasGateways
+                      ? 'bg-emerald-50/50 border-emerald-200'
+                      : hasPdf
+                      ? 'bg-emerald-50/50 border-emerald-200'
+                      : 'bg-amber-50/50 border-amber-200'
+                  }`}>
+                    <div className="space-y-0.5">
+                      <div className={`font-bold flex items-center gap-1.5 ${
+                        isCompleted ? 'text-emerald-950' : 'text-amber-950'
+                      }`}>
+                        {isCompleted ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                        )}
+                        <span>Site Maps Gateway PDF</span>
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        {!hasGateways
+                          ? 'Completed (Not required — No Gateway/Hub on BOM)'
+                          : hasPdf
+                          ? `${project.customerIntake?.sitePlanPdfName} (${project.customerIntake?.sitePlanConfirmedEdited ? 'Confirmed Edited' : 'Pending Edit Check'})`
+                          : 'Awaiting client Site Plan PDF upload'}
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      !hasGateways
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : hasPdf
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    }`}>
+                      {!hasGateways ? 'Completed' : hasPdf ? 'Uploaded' : 'Pending'}
+                    </span>
                   </div>
-                  <div className="text-[11px] text-slate-600">
-                    {!projectHasGatewayOrHubOnBOM(project.bomItems)
-                      ? 'Not required (No Gateway/Hub on BOM)'
-                      : project.customerIntake?.sitePlanPdfName
-                      ? `${project.customerIntake.sitePlanPdfName} (${project.customerIntake.sitePlanConfirmedEdited ? 'Confirmed Edited' : 'Pending Edit Check'})`
-                      : 'Awaiting client Site Plan PDF upload'}
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  project.customerIntake?.sitePlanPdfName
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-amber-100 text-amber-800'
-                }`}>
-                  {project.customerIntake?.sitePlanPdfName ? 'Uploaded' : 'Pending'}
-                </span>
-              </div>
+                );
+              })()}
             </div>
 
             {/* Staff Roster & Access Permissions Table */}
