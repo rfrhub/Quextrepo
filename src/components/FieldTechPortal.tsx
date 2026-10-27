@@ -155,7 +155,7 @@ export const FieldTechLoginModal: React.FC<FieldTechLoginModalProps> = ({
         {/* Clean White Quext Header matching myquext.com */}
         <div className="bg-gradient-to-r from-white via-sky-50/40 to-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <QuextLogo className="h-6 w-auto" />
+            <QuextLogo className="h-7 sm:h-8 w-auto" />
             <div className="h-4 w-px bg-slate-200" />
             <div>
               <h3 className="text-sm font-extrabold text-slate-900 tracking-tight font-['Plus_Jakarta_Sans']">
@@ -927,7 +927,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
         <div className="max-w-[1560px] mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Zone 1: Quext Brand Logo + Field Operations Button */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <QuextLogo className="h-6 sm:h-7 w-auto" onClick={() => setActiveTab('hub')} />
+            <QuextLogo className="h-7 sm:h-8 w-auto" onClick={() => setActiveTab('hub')} />
 
             <button
               type="button"

@@ -5,7 +5,7 @@ interface QuextLogoProps {
   onClick?: () => void;
 }
 
-export const QuextLogo: React.FC<QuextLogoProps> = ({ className = 'h-7', onClick }) => {
+export const QuextLogo: React.FC<QuextLogoProps> = ({ className = 'h-7 sm:h-8', onClick }) => {
   return (
     <button
       type="button"

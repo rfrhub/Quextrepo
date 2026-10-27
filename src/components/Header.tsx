@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Zone 1: Quext Brand Logo button -> Takes us to Homescreen */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <QuextLogo
-              className="h-6 sm:h-7 w-auto"
+              className="h-7 sm:h-8 w-auto"
               onClick={() => handleMobileNavSelect('home')}
             />
 
