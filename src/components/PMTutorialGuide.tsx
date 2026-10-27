@@ -798,9 +798,10 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
             </div>
 
             {/* Option 1: Manual Step-by-Step */}
-            <div
+            <button
+              type="button"
               onClick={() => handleStartMode('manual')}
-              className="p-4 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50/40 cursor-pointer transition-all shadow-xs hover:shadow-md group"
+              className="w-full text-left p-4 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50/40 cursor-pointer transition-all shadow-xs hover:shadow-md group block"
             >
               <div className="flex items-start gap-3.5">
                 <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-blue-600 group-hover:text-white text-slate-700 flex items-center justify-center shrink-0 transition-colors shadow-2xs">
@@ -820,12 +821,13 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
                   </p>
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Option 2: Auto Learn */}
-            <div
+            <button
+              type="button"
               onClick={() => handleStartMode('auto')}
-              className="p-4 rounded-xl border-2 border-indigo-300 bg-gradient-to-br from-indigo-50/80 via-blue-50/50 to-white hover:border-indigo-600 hover:shadow-md cursor-pointer transition-all shadow-xs group"
+              className="w-full text-left p-4 rounded-xl border-2 border-indigo-300 bg-gradient-to-br from-indigo-50/80 via-blue-50/50 to-white hover:border-indigo-600 hover:shadow-md cursor-pointer transition-all shadow-xs group block"
             >
               <div className="flex items-start gap-3.5">
                 <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
@@ -846,7 +848,7 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
                   </p>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Footer Info */}
