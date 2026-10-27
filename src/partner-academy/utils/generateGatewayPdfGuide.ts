@@ -4,49 +4,16 @@ import {
   GATEWAY_REQUIRED_MATERIALS,
   GATEWAY_GUIDE_STEPS,
 } from '../data/gatewayGuideData';
-import insideRoofWallMountImg from '../assets/images/gateway-guide/inside_roof_wall_mount.png';
-import outsideRoofMountImg from '../assets/images/gateway-guide/outside_roof_mount.png';
-import gatewayMountingBracketImg from '../assets/images/gateway-guide/gateway_mounting_bracket.png';
-import waterproofPoeAntennaImg from '../assets/images/gateway-guide/waterproof_poe_antenna.png';
+import {
+  INSIDE_ROOF_WALL_MOUNT_B64,
+  OUTSIDE_ROOF_MOUNT_B64,
+  GATEWAY_MOUNTING_BRACKET_B64,
+  WATERPROOF_POE_ANTENNA_B64,
+} from '../data/gatewayPdfImages';
 
-// Helper to load image URL as base64 data URI for jsPDF
-const loadImageAsDataUri = async (src: string): Promise<string | null> => {
-  return new Promise((resolve) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || img.width;
-          canvas.height = img.naturalHeight || img.height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return resolve(null);
-          ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } catch {
-          resolve(null);
-        }
-      };
-      img.onerror = () => resolve(null);
-      img.src = src;
-    } catch {
-      resolve(null);
-    }
-  });
-};
-
-export const generateAndDownloadGatewayPdf = async (theme: 'white' | 'dark' = 'white') => {
+export const generateAndDownloadGatewayPdf = (theme: 'white' | 'dark' = 'white') => {
   try {
     const isDark = theme === 'dark';
-
-    // Pre-load all 4 official field installation photos
-    const [insideImgData, outsideImgData, bracketImgData, poeImgData] = await Promise.all([
-      loadImageAsDataUri(insideRoofWallMountImg),
-      loadImageAsDataUri(outsideRoofMountImg),
-      loadImageAsDataUri(gatewayMountingBracketImg),
-      loadImageAsDataUri(waterproofPoeAntennaImg),
-    ]);
 
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -293,7 +260,7 @@ export const generateAndDownloadGatewayPdf = async (theme: 'white' | 'dark' = 'w
 
       // Bullets
       let bY = curY + 50;
-      st.bulletPoints.slice(0, 2).forEach((bp, bIdx) => {
+      st.bulletPoints.slice(0, 2).forEach((bp) => {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(colors.accentPurple[0], colors.accentPurple[1], colors.accentPurple[2]);
         doc.text(`• ${bp.title}:`, margin + 12, bY);
@@ -329,15 +296,11 @@ export const generateAndDownloadGatewayPdf = async (theme: 'white' | 'dark' = 'w
     doc.setTextColor(colors.titleText[0], colors.titleText[1], colors.titleText[2]);
     doc.text(step3.stepTitle, margin + 68, curY + 21);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(colors.descText[0], colors.descText[1], colors.descText[2]);
-    doc.text(step3.summary, margin + 12, curY + 36, { maxWidth: contentWidth - 24 });
-
     // Bullets for Step 03
-    let s3bY = curY + 52;
+    let s3bY = curY + 36;
     step3.bulletPoints.slice(0, 3).forEach((bp) => {
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
       doc.setTextColor(colors.accentPurple[0], colors.accentPurple[1], colors.accentPurple[2]);
       doc.text(`• ${bp.title}:`, margin + 12, s3bY);
       doc.setFont('helvetica', 'normal');
@@ -348,56 +311,82 @@ export const generateAndDownloadGatewayPdf = async (theme: 'white' | 'dark' = 'w
     });
 
     // Dual Field Photo Section (Inside Roof Wall Mount & Outside Roof Mount)
-    const photoY = curY + 98;
-    const photoCardW = (contentWidth - 32) / 2; // ~250 pt each
-    const photoCardH = 240;
+    const photoY = curY + 76;
+    const photoCardW = (contentWidth - 28) / 2; // ~252 pt each
+    const photoCardH = 270;
 
-    // Photo 1: Inside Roof Wall Mount
+    // Photo 1: Inside Roof Wall Mount Box
     doc.setFillColor(isDark ? 10 : 240, isDark ? 14 : 243, isDark ? 24 : 246);
     doc.setDrawColor(colors.cardBorder[0], colors.cardBorder[1], colors.cardBorder[2]);
     doc.roundedRect(margin + 10, photoY, photoCardW, photoCardH, 4, 4, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(colors.titleText[0], colors.titleText[1], colors.titleText[2]);
     doc.text('INSIDE ROOF WALL MOUNT', margin + 18, photoY + 14);
 
-    if (insideImgData) {
-      try {
-        doc.addImage(insideImgData, 'PNG', margin + 16, photoY + 20, photoCardW - 12, 185, undefined, 'FAST');
-      } catch {
-        // Fallback placeholder if image engine busy
-      }
+    // Embed Inside Roof Wall Mount JPEG directly
+    try {
+      doc.addImage(
+        INSIDE_ROOF_WALL_MOUNT_B64,
+        'JPEG',
+        margin + 10 + (photoCardW - 105) / 2,
+        photoY + 22,
+        105,
+        198,
+        undefined,
+        'FAST'
+      );
+    } catch (err) {
+      console.warn('Inside image insertion:', err);
     }
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(colors.descText[0], colors.descText[1], colors.descText[2]);
-    doc.text('Protected inside parapet wall: Unistrut anchored to roof wall with conduit extending antenna above roofline.', margin + 18, photoY + 218, { maxWidth: photoCardW - 16 });
+    doc.text(
+      'Protected interior parapet: Unistrut backplane mounted to wall with EMT conduit mast extending antenna above roofline.',
+      margin + 16,
+      photoY + 232,
+      { maxWidth: photoCardW - 16 }
+    );
 
-    // Photo 2: Outside Roof Mount
+    // Photo 2: Outside Roof Mount Box
     const photo2X = margin + 18 + photoCardW;
     doc.setFillColor(isDark ? 10 : 240, isDark ? 14 : 243, isDark ? 24 : 246);
     doc.setDrawColor(colors.cardBorder[0], colors.cardBorder[1], colors.cardBorder[2]);
     doc.roundedRect(photo2X, photoY, photoCardW, photoCardH, 4, 4, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(colors.titleText[0], colors.titleText[1], colors.titleText[2]);
     doc.text('OUTSIDE ROOF MOUNT', photo2X + 8, photoY + 14);
 
-    if (outsideImgData) {
-      try {
-        doc.addImage(outsideImgData, 'PNG', photo2X + 6, photoY + 20, photoCardW - 12, 185, undefined, 'FAST');
-      } catch {
-        // Fallback placeholder
-      }
+    // Embed Outside Roof Mount JPEG directly
+    try {
+      doc.addImage(
+        OUTSIDE_ROOF_MOUNT_B64,
+        'JPEG',
+        photo2X + (photoCardW - 118) / 2,
+        photoY + 22,
+        118,
+        198,
+        undefined,
+        'FAST'
+      );
+    } catch (err) {
+      console.warn('Outside image insertion:', err);
     }
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(colors.descText[0], colors.descText[1], colors.descText[2]);
-    doc.text('Exterior building wall: Ladder access with EMT conduit mast extended above building cornice for 360° radio coverage.', photo2X + 8, photoY + 218, { maxWidth: photoCardW - 16 });
+    doc.text(
+      'Exterior building wall: Ladder access with EMT conduit mast extended above building cornice for 360° radio coverage.',
+      photo2X + 8,
+      photoY + 232,
+      { maxWidth: photoCardW - 16 }
+    );
 
     // ==========================================
     // PAGE 3: STEPS 04, 05, 06 & GATEWAY BRACKET PHOTO
@@ -510,22 +499,35 @@ export const generateAndDownloadGatewayPdf = async (theme: 'white' | 'dark' = 'w
     doc.roundedRect(bracketPhotoX, bracketPhotoY, bracketPhotoW, bracketPhotoH, 4, 4, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(colors.titleText[0], colors.titleText[1], colors.titleText[2]);
     doc.text('GATEWAY MOUNTING BRACKET', bracketPhotoX + 10, bracketPhotoY + 14);
 
-    if (bracketImgData) {
-      try {
-        doc.addImage(bracketImgData, 'PNG', bracketPhotoX + 8, bracketPhotoY + 20, bracketPhotoW - 16, 230, undefined, 'FAST');
-      } catch {
-        // Fallback placeholder
-      }
+    // Embed Gateway Mounting Bracket JPEG directly
+    try {
+      doc.addImage(
+        GATEWAY_MOUNTING_BRACKET_B64,
+        'JPEG',
+        bracketPhotoX + (bracketPhotoW - 120) / 2,
+        bracketPhotoY + 22,
+        120,
+        226,
+        undefined,
+        'FAST'
+      );
+    } catch (err) {
+      console.warn('Bracket image insertion:', err);
     }
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(colors.descText[0], colors.descText[1], colors.descText[2]);
-    doc.text('Technician securing powder-coated bracket to horizontal Unistrut channels with Grade 5 bolts.', bracketPhotoX + 10, bracketPhotoY + 264, { maxWidth: bracketPhotoW - 16 });
+    doc.text(
+      'Technician securing powder-coated bracket to horizontal Unistrut channels with Grade 5 bolts.',
+      bracketPhotoX + 10,
+      bracketPhotoY + 262,
+      { maxWidth: bracketPhotoW - 16 }
+    );
 
     // ==========================================
     // PAGE 4: STEPS 07, 08, 09, 10 & POE PHOTO & SIGN-OFF
@@ -595,22 +597,35 @@ export const generateAndDownloadGatewayPdf = async (theme: 'white' | 'dark' = 'w
     doc.roundedRect(poePhotoX, poePhotoY, poePhotoW, poePhotoH, 4, 4, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(colors.titleText[0], colors.titleText[1], colors.titleText[2]);
-    doc.text('WATERPROOF POE & ANTENNA CONNECTION', poePhotoX + 8, poePhotoY + 13);
+    doc.text('WATERPROOF POE & ANTENNA', poePhotoX + 8, poePhotoY + 13);
 
-    if (poeImgData) {
-      try {
-        doc.addImage(poeImgData, 'PNG', poePhotoX + 6, poePhotoY + 18, poePhotoW - 12, 150, undefined, 'FAST');
-      } catch {
-        // Fallback placeholder
-      }
+    // Embed Waterproof PoE & Antenna JPEG directly
+    try {
+      doc.addImage(
+        WATERPROOF_POE_ANTENNA_B64,
+        'JPEG',
+        poePhotoX + (poePhotoW - 95) / 2,
+        poePhotoY + 20,
+        95,
+        150,
+        undefined,
+        'FAST'
+      );
+    } catch (err) {
+      console.warn('PoE image insertion:', err);
     }
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(colors.descText[0], colors.descText[1], colors.descText[2]);
-    doc.text('IP67 compression gland sealed for PoE & N-type RF antenna coax with downward drip loop.', poePhotoX + 8, poePhotoY + 182, { maxWidth: poePhotoW - 14 });
+    doc.text(
+      'IP67 compression gland sealed for PoE & N-type RF antenna coax with downward drip loop.',
+      poePhotoX + 8,
+      poePhotoY + 180,
+      { maxWidth: poePhotoW - 14 }
+    );
 
     curY += step7Height + 12;
 
