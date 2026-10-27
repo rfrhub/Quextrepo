@@ -294,62 +294,24 @@ export default function App() {
     return initial[0]?.id || '';
   });
 
-  // Global Hotkey Command: Command+Q+W (Mac) or Control+Q+W (Windows) to activate/toggle Quext Vision
+  // Global Hotkey Command: Command+I (Mac) or Control+I (Windows) to activate/toggle Quext Vision
   useEffect(() => {
-    const keysDown = new Set<string>();
-    let lastChord: { key: string; time: number } | null = null;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       const hasModifier = e.metaKey || e.ctrlKey;
       const key = (e.key || '').toLowerCase();
 
-      // Intercept if Command or Control is held with Q or W to prevent tab closure (Cmd+W) or app quit (Cmd+Q)
-      if (hasModifier && (key === 'q' || key === 'w')) {
+      if (hasModifier && key === 'i') {
         e.preventDefault();
         e.stopPropagation();
 
-        keysDown.add(key);
-        const now = Date.now();
-
-        const isBothDown = keysDown.has('q') && keysDown.has('w');
-        const isSequential =
-          lastChord &&
-          now - lastChord.time < 900 &&
-          ((lastChord.key === 'q' && key === 'w') || (lastChord.key === 'w' && key === 'q'));
-
-        if (isBothDown || isSequential) {
-          keysDown.clear();
-          lastChord = null;
-          // Toggle Quext Vision
-          setFocusMode((prev) => (prev === 'none' ? 'initial-prompt' : 'none'));
-        } else {
-          lastChord = { key, time: now };
-        }
+        // Toggle Quext Vision
+        setFocusMode((prev) => (prev === 'none' ? 'initial-prompt' : 'none'));
       }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const key = (e.key || '').toLowerCase();
-      keysDown.delete(key);
-      if (e.key === 'Meta' || e.key === 'Control') {
-        keysDown.clear();
-        lastChord = null;
-      }
-    };
-
-    const handleWindowBlur = () => {
-      keysDown.clear();
-      lastChord = null;
     };
 
     window.addEventListener('keydown', handleKeyDown, { capture: true });
-    window.addEventListener('keyup', handleKeyUp, { capture: true });
-    window.addEventListener('blur', handleWindowBlur);
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
-      window.removeEventListener('keyup', handleKeyUp, { capture: true });
-      window.removeEventListener('blur', handleWindowBlur);
     };
   }, []);
 

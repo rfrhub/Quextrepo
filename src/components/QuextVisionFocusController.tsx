@@ -560,7 +560,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
                     21-Minute Productivity Session
                   </span>
                   <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-300 rounded-full">
-                    Hotkey: ⌘+Q+W / Ctrl+Q+W
+                    Hotkey: ⌘+I / Ctrl+I
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-['Plus_Jakarta_Sans'] mt-1">
@@ -581,7 +581,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-5">
             Select the project you are working on below and choose how you would like to run your{' '}
-            <strong>21-minute distraction-free Quext Vision session</strong>. You can also toggle Quext Vision at any time using <strong>⌘+Q+W</strong> (Mac) or <strong>Ctrl+Q+W</strong> (Windows). Your progress is automatically saved so you can pick up right where you left off.
+            <strong>21-minute distraction-free Quext Vision session</strong>. You can also toggle Quext Vision at any time using <strong>⌘+I</strong> (Mac) or <strong>Ctrl+I</strong> (Windows). Your progress is automatically saved so you can pick up right where you left off.
           </p>
 
           {/* Project Selector */}
