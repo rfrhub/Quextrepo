@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { OperationProject, getProjectIntegratorPartners } from '../../types';
+import { OperationProject, getProjectIntegratorPartners, ProjectActivityNotification } from '../../types';
 import { CourseModule } from '../types';
 import { COURSE_MODULES } from '../data/mockData';
 import { useAuth, isQuextEmployeeUser } from '../context/AuthContext';
@@ -29,6 +29,7 @@ import {
   Award,
   Play,
   Zap,
+  Radio,
 } from 'lucide-react';
 
 interface ProjectCoursePackageViewProps {
@@ -157,6 +158,85 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
         lastUpdated: new Date().toISOString(),
       });
     }
+  };
+
+  const [isSimulatingSync, setIsSimulatingSync] = useState(false);
+  const [simulationSuccessMsg, setSimulationSuccessMsg] = useState<string | null>(null);
+
+  const handleSimulateFieldVerification = (type: 'gateway' | 'befe' | 'tstat') => {
+    if (!onUpdateProject) return;
+    setIsSimulatingSync(true);
+
+    const now = new Date();
+    const formattedTime = now.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const partnerName = currentPartnerShortName || partners[0] || 'SKBM';
+    const actor = `${currentUser.name} (${partnerName})`;
+
+    let title = '';
+    let details = '';
+
+    if (type === 'gateway') {
+      title = `${partnerName} Gateway SOP Verified (Roof Mount & PoE)`;
+      details = `${actor} verified TEKTELIC LoRaWAN Gateway indoor/outdoor bracket, RF antenna alignment, and waterproof RJ45 PoE on ${project.propertyName}.`;
+    } else if (type === 'befe') {
+      title = `${partnerName} Unit Locks Handing & Strike Plate Verified`;
+      details = `${actor} completed Schlage BE467F / FE410F 2-turn thumbturn handing & door frame strike clearance check on ${project.propertyName}.`;
+    } else {
+      title = `${partnerName} HVAC 24VAC Terminal & LoRa Join Verified`;
+      details = `${actor} verified thermostat C-wire power delivery and 915MHz telemetry ping for ${project.propertyName}.`;
+    }
+
+    const notif: ProjectActivityNotification = {
+      id: `notif-sim-partner-${project.id}-${Date.now()}`,
+      projectId: project.id,
+      propertyName: project.propertyName,
+      assignedPMName: project.assignedPM.name,
+      assignedFieldTech: project.assignedFieldTech || 'Hector Lopez',
+      timestamp: formattedTime,
+      createdAtIso: now.toISOString(),
+      audience: 'all',
+      category: 'bom_update',
+      section: 'bom',
+      sectionTargetId: 'pm-bom-table',
+      actorRole: 'installer_partner',
+      actorName: actor,
+      badgeLabel: 'Partner SOP Verified',
+      title,
+      details,
+    };
+
+    // Also mark matching checklist item completed if present
+    let updatedBundle = bundle;
+    if (updatedBundle.checklist) {
+      const matchKeyword = type === 'gateway' ? 'gateway' : type === 'befe' ? 'lock' : 'tstat';
+      const updatedChecklist = updatedBundle.checklist.map((item) =>
+        item.id.toLowerCase().includes(matchKeyword) ? { ...item, completed: true } : item
+      );
+      updatedBundle = { ...updatedBundle, checklist: updatedChecklist };
+    }
+
+    const updatedProject: OperationProject = {
+      ...project,
+      partnerCourseBundle: updatedBundle,
+      activityNotifications: [notif, ...(project.activityNotifications || [])],
+      lastUpdated: 'Just now',
+    };
+
+    onUpdateProject(updatedProject);
+
+    setTimeout(() => {
+      setIsSimulatingSync(false);
+      setSimulationSuccessMsg(
+        `Cloud sync sent! PM ${project.assignedPM?.name || 'Raul Recalde'}'s Notifications dock at #/operations will auto-slide out in real time.`
+      );
+      setTimeout(() => setSimulationSuccessMsg(null), 7000);
+    }, 400);
   };
 
   return (
@@ -588,6 +668,64 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
               <span className="px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold tabular-nums">
                 {completedChecklistCount}/{bundle.checklist.length} Done
               </span>
+            </div>
+
+            {/* Live Cloud Sync Simulation Card */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-950/40 via-zinc-950/90 to-cyan-950/30 border border-purple-500/30 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-white">
+                  <Radio className="w-4 h-4 text-purple-400 animate-pulse" />
+                  <span>Cloud Live Updates Simulator (Google Cloud Firestore)</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-[10px] font-mono text-emerald-300 font-bold">
+                  ● Firestore Real-Time Active
+                </span>
+              </div>
+
+              <p className="text-[11px] text-zinc-300 leading-relaxed">
+                Test the out-of-state field verification workflow between this partner portal and the PM Operations workspace. Triggering an action below updates Cloud Firestore and slides out the PM's Notifications dock in real time.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleSimulateFieldVerification('gateway')}
+                  disabled={isSimulatingSync}
+                  className="py-2 px-2.5 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Radio className="w-3 h-3 text-cyan-300" />
+                  <span>Gateway SOP Signoff</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateFieldVerification('befe')}
+                  disabled={isSimulatingSync}
+                  className="py-2 px-2.5 rounded-lg bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/40 text-cyan-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-3 h-3 text-cyan-300" />
+                  <span>BEFE Locks Handing</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateFieldVerification('tstat')}
+                  disabled={isSimulatingSync}
+                  className="py-2 px-2.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Zap className="w-3 h-3 text-emerald-300" />
+                  <span>24VAC T-Stat Join</span>
+                </button>
+              </div>
+
+              {simulationSuccessMsg && (
+                <div className="p-2.5 bg-emerald-950/80 border border-emerald-500/50 rounded-lg text-xs text-emerald-200 text-center font-medium animate-fade-in">
+                  ✓ {simulationSuccessMsg}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono border-t border-zinc-800/80 pt-2">
+                <ShieldCheck className="w-3 h-3 text-zinc-500 shrink-0" />
+                <span>Security Boundary: Integrator partners only have access to Partner Academy. PM operations &amp; quotes remain restricted.</span>
+              </div>
             </div>
 
             <div className="space-y-2.5">

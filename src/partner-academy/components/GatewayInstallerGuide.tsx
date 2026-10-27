@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { OperationProject, ProjectActivityNotification } from '../../types';
 import {
   GATEWAY_GUIDE_METADATA,
   GATEWAY_REQUIRED_MATERIALS,
@@ -31,14 +32,26 @@ import {
 
 interface GatewayInstallerGuideProps {
   onOpenCourse?: (moduleId: string) => void;
+  project?: OperationProject | null;
+  onUpdateProject?: (updated: OperationProject) => void;
+  installerName?: string;
+  companyName?: string;
 }
 
-export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ onOpenCourse }) => {
+export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({
+  onOpenCourse,
+  project,
+  onUpdateProject,
+  installerName = 'Marcus Vance',
+  companyName = 'SKBM Integrations',
+}) => {
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'steps' | 'continuous' | 'materials'>('steps');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
   const [lightboxImage, setLightboxImage] = useState<{ src: string; caption?: string } | null>(null);
+  const [isBroadcastingSignoff, setIsBroadcastingSignoff] = useState<boolean>(false);
+  const [broadcastSuccessMessage, setBroadcastSuccessMessage] = useState<string | null>(null);
 
   // Reset selected photo when switching steps
   React.useEffect(() => {
@@ -64,6 +77,66 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
     } finally {
       setIsGeneratingPdf(false);
     }
+  };
+
+  const handleBroadcastGatewaySop = () => {
+    if (!project || !onUpdateProject) return;
+    setIsBroadcastingSignoff(true);
+
+    const now = new Date();
+    const formattedTime = now.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const partnerName = companyName || 'SKBM Integrations';
+    const actorDisplay = `${installerName} (${partnerName})`;
+
+    const sopNotif: ProjectActivityNotification = {
+      id: `notif-gateway-sop-${project.id}-${Date.now()}`,
+      projectId: project.id,
+      propertyName: project.propertyName,
+      assignedPMName: project.assignedPM.name,
+      assignedFieldTech: project.assignedFieldTech || 'Hector Lopez',
+      timestamp: formattedTime,
+      createdAtIso: now.toISOString(),
+      audience: 'all',
+      category: 'bom_update',
+      section: 'bom',
+      sectionTargetId: 'pm-bom-table',
+      actorRole: 'installer_partner',
+      actorName: actorDisplay,
+      title: `${partnerName} Gateway SOP Verified`,
+      details: `${actorDisplay} completed on-site SOP verification for TEKTELIC outdoor gateway (inside roof mount, bracket, antenna & waterproof PoE connection) on ${project.propertyName}.`,
+      badgeLabel: 'Partner SOP Verified',
+    };
+
+    let updatedBundle = project.partnerCourseBundle;
+    if (updatedBundle?.checklist) {
+      const updatedChecklist = updatedBundle.checklist.map((item) =>
+        item.id.toLowerCase().includes('gateway') ? { ...item, completed: true } : item
+      );
+      updatedBundle = { ...updatedBundle, checklist: updatedChecklist };
+    }
+
+    const updatedProject: OperationProject = {
+      ...project,
+      partnerCourseBundle: updatedBundle,
+      activityNotifications: [sopNotif, ...(project.activityNotifications || [])],
+      lastUpdated: 'Just now',
+    };
+
+    onUpdateProject(updatedProject);
+
+    setTimeout(() => {
+      setIsBroadcastingSignoff(false);
+      setBroadcastSuccessMessage(
+        `Live SOP Signoff broadcasted to Google Cloud Firestore! If PM ${project.assignedPM?.name || 'Raul Recalde'} has the Operations portal open, their Notifications dock will slide out in real time.`
+      );
+      setTimeout(() => setBroadcastSuccessMessage(null), 8000);
+    }, 400);
   };
 
   const currentStep: GatewayGuideStep = GATEWAY_GUIDE_STEPS[activeStepIndex] || GATEWAY_GUIDE_STEPS[0];
@@ -928,6 +1001,40 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({ on
                   Have Gateway MAC Address &amp; Serial Number ready
                 </div>
               </div>
+
+              {/* Live Cloud SOP Signoff Simulation Trigger */}
+              {project && onUpdateProject && (
+                <div className="pt-3 border-t border-purple-500/30 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+                    <span className="flex items-center gap-1.5 text-purple-300">
+                      <Radio className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                      Live Cloud Sync
+                    </span>
+                    <span>Project: {project.propertyName}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleBroadcastGatewaySop}
+                    disabled={isBroadcastingSignoff}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Radio className={`w-4 h-4 ${isBroadcastingSignoff ? 'animate-spin' : 'text-cyan-200'}`} />
+                    <span>
+                      {isBroadcastingSignoff
+                        ? 'Broadcasting to Cloud Firestore...'
+                        : '📡 Broadcast Gateway Field SOP Signoff (Live Cloud Sync)'}
+                    </span>
+                  </button>
+                  {broadcastSuccessMessage && (
+                    <div className="p-3 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-xs text-emerald-200 text-center leading-relaxed">
+                      ✓ {broadcastSuccessMessage}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-zinc-400 text-center">
+                    Simulates field verification sent directly from {companyName} to the PM's live notification feed over Cloud Firestore.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

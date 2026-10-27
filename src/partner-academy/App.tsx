@@ -354,6 +354,10 @@ const MainApp: React.FC<{
           {currentTab === 'gateway_guide' && (
             <GatewayInstallerGuide
               onOpenCourse={(modId) => handleStartCourse(modId)}
+              project={activePrepProject || visibleProjects[0] || (isQuextEmployee ? projects[0] : null)}
+              onUpdateProject={onUpdateProject}
+              installerName={currentUser.name}
+              companyName={currentCompany?.name}
             />
           )}
 
