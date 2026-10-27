@@ -293,6 +293,7 @@ export default function App() {
         if (resolved.portal === 'pm_operations') {
           setLoggedInPartnerAcademy(null);
           setLoggedInFieldTech(null);
+          setSignedInUser(resolveEmailToMyQuextUser(resolved.email));
         }
       }
 
@@ -1446,6 +1447,8 @@ export default function App() {
       {mainTab === 'home' && (
         <HomeScreen
           projects={projects}
+          currentUserName={signedInUser?.name}
+          currentUserRole={signedInUser?.roleLabel}
           onNavigateToOperationsDashboard={handleGoToOperationsDashboard}
           onNavigateToAllProjects={() => {
             setMainTab('operations');
@@ -1617,6 +1620,7 @@ export default function App() {
           currentUserEmail={signedInUser.email}
           currentUserRoleLabel={signedInUser.roleLabel}
           currentUserAvatarInitial={signedInUser.avatarInitial}
+          onSwitchUser={(user) => setSignedInUser(user)}
           onLogout={() => {
             setLoggedInFieldTech(null);
             setLoggedInPartnerAcademy(null);

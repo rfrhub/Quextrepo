@@ -3,7 +3,9 @@ import {
   Quote,
   OperationProject,
   DealStage,
+  AVAILABLE_PMS,
 } from '../types';
+import { MyQuextSignedInUser, resolveEmailToMyQuextUser } from './MyQuextLoginPage';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -88,6 +90,7 @@ interface MyQuextPlatformShellProps {
   currentUserEmail?: string;
   currentUserRoleLabel?: string;
   currentUserAvatarInitial?: string;
+  onSwitchUser?: (user: MyQuextSignedInUser) => void;
   onLogout: () => void;
   onOpenFieldTechPortal: () => void;
   // Navigation into embedded Operations views
@@ -133,6 +136,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   currentUserEmail = 'raul.recalde@onequext.com',
   currentUserRoleLabel = 'TEAM MEMBER',
   currentUserAvatarInitial = 'R',
+  onSwitchUser,
   onLogout,
   onOpenFieldTechPortal,
   activeTopTab,
@@ -679,6 +683,57 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       <span>Developer Hub</span>
                     </button>
                   </div>
+
+                  {/* Section 2.5: Switch Active PM / User */}
+                  {onSwitchUser && (
+                    <>
+                      <div className="border-t border-slate-100" />
+                      <div className="px-4 pt-2.5 pb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Switch Active PM / User
+                        </span>
+                      </div>
+                      <div className="px-2 pb-1 space-y-0.5">
+                        {AVAILABLE_PMS.map((pm) => {
+                          const isActive = currentUserEmail.toLowerCase() === pm.email.toLowerCase();
+                          return (
+                            <button
+                              key={pm.email}
+                              type="button"
+                              onClick={() => {
+                                setIsProfileMenuOpen(false);
+                                onSwitchUser(resolveEmailToMyQuextUser(pm.email));
+                              }}
+                              className={`w-full px-2.5 py-1.5 text-xs rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                                isActive
+                                  ? 'bg-blue-50 text-blue-800 font-bold'
+                                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                    isActive
+                                      ? 'bg-blue-600 text-white'
+                                      : 'bg-slate-200 text-slate-700'
+                                  }`}
+                                >
+                                  {pm.name.charAt(0)}
+                                </div>
+                                <div className="text-left leading-tight">
+                                  <div>{pm.name}</div>
+                                  <div className="text-[9px] text-slate-400 font-normal">{pm.role}</div>
+                                </div>
+                              </div>
+                              {isActive && (
+                                <span className="text-[10px] font-bold text-blue-600">Active</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
 
                   <div className="border-t border-slate-100" />
 

@@ -44,13 +44,35 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     };
   }
 
-  // 2. Check Internal Quext Team Members (Raul Recalde, Blake Miller, Bethany Condon, Megan Rossman, or @onequext.com)
+  // 2. Check Internal Quext Team Members (Raul Recalde, Bethany Condon, Megan Rossman, Blake Miller, or @onequext.com)
   if (email.includes('raul') || email.includes('recalde')) {
     return {
       name: 'Raul Recalde',
       email: 'raul.recalde@onequext.com',
-      roleLabel: 'TEAM MEMBER',
+      roleLabel: 'DIRECTOR OF IMPLEMENTATION',
       avatarInitial: 'R',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  if (email.includes('bethany') || email.includes('condon')) {
+    return {
+      name: 'Bethany Condon',
+      email: 'bethany.condon@onequext.com',
+      roleLabel: 'PROJECT MANAGER',
+      avatarInitial: 'B',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  if (email.includes('megan') || email.includes('rossman')) {
+    return {
+      name: 'Megan Rossman',
+      email: 'megan.rossman@onequext.com',
+      roleLabel: 'DIRECTOR OF OPERATIONS',
+      avatarInitial: 'M',
       accountType: 'team_member',
       fieldTechDefault: null,
     };
@@ -348,7 +370,21 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
                   onClick={() => handleQuickLogin('raul.recalde@onequext.com')}
                   className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
                 >
-                  Raul Recalde (PM)
+                  Raul Recalde (Director)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('bethany.condon@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
+                >
+                  Bethany Condon (PM)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('megan.rossman@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
+                >
+                  Megan Rossman (Director of Ops)
                 </button>
                 <button
                   type="button"

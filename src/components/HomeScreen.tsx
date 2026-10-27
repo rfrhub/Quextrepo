@@ -40,6 +40,8 @@ interface HomeScreenProps {
   onNavigateToQuotes: () => void;
   onTriggerSecretFocus?: () => void;
   onOpenPartnerAcademy?: (partnerShortName?: string, projectId?: string) => void;
+  currentUserName?: string;
+  currentUserRole?: string;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -49,6 +51,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNavigateToProject,
   onTriggerSecretFocus,
   onOpenPartnerAcademy,
+  currentUserName = 'Raul Recalde',
+  currentUserRole = 'Director of Implementation',
 }) => {
   const [selectedPMFilter, setSelectedPMFilter] = useState<string>('all');
   const [partnerProgressFilter, setPartnerProgressFilter] = useState<'all' | 'completed' | 'in_progress'>('all');
@@ -423,10 +427,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-['Plus_Jakarta_Sans']">
-                Welcome back, Raul Recalde
+                Welcome back, {currentUserName}
               </h1>
               <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
-                Director of Implementation
+                {currentUserRole}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-600 mt-1.5 max-w-2xl leading-relaxed">
