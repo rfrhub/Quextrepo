@@ -1678,17 +1678,142 @@ export function detectLockFamily(item: {
   category?: string;
   lockFinishConfig?: LockFinishConfig;
 }): LockFamilyType {
-  if (item?.lockFinishConfig?.family) {
-    return item.lockFinishConfig.family;
-  }
   const s = `${item?.name || ''} ${item?.model || ''}`.toLowerCase();
+  
+  // 1. BOM line item title/model dictates product family
   if (s.includes('xe360') || s.includes('exit trim') || s.includes('tubular') || (s.includes('mortise') && !s.includes('deadbolt'))) {
     return 'xe360';
   }
-  if (s.includes('ndeb') || s.includes('nde') || s.includes('wireless lever')) {
+  if (s.includes('ndeb') || s.includes('nde') || s.includes('wireless lever') || s.includes('cylindrical')) {
     return 'nde';
   }
+  if (
+    s.includes('be467') ||
+    s.includes('be468') ||
+    s.includes('be367') ||
+    s.includes('fe410') ||
+    s.includes('deadbolt') ||
+    s.includes('interconnect') ||
+    s.includes('qxt-dl') ||
+    /\b(be|fe)\b/i.test(s)
+  ) {
+    return 'befe';
+  }
+
+  // 2. Fall back to config family if specified and title was generic
+  if (item?.lockFinishConfig?.family) {
+    return item.lockFinishConfig.family;
+  }
+
   return 'befe';
+}
+
+export function isLockFamilyLockedToBOM(item: { name?: string; model?: string }): boolean {
+  const s = `${item?.name || ''} ${item?.model || ''}`.toLowerCase();
+  return (
+    s.includes('xe360') ||
+    s.includes('ndeb') ||
+    s.includes('nde') ||
+    s.includes('be467') ||
+    s.includes('be468') ||
+    s.includes('be367') ||
+    s.includes('fe410') ||
+    /\b(be|fe)\b/i.test(s)
+  );
+}
+
+export function getLockTypeDisplay(
+  item: { name?: string; model?: string; category?: string; lockFinishConfig?: LockFinishConfig },
+  splitOrSubtype?: Xe360Subtype | { xe360Subtype?: Xe360Subtype }
+): string {
+  const family = detectLockFamily(item);
+  const s = `${item?.name || ''} ${item?.model || ''}`.toUpperCase();
+
+  if (family === 'xe360') {
+    let subtype: Xe360Subtype = 'Mortise';
+    if (typeof splitOrSubtype === 'string') {
+      subtype = splitOrSubtype;
+    } else if (splitOrSubtype && typeof splitOrSubtype === 'object' && splitOrSubtype.xe360Subtype) {
+      subtype = splitOrSubtype.xe360Subtype;
+    } else if (item?.lockFinishConfig?.xe360Subtype) {
+      subtype = item.lockFinishConfig.xe360Subtype;
+    } else if (s.includes('EXIT')) {
+      subtype = 'Exit Trim';
+    } else if (s.includes('TUBULAR')) {
+      subtype = 'Tubular';
+    }
+    return `XE360 ${subtype}`;
+  }
+
+  if (family === 'nde') {
+    if (s.includes('NDEB')) return 'NDEB Wireless Lock';
+    return 'NDE Wireless Lock';
+  }
+
+  // family === 'befe'
+  if (s.includes('FE410') || s.includes('INTERCONNECT') || /\bFE\b/.test(s)) {
+    return 'FE410 Interconnected';
+  }
+  if (s.includes('BE467')) {
+    return 'BE467 Deadbolt';
+  }
+  if (s.includes('BE468')) {
+    return 'BE468 Deadbolt';
+  }
+  if (s.includes('BE367')) {
+    return 'BE367 Deadbolt';
+  }
+  if (/\bBE\b/.test(s)) {
+    return 'BE Deadbolt';
+  }
+  if (s.includes('DEADBOLT')) {
+    return 'Smart Deadbolt';
+  }
+  return 'BE467 Deadbolt';
+}
+
+export function sanitizeLockSplits(
+  splits: LockFinishSplit[],
+  family: LockFamilyType
+): LockFinishSplit[] {
+  return splits.map((s) => {
+    if (family === 'befe') {
+      return {
+        id: s.id,
+        label: s.label,
+        quantity: Number(s.quantity) || 0,
+        befeTrimStyle: s.befeTrimStyle || 'Greenwich',
+        befeColorFinish: s.befeColorFinish || '622 - Matte Black',
+        notes: s.notes,
+      };
+    }
+    if (family === 'nde') {
+      return {
+        id: s.id,
+        label: s.label,
+        quantity: Number(s.quantity) || 0,
+        ndeColorFinish: s.ndeColorFinish || '619: Satin Nickel',
+        ndeLeverType: s.ndeLeverType || 'Latitude (LAT)',
+        notes: s.notes,
+      };
+    }
+    // family === 'xe360'
+    return {
+      id: s.id,
+      label: s.label,
+      quantity: Number(s.quantity) || 0,
+      xe360Subtype: s.xe360Subtype || 'Mortise',
+      xe360ColorFinish: s.xe360ColorFinish || '622 - Matte Black',
+      xe360LeverStyle: s.xe360LeverStyle || 'LAT - Latitude',
+      xe360ExitTrimCrashbar: s.xe360ExitTrimCrashbar,
+      xe360ExitTrimFunction: s.xe360ExitTrimFunction,
+      xe360TubularGrade: s.xe360Subtype === 'Tubular' ? 'ANSI/BHMA Grade 2' : undefined,
+      xe360TubularFunction: s.xe360TubularFunction,
+      xe360MortiseGrade: s.xe360Subtype === 'Mortise' ? 'ANSI/BHMA Grade 1' : undefined,
+      xe360MortiseFunction: s.xe360MortiseFunction,
+      notes: s.notes,
+    };
+  });
 }
 
 export function getSingleLockFinishSummary(

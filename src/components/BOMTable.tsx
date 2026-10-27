@@ -7,6 +7,8 @@ import {
   getCategoryUnitLabel,
   getCategoryDisplayName,
   isLockBOMItem,
+  detectLockFamily,
+  getLockTypeDisplay,
   getLockFinishSummaryTag,
   getLockFinishColorHex,
   getSingleLockFinishSummary,
@@ -297,16 +299,16 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                           </span>
                                           <span className="font-normal text-slate-200">
                                             {item.lockFinishConfig.splits
-                                              .map(
-                                                (s) =>
-                                                  `${s.quantity}x ${
-                                                    s.befeColorFinish?.split(' - ')[1] ||
-                                                    s.ndeColorFinish?.split(': ')[1] ||
-                                                    s.xe360ColorFinish?.split(' - ')[1] ||
-                                                    s.befeTrimStyle ||
-                                                    'Finish'
-                                                  }`
-                                              )
+                                              .map((s) => {
+                                                const fam = detectLockFamily(item);
+                                                const label =
+                                                  fam === 'befe'
+                                                    ? s.befeColorFinish?.split(' - ')[1] || s.befeTrimStyle || 'Finish'
+                                                    : fam === 'nde'
+                                                    ? s.ndeColorFinish?.split(': ')[1] || s.ndeLeverType || 'Finish'
+                                                    : s.xe360ColorFinish?.split(' - ')[1] || s.xe360LeverStyle || 'Finish';
+                                                return `${s.quantity}x ${label}`;
+                                              })
                                               .join(' · ')}
                                           </span>
                                         </>
@@ -464,52 +466,58 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                           </div>
 
                                           <div className="space-y-1 text-[11px]">
+                                            {/* Lock Type - ALWAYS MATCHES BOM LINE ITEM */}
                                             <div className="flex items-center justify-between text-slate-300">
-                                              <span className="text-slate-400">Finish:</span>
-                                              <span className="font-semibold text-slate-100">
-                                                {s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish || 'Standard'}
+                                              <span className="text-slate-400">Lock Type:</span>
+                                              <span className="font-semibold text-sky-300">
+                                                {getLockTypeDisplay(item, s)}
                                               </span>
                                             </div>
 
-                                            {s.befeTrimStyle && (
+                                            <div className="flex items-center justify-between text-slate-300">
+                                              <span className="text-slate-400">Finish:</span>
+                                              <span className="font-semibold text-slate-100">
+                                                {(detectLockFamily(item) === 'befe'
+                                                  ? s.befeColorFinish
+                                                  : detectLockFamily(item) === 'nde'
+                                                  ? s.ndeColorFinish
+                                                  : s.xe360ColorFinish) || 'Standard'}
+                                              </span>
+                                            </div>
+
+                                            {detectLockFamily(item) === 'befe' && s.befeTrimStyle && (
                                               <div className="flex items-center justify-between text-slate-300">
                                                 <span className="text-slate-400">Trim Style:</span>
                                                 <span className="font-semibold text-slate-100">{s.befeTrimStyle}</span>
                                               </div>
                                             )}
 
-                                            {s.ndeLeverType && (
+                                            {detectLockFamily(item) === 'nde' && s.ndeLeverType && (
                                               <div className="flex items-center justify-between text-slate-300">
                                                 <span className="text-slate-400">Lever:</span>
                                                 <span className="font-semibold text-slate-100">{s.ndeLeverType}</span>
                                               </div>
                                             )}
 
-                                            {s.xe360Subtype && (
-                                              <div className="flex items-center justify-between text-slate-300">
-                                                <span className="text-slate-400">Subtype:</span>
-                                                <span className="font-semibold text-sky-300">XE360 {s.xe360Subtype}</span>
-                                              </div>
-                                            )}
-                                            {s.xe360LeverStyle && (
+                                            {detectLockFamily(item) === 'xe360' && s.xe360LeverStyle && (
                                               <div className="flex items-center justify-between text-slate-300">
                                                 <span className="text-slate-400">Lever Style:</span>
                                                 <span className="font-semibold text-slate-100">{s.xe360LeverStyle}</span>
                                               </div>
                                             )}
-                                            {s.xe360TubularGrade && (
+                                            {detectLockFamily(item) === 'xe360' && s.xe360TubularGrade && (
                                               <div className="flex items-center justify-between text-slate-300">
                                                 <span className="text-slate-400">Grade:</span>
                                                 <span className="font-semibold text-emerald-400">{s.xe360TubularGrade}</span>
                                               </div>
                                             )}
-                                            {s.xe360MortiseGrade && (
+                                            {detectLockFamily(item) === 'xe360' && s.xe360MortiseGrade && (
                                               <div className="flex items-center justify-between text-slate-300">
                                                 <span className="text-slate-400">Grade:</span>
                                                 <span className="font-semibold text-emerald-400">{s.xe360MortiseGrade}</span>
                                               </div>
                                             )}
-                                            {(s.xe360ExitTrimFunction || s.xe360TubularFunction || s.xe360MortiseFunction) && (
+                                            {detectLockFamily(item) === 'xe360' && (s.xe360ExitTrimFunction || s.xe360TubularFunction || s.xe360MortiseFunction) && (
                                               <div className="flex items-center justify-between text-slate-300">
                                                 <span className="text-slate-400">Function:</span>
                                                 <span className="font-semibold text-sky-200 truncate ml-2 text-right">
@@ -517,7 +525,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                                 </span>
                                               </div>
                                             )}
-                                            {s.xe360ExitTrimCrashbar && (
+                                            {detectLockFamily(item) === 'xe360' && s.xe360ExitTrimCrashbar && (
                                               <div className="flex items-center justify-between text-slate-300">
                                                 <span className="text-slate-400">Crashbar:</span>
                                                 <span className="font-semibold text-slate-200 truncate ml-2 text-right">
@@ -583,17 +591,13 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                   </div>
 
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                                    {/* Family */}
+                                    {/* Lock Type - ALWAYS MATCHES BOM LINE ITEM */}
                                     <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
                                       <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                                        Hardware Family
+                                        Lock Type
                                       </span>
-                                      <span className="font-bold text-slate-100">
-                                        {item.lockFinishConfig.family === 'befe'
-                                          ? 'Schlage Control (BE467 / FE410)'
-                                          : item.lockFinishConfig.family === 'nde'
-                                          ? 'Schlage NDE Series'
-                                          : `Schlage XE360 ${item.lockFinishConfig.xe360Subtype || ''}`}
+                                      <span className="font-bold text-sky-300">
+                                        {getLockTypeDisplay(item)}
                                       </span>
                                     </div>
 
@@ -623,7 +627,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                     </div>
 
                                     {/* Trim / Escutcheon Style (BE/FE) */}
-                                    {item.lockFinishConfig.befeTrimStyle && (
+                                    {detectLockFamily(item) === 'befe' && item.lockFinishConfig.befeTrimStyle && (
                                       <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
                                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
                                           Trim / Escutcheon Style
@@ -635,7 +639,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                     )}
 
                                     {/* Lever Type (NDE) */}
-                                    {item.lockFinishConfig.ndeLeverType && (
+                                    {detectLockFamily(item) === 'nde' && item.lockFinishConfig.ndeLeverType && (
                                       <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
                                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
                                           Lever Style / Design
@@ -647,7 +651,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                     )}
 
                                     {/* Lever Style (XE360) */}
-                                    {item.lockFinishConfig.xe360LeverStyle && (
+                                    {detectLockFamily(item) === 'xe360' && item.lockFinishConfig.xe360LeverStyle && (
                                       <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
                                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
                                           Lever Style
@@ -659,7 +663,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                     )}
 
                                     {/* Security Grade (XE360 Tubular / Mortise) */}
-                                    {(item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade) && (
+                                    {detectLockFamily(item) === 'xe360' && (item.lockFinishConfig.xe360TubularGrade || item.lockFinishConfig.xe360MortiseGrade) && (
                                       <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
                                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
                                           ANSI/BHMA Grade
@@ -671,7 +675,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                     )}
 
                                     {/* Interior Function (XE360) */}
-                                    {(item.lockFinishConfig.xe360ExitTrimFunction || item.lockFinishConfig.xe360TubularFunction || item.lockFinishConfig.xe360MortiseFunction) && (
+                                    {detectLockFamily(item) === 'xe360' && (item.lockFinishConfig.xe360ExitTrimFunction || item.lockFinishConfig.xe360TubularFunction || item.lockFinishConfig.xe360MortiseFunction) && (
                                       <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800">
                                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
                                           Interior Function
@@ -685,7 +689,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                     )}
 
                                     {/* Crashbar Compatibility (XE360 Exit Trim) */}
-                                    {item.lockFinishConfig.xe360ExitTrimCrashbar && (
+                                    {detectLockFamily(item) === 'xe360' && item.lockFinishConfig.xe360ExitTrimCrashbar && (
                                       <div className="bg-slate-900/90 rounded-lg p-2 border border-slate-800 sm:col-span-2">
                                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
                                           Crashbar Compatibility
@@ -727,23 +731,30 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                       {item.lockFinishConfig?.isSplit && item.lockFinishConfig.splits && item.lockFinishConfig.splits.length > 0 && (
                         <div className="mt-1 flex flex-col items-end gap-0.5">
                           <div className="flex flex-wrap items-center justify-end gap-1">
-                            {item.lockFinishConfig.splits.map((s, idx) => (
-                              <span
-                                key={s.id || idx}
-                                className="inline-flex items-center gap-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200"
-                                title={`${s.label || `Split ${idx + 1}`}: ${s.quantity} units (${getSingleLockFinishSummary(s, item.lockFinishConfig!.family)})`}
-                              >
+                            {item.lockFinishConfig.splits.map((s, idx) => {
+                              const qtyFam = detectLockFamily(item);
+                              return (
                                 <span
-                                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                                  style={{
-                                    backgroundColor: getLockFinishColorHex(
-                                      s.befeColorFinish || s.ndeColorFinish || s.xe360ColorFinish
-                                    ),
-                                  }}
-                                />
-                                <span>{s.quantity}</span>
-                              </span>
-                            ))}
+                                  key={s.id || idx}
+                                  className="inline-flex items-center gap-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200"
+                                  title={`${s.label || `Split ${idx + 1}`}: ${s.quantity} units (${getSingleLockFinishSummary(s, qtyFam)})`}
+                                >
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{
+                                      backgroundColor: getLockFinishColorHex(
+                                        qtyFam === 'befe'
+                                          ? s.befeColorFinish
+                                          : qtyFam === 'nde'
+                                          ? s.ndeColorFinish
+                                          : s.xe360ColorFinish
+                                      ),
+                                    }}
+                                  />
+                                  <span>{s.quantity}</span>
+                                </span>
+                              );
+                            })}
                           </div>
                         </div>
                       )}

@@ -9,6 +9,8 @@ import {
   getProjectIntegratorPartners,
   checkAndApplyCsmHandoffAutoClose,
   isLockBOMItem,
+  detectLockFamily,
+  sanitizeLockSplits,
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
@@ -1988,6 +1990,42 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
         const cleaned = { ...b, model: fixedModel };
         delete cleaned.lockFinishConfig;
         return cleaned;
+      }
+      if (b.lockFinishConfig) {
+        const itemObj = { ...b, model: fixedModel };
+        const trueFamily = detectLockFamily(itemObj);
+        const splits = b.lockFinishConfig.splits
+          ? sanitizeLockSplits(b.lockFinishConfig.splits, trueFamily)
+          : undefined;
+        return {
+          ...b,
+          model: fixedModel,
+          lockFinishConfig: {
+            family: trueFamily,
+            isSplit: b.lockFinishConfig.isSplit,
+            splits,
+            customNotes: b.lockFinishConfig.customNotes,
+            ...(trueFamily === 'befe' && {
+              befeTrimStyle: b.lockFinishConfig.befeTrimStyle,
+              befeColorFinish: b.lockFinishConfig.befeColorFinish,
+            }),
+            ...(trueFamily === 'nde' && {
+              ndeColorFinish: b.lockFinishConfig.ndeColorFinish,
+              ndeLeverType: b.lockFinishConfig.ndeLeverType,
+            }),
+            ...(trueFamily === 'xe360' && {
+              xe360Subtype: b.lockFinishConfig.xe360Subtype,
+              xe360ColorFinish: b.lockFinishConfig.xe360ColorFinish,
+              xe360LeverStyle: b.lockFinishConfig.xe360LeverStyle,
+              xe360ExitTrimCrashbar: b.lockFinishConfig.xe360ExitTrimCrashbar,
+              xe360ExitTrimFunction: b.lockFinishConfig.xe360ExitTrimFunction,
+              xe360TubularGrade: b.lockFinishConfig.xe360TubularGrade,
+              xe360TubularFunction: b.lockFinishConfig.xe360TubularFunction,
+              xe360MortiseGrade: b.lockFinishConfig.xe360MortiseGrade,
+              xe360MortiseFunction: b.lockFinishConfig.xe360MortiseFunction,
+            }),
+          },
+        };
       }
       if (fixedModel !== b.model) {
         return { ...b, model: fixedModel };

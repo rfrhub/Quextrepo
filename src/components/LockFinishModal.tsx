@@ -27,6 +27,9 @@ import {
   XE360_TUBULAR_FUNCTIONS,
   XE360_MORTISE_FUNCTIONS,
   detectLockFamily,
+  isLockFamilyLockedToBOM,
+  getLockTypeDisplay,
+  sanitizeLockSplits,
   getLockFinishSummaryTag,
   getLockFinishColorHex,
   getSingleLockFinishSummary,
@@ -100,7 +103,8 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
     if (item && isOpen) {
       const detected = detectLockFamily(item);
       const cfg = item.lockFinishConfig;
-      const initialFamily = cfg?.family || detected;
+      // If the BOM line item dictates the family (BE, FE, NDEB, XE360), use detected family
+      const initialFamily = isLockFamilyLockedToBOM(item) ? detected : (cfg?.family || detected);
       setFamily(initialFamily);
 
       // Single values
@@ -131,7 +135,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
       setIsSplit(hasSplits);
 
       if (hasSplits && cfg?.splits) {
-        setSplits(cfg.splits);
+        setSplits(sanitizeLockSplits(cfg.splits, initialFamily));
         setActiveSplitIndex(0);
       } else {
         // Pre-initialize split choices with sensible distribution
@@ -139,40 +143,68 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
         const q1 = Math.max(1, Math.round(q * 0.75));
         const q2 = Math.max(0, q - q1);
 
-        setSplits([
-          {
-            id: 'split-1',
-            label: 'Residential / Main Units',
-            quantity: q2 > 0 ? q1 : q,
-            befeTrimStyle: cfg?.befeTrimStyle || 'Greenwich',
-            befeColorFinish: cfg?.befeColorFinish || '622 - Matte Black',
-            ndeColorFinish: cfg?.ndeColorFinish || '619: Satin Nickel',
-            ndeLeverType: cfg?.ndeLeverType || 'Latitude (LAT)',
-            xe360Subtype: cfg?.xe360Subtype || itemSubtype,
-            xe360ColorFinish: cfg?.xe360ColorFinish || '622 - Matte Black',
-            xe360LeverStyle: cfg?.xe360LeverStyle || 'LAT - Latitude',
-            xe360ExitTrimCrashbar: cfg?.xe360ExitTrimCrashbar || 'Von Duprin 98/99 / XP98/99 rim',
-            xe360ExitTrimFunction: cfg?.xe360ExitTrimFunction || 'Interior push button with LED indicator (B)',
-            xe360TubularFunction: cfg?.xe360TubularFunction || 'Push button (B) - Common areas and package rooms',
-            xe360MortiseFunction: cfg?.xe360MortiseFunction || 'Mortise deadbolt with thumbturn and LED indicator (D)',
-          },
-          {
-            id: 'split-2',
-            label: 'Clubhouse / Amenities',
-            quantity: q2 > 0 ? q2 : 0,
-            befeTrimStyle: 'Addison',
-            befeColorFinish: '619 - Satin Nickel',
-            ndeColorFinish: '622: Matte Black',
-            ndeLeverType: 'Rhodes (RHO)',
-            xe360Subtype: cfg?.xe360Subtype || itemSubtype,
-            xe360ColorFinish: '619 - Satin Nickel',
-            xe360LeverStyle: 'BRW - Broadway',
-            xe360ExitTrimCrashbar: 'Falcon 25',
-            xe360ExitTrimFunction: 'Interior LED indicator (I)',
-            xe360TubularFunction: 'Push button (B) - Common areas and package rooms',
-            xe360MortiseFunction: 'Interior push button (B)',
-          },
-        ]);
+        if (initialFamily === 'befe') {
+          setSplits([
+            {
+              id: 'split-1',
+              label: 'Residential / Main Units',
+              quantity: q2 > 0 ? q1 : q,
+              befeTrimStyle: cfg?.befeTrimStyle || 'Greenwich',
+              befeColorFinish: cfg?.befeColorFinish || '622 - Matte Black',
+            },
+            {
+              id: 'split-2',
+              label: 'Clubhouse / Amenities',
+              quantity: q2 > 0 ? q2 : 0,
+              befeTrimStyle: 'Addison',
+              befeColorFinish: '619 - Satin Nickel',
+            },
+          ]);
+        } else if (initialFamily === 'nde') {
+          setSplits([
+            {
+              id: 'split-1',
+              label: 'Residential / Main Units',
+              quantity: q2 > 0 ? q1 : q,
+              ndeColorFinish: cfg?.ndeColorFinish || '619: Satin Nickel',
+              ndeLeverType: cfg?.ndeLeverType || 'Latitude (LAT)',
+            },
+            {
+              id: 'split-2',
+              label: 'Clubhouse / Amenities',
+              quantity: q2 > 0 ? q2 : 0,
+              ndeColorFinish: '622: Matte Black',
+              ndeLeverType: 'Rhodes (RHO)',
+            },
+          ]);
+        } else {
+          setSplits([
+            {
+              id: 'split-1',
+              label: 'Residential / Main Units',
+              quantity: q2 > 0 ? q1 : q,
+              xe360Subtype: cfg?.xe360Subtype || itemSubtype,
+              xe360ColorFinish: cfg?.xe360ColorFinish || '622 - Matte Black',
+              xe360LeverStyle: cfg?.xe360LeverStyle || 'LAT - Latitude',
+              xe360ExitTrimCrashbar: cfg?.xe360ExitTrimCrashbar || 'Von Duprin 98/99 / XP98/99 rim',
+              xe360ExitTrimFunction: cfg?.xe360ExitTrimFunction || 'Interior push button with LED indicator (B)',
+              xe360TubularFunction: cfg?.xe360TubularFunction || 'Push button (B) - Common areas and package rooms',
+              xe360MortiseFunction: cfg?.xe360MortiseFunction || 'Mortise deadbolt with thumbturn and LED indicator (D)',
+            },
+            {
+              id: 'split-2',
+              label: 'Clubhouse / Amenities',
+              quantity: q2 > 0 ? q2 : 0,
+              xe360Subtype: cfg?.xe360Subtype || itemSubtype,
+              xe360ColorFinish: '619 - Satin Nickel',
+              xe360LeverStyle: 'BRW - Broadway',
+              xe360ExitTrimCrashbar: 'Falcon 25',
+              xe360ExitTrimFunction: 'Interior LED indicator (I)',
+              xe360TubularFunction: 'Push button (B) - Common areas and package rooms',
+              xe360MortiseFunction: 'Interior push button (B)',
+            },
+          ]);
+        }
         setActiveSplitIndex(0);
       }
     }
@@ -194,22 +226,37 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
 
   const handleAddSplit = () => {
     const newQty = remainingQty > 0 ? remainingQty : 1;
-    const newSplit: LockFinishSplit = {
-      id: `split-${Date.now()}`,
-      label: `Split Group #${splits.length + 1}`,
-      quantity: newQty,
-      befeTrimStyle: 'Greenwich',
-      befeColorFinish: '625 - Polished Chrome',
-      ndeColorFinish: '625: Bright Chrome',
-      ndeLeverType: 'Broadway (BRW)',
-      xe360Subtype: 'Mortise',
-      xe360ColorFinish: '626 - Satin Chrome',
-      xe360LeverStyle: 'LONE - Longitude-Extended',
-      xe360ExitTrimCrashbar: 'Von Duprin 98/99 / XP98/99 rim',
-      xe360ExitTrimFunction: 'Interior push button with LED indicator (B)',
-      xe360TubularFunction: 'Push button (B) - Common areas and package rooms',
-      xe360MortiseFunction: 'Interior LED indicator (I)',
-    };
+    let newSplit: LockFinishSplit;
+    if (family === 'befe') {
+      newSplit = {
+        id: `split-${Date.now()}`,
+        label: `Split Group #${splits.length + 1}`,
+        quantity: newQty,
+        befeTrimStyle: 'Greenwich',
+        befeColorFinish: '625 - Polished Chrome',
+      };
+    } else if (family === 'nde') {
+      newSplit = {
+        id: `split-${Date.now()}`,
+        label: `Split Group #${splits.length + 1}`,
+        quantity: newQty,
+        ndeColorFinish: '625: Bright Chrome',
+        ndeLeverType: 'Broadway (BRW)',
+      };
+    } else {
+      newSplit = {
+        id: `split-${Date.now()}`,
+        label: `Split Group #${splits.length + 1}`,
+        quantity: newQty,
+        xe360Subtype: 'Mortise',
+        xe360ColorFinish: '626 - Satin Chrome',
+        xe360LeverStyle: 'LONE - Longitude-Extended',
+        xe360ExitTrimCrashbar: 'Von Duprin 98/99 / XP98/99 rim',
+        xe360ExitTrimFunction: 'Interior push button with LED indicator (B)',
+        xe360TubularFunction: 'Push button (B) - Common areas and package rooms',
+        xe360MortiseFunction: 'Interior LED indicator (I)',
+      };
+    }
     setSplits((prev) => [...prev, newSplit]);
     setActiveSplitIndex(splits.length);
   };
@@ -223,70 +270,67 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
   };
 
   const handleFamilyChange = (newFam: LockFamilyType) => {
+    if (isLockFamilyLockedToBOM(item)) return;
     setFamily(newFam);
-    setSplits((prev) =>
-      prev.map((s) => ({
-        ...s,
-        ...(newFam === 'befe' && {
-          befeTrimStyle: s.befeTrimStyle || 'Greenwich',
-          befeColorFinish: s.befeColorFinish || '622 - Matte Black',
-        }),
-        ...(newFam === 'nde' && {
-          ndeColorFinish: s.ndeColorFinish || '619: Satin Nickel',
-          ndeLeverType: s.ndeLeverType || 'Latitude (LAT)',
-        }),
-        ...(newFam === 'xe360' && {
-          xe360Subtype: s.xe360Subtype || 'Mortise',
-          xe360ColorFinish: s.xe360ColorFinish || '622 - Matte Black',
-          xe360LeverStyle: s.xe360LeverStyle || 'LAT - Latitude',
-        }),
-      }))
-    );
+    setSplits((prev) => sanitizeLockSplits(prev, newFam));
   };
 
-  // Build current config object for preview and saving
+  // Build current config object for preview and saving - strictly sanitized by family
+  const currentSplits = sanitizeLockSplits(splits, family);
   const currentConfig: LockFinishConfig = {
     family,
     isSplit,
     ...(isSplit
       ? {
-          splits,
-          befeTrimStyle: splits[0]?.befeTrimStyle || befeTrimStyle,
-          befeColorFinish: splits[0]?.befeColorFinish || befeColorFinish,
-          ndeColorFinish: splits[0]?.ndeColorFinish || ndeColorFinish,
-          ndeLeverType: splits[0]?.ndeLeverType || ndeLeverType,
-          xe360Subtype: splits[0]?.xe360Subtype || xe360Subtype,
-          xe360ColorFinish: splits[0]?.xe360ColorFinish || xe360ColorFinish,
-          xe360LeverStyle: splits[0]?.xe360LeverStyle || xe360LeverStyle,
-          xe360ExitTrimCrashbar: splits[0]?.xe360ExitTrimCrashbar || xe360ExitTrimCrashbar,
-          xe360ExitTrimFunction: splits[0]?.xe360ExitTrimFunction || xe360ExitTrimFunction,
-          xe360TubularGrade: 'ANSI/BHMA Grade 2',
-          xe360TubularFunction: splits[0]?.xe360TubularFunction || xe360TubularFunction,
-          xe360MortiseGrade: 'ANSI/BHMA Grade 1',
-          xe360MortiseFunction: splits[0]?.xe360MortiseFunction || xe360MortiseFunction,
+          splits: currentSplits,
+          ...(family === 'befe' && {
+            befeTrimStyle: currentSplits[0]?.befeTrimStyle || befeTrimStyle,
+            befeColorFinish: currentSplits[0]?.befeColorFinish || befeColorFinish,
+          }),
+          ...(family === 'nde' && {
+            ndeColorFinish: currentSplits[0]?.ndeColorFinish || ndeColorFinish,
+            ndeLeverType: currentSplits[0]?.ndeLeverType || ndeLeverType,
+          }),
+          ...(family === 'xe360' && {
+            xe360Subtype: currentSplits[0]?.xe360Subtype || xe360Subtype,
+            xe360ColorFinish: currentSplits[0]?.xe360ColorFinish || xe360ColorFinish,
+            xe360LeverStyle: currentSplits[0]?.xe360LeverStyle || xe360LeverStyle,
+            xe360ExitTrimCrashbar: currentSplits[0]?.xe360ExitTrimCrashbar || xe360ExitTrimCrashbar,
+            xe360ExitTrimFunction: currentSplits[0]?.xe360ExitTrimFunction || xe360ExitTrimFunction,
+            xe360TubularGrade: 'ANSI/BHMA Grade 2',
+            xe360TubularFunction: currentSplits[0]?.xe360TubularFunction || xe360TubularFunction,
+            xe360MortiseGrade: 'ANSI/BHMA Grade 1',
+            xe360MortiseFunction: currentSplits[0]?.xe360MortiseFunction || xe360MortiseFunction,
+          }),
         }
       : {
-          befeTrimStyle,
-          befeColorFinish,
-          ndeColorFinish,
-          ndeLeverType,
-          xe360Subtype,
-          xe360ColorFinish,
-          xe360LeverStyle,
-          ...(xe360Subtype === 'Exit Trim'
-            ? {
-                xe360ExitTrimCrashbar,
-                xe360ExitTrimFunction,
-              }
-            : xe360Subtype === 'Tubular'
-            ? {
-                xe360TubularGrade: 'ANSI/BHMA Grade 2',
-                xe360TubularFunction,
-              }
-            : {
-                xe360MortiseGrade: 'ANSI/BHMA Grade 1',
-                xe360MortiseFunction,
-              }),
+          ...(family === 'befe' && {
+            befeTrimStyle,
+            befeColorFinish,
+          }),
+          ...(family === 'nde' && {
+            ndeColorFinish,
+            ndeLeverType,
+          }),
+          ...(family === 'xe360' && {
+            xe360Subtype,
+            xe360ColorFinish,
+            xe360LeverStyle,
+            ...(xe360Subtype === 'Exit Trim'
+              ? {
+                  xe360ExitTrimCrashbar,
+                  xe360ExitTrimFunction,
+                }
+              : xe360Subtype === 'Tubular'
+              ? {
+                  xe360TubularGrade: 'ANSI/BHMA Grade 2',
+                  xe360TubularFunction,
+                }
+              : {
+                  xe360MortiseGrade: 'ANSI/BHMA Grade 1',
+                  xe360MortiseFunction,
+                }),
+          }),
         }),
     customNotes: customNotes.trim() || undefined,
   };
@@ -423,17 +467,33 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
 
           {/* Lock Family Selector */}
           <div>
-            <label className="block font-bold text-slate-800 mb-2 uppercase tracking-wider text-[11px]">
-              Lock Model Family
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                Lock Model &amp; Type
+              </label>
+              {isLockFamilyLockedToBOM(item) && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full">
+                  <Lock className="w-3 h-3 text-sky-600 shrink-0" />
+                  <span>Matches BOM Line Item: <strong>{getLockTypeDisplay(item)}</strong></span>
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => handleFamilyChange('befe')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  family === 'befe'
-                    ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                disabled={isLockFamilyLockedToBOM(item) && family !== 'befe'}
+                title={
+                  isLockFamilyLockedToBOM(item) && family !== 'befe'
+                    ? `Locked to BOM line item product: ${item.name}`
+                    : undefined
+                }
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  isLockFamilyLockedToBOM(item) && family !== 'befe'
+                    ? 'opacity-40 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                    : family === 'befe'
+                    ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20 cursor-pointer'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -448,14 +508,22 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleFamilyChange('nde')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  family === 'nde'
-                    ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                disabled={isLockFamilyLockedToBOM(item) && family !== 'nde'}
+                title={
+                  isLockFamilyLockedToBOM(item) && family !== 'nde'
+                    ? `Locked to BOM line item product: ${item.name}`
+                    : undefined
+                }
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  isLockFamilyLockedToBOM(item) && family !== 'nde'
+                    ? 'opacity-40 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                    : family === 'nde'
+                    ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20 cursor-pointer'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs">NDE / NDEBs</span>
+                  <span className="font-bold text-xs">NDEB Series</span>
                   {family === 'nde' && <Check className="w-4 h-4 text-sky-600" />}
                 </div>
                 <p className="text-[11px] text-slate-500 font-normal mt-0.5">
@@ -466,10 +534,18 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleFamilyChange('xe360')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                  family === 'xe360'
-                    ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                disabled={isLockFamilyLockedToBOM(item) && family !== 'xe360'}
+                title={
+                  isLockFamilyLockedToBOM(item) && family !== 'xe360'
+                    ? `Locked to BOM line item product: ${item.name}`
+                    : undefined
+                }
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  isLockFamilyLockedToBOM(item) && family !== 'xe360'
+                    ? 'opacity-40 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                    : family === 'xe360'
+                    ? 'border-sky-500 bg-sky-50/70 text-sky-950 font-bold ring-2 ring-sky-500/20 cursor-pointer'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -608,6 +684,16 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
               {/* Active Split Editor Card */}
               {activeSplit && (
                 <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                  {/* Split Lock Type Info */}
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-[11px] font-semibold text-slate-600">
+                      Lock Type: <strong className="text-slate-900">{getLockTypeDisplay(item, activeSplit)}</strong>
+                    </span>
+                    <span className="text-[10px] text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md font-mono">
+                      Line Item: {item.name}
+                    </span>
+                  </div>
+
                   {/* Split Group Metadata (Label, Quantity, Remove) */}
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end border-b border-slate-100 pb-3">
                     <div className="sm:col-span-6">
@@ -799,7 +885,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
                       <div>
                         <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
                           <Shield className="w-3.5 h-3.5 text-sky-600" />
-                          <span>XE360 Hardware Subtype *</span>
+                          <span>XE360 Lock Type *</span>
                         </label>
                         <div className="grid grid-cols-3 gap-2">
                           {XE360_SUBTYPES.map((sub) => (
@@ -1143,7 +1229,7 @@ export const LockFinishModal: React.FC<LockFinishModalProps> = ({
                   <div>
                     <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
                       <Shield className="w-3.5 h-3.5 text-sky-600" />
-                      <span>XE360 Hardware Subtype *</span>
+                      <span>XE360 Lock Type *</span>
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {XE360_SUBTYPES.map((sub) => (
