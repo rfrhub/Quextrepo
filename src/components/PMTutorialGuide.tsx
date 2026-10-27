@@ -358,16 +358,17 @@ export const PMTutorialGuide: React.FC<PMTutorialGuideProps> = ({
       id: 'step-17-partner-academy',
       number: 17,
       chapter: 'Milestone 6: Certified Partners',
-      featureName: 'Partner Academy (Subcontractor Integrators)',
-      targetSelector: '[data-tutorial-id="partner-academy-hub"]',
+      featureName: 'Partner Academy (SOW-Catered Curriculum)',
+      targetSelector: '[data-tutorial-id="partner-upcoming-projects"], [data-tutorial-id="partner-academy-hub"]',
       preferredPlacement: 'bottom',
       navigation: {
         portal: 'partner-academy',
         partnerShortName: 'SKBM',
       },
       message:
-        'Dedicated to certified subcontractor integrators (SKBM, etc.). They access door templates (NDEB1/2, BE467, FE410, XE360), FDR reset guides, and certification exams with zero access to internal Quext pricing or margins.',
-      tryItOutPrompt: 'Click any course module or button to test it!',
+        'Dedicated training portal for certified subcontractor integrators (SKBM, ATB, Everbase, etc.) with strict zero-pricing visibility. Partner Academy dynamically analyzes each project\'s contracted Scope of Work (SOW aka BOM line items)—from Schlage smart locks to IoT Gateways, Smart Thermostats, and QR Intercoms—to auto-package tailored installation courses, interactive wiring sandboxes, OEM door templates, and site-readiness checklists.',
+      tryItOutPrompt:
+        'Click any assigned project card below to view its tailored SOW/BOM installation package!',
     },
     {
       id: 'step-18-csm-handoff',

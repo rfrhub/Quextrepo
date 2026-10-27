@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setCurrentTab('curriculum')}
           className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 rounded-md cursor-pointer shrink-0"
         >
-          <QuextLogo size="md" showSubtitle={false} />
+          <QuextLogo size="md" showSubtitle={true} />
         </button>
 
         {/* Zone 2: Navigation bar consolidated like myquext.com & onequext.com */}

@@ -7,12 +7,16 @@ interface QuextLogoProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'boxed' | 'modern' | 'glow';
   showSubtitle?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
 export const QuextLogo: React.FC<QuextLogoProps> = ({
   className = '',
   size = 'md',
   showSubtitle = true,
+  title = 'Partner Academy',
+  subtitle = 'Field Installation & Training',
 }) => {
   const logoHeights = {
     sm: 'h-7 sm:h-8',
@@ -21,7 +25,7 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
   };
 
   return (
-    <div className={`flex items-center gap-3.5 ${className}`}>
+    <div className={`flex items-center gap-2 sm:gap-3.5 ${className}`}>
       {/* Official Quext Powered by GFiber Logo with 4-Color Icon */}
       <div className="relative inline-flex items-center justify-center transition-transform hover:scale-[1.02]">
         <img
@@ -40,12 +44,12 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
       </div>
 
       {showSubtitle && (
-        <div className="hidden xl:flex flex-col leading-none border-l border-zinc-700/80 pl-3 shrink-0">
-          <span className="text-xs uppercase tracking-[0.18em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-300 to-cyan-400">
-            Partner Academy
+        <div className="flex flex-col leading-none border-l border-zinc-700/80 pl-2 sm:pl-3 shrink-0">
+          <span className="text-[10px] sm:text-xs uppercase tracking-[0.14em] sm:tracking-[0.18em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-300 to-cyan-400">
+            {title}
           </span>
-          <span className="text-[10px] text-zinc-400 tracking-wider uppercase font-medium mt-0.5">
-            Field Installation &amp; Training
+          <span className="hidden sm:inline text-[9px] sm:text-[10px] text-zinc-400 tracking-wider uppercase font-medium mt-0.5">
+            {subtitle}
           </span>
         </div>
       )}
