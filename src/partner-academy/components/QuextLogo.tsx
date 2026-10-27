@@ -28,14 +28,14 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
           src={QUEXT_GFIBER_WHITE_LOGO_BASE64 || whiteLogo}
           alt="Quext powered by GFiber"
           className={`${logoHeights[size]} w-auto object-contain flex-shrink-0`}
-          style={{ height: size === 'sm' ? '30px' : size === 'lg' ? '42px' : '36px', width: 'auto' }}
+          style={{
+            height: size === 'sm' ? '30px' : size === 'lg' ? '42px' : '36px',
+            width: 'auto',
+            minWidth: size === 'sm' ? '114px' : size === 'lg' ? '160px' : '136px',
+            display: 'inline-block',
+          }}
           loading="eager"
           decoding="sync"
-          onError={(e) => {
-            if (e.currentTarget.src !== '/quext-powered-by-gfiber-white.png') {
-              e.currentTarget.src = '/quext-powered-by-gfiber-white.png';
-            }
-          }}
         />
       </div>
 

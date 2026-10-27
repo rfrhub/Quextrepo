@@ -14,13 +14,12 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({ className = 'h-7 sm:h-8', 
       title="Quext Home · View Latest Projects Activity"
     >
       <img
-        src="/quextgfiber-transparent.png"
-        alt="Quext powered by GFiber"
+        src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
+        alt="Quext"
         className={`${className} w-auto object-contain`}
-        style={{ height: '32px', width: 'auto' }}
         onError={(e) => {
-          if (e.currentTarget.src !== '/assets/aistudio/Quext_Logo_Black_ba76e58b.png') {
-            e.currentTarget.src = '/assets/aistudio/Quext_Logo_Black_ba76e58b.png';
+          if (e.currentTarget.src !== '/quext-logo-boxed.png') {
+            e.currentTarget.src = '/quext-logo-boxed.png';
           }
         }}
       />

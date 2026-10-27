@@ -194,16 +194,15 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
       <div className="flex flex-col justify-center px-4 py-10 sm:px-6 lg:flex-none lg:px-16 xl:px-20 bg-white">
         <div className="mx-auto w-full max-w-sm lg:w-[420px]">
           <div className="flex flex-col items-start mb-6">
-            {/* Quext Powered by GFiber Brand Logo */}
+            {/* Quext Black Box Logo matching Screenshot 2 */}
             <div className="mb-5 flex items-center">
               <img
-                src="/quextgfiber-transparent.png"
-                alt="Quext powered by GFiber"
+                src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
+                alt="Quext"
                 className="h-10 sm:h-11 w-auto object-contain"
-                style={{ height: '40px', width: 'auto' }}
                 onError={(e) => {
-                  if (e.currentTarget.src !== '/assets/aistudio/Quext_Logo_Black_ba76e58b.png') {
-                    e.currentTarget.src = '/assets/aistudio/Quext_Logo_Black_ba76e58b.png';
+                  if (e.currentTarget.src !== '/quext-logo-boxed.png') {
+                    e.currentTarget.src = '/quext-logo-boxed.png';
                   }
                 }}
               />

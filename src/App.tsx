@@ -117,7 +117,17 @@ export default function App() {
     companyId?: string;
     partnerShortName?: string;
     selectedProjectId?: string | null;
-  } | null>(null);
+  } | null>(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('/partner-academy')) {
+      return {
+        email: PARTNER_IDENTITY_DIRECTORY[0].defaultEmail,
+        companyId: PARTNER_IDENTITY_DIRECTORY[0].companyId,
+        partnerShortName: PARTNER_IDENTITY_DIRECTORY[0].partnerShortName,
+        selectedProjectId: null,
+      };
+    }
+    return null;
+  });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isSowHubOpen, setIsSowHubOpen] = useState<boolean>(false);
 
