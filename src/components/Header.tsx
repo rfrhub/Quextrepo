@@ -282,7 +282,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Mobile & Tablet Horizontal Swipeable Navigation Strip (< lg) */}
-        <div className="lg:hidden border-t border-slate-100 bg-slate-50/80 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="lg:hidden border-t border-slate-100 bg-slate-50/80 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none touch-pan-x scroll-smooth">
           <button
             type="button"
             onClick={() => handleMobileNavSelect('home')}

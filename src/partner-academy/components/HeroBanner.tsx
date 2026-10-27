@@ -50,7 +50,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           {/* Left Column */}
           <div className="lg:col-span-7 space-y-4">
             {/* Unboxed metadata line */}
-            <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-zinc-400 font-medium">
               <span className="text-purple-400 font-bold">{currentCompany.name}</span>
               <span aria-hidden="true">·</span>
               <span className="font-mono">PARTNER ID: {currentCompany.code}</span>

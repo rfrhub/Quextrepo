@@ -1021,11 +1021,12 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
             <button
               type="button"
               onClick={onLogoutToMainSite}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-2xs shrink-0"
               title="Return to Operations tab on myquext.com"
             >
               <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
-              <span>Back to Operations</span>
+              <span className="hidden sm:inline">Back to Operations</span>
+              <span className="sm:hidden">Ops</span>
             </button>
 
             <div

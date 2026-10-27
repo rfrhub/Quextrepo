@@ -22,7 +22,7 @@ export const CloudSyncIndicator: React.FC = () => {
       <button
         type="button"
         onClick={() => setShowDetails(!showDetails)}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
+        className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
           status.isConnected
             ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
             : status.isSyncing
@@ -42,7 +42,7 @@ export const CloudSyncIndicator: React.FC = () => {
           <CloudOff className="w-3 h-3 text-slate-400" />
         )}
 
-        <span className="font-mono text-[10px] tracking-tight">
+        <span className="hidden sm:inline font-mono text-[10px] tracking-tight">
           {status.isSyncing
             ? 'Cloud Syncing...'
             : status.isConnected

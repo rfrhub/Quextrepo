@@ -359,21 +359,21 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Zone 3: Actions - guaranteed shrink-0 ml-auto, flex-nowrap, neatly spaced */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-auto flex-nowrap">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto flex-nowrap">
           {/* Read-Only Verified Partner Identity Pill (User switching removed) */}
           <div
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-[#111114] border border-zinc-800 text-left shrink-0 shadow-sm"
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 rounded-full bg-[#111114] border border-zinc-800 text-left shrink-0 shadow-sm"
             title={`Authenticated Partner Session: ${currentUser.name} (${currentCompany.name})`}
           >
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-bold text-[11px] shadow-sm shrink-0">
               {currentUser.name.charAt(0)}
             </div>
-            <div className="min-w-0 max-w-[85px] sm:max-w-[120px] 2xl:max-w-[150px]">
+            <div className="min-w-0 max-w-[65px] xs:max-w-[85px] sm:max-w-[120px] 2xl:max-w-[150px]">
               <div className="font-semibold text-white text-xs truncate leading-tight flex items-center gap-1">
-                <span className="truncate">{currentUser.name}</span>
+                <span className="truncate">{currentUser.name.split(' ')[0] || currentUser.name}</span>
                 <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
               </div>
-              <div className="text-[10px] text-purple-300/90 font-mono truncate leading-none mt-0.5">
+              <div className="text-[10px] text-purple-300/90 font-mono truncate leading-none mt-0.5 hidden xs:block">
                 {currentCompany.code || currentCompany.name}
               </div>
             </div>
@@ -383,24 +383,23 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={handleCopyPartnerLink}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 rounded-full transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 rounded-full transition-colors cursor-pointer shrink-0"
             title="Copy pre-authenticated Partner Academy link for field integrators"
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
+            <span className="hidden sm:inline 2xl:hidden">{copiedLink ? 'Copied' : 'Share Link'}</span>
             <span className="hidden 2xl:inline">{copiedLink ? 'Link Copied!' : 'Copy Partner Link'}</span>
-            <span className="2xl:hidden">{copiedLink ? 'Copied' : 'Share Link'}</span>
           </button>
 
           {/* Installers Clip Field App Action Button */}
           <button
             type="button"
             onClick={onOpenInstallersClip || (() => setCurrentTab('installers_clip'))}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md border border-sky-400/30 transition-all cursor-pointer active:scale-95 shrink-0"
+            className="inline-flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md border border-sky-400/30 transition-all cursor-pointer active:scale-95 shrink-0"
             title="Open Installers Clip — In-the-Field Logging App for Integrator Partners"
           >
             <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
             <span className="hidden sm:inline">Installers Clip</span>
-            <span className="sm:hidden">Clip</span>
           </button>
 
           {/* Sign Out Button (if returned to operations hub or authenticated session) */}
@@ -408,7 +407,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onExitToOperationsHub}
-              className="inline-flex items-center px-2.5 sm:px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 rounded-full transition-colors cursor-pointer shrink-0"
+              className="hidden sm:inline-flex items-center px-2.5 sm:px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 rounded-full transition-colors cursor-pointer shrink-0"
               title="Sign out of Partner Academy"
             >
               <span>Sign Out</span>
@@ -430,6 +429,32 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Navigation Dropdown */}
       {mobileMenuOpen && (
         <div className="xl:hidden border-t border-zinc-800 mt-3 pt-3 pb-2 space-y-1">
+          {/* Quick Action Buttons on Mobile */}
+          <div className="grid grid-cols-2 gap-2 pb-2 mb-2 border-b border-zinc-800/80">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onOpenInstallersClip) onOpenInstallersClip();
+                else setCurrentTab('installers_clip');
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold text-xs shadow-sm cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+              <span>Installers Clip</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                handleCopyPartnerLink();
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 text-white border border-zinc-700 text-xs font-semibold cursor-pointer"
+            >
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
+              <span>{copiedLink ? 'Copied!' : 'Share Link'}</span>
+            </button>
+          </div>
           <button
             onClick={() => {
               setCurrentTab('curriculum');

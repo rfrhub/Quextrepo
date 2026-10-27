@@ -125,7 +125,7 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
   return (
     <section
       data-tutorial-id="partner-upcoming-projects"
-      className="rounded-3xl bg-gradient-to-b from-[#0d1322] via-[#090d16] to-[#07090f] border border-purple-500/30 p-5 sm:p-7 shadow-2xl relative overflow-hidden"
+      className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#0d1322] via-[#090d16] to-[#07090f] border border-purple-500/30 p-4 sm:p-7 shadow-2xl relative overflow-hidden"
     >
       {/* Subtle top glow */}
       <div className="absolute -top-24 right-12 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
