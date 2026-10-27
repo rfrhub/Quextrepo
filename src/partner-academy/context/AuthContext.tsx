@@ -22,9 +22,9 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const STORAGE_KEY_USERS = 'quext_academy_users_v4';
-const STORAGE_KEY_COMPANIES = 'quext_academy_companies_v4';
-const STORAGE_KEY_CURRENT_USER = 'quext_academy_current_user_v4';
+const STORAGE_KEY_USERS = 'quext_academy_users_v5';
+const STORAGE_KEY_COMPANIES = 'quext_academy_companies_v5';
+const STORAGE_KEY_CURRENT_USER = 'quext_academy_current_user_v5';
 
 export function isQuextEmployeeUser(
   user?: Partial<User> | null,
@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{
     if (saved && INITIAL_USERS.some((u) => u.id === saved)) {
       return saved;
     }
-    return 'user_skbm_lead';
+    return 'user_spirit_lead';
   });
 
   // Sync when activePartnerEmail or activeCompanyId changes from MyQuext Email Router

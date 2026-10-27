@@ -1,11 +1,17 @@
 export type UserRole = 'partner_installer' | 'partner_admin' | 'quext_director';
 
+export type PartnerTier =
+  | 'Official Channel Partner (OCP)'
+  | 'Gold Certified'
+  | 'Premier Elite'
+  | 'Authorized Partner';
+
 export interface PartnerCompany {
   id: string;
   name: string;
   code: string;
   region: string;
-  tier: 'Gold Certified' | 'Premier Elite' | 'Authorized Partner';
+  tier: PartnerTier;
   activeTechnicians: number;
   contactEmail: string;
   joinedDate: string;

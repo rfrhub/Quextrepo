@@ -704,7 +704,7 @@ export default function App() {
           const partnerLead =
             PARTNER_IDENTITY_DIRECTORY.find(
               (d) => d.partnerShortName.toLowerCase() === partnerShortName.toLowerCase()
-            )?.leadName || 'Marcus Vance';
+            )?.leadName || 'Shanna Olmstead';
           const actorDisplay = `${partnerLead} (${partnerShortName})`;
 
           const partnerChecklistNotif: ProjectActivityNotification = {

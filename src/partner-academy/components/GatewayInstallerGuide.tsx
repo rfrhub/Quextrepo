@@ -42,8 +42,8 @@ export const GatewayInstallerGuide: React.FC<GatewayInstallerGuideProps> = ({
   onOpenCourse,
   project,
   onUpdateProject,
-  installerName = 'Marcus Vance',
-  companyName = 'SKBM Integrations',
+  installerName = 'Shanna Olmstead',
+  companyName = 'Spirit Security',
 }) => {
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);

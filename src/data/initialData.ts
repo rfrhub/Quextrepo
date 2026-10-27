@@ -896,7 +896,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         id: 'log-33-102',
         projectId: '33om1u0TTgW3MYKO2FhH',
         timestamp: '2026-10-20 03:30 PM',
-        installerName: 'SKBM Partner Crew (Marcus Vance)',
+        installerName: 'SKBM Partner Crew (Bill Meyers)',
         itemId: 'bom-33-02',
         itemName: 'Quext IoT Smart Thermostat (LoRaWAN)',
         quantityCompleted: 28,

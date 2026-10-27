@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  OFFICIAL_CHANNEL_PARTNERS,
   DEFAULT_INTEGRATOR_PARTNERS,
   UsedIntegratorHistoryEntry,
+  isOfficialChannelPartner,
   isMainIntegratorPartner,
   loadUsedIntegratorHistory,
   saveUsedIntegratorToHistory,
@@ -100,8 +102,9 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Main Integrator Partners list — strictly the official main list only (never includes manual entries)
-  const mainPartners: readonly string[] = DEFAULT_INTEGRATOR_PARTNERS;
+  // Official Channel Partners (OCP) list — strictly the official OCP list only (never includes manual entries)
+  const ocpPartners: readonly string[] = OFFICIAL_CHANNEL_PARTNERS;
+  const mainPartners: readonly string[] = ocpPartners;
 
   // Toggle partner assignment on the current project
   const handleTogglePartner = (partnerName: string, isFromHistory?: boolean) => {
@@ -210,21 +213,25 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5">
             {assignedPartners.map((partner) => {
-              const isManual = !isMainIntegratorPartner(partner);
+              const isOCP = isOfficialChannelPartner(partner);
               return (
                 <span
                   key={partner}
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-md border transition-all ${getBadgeColor(
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold rounded-md border transition-all ${getBadgeColor(
                     partner
                   )}`}
                   title={
-                    isManual
-                      ? `${partner} (Manually entered integrator — stored in History of Used Integrators)`
-                      : `${partner} (Main Integrator Partner)`
+                    isOCP
+                      ? `${partner} (Official Channel Partner — OCP)`
+                      : `${partner} (Manually entered integrator — stored in History of Used Integrators)`
                   }
                 >
                   <span>{partner}</span>
-                  {isManual && (
+                  {isOCP ? (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.2 rounded bg-sky-200/80 text-sky-900 border border-sky-300/60 shadow-2xs">
+                      OCP
+                    </span>
+                  ) : (
                     <span className="text-[9px] font-semibold uppercase tracking-wider px-1 py-0.2 rounded bg-purple-200/70 text-purple-900">
                       Manual
                     </span>
@@ -282,7 +289,7 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                   <span>Assign Integrator Partner</span>
                 </h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Select from the main list, type in a manual integrator, or reuse from history.
+                  Select from Official Channel Partners (OCP), type in a manual integrator, or reuse from history.
                 </p>
               </div>
               <button
@@ -364,7 +371,7 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Main List ({mainPartners.length})
+                OCP Partners ({mainPartners.length})
               </button>
               <button
                 type="button"
@@ -381,14 +388,14 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
             </div>
 
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-              {/* SECTION 1: Main Integrator Partners List (Strictly Default Partners Only) */}
+              {/* SECTION 1: Official Channel Partners (OCP) List */}
               {(activeView === 'all' || activeView === 'main') && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between px-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Main Integrator Partners List
+                    <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider">
+                      Official Channel Partners (OCP)
                     </span>
-                    <span className="text-[10px] text-slate-400">Official Directory</span>
+                    <span className="text-[10px] text-slate-400">Verified Directory</span>
                   </div>
 
                   {mainPartners.map((partner) => {
@@ -412,8 +419,8 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                             <Square className="w-4 h-4 text-slate-400 shrink-0" />
                           )}
                           <span className="font-bold">{partner}</span>
-                          <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
-                            Main Partner
+                          <span className="text-[10px] font-bold text-sky-800 bg-sky-100 border border-sky-300 px-1.5 py-0.2 rounded">
+                            OCP
                           </span>
                         </div>
                         {isChecked && (

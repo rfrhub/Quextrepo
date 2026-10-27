@@ -256,17 +256,18 @@ export function normalizeFieldTech(tech?: string | null): FieldTechName {
   return 'Hector Lopez';
 }
 
-export const DEFAULT_INTEGRATOR_PARTNERS: readonly string[] = [
-  'SKBM',
-  'ATB',
-  'SBH',
-  'Everbase',
-  'JTS',
-  'RMR',
-  'All Media',
+export const OFFICIAL_CHANNEL_PARTNERS: readonly string[] = [
+  'Spirit Security',
+  'Engineered Controls',
+  'Everbase Solutions',
+  'SKBM Smart Tech',
+  'Southbay Hardware',
 ] as const;
 
-export type DefaultIntegratorPartner = typeof DEFAULT_INTEGRATOR_PARTNERS[number];
+export const DEFAULT_INTEGRATOR_PARTNERS = OFFICIAL_CHANNEL_PARTNERS;
+
+export type OfficialChannelPartner = typeof OFFICIAL_CHANNEL_PARTNERS[number];
+export type DefaultIntegratorPartner = OfficialChannelPartner;
 
 export interface UsedIntegratorHistoryEntry {
   name: string;
@@ -278,10 +279,27 @@ export interface UsedIntegratorHistoryEntry {
 export const STORAGE_KEY_CUSTOM_INTEGRATORS = 'quext_custom_integrator_partners';
 export const STORAGE_KEY_USED_INTEGRATORS_HISTORY = 'quext_used_integrators_history_v1';
 
-export function isMainIntegratorPartner(name: string): boolean {
+export function isOfficialChannelPartner(name: string): boolean {
+  if (!name) return false;
   const normalized = name.trim().toLowerCase();
-  return DEFAULT_INTEGRATOR_PARTNERS.some((p) => p.toLowerCase() === normalized);
+  const ocpMatches = [
+    'spirit security',
+    'spirit',
+    'engineered controls',
+    'engineered',
+    'eci',
+    'everbase solutions',
+    'everbase',
+    'skbm smart tech',
+    'skbm',
+    'southbay hardware',
+    'southbay',
+    'sbh',
+  ];
+  return ocpMatches.includes(normalized) || OFFICIAL_CHANNEL_PARTNERS.some((p) => p.toLowerCase() === normalized);
 }
+
+export const isMainIntegratorPartner = isOfficialChannelPartner;
 
 export function loadUsedIntegratorHistory(
   projects?: { propertyName?: string; integratorPartners?: string[] }[]
@@ -439,9 +457,9 @@ export function saveCustomIntegratorPartner(partner: string, projectName?: strin
   saveUsedIntegratorToHistory(partner, projectName);
 }
 
-// Main Integrator Partners list: strictly returns only the official main list (does NOT include manually typed integrators)
+// Official Channel Partners (OCP) list: strictly returns only the official channel partners list (does NOT include manually typed integrators)
 export function getAllIntegratorPartners(_projects?: { integratorPartners?: string[] }[]): string[] {
-  return [...DEFAULT_INTEGRATOR_PARTNERS];
+  return [...OFFICIAL_CHANNEL_PARTNERS];
 }
 
 export function getProjectIntegratorPartners(project?: Partial<OperationProject>): string[] {

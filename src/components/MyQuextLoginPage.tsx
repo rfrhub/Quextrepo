@@ -139,7 +139,7 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     return {
       name: matchedPartner.leadName || `${matchedPartner.partnerShortName} Partner`,
       email: email.includes('@') ? email : matchedPartner.defaultEmail,
-      roleLabel: 'INTEGRATOR PARTNER',
+      roleLabel: 'OFFICIAL CHANNEL PARTNER (OCP)',
       avatarInitial: matchedPartner.partnerShortName.charAt(0).toUpperCase(),
       accountType: 'integrator_partner',
       partnerCompanyId: matchedPartner.companyId,
@@ -152,7 +152,7 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
   return {
     name: email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     email,
-    roleLabel: 'INTEGRATOR PARTNER',
+    roleLabel: 'OFFICIAL CHANNEL PARTNER (OCP)',
     avatarInitial: email.charAt(0).toUpperCase(),
     accountType: 'integrator_partner',
     partnerCompanyId: defaultPartner.companyId,
@@ -429,19 +429,20 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
             </div>
 
             <div className="space-y-1.5 pt-1">
-              <div className="text-[10px] font-semibold text-purple-700">
-                Integrator Partners (Routes Directly to Partner Academy Portal Only):
+              <div className="text-[10px] font-bold text-sky-800 flex items-center gap-1.5">
+                <span className="px-1.5 py-0.2 rounded bg-sky-100 border border-sky-300 text-sky-900 font-mono text-[9px]">OCP</span>
+                <span>Official Channel Partners (Routes Directly to Partner Academy):</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {PARTNER_IDENTITY_DIRECTORY.map((p) => (
+                {PARTNER_IDENTITY_DIRECTORY.slice(0, 5).map((p) => (
                   <button
                     key={p.companyId}
                     type="button"
                     onClick={() => handleQuickLogin(p.defaultEmail)}
-                    className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 cursor-pointer"
+                    className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 cursor-pointer shadow-2xs transition-colors"
                     title={`Sign in as ${p.partnerShortName} (${p.defaultEmail}) -> Opens Partner Academy Portal`}
                   >
-                    {p.partnerShortName} ({p.defaultEmail})
+                    <span className="font-bold">{p.partnerShortName}</span> · <span className="text-slate-600 font-normal">{p.leadName.split(' ')[0]}</span> ({p.defaultEmail})
                   </button>
                 ))}
               </div>

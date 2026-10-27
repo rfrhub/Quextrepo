@@ -290,15 +290,15 @@ export const FieldTechLoginModal: React.FC<FieldTechLoginModalProps> = ({
               <div className="flex items-center justify-between mb-2.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Integrator Partner Academy Accounts (Pre-Packaged Project Courses)</span>
+                  <span>Official Channel Partners (OCP Academy Accounts)</span>
                 </div>
-                <span className="text-[10px] font-mono text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded">
-                  Routes to Partner Academy Portal
+                <span className="text-[10px] font-mono text-sky-800 bg-sky-50 border border-sky-300 px-2 py-0.5 rounded font-bold">
+                  OCP Portal
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {PARTNER_IDENTITY_DIRECTORY.slice(0, 6).map((partner) => {
+                {PARTNER_IDENTITY_DIRECTORY.slice(0, 5).map((partner) => {
                   const projCount = getPartnerProjectCount(partner.partnerShortName);
                   const isCurrentPartner =
                     currentPartnerEmail?.toLowerCase() === partner.defaultEmail.toLowerCase();

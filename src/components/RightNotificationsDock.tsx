@@ -399,7 +399,7 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
               sectionTargetId: 'shipping-dock-section',
               title: `Shipping Dock Staged: ${dockItem.bomItemName}`,
               details: `Carrier: ${dockItem.carrier || 'Freight Line'} · Tracking #${dockItem.trackingNumber || 'PRO-77491'} · ${dockItem.shippedQuantity || 24} units delivered to site staging.`,
-              actorName: 'Marcus Vance (SKBM)',
+              actorName: 'Bill Meyers (SKBM Smart Tech)',
               actorRole: 'installer_partner',
               badgeLabel: 'Shipping Dock',
             });
@@ -477,7 +477,7 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
               sectionTargetId: 'pm-common-doors',
               title: `Common Door Access Configured: ${door.doorName || 'Clubhouse & Amenity Gates'}`,
               details: `Device: ${door.installedDeviceName || 'Schlage MT20W Reader'} · Access: 24/7 NFC Mobile Key & Apple Wallet Credential.`,
-              actorName: 'Elena Rostova (ATB Lead)',
+              actorName: 'Shanna Olmstead (Spirit Security)',
               actorRole: 'installer_partner',
               badgeLabel: 'Common Doors',
             });
