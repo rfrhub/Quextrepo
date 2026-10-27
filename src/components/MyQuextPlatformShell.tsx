@@ -45,6 +45,7 @@ import {
   X,
   FolderKanban,
   AlertTriangle,
+  GitMerge,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
@@ -114,6 +115,7 @@ interface MyQuextPlatformShellProps {
   onOpenPartnerAcademy: () => void;
   onOpenSowAutomation?: () => void;
   onOpenPMTutorial?: () => void;
+  onOpenCloneWars?: () => void;
   onCreateProject?: (newProject: OperationProject) => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
@@ -160,6 +162,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onOpenPartnerAcademy,
   onOpenSowAutomation,
   onOpenPMTutorial,
+  onOpenCloneWars,
   onCreateProject,
   onResetData,
   onToggleStandaloneMode,
@@ -721,6 +724,28 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
                     >
                       <span>Team Management</span>
+                    </button>
+
+                    {/* The Clone Wars: In between Team Management and Workspace */}
+                    <button
+                      type="button"
+                      data-tutorial-id="profile-dropdown-clone-wars-btn"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        if (onOpenCloneWars) {
+                          onOpenCloneWars();
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-sm font-semibold text-amber-900 bg-amber-50/70 hover:bg-amber-100 flex items-center justify-between cursor-pointer transition-colors border-y border-amber-200/60"
+                      title="The Clone Wars — Detect and merge duplicate projects sharing title words into a single project"
+                    >
+                      <div className="flex items-center gap-2">
+                        <GitMerge className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span className="font-bold text-amber-950">The Clone Wars</span>
+                      </div>
+                      <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-amber-200 text-amber-900 rounded-md">
+                        Merge
+                      </span>
                     </button>
 
                     <button

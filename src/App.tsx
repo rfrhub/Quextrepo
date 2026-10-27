@@ -39,6 +39,7 @@ import { QuextLogo } from './components/QuextLogo';
 import { MyQuextPlatformShell, MyQuextTopTab } from './components/MyQuextPlatformShell';
 import { SOWFormAutomationHub } from './components/SOWFormAutomationHub';
 import { PMTutorialGuide, TutorialNavigationTarget } from './components/PMTutorialGuide';
+import { CloneWarsWorkspace } from './components/CloneWarsWorkspace';
 import {
   MyQuextLoginPage,
   MyQuextSignedInUser,
@@ -173,6 +174,9 @@ export default function App() {
   signedInUserRef.current = signedInUser;
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isSowHubOpen, setIsSowHubOpen] = useState<boolean>(false);
+  const [isCloneWarsOpen, setIsCloneWarsOpen] = useState<boolean>(
+    () => typeof window !== 'undefined' && window.location.hash.includes('/clone-wars')
+  );
 
   // Live Right-Side Notification Dock auto-slide-out state (5-second reveal)
   const [latestNotification, setLatestNotification] = useState<ProjectActivityNotification | null>(null);
@@ -484,6 +488,15 @@ export default function App() {
           window.location.hash = '#/login';
           return;
         }
+      }
+
+      if (hash.includes('/clone-wars')) {
+        setIsCloneWarsOpen(true);
+        setMainTab('operations');
+        setMyQuextTopTab('operations');
+        return;
+      } else {
+        setIsCloneWarsOpen(false);
       }
 
       if (hash.includes('/analysis/')) {
@@ -905,6 +918,31 @@ export default function App() {
     saveLiveProject(enrichedManual).catch((e) =>
       console.warn('[Cloud Sync] Background manual project save failed:', e)
     );
+  };
+
+  // Merge duplicate projects into a single consolidated project ("The Clone Wars")
+  const handleMergeProjects = (survivorProject: OperationProject, obsoleteProjectId: string) => {
+    setProjects((prev) => {
+      const updated = prev
+        .filter((p) => p.id !== obsoleteProjectId)
+        .map((p) => (p.id === survivorProject.id ? survivorProject : p));
+      saveStoredProjects(updated);
+      saveLiveProject(survivorProject).catch((e) =>
+        console.warn('[Cloud Sync] Merged project save failed:', e)
+      );
+      return updated;
+    });
+
+    const mergeNotif: ProjectActivityNotification = {
+      id: `merge_notif_${Date.now()}`,
+      timestamp: 'Just now',
+      title: 'Project Merged (The Clone Wars)',
+      details: `Consolidated "${survivorProject.propertyName}" with obsolete duplicate (${obsoleteProjectId}). Scope and logs merged.`,
+      actorName: signedInUserRef.current?.name || 'Quext Project Manager',
+      badgeLabel: 'Clone Wars Merge',
+    };
+    setLatestNotification(mergeNotif);
+    setAutoPopTriggerKey((k) => k + 1);
   };
 
   // Update status tag directly
@@ -1536,8 +1574,23 @@ export default function App() {
   }
 
   const operationsWorkspaceContent = (
-    <main className="flex-1 max-w-[1560px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {mainTab === 'home' && (
+    <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {isCloneWarsOpen ? (
+        <CloneWarsWorkspace
+          projects={projects}
+          onMergeProjects={handleMergeProjects}
+          onClose={() => {
+            setIsCloneWarsOpen(false);
+            window.location.hash = '#/operations';
+          }}
+          onNavigateToProject={(projectId) => {
+            setIsCloneWarsOpen(false);
+            handleGoToOperationsProject(projectId);
+          }}
+        />
+      ) : (
+        <>
+          {mainTab === 'home' && (
         <HomeScreen
           projects={projects}
           currentUserName={signedInUser?.name}
@@ -1653,6 +1706,8 @@ export default function App() {
           onGoToOperationsProject={handleGoToOperationsProject}
         />
       )}
+        </>
+      )}
     </main>
   );
 
@@ -1743,6 +1798,10 @@ export default function App() {
             window.location.hash = '#/partner-academy';
           }}
           onOpenSowAutomation={() => setIsSowHubOpen(true)}
+          onOpenCloneWars={() => {
+            setIsCloneWarsOpen(true);
+            window.location.hash = '#/clone-wars';
+          }}
           onOpenPMTutorial={() => {
             setIsPMTutorialOpen(true);
             setPmTutorialStep(0);
