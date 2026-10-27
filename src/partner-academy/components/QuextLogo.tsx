@@ -15,9 +15,9 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
   showSubtitle = true,
 }) => {
   const logoHeights = {
-    sm: 'h-6 sm:h-7',
-    md: 'h-7 sm:h-8',
-    lg: 'h-9 sm:h-10',
+    sm: 'h-7 sm:h-8',
+    md: 'h-8 sm:h-9',
+    lg: 'h-10 sm:h-11',
   };
 
   return (
@@ -27,7 +27,8 @@ export const QuextLogo: React.FC<QuextLogoProps> = ({
         <img
           src={QUEXT_GFIBER_WHITE_LOGO_BASE64 || whiteLogo}
           alt="Quext powered by GFiber"
-          className={`${logoHeights[size]} w-auto object-contain flex-shrink-0 drop-shadow-sm`}
+          className={`${logoHeights[size]} w-auto object-contain flex-shrink-0`}
+          style={{ height: size === 'sm' ? '30px' : size === 'lg' ? '42px' : '36px', width: 'auto' }}
           loading="eager"
           decoding="sync"
           onError={(e) => {

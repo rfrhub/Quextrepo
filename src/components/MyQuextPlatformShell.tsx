@@ -351,12 +351,13 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             title="https://myquext.com/#"
           >
             <img
-              src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
-              alt="Quext"
+              src="/quextgfiber-transparent.png"
+              alt="Quext powered by GFiber"
               className="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+              style={{ height: '32px', width: 'auto' }}
               onError={(e) => {
-                if (e.currentTarget.src !== '/quext-logo-boxed.png') {
-                  e.currentTarget.src = '/quext-logo-boxed.png';
+                if (e.currentTarget.src !== '/assets/aistudio/Quext_Logo_Black_ba76e58b.png') {
+                  e.currentTarget.src = '/assets/aistudio/Quext_Logo_Black_ba76e58b.png';
                 }
               }}
             />
