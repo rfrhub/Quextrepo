@@ -8,6 +8,7 @@ import {
   ThermostatBrand,
   LockFinishConfig,
   AVAILABLE_PMS,
+  isUserPM,
   AVAILABLE_CSMS,
   CSMName,
   AVAILABLE_FIELD_TECHS,
@@ -113,6 +114,9 @@ interface ProjectDetailViewProps {
   onViewQuoteAnalysis?: (quoteId: string) => void;
   initialTab?: 'field-bom' | 'customer-comms' | 'customer-kickoff';
   onOpenProjectInPartnerAcademy?: (project: OperationProject) => void;
+  currentUserName?: string;
+  currentUserRole?: string;
+  isPMUser?: boolean;
 }
 
 export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
@@ -123,6 +127,9 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   onViewQuoteAnalysis,
   initialTab = 'field-bom',
   onOpenProjectInPartnerAcademy,
+  currentUserName,
+  currentUserRole,
+  isPMUser,
 }) => {
   const [activeTab, setActiveTab] = useState<'field-bom' | 'customer-comms' | 'customer-kickoff'>(
     initialTab === 'customer-kickoff' ? 'customer-kickoff' : initialTab === 'customer-comms' ? 'customer-comms' : 'field-bom'
@@ -159,7 +166,9 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   })();
   const [isEditingStatusReason, setIsEditingStatusReason] = useState<boolean>(false);
   const [statusReasonInput, setStatusReasonInput] = useState<string>(project.statusReason || '');
+  const isPM = isPMUser !== undefined ? isPMUser : isUserPM(currentUserName);
   const [isPmEditMode, setIsPmEditMode] = useState<boolean>(false);
+  const effectivePmEditMode = isPM && isPmEditMode;
 
   const handleUpdatePropertyName = (newName: string) => {
     onUpdateProject({
@@ -1698,36 +1707,46 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
             {/* PM Edit Mode Button - Located directly under View Quote Counts */}
             <div className="flex justify-end mt-2">
-              <button
-                type="button"
-                data-tutorial-id="pm-edit-mode-toggle-btn"
-                onClick={() => setIsPmEditMode((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg backdrop-blur-md border transition-all shadow-md cursor-pointer ${
-                  isPmEditMode
-                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-400/60 shadow-amber-500/25'
-                    : 'bg-black/65 hover:bg-black/85 text-amber-300 border-amber-400/40 hover:border-amber-400 shadow-black/40'
-                }`}
-                title="Toggle PM Edit Mode to edit project name, community site contacts, address with zipcode, and milestone target dates"
-              >
-                {isPmEditMode ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-slate-950 font-extrabold" />
-                    <span>Done Editing Project</span>
-                  </>
-                ) : (
-                  <>
-                    <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>PM Edit Mode</span>
-                  </>
-                )}
-              </button>
+              {isPM ? (
+                <button
+                  type="button"
+                  data-tutorial-id="pm-edit-mode-toggle-btn"
+                  onClick={() => setIsPmEditMode((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg backdrop-blur-md border transition-all shadow-md cursor-pointer ${
+                    effectivePmEditMode
+                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-400/60 shadow-amber-500/25'
+                      : 'bg-black/65 hover:bg-black/85 text-amber-300 border-amber-400/40 hover:border-amber-400 shadow-black/40'
+                  }`}
+                  title="Toggle PM Edit Mode to edit project name, community site contacts, address with zipcode, and milestone target dates"
+                >
+                  {effectivePmEditMode ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-slate-950 font-extrabold" />
+                      <span>Done Editing Project</span>
+                    </>
+                  ) : (
+                    <>
+                      <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                      <span>PM Edit Mode</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-300 bg-black/60 backdrop-blur-md border border-slate-700/60 rounded-lg shadow-sm"
+                  title="Field Operations View: Project management and milestone target date edits are restricted to Project Managers. Field Tech sections (BOM, SOW, Shipping Dock, Install Logs, Doors, Notes) remain editable."
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Field Operations View · PM Scope Read-Only</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="p-5 sm:p-6 bg-white rounded-b-xl border-t border-slate-100 relative z-10">
           {/* PM Edit Mode Banner & Quick Edit Card */}
-          {isPmEditMode && (
+          {effectivePmEditMode && (
             <div className="mb-5 p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/5 border-2 border-amber-400/80 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-300/60 pb-2.5">
                 <div className="flex items-center gap-2">
@@ -1887,7 +1906,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           {/* Title, Property Info & Personnel Selectors */}
           <div>
             <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
-              {isPmEditMode ? (
+              {effectivePmEditMode ? (
                 <div className="flex-1 min-w-[280px] max-w-xl">
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
@@ -1949,22 +1968,26 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span className="text-slate-500 text-xs">Target Date:</span>
-                <input
-                  type="date"
-                  value={project.targetCompletionDate}
-                  onChange={(e) => {
-                    const newTarget = e.target.value;
-                    const newHealth = calculateProjectScheduleHealth(newTarget, project.statusTag, project.milestones, project.notes);
-                    onUpdateProject({
-                      ...project,
-                      targetCompletionDate: newTarget,
-                      statusTag: newHealth.effectiveTag,
-                      lastUpdated: new Date().toISOString(),
-                    });
-                  }}
-                  className="font-mono text-slate-900 font-bold bg-transparent focus:outline-none cursor-pointer text-xs"
-                  title="Change target completion date (auto-updates project health tag)"
-                />
+                {isPM ? (
+                  <input
+                    type="date"
+                    value={project.targetCompletionDate}
+                    onChange={(e) => {
+                      const newTarget = e.target.value;
+                      const newHealth = calculateProjectScheduleHealth(newTarget, project.statusTag, project.milestones, project.notes);
+                      onUpdateProject({
+                        ...project,
+                        targetCompletionDate: newTarget,
+                        statusTag: newHealth.effectiveTag,
+                        lastUpdated: new Date().toISOString(),
+                      });
+                    }}
+                    className="font-mono text-slate-900 font-bold bg-transparent focus:outline-none cursor-pointer text-xs"
+                    title="Change target completion date (auto-updates project health tag)"
+                  />
+                ) : (
+                  <span className="font-mono text-slate-900 font-bold text-xs">{project.targetCompletionDate}</span>
+                )}
               </span>
             </div>
 
@@ -1973,70 +1996,82 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               {/* Assigned PM */}
               <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                 <span className="text-slate-500 text-xs">Assigned PM:</span>
-                <select
-                  value={project.assignedPM.name}
-                  onChange={(e) => {
-                    const pm = AVAILABLE_PMS.find((p) => p.name === e.target.value);
-                    if (pm) {
-                      onUpdateProject({
-                        ...project,
-                        assignedPM: pm,
-                        lastUpdated: new Date().toISOString(),
-                      });
-                    }
-                  }}
-                  className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
-                >
-                  {AVAILABLE_PMS.map((pm) => (
-                    <option key={pm.name} value={pm.name}>
-                      {pm.name} ({pm.role})
-                    </option>
-                  ))}
-                </select>
+                {isPM ? (
+                  <select
+                    value={project.assignedPM.name}
+                    onChange={(e) => {
+                      const pm = AVAILABLE_PMS.find((p) => p.name === e.target.value);
+                      if (pm) {
+                        onUpdateProject({
+                          ...project,
+                          assignedPM: pm,
+                          lastUpdated: new Date().toISOString(),
+                        });
+                      }
+                    }}
+                    className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
+                  >
+                    {AVAILABLE_PMS.map((pm) => (
+                      <option key={pm.name} value={pm.name}>
+                        {pm.name} ({pm.role})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="font-bold text-slate-800 text-xs">{project.assignedPM.name}</span>
+                )}
               </div>
 
               {/* Assigned CSM */}
               <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                 <span className="text-slate-500 text-xs">Assigned CSM:</span>
-                <select
-                  value={project.assignedCSM || 'Nicole Franklin'}
-                  onChange={(e) => {
-                    onUpdateProject({
-                      ...project,
-                      assignedCSM: e.target.value as CSMName,
-                      lastUpdated: new Date().toISOString(),
-                    });
-                  }}
-                  className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
-                >
-                  {AVAILABLE_CSMS.map((csm) => (
-                    <option key={csm} value={csm}>
-                      {csm}
-                    </option>
-                  ))}
-                </select>
+                {isPM ? (
+                  <select
+                    value={project.assignedCSM || 'Nicole Franklin'}
+                    onChange={(e) => {
+                      onUpdateProject({
+                        ...project,
+                        assignedCSM: e.target.value as CSMName,
+                        lastUpdated: new Date().toISOString(),
+                      });
+                    }}
+                    className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
+                  >
+                    {AVAILABLE_CSMS.map((csm) => (
+                      <option key={csm} value={csm}>
+                        {csm}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="font-bold text-slate-800 text-xs">{project.assignedCSM || 'Nicole Franklin'}</span>
+                )}
               </div>
 
               {/* Assigned Field Tech */}
               <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                 <span className="text-slate-500 text-xs">Field Tech:</span>
-                <select
-                  value={normalizeFieldTech(project.assignedFieldTech)}
-                  onChange={(e) => {
-                    onUpdateProject({
-                      ...project,
-                      assignedFieldTech: e.target.value as FieldTechName,
-                      lastUpdated: new Date().toISOString(),
-                    });
-                  }}
-                  className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
-                >
-                  {AVAILABLE_FIELD_TECHS.map((tech) => (
-                    <option key={tech} value={tech}>
-                      {tech}
-                    </option>
-                  ))}
-                </select>
+                {isPM ? (
+                  <select
+                    value={normalizeFieldTech(project.assignedFieldTech)}
+                    onChange={(e) => {
+                      onUpdateProject({
+                        ...project,
+                        assignedFieldTech: e.target.value as FieldTechName,
+                        lastUpdated: new Date().toISOString(),
+                      });
+                    }}
+                    className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
+                  >
+                    {AVAILABLE_FIELD_TECHS.map((tech) => (
+                      <option key={tech} value={tech}>
+                        {tech}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="font-bold text-slate-800 text-xs">{normalizeFieldTech(project.assignedFieldTech)}</span>
+                )}
               </div>
 
               {/* Assigned Integrator Partner(s) / Installers */}
@@ -2266,15 +2301,25 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
-                  <button
-                    type="button"
-                    onClick={() => handleConfirmInstallation()}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-md cursor-pointer transition-transform hover:scale-105"
-                    title="Confirm all pending installation updates and commit to project BOM"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Confirm installation</span>
-                  </button>
+                  {isPM ? (
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmInstallation()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-md cursor-pointer transition-transform hover:scale-105"
+                      title="Confirm all pending installation updates and commit to project BOM"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Confirm installation</span>
+                    </button>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-200 border border-amber-300"
+                      title="On-site work submitted to cloud. Waiting for PM review and BOM commit."
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Pending PM Review</span>
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -2294,7 +2339,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </span>
                 <div className="flex items-center gap-3">
                   <span className="text-[11px] text-slate-500">
-                    {isPmEditMode ? (
+                    {effectivePmEditMode ? (
                       <span className="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
                         PM Edit Mode: Adjust milestone target dates below
                       </span>
@@ -2320,16 +2365,20 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 {project.milestones.map((milestone) => (
                   <div
                     key={milestone.id}
-                    onClick={() => !isPmEditMode && handleToggleMilestone(milestone.id)}
+                    onClick={() => isPM && !effectivePmEditMode && handleToggleMilestone(milestone.id)}
                     title={
-                      isPmEditMode
+                      !isPM
+                        ? `${milestone.title}: ${milestone.status}`
+                        : effectivePmEditMode
                         ? `Set target date for ${milestone.title}`
                         : `Click to cycle status (${milestone.status})`
                     }
                     className={`p-2 rounded-lg border text-xs transition-all ${
-                      isPmEditMode
+                      effectivePmEditMode
                         ? 'cursor-default ring-2 ring-amber-400 bg-amber-50/40 shadow-xs'
-                        : 'cursor-pointer select-none hover:scale-[1.02]'
+                        : isPM
+                        ? 'cursor-pointer select-none hover:scale-[1.02]'
+                        : 'cursor-default select-none'
                     } ${
                       milestone.status === 'Completed'
                         ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 font-semibold hover:bg-emerald-100/80'
@@ -2339,7 +2388,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     }`}
                   >
                     <div className="text-[10px] font-bold truncate">{milestone.title}</div>
-                    {isPmEditMode ? (
+                    {effectivePmEditMode ? (
                       <div className="mt-1" onClick={(e) => e.stopPropagation()}>
                         <label className="text-[9px] font-semibold text-amber-800 block text-left">
                           Target:
@@ -2386,26 +2435,35 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               
               {/* Interactive Tag Buttons - strictly reflect effective health tag */}
               <div className="flex items-center gap-1.5">
-                {(['On Track', 'Behind Schedule', 'High Risk'] as ProjectStatusTag[]).map((tag) => {
-                  const isActive = health.effectiveTag === tag;
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => handleStatusTagChange(tag)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
-                        isActive
-                          ? `${getStatusBadgeStyle(tag)} shadow-xs`
-                          : 'bg-white border-slate-300 text-slate-500 hover:text-slate-800 hover:border-slate-400'
-                      }`}
-                    >
-                      {tag === 'On Track' && '✓ '}
-                      {tag === 'Behind Schedule' && '⏳ '}
-                      {tag === 'High Risk' && '⚠ '}
-                      {tag}
-                    </button>
-                  );
-                })}
+                {isPM ? (
+                  (['On Track', 'Behind Schedule', 'High Risk'] as ProjectStatusTag[]).map((tag) => {
+                    const isActive = health.effectiveTag === tag;
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleStatusTagChange(tag)}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                          isActive
+                            ? `${getStatusBadgeStyle(tag)} shadow-xs`
+                            : 'bg-white border-slate-300 text-slate-500 hover:text-slate-800 hover:border-slate-400'
+                        }`}
+                      >
+                        {tag === 'On Track' && '✓ '}
+                        {tag === 'Behind Schedule' && '⏳ '}
+                        {tag === 'High Risk' && '⚠ '}
+                        {tag}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <span className={`px-3 py-1.5 text-xs font-bold rounded-lg border shadow-xs ${getStatusBadgeStyle(health.effectiveTag)}`}>
+                    {health.effectiveTag === 'On Track' && '✓ '}
+                    {health.effectiveTag === 'Behind Schedule' && '⏳ '}
+                    {health.effectiveTag === 'High Risk' && '⚠ '}
+                    {health.effectiveTag}
+                  </span>
+                )}
               </div>
 
               {/* Auto Status Helper */}
@@ -3113,7 +3171,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   <Building2 className="w-3.5 h-3.5 text-sky-600" />
                 </div>
 
-                {isPmEditMode ? (
+                {effectivePmEditMode ? (
                   <div className="space-y-2 text-[11px]">
                     <div>
                       <label className="text-slate-600 block text-[10px] font-semibold">Site Phone Number:</label>

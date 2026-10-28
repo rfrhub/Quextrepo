@@ -4,6 +4,7 @@ import {
   OperationProject,
   DealStage,
   AVAILABLE_PMS,
+  isUserPM,
   buildPartnerAcademyPortalUrl,
 } from '../types';
 import { MyQuextSignedInUser, resolveEmailToMyQuextUser } from './MyQuextLoginPage';
@@ -1984,7 +1985,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 />
               </div>
 
-              {onCreateProject && (
+              {onCreateProject && isUserPM(currentUserName) && (
                 <button
                   type="button"
                   data-tutorial-id="create-manual-project-btn"

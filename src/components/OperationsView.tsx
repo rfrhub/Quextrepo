@@ -36,6 +36,9 @@ interface OperationsViewProps {
   externalDirectoryFilter?: ProjectStatusTag | 'all';
   onOpenProjectInPartnerAcademy?: (project: OperationProject) => void;
   projectDetailInitialTab?: 'field-bom' | 'customer-comms' | 'customer-kickoff';
+  currentUserName?: string;
+  currentUserRole?: string;
+  isPMUser?: boolean;
 }
 
 export const OperationsView: React.FC<OperationsViewProps> = ({
@@ -50,6 +53,9 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
   externalDirectoryFilter = 'all',
   onOpenProjectInPartnerAcademy,
   projectDetailInitialTab,
+  currentUserName,
+  currentUserRole,
+  isPMUser,
 }) => {
   const [directoryFilter, setDirectoryFilter] = useState<ProjectStatusTag | 'all'>(externalDirectoryFilter);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -454,6 +460,9 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
             onViewQuoteAnalysis={onViewQuoteAnalysis}
             onOpenProjectInPartnerAcademy={onOpenProjectInPartnerAcademy}
             initialTab={projectDetailInitialTab}
+            currentUserName={currentUserName}
+            currentUserRole={currentUserRole}
+            isPMUser={isPMUser}
           />
         </div>
       )}

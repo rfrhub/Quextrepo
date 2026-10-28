@@ -14,6 +14,8 @@ import {
   normalizeFieldTech,
   checkAndApplyCsmHandoffAutoClose,
   getProjectIntegratorPartners,
+  AVAILABLE_PMS,
+  isUserPM,
 } from './types';
 import {
   loadStoredQuotes,
@@ -1774,6 +1776,9 @@ export default function App() {
           onViewQuoteAnalysis={handleViewQuoteAnalysis}
           activeSubTab={operationsSubTab}
           projectDetailInitialTab={pmProjectDetailTab}
+          currentUserName={signedInUser?.name}
+          currentUserRole={signedInUser?.roleLabel}
+          isPMUser={isUserPM(signedInUser?.name)}
           onSelectSubTab={(tabId) => {
             if (projects.some((p) => p.id === tabId)) {
               setFocusedProjectId(tabId);

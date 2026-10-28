@@ -216,6 +216,24 @@ export const AVAILABLE_PMS: ProjectManagerInfo[] = [
   },
 ];
 
+/**
+ * Checks whether the current user holds a Project Manager or Director role.
+ * Sean Gates and Hector Lopez are Field Operations / Technicians and not PMs.
+ */
+export function isUserPM(userNameOrEmail?: string | null): boolean {
+  if (!userNameOrEmail) return true;
+  const lower = userNameOrEmail.toLowerCase().trim();
+  if (
+    lower.includes('sean') ||
+    lower.includes('gates') ||
+    lower.includes('hector') ||
+    lower.includes('lopez')
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export type CSMName =
   | 'Nicole Franklin'
   | 'Jasmine Hunt'
