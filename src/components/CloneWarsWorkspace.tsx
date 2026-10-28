@@ -307,7 +307,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   const [customName, setCustomName] = useState('');
   const [chosenClientSource, setChosenClientSource] = useState<'A' | 'B'>('A');
   const [chosenAddressSource, setChosenAddressSource] = useState<'A' | 'B'>('A');
-  const [chosenUnitsMode, setChosenUnitsMode] = useState<'A' | 'B' | 'sum' | 'custom'>('sum');
+  const [chosenUnitsMode, setChosenUnitsMode] = useState<'A' | 'B' | 'custom'>('A');
   const [customUnits, setCustomUnits] = useState(0);
   const [chosenPMSource, setChosenPMSource] = useState<'A' | 'B'>('A');
   const [chosenStatusSource, setChosenStatusSource] = useState<'A' | 'B'>('A');
@@ -616,8 +616,8 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     setCustomName(pA.propertyName);
     setChosenClientSource('A');
     setChosenAddressSource('A');
-    setChosenUnitsMode('sum');
-    setCustomUnits((pA.unitsCount || 0) + (pB.unitsCount || 0));
+    setChosenUnitsMode('A');
+    setCustomUnits(pA.unitsCount || 0);
     setChosenPMSource('A');
     setChosenStatusSource('A');
     setChosenDatesSource('A');
@@ -681,7 +681,6 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
       let unitsCount = baseSurvivor.unitsCount;
       if (chosenUnitsMode === 'A') unitsCount = projectA.unitsCount;
       else if (chosenUnitsMode === 'B') unitsCount = projectB.unitsCount;
-      else if (chosenUnitsMode === 'sum') unitsCount = (projectA.unitsCount || 0) + (projectB.unitsCount || 0);
       else if (chosenUnitsMode === 'custom') unitsCount = customUnits;
 
       // 5. Assigned PM
@@ -1822,57 +1821,48 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                       <button
                         type="button"
-                        onClick={() => setChosenUnitsMode('A')}
-                        className={`p-2.5 rounded-xl border text-left cursor-pointer ${
+                        onClick={() => {
+                          setChosenUnitsMode('A');
+                          setCustomUnits(activePair.projectA.unitsCount || 0);
+                        }}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                           chosenUnitsMode === 'A'
-                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                            : 'bg-slate-900 border-slate-800 text-slate-400'
-                        }`}
-                      >
-                        <span className="text-[10px] font-bold text-slate-500 block">Keep Alpha</span>
-                        <span className="font-mono text-sm">{activePair.projectA.unitsCount} units</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setChosenUnitsMode('B')}
-                        className={`p-2.5 rounded-xl border text-left cursor-pointer ${
-                          chosenUnitsMode === 'B'
-                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                            : 'bg-slate-900 border-slate-800 text-slate-400'
-                        }`}
-                      >
-                        <span className="text-[10px] font-bold text-slate-500 block">Keep Beta</span>
-                        <span className="font-mono text-sm">{activePair.projectB.unitsCount} units</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setChosenUnitsMode('sum')}
-                        className={`p-2.5 rounded-xl border text-left cursor-pointer ${
-                          chosenUnitsMode === 'sum'
                             ? 'bg-amber-500/20 border-amber-500 text-white font-bold ring-1 ring-amber-500/50'
-                            : 'bg-slate-900 border-slate-800 text-slate-400'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <span className="text-[10px] font-bold text-slate-500 block">Combine Sum (A+B)</span>
-                        <span className="font-mono text-sm text-emerald-400">
-                          {(activePair.projectA.unitsCount || 0) + (activePair.projectB.unitsCount || 0)} units
-                        </span>
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Keep Alpha</span>
+                        <span className="font-mono text-sm font-extrabold text-white">{activePair.projectA.unitsCount} units</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChosenUnitsMode('B');
+                          setCustomUnits(activePair.projectB.unitsCount || 0);
+                        }}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          chosenUnitsMode === 'B'
+                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold ring-1 ring-amber-500/50'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Keep Beta</span>
+                        <span className="font-mono text-sm font-extrabold text-white">{activePair.projectB.unitsCount} units</span>
                       </button>
 
                       <div
                         onClick={() => setChosenUnitsMode('custom')}
-                        className={`p-2.5 rounded-xl border cursor-pointer ${
+                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
                           chosenUnitsMode === 'custom'
-                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                            : 'bg-slate-900 border-slate-800 text-slate-400'
+                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold ring-1 ring-amber-500/50'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <span className="text-[10px] font-bold text-slate-500 block">Custom Input</span>
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Custom Input</span>
                         <input
                           type="number"
                           value={customUnits}
@@ -1880,7 +1870,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                             setCustomUnits(parseInt(e.target.value, 10) || 0);
                             setChosenUnitsMode('custom');
                           }}
-                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white font-mono mt-0.5"
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono mt-1"
                         />
                       </div>
                     </div>
