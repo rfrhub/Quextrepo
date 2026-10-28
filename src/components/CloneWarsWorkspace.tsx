@@ -36,6 +36,13 @@ import {
   Check,
   HelpCircle,
   ThumbsDown,
+  Table,
+  Columns,
+  Package,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  CheckSquare,
 } from 'lucide-react';
 
 const COMMON_STOPWORDS = new Set([
@@ -100,6 +107,12 @@ export function saveLearnedWords(wordsMap: Map<string, number>) {
   } catch (e) {
     console.warn('[Clone Wars] Failed to save learned words:', e);
   }
+}
+
+export function getBOMItemKey(item: BOMItem): string {
+  const modelPart = (item.model || '').trim().toLowerCase();
+  const namePart = (item.name || '').trim().toLowerCase();
+  return modelPart ? `${modelPart}__${namePart}` : namePart || item.id;
 }
 
 export function extractSignificantWords(title: string): string[] {
@@ -221,7 +234,12 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   const [chosenPMSource, setChosenPMSource] = useState<'A' | 'B'>('A');
   const [chosenStatusSource, setChosenStatusSource] = useState<'A' | 'B'>('A');
   const [chosenDatesSource, setChosenDatesSource] = useState<'A' | 'B'>('A');
-  const [chosenBOMMode, setChosenBOMMode] = useState<'A' | 'B' | 'combine'>('combine');
+  const [chosenBOMMode, setChosenBOMMode] = useState<'A' | 'B' | 'combine' | 'custom'>('combine');
+  const [bomCustomChoices, setBomCustomChoices] = useState<Record<string, 'combine' | 'A' | 'B' | 'sum' | 'exclude'>>({});
+  const [bomViewMode, setBomViewMode] = useState<'matrix' | 'side-by-side'>('matrix');
+  const [bomSearchTerm, setBomSearchTerm] = useState<string>('');
+  const [bomFilterTab, setBomFilterTab] = useState<'all' | 'diff' | 'a_only' | 'b_only'>('all');
+  const [bomExpanded, setBomExpanded] = useState<boolean>(true);
   const [chosenPartnersMode, setChosenPartnersMode] = useState<'A' | 'B' | 'combine'>('combine');
   const [chosenMilestonesMode, setChosenMilestonesMode] = useState<'A' | 'B' | 'combine'>('combine');
   const [combineLogs, setCombineLogs] = useState(true);
@@ -393,6 +411,10 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     setChosenStatusSource('A');
     setChosenDatesSource('A');
     setChosenBOMMode('combine');
+    setBomCustomChoices({});
+    setBomSearchTerm('');
+    setBomFilterTab('all');
+    setBomExpanded(true);
     setChosenPartnersMode('combine');
     setChosenMilestonesMode('combine');
     setCombineLogs(true);
@@ -466,18 +488,67 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
         bomItems = [...(projectA.bomItems || [])];
       } else if (chosenBOMMode === 'B') {
         bomItems = [...(projectB.bomItems || [])];
+      } else if (chosenBOMMode === 'custom') {
+        const allKeys = new Set<string>();
+        const mapA = new Map<string, BOMItem>();
+        const mapB = new Map<string, BOMItem>();
+
+        (projectA.bomItems || []).forEach((item) => {
+          const k = getBOMItemKey(item);
+          mapA.set(k, item);
+          allKeys.add(k);
+        });
+        (projectB.bomItems || []).forEach((item) => {
+          const k = getBOMItemKey(item);
+          mapB.set(k, item);
+          allKeys.add(k);
+        });
+
+        const customItems: BOMItem[] = [];
+        allKeys.forEach((key) => {
+          const choice = bomCustomChoices[key] || 'combine';
+          if (choice === 'exclude') return;
+
+          const itA = mapA.get(key);
+          const itB = mapB.get(key);
+
+          if (choice === 'A' && itA) {
+            customItems.push({ ...itA });
+          } else if (choice === 'B' && itB) {
+            customItems.push({ ...itB });
+          } else if (choice === 'sum' && itA && itB) {
+            customItems.push({
+              ...itA,
+              quantity: (itA.quantity || 0) + (itB.quantity || 0),
+              installedCount: (itA.installedCount || 0) + (itB.installedCount || 0),
+            });
+          } else {
+            // Default combine / deduplicate
+            if (itA && itB) {
+              customItems.push({
+                ...itA,
+                quantity: Math.max(itA.quantity || 0, itB.quantity || 0),
+                installedCount: Math.max(itA.installedCount || 0, itB.installedCount || 0),
+              });
+            } else if (itA) {
+              customItems.push({ ...itA });
+            } else if (itB) {
+              customItems.push({ ...itB });
+            }
+          }
+        });
+        bomItems = customItems;
       } else {
         // Combine & Deduplicate
         const itemMap = new Map<string, BOMItem>();
         [...(projectA.bomItems || []), ...(projectB.bomItems || [])].forEach((item) => {
-          const itemName = item.name || (item as any).productName || item.model || 'BOM Item';
-          const key = `${itemName.toLowerCase()}__${(item.model || '').toLowerCase()}__${(item.category || '').toLowerCase()}`;
+          const key = getBOMItemKey(item);
           if (itemMap.has(key)) {
             const existing = itemMap.get(key)!;
             itemMap.set(key, {
               ...existing,
-              quantity: (existing.quantity || 0) + (item.quantity || 0),
-              installedCount: (existing.installedCount || 0) + (item.installedCount || 0),
+              quantity: Math.max(existing.quantity || 0, item.quantity || 0),
+              installedCount: Math.max(existing.installedCount || 0, item.installedCount || 0),
             });
           } else {
             itemMap.set(key, { ...item });
@@ -581,6 +652,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     chosenStatusSource,
     chosenDatesSource,
     chosenBOMMode,
+    bomCustomChoices,
     chosenPartnersMode,
     chosenMilestonesMode,
     combineLogs,
@@ -606,6 +678,141 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     });
 
     setActivePair(null);
+  };
+
+  // Detailed BOM Comparison Computations
+  const bomComparisonRows = useMemo(() => {
+    if (!activePair) return [];
+    const itemsA = activePair.projectA.bomItems || [];
+    const itemsB = activePair.projectB.bomItems || [];
+
+    const mapA = new Map<string, BOMItem>();
+    const mapB = new Map<string, BOMItem>();
+    const allKeys = new Set<string>();
+
+    itemsA.forEach((item) => {
+      const k = getBOMItemKey(item);
+      mapA.set(k, item);
+      allKeys.add(k);
+    });
+
+    itemsB.forEach((item) => {
+      const k = getBOMItemKey(item);
+      mapB.set(k, item);
+      allKeys.add(k);
+    });
+
+    const rows: {
+      key: string;
+      itemA?: BOMItem;
+      itemB?: BOMItem;
+      name: string;
+      model: string;
+      category: string;
+      location: string;
+      status: 'match' | 'qty_diff' | 'a_only' | 'b_only';
+    }[] = [];
+
+    allKeys.forEach((k) => {
+      const itA = mapA.get(k);
+      const itB = mapB.get(k);
+      const sample = itA || itB!;
+      let status: 'match' | 'qty_diff' | 'a_only' | 'b_only' = 'match';
+      if (itA && itB) {
+        if (
+          itA.quantity === itB.quantity &&
+          itA.installedCount === itB.installedCount &&
+          itA.unitPrice === itB.unitPrice
+        ) {
+          status = 'match';
+        } else {
+          status = 'qty_diff';
+        }
+      } else if (itA) {
+        status = 'a_only';
+      } else {
+        status = 'b_only';
+      }
+
+      rows.push({
+        key: k,
+        itemA: itA,
+        itemB: itB,
+        name: sample.name,
+        model: sample.model,
+        category: sample.category || 'Hardware',
+        location: sample.location || 'Site Units',
+        status,
+      });
+    });
+
+    return rows.sort((a, b) => a.name.localeCompare(b.name));
+  }, [activePair]);
+
+  const filteredBomRows = useMemo(() => {
+    let rows = bomComparisonRows;
+    if (bomFilterTab === 'diff') {
+      rows = rows.filter((r) => r.status !== 'match');
+    } else if (bomFilterTab === 'a_only') {
+      rows = rows.filter((r) => r.status === 'a_only');
+    } else if (bomFilterTab === 'b_only') {
+      rows = rows.filter((r) => r.status === 'b_only');
+    }
+
+    if (!bomSearchTerm.trim()) return rows;
+    const q = bomSearchTerm.toLowerCase();
+    return rows.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.model.toLowerCase().includes(q) ||
+        r.category.toLowerCase().includes(q) ||
+        r.location.toLowerCase().includes(q)
+    );
+  }, [bomComparisonRows, bomSearchTerm, bomFilterTab]);
+
+  const bomStatsA = useMemo(() => {
+    const items = activePair?.projectA.bomItems || [];
+    const totalQty = items.reduce((acc, i) => acc + (i.quantity || 0), 0);
+    const totalInstalled = items.reduce((acc, i) => acc + (i.installedCount || 0), 0);
+    const totalValue = items.reduce((acc, i) => acc + ((i.quantity || 0) * (i.unitPrice || 0)), 0);
+    return { count: items.length, totalQty, totalInstalled, totalValue, items };
+  }, [activePair]);
+
+  const bomStatsB = useMemo(() => {
+    const items = activePair?.projectB.bomItems || [];
+    const totalQty = items.reduce((acc, i) => acc + (i.quantity || 0), 0);
+    const totalInstalled = items.reduce((acc, i) => acc + (i.installedCount || 0), 0);
+    const totalValue = items.reduce((acc, i) => acc + ((i.quantity || 0) * (i.unitPrice || 0)), 0);
+    return { count: items.length, totalQty, totalInstalled, totalValue, items };
+  }, [activePair]);
+
+  const finalBomStats = useMemo(() => {
+    const items = previewFinalProject?.bomItems || [];
+    const totalQty = items.reduce((acc, i) => acc + (i.quantity || 0), 0);
+    const totalInstalled = items.reduce((acc, i) => acc + (i.installedCount || 0), 0);
+    const totalValue = items.reduce((acc, i) => acc + ((i.quantity || 0) * (i.unitPrice || 0)), 0);
+    return { count: items.length, totalQty, totalInstalled, totalValue };
+  }, [previewFinalProject]);
+
+  const handleSetItemDecision = (key: string, choice: 'combine' | 'A' | 'B' | 'sum' | 'exclude') => {
+    setChosenBOMMode('custom');
+    setBomCustomChoices((prev) => ({
+      ...prev,
+      [key]: choice,
+    }));
+  };
+
+  const getEffectiveItemChoice = (row: (typeof bomComparisonRows)[0]): 'combine' | 'A' | 'B' | 'sum' | 'exclude' => {
+    if (chosenBOMMode === 'custom') {
+      return bomCustomChoices[row.key] || 'combine';
+    }
+    if (chosenBOMMode === 'A') {
+      return row.itemA ? 'A' : 'exclude';
+    }
+    if (chosenBOMMode === 'B') {
+      return row.itemB ? 'B' : 'exclude';
+    }
+    return 'combine';
   };
 
   return (
@@ -1349,21 +1556,83 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                   </div>
 
                   {/* 4. Bill of Materials (BOM Hardware Items) */}
-                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5 text-amber-400" />
-                        Hardware Bill of Materials (BOM Scope)
-                      </span>
-                      <span className="text-xs font-mono font-bold text-emerald-400">
-                        {previewFinalProject?.bomItems?.length || 0} Merged Line Items
-                      </span>
+                  <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
+                    {/* Section Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Wrench className="w-4 h-4 text-amber-400" />
+                          <h4 className="text-xs sm:text-sm font-extrabold text-white uppercase tracking-wider">
+                            Hardware Bill of Materials (BOM Scope)
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {finalBomStats.count} Selected ({finalBomStats.totalQty} Units · ${finalBomStats.totalValue.toLocaleString()})
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Inspect line-by-line hardware differences between Version A and Version B and choose how each item consolidates.
+                        </p>
+                      </div>
+
+                      {/* View & Expand Toggles */}
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <div className="inline-flex rounded-xl bg-slate-950 p-0.5 border border-slate-800 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setBomViewMode('matrix')}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                              bomViewMode === 'matrix'
+                                ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow-xs'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                            title="Unified comparison matrix table"
+                          >
+                            <Table className="w-3 h-3" />
+                            <span>Comparison Matrix</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBomViewMode('side-by-side')}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                              bomViewMode === 'side-by-side'
+                                ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow-xs'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                            title="Side-by-side dual columns"
+                          >
+                            <Columns className="w-3 h-3" />
+                            <span>Side-by-Side</span>
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setBomExpanded((v) => !v)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold border border-slate-700 transition-colors cursor-pointer"
+                        >
+                          {bomExpanded ? (
+                            <>
+                              <ChevronUp className="w-3 h-3" />
+                              <span>Hide Details</span>
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-3 h-3" />
+                              <span>View Details ({bomComparisonRows.length})</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                    {/* Scope Strategy Presets */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 text-xs">
                       <button
                         type="button"
-                        onClick={() => setChosenBOMMode('combine')}
+                        onClick={() => {
+                          setChosenBOMMode('combine');
+                          setBomCustomChoices({});
+                        }}
                         className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                           chosenBOMMode === 'combine'
                             ? 'bg-emerald-950/40 border-emerald-500 text-white font-bold ring-1 ring-emerald-500/50'
@@ -1372,47 +1641,722 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] uppercase font-bold text-emerald-400">
-                            Combine &amp; Deduplicate (Recommended)
+                            Combine &amp; Deduplicate
                           </span>
                           <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono font-bold">
                             Smart Merge
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-300 mt-1">
-                          Merges identical SKUs from both projects and combines quantities.
+                        <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">
+                          Merges identical SKUs from both projects and chooses max/combined quantities.
                         </p>
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold block mt-1.5">
+                          {finalBomStats.count} items · {finalBomStats.totalQty} devices
+                        </span>
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => setChosenBOMMode('A')}
+                        onClick={() => {
+                          setChosenBOMMode('A');
+                          setBomCustomChoices({});
+                        }}
                         className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                           chosenBOMMode === 'A'
-                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                            : 'bg-slate-900 border-slate-800 text-slate-400'
+                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold ring-1 ring-amber-500/50'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Alpha Scope Only</span>
-                        <p className="text-[11px] text-slate-300 mt-1">
-                          Keep {activePair.projectA.bomItems?.length || 0} line items from Alpha.
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-amber-400">
+                            Alpha Scope Only (A)
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold">
+                            Version A
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-1 truncate">
+                          Strictly keep line items from &quot;{activePair.projectA.propertyName}&quot;.
                         </p>
+                        <span className="text-[10px] font-mono text-amber-300 font-bold block mt-1.5">
+                          {bomStatsA.count} items · {bomStatsA.totalQty} units · ${bomStatsA.totalValue.toLocaleString()}
+                        </span>
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => setChosenBOMMode('B')}
+                        onClick={() => {
+                          setChosenBOMMode('B');
+                          setBomCustomChoices({});
+                        }}
                         className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                           chosenBOMMode === 'B'
-                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                            : 'bg-slate-900 border-slate-800 text-slate-400'
+                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold ring-1 ring-amber-500/50'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Beta Scope Only</span>
-                        <p className="text-[11px] text-slate-300 mt-1">
-                          Keep {activePair.projectB.bomItems?.length || 0} line items from Beta.
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-amber-400">
+                            Beta Scope Only (B)
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold">
+                            Version B
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-1 truncate">
+                          Strictly keep line items from &quot;{activePair.projectB.propertyName}&quot;.
                         </p>
+                        <span className="text-[10px] font-mono text-amber-300 font-bold block mt-1.5">
+                          {bomStatsB.count} items · {bomStatsB.totalQty} units · ${bomStatsB.totalValue.toLocaleString()}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setChosenBOMMode('custom')}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          chosenBOMMode === 'custom'
+                            ? 'bg-cyan-950/40 border-cyan-500 text-white font-bold ring-1 ring-cyan-500/50'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-cyan-400">
+                            Custom Item Picker
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 rounded font-mono font-bold">
+                            Per-Item
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">
+                          Fine-tune individual hardware rows below choosing between A, B, combine, or exclude.
+                        </p>
+                        <span className="text-[10px] font-mono text-cyan-300 font-bold block mt-1.5">
+                          {Object.keys(bomCustomChoices).length > 0
+                            ? `${Object.keys(bomCustomChoices).length} Custom Overrides`
+                            : 'Pick any row below'}
+                        </span>
                       </button>
                     </div>
+
+                    {/* Summary KPI Cards for Alpha vs Beta vs Master Result */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {/* Alpha Card */}
+                      <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400">
+                            Version Alpha (A)
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-slate-400">
+                            {bomStatsA.count} Line Items
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-100 truncate" title={activePair.projectA.propertyName}>
+                          {activePair.projectA.propertyName}
+                        </p>
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-900">
+                          <span className="text-slate-400">
+                            Units: <strong className="text-white">{bomStatsA.totalQty}</strong> ({bomStatsA.totalInstalled} inst.)
+                          </span>
+                          <span className="text-amber-300 font-mono font-bold">
+                            ${bomStatsA.totalValue.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Beta Card */}
+                      <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400">
+                            Version Beta (B)
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-slate-400">
+                            {bomStatsB.count} Line Items
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-100 truncate" title={activePair.projectB.propertyName}>
+                          {activePair.projectB.propertyName}
+                        </p>
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-900">
+                          <span className="text-slate-400">
+                            Units: <strong className="text-white">{bomStatsB.totalQty}</strong> ({bomStatsB.totalInstalled} inst.)
+                          </span>
+                          <span className="text-amber-300 font-mono font-bold">
+                            ${bomStatsB.totalValue.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Resulting Master Project BOM Card */}
+                      <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Master Project Result</span>
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-emerald-300">
+                            {finalBomStats.count} Line Items
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-white truncate">
+                          Final Master Project BOM
+                        </p>
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-emerald-900/40">
+                          <span className="text-slate-300">
+                            Total Units: <strong className="text-white">{finalBomStats.totalQty}</strong> ({finalBomStats.totalInstalled} inst.)
+                          </span>
+                          <span className="text-emerald-300 font-mono font-bold">
+                            ${finalBomStats.totalValue.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detailed Breakdown Workspace (Collapsible) */}
+                    {bomExpanded && (
+                      <div className="pt-2 space-y-3">
+                        {/* Filters & Search Toolbar */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                          {/* Search Input */}
+                          <div className="relative flex-1">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              placeholder="Filter BOM by device name, SKU model, category, or location..."
+                              value={bomSearchTerm}
+                              onChange={(e) => setBomSearchTerm(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                            />
+                            {bomSearchTerm && (
+                              <button
+                                type="button"
+                                onClick={() => setBomSearchTerm('')}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Filter Tabs */}
+                          <div className="flex items-center gap-1 overflow-x-auto text-xs pb-1 sm:pb-0">
+                            <button
+                              type="button"
+                              onClick={() => setBomFilterTab('all')}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                                bomFilterTab === 'all'
+                                  ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                              }`}
+                            >
+                              All ({bomComparisonRows.length})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBomFilterTab('diff')}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                                bomFilterTab === 'diff'
+                                  ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                              }`}
+                            >
+                              Differences ({bomComparisonRows.filter((r) => r.status !== 'match').length})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBomFilterTab('a_only')}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                                bomFilterTab === 'a_only'
+                                  ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                              }`}
+                            >
+                              Alpha Only ({bomComparisonRows.filter((r) => r.status === 'a_only').length})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBomFilterTab('b_only')}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                                bomFilterTab === 'b_only'
+                                  ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                              }`}
+                            >
+                              Beta Only ({bomComparisonRows.filter((r) => r.status === 'b_only').length})
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* View Mode 1: Unified Matrix Table */}
+                        {bomViewMode === 'matrix' ? (
+                          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/90 shadow-sm max-h-[520px] overflow-y-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                              <thead className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800 text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider">
+                                <tr>
+                                  <th className="py-2.5 px-3">Hardware Device / SKU</th>
+                                  <th className="py-2.5 px-3">Version Alpha (A)</th>
+                                  <th className="py-2.5 px-3">Version Beta (B)</th>
+                                  <th className="py-2.5 px-3 text-center">Status</th>
+                                  <th className="py-2.5 px-3 text-right">Master Selection</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/80">
+                                {filteredBomRows.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={5} className="py-8 text-center text-slate-400 space-y-1">
+                                      <Package className="w-6 h-6 text-slate-500 mx-auto mb-1" />
+                                      <p className="font-bold text-xs">No BOM Items Found</p>
+                                      <p className="text-[11px] text-slate-500">
+                                        No items match the current search or filter query.
+                                      </p>
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  filteredBomRows.map((row) => {
+                                    const effectiveChoice = getEffectiveItemChoice(row);
+                                    return (
+                                      <tr
+                                        key={row.key}
+                                        className={`hover:bg-slate-900/60 transition-colors ${
+                                          row.status === 'qty_diff'
+                                            ? 'bg-amber-950/10'
+                                            : row.status === 'a_only'
+                                            ? 'bg-cyan-950/10'
+                                            : row.status === 'b_only'
+                                            ? 'bg-purple-950/10'
+                                            : ''
+                                        }`}
+                                      >
+                                        {/* 1. Device Info */}
+                                        <td className="py-3 px-3 align-top min-w-[200px] max-w-[280px]">
+                                          <div className="space-y-1">
+                                            <span className="font-bold text-white block leading-tight">
+                                              {row.name}
+                                            </span>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              <span className="px-1.5 py-0.2 rounded font-mono text-[10px] font-bold bg-slate-800 text-cyan-300 border border-slate-700">
+                                                {row.model}
+                                              </span>
+                                              <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-800/80 text-slate-400">
+                                                {row.category}
+                                              </span>
+                                            </div>
+                                            <span className="text-[10px] text-slate-500 block truncate">
+                                              📍 {row.location}
+                                            </span>
+                                            {/* Hardware details if lock or thermostat */}
+                                            {row.itemA?.lockFinishConfig && (
+                                              <span className="text-[9px] font-mono text-slate-400 block truncate">
+                                                Trim: {row.itemA.lockFinishConfig.befeTrimStyle || 'Std'} · Finish: {row.itemA.lockFinishConfig.befeColorFinish || 'Std'}
+                                              </span>
+                                            )}
+                                            {row.itemA?.thermostatBrand && (
+                                              <span className="text-[9px] font-mono text-cyan-300 block truncate">
+                                                Brand: {row.itemA.thermostatBrand}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+
+                                        {/* 2. Version A Info */}
+                                        <td className="py-3 px-3 align-top min-w-[140px]">
+                                          {row.itemA ? (
+                                            <div className="space-y-0.5 text-xs">
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="font-mono font-extrabold text-white">
+                                                  {row.itemA.quantity} units
+                                                </span>
+                                                <span className="text-[10px] text-emerald-400 font-mono">
+                                                  ({row.itemA.installedCount} inst.)
+                                                </span>
+                                              </div>
+                                              <span className="text-[11px] text-slate-400 block font-mono">
+                                                ${row.itemA.unitPrice} ea · Total: ${(row.itemA.quantity * row.itemA.unitPrice).toLocaleString()}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <span className="text-[11px] text-slate-500 italic block py-1">
+                                              — Not in Alpha —
+                                            </span>
+                                          )}
+                                        </td>
+
+                                        {/* 3. Version B Info */}
+                                        <td className="py-3 px-3 align-top min-w-[140px]">
+                                          {row.itemB ? (
+                                            <div className="space-y-0.5 text-xs">
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="font-mono font-extrabold text-white">
+                                                  {row.itemB.quantity} units
+                                                </span>
+                                                <span className="text-[10px] text-emerald-400 font-mono">
+                                                  ({row.itemB.installedCount} inst.)
+                                                </span>
+                                              </div>
+                                              <span className="text-[11px] text-slate-400 block font-mono">
+                                                ${row.itemB.unitPrice} ea · Total: ${(row.itemB.quantity * row.itemB.unitPrice).toLocaleString()}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <span className="text-[11px] text-slate-500 italic block py-1">
+                                              — Not in Beta —
+                                            </span>
+                                          )}
+                                        </td>
+
+                                        {/* 4. Diff Status Badge */}
+                                        <td className="py-3 px-3 align-top text-center min-w-[110px]">
+                                          {row.status === 'match' ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                              <Check className="w-3 h-3" />
+                                              <span>Exact Match</span>
+                                            </span>
+                                          ) : row.status === 'qty_diff' ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                              <AlertTriangle className="w-3 h-3" />
+                                              <span>Qty Diff ({row.itemA?.quantity} vs {row.itemB?.quantity})</span>
+                                            </span>
+                                          ) : row.status === 'a_only' ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                                              <span>Alpha Only</span>
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                              <span>Beta Only</span>
+                                            </span>
+                                          )}
+                                        </td>
+
+                                        {/* 5. Master Choice Decision Pills */}
+                                        <td className="py-3 px-3 align-top text-right min-w-[210px]">
+                                          <div className="flex flex-wrap items-center justify-end gap-1">
+                                            {row.itemA && row.itemB ? (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'combine')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice === 'combine'
+                                                      ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                  }`}
+                                                  title={`Take max quantity: ${Math.max(row.itemA.quantity, row.itemB.quantity)} units`}
+                                                >
+                                                  Max ({Math.max(row.itemA.quantity, row.itemB.quantity)}u)
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'A')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice === 'A'
+                                                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                  }`}
+                                                  title={`Keep Alpha quantity: ${row.itemA.quantity} units`}
+                                                >
+                                                  Alpha ({row.itemA.quantity}u)
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'B')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice === 'B'
+                                                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                  }`}
+                                                  title={`Keep Beta quantity: ${row.itemB.quantity} units`}
+                                                >
+                                                  Beta ({row.itemB.quantity}u)
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'sum')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice === 'sum'
+                                                      ? 'bg-cyan-500 text-slate-950 shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                  }`}
+                                                  title={`Sum quantities: ${row.itemA.quantity + row.itemB.quantity} units`}
+                                                >
+                                                  Sum ({row.itemA.quantity + row.itemB.quantity}u)
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'exclude')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice === 'exclude'
+                                                      ? 'bg-rose-500 text-white shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-rose-300 border border-slate-700'
+                                                  }`}
+                                                  title="Omit this line item from final master project"
+                                                >
+                                                  Exclude
+                                                </button>
+                                              </>
+                                            ) : row.itemA ? (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'A')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice !== 'exclude'
+                                                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                  }`}
+                                                  title={`Include item from Alpha (${row.itemA.quantity} units)`}
+                                                >
+                                                  Include Alpha ({row.itemA.quantity}u)
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'exclude')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice === 'exclude'
+                                                      ? 'bg-rose-500 text-white shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-rose-300 border border-slate-700'
+                                                  }`}
+                                                  title="Omit this line item from final master project"
+                                                >
+                                                  Exclude
+                                                </button>
+                                              </>
+                                            ) : row.itemB ? (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'B')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice !== 'exclude'
+                                                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                  }`}
+                                                  title={`Include item from Beta (${row.itemB.quantity} units)`}
+                                                >
+                                                  Include Beta ({row.itemB.quantity}u)
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleSetItemDecision(row.key, 'exclude')}
+                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                    effectiveChoice === 'exclude'
+                                                      ? 'bg-rose-500 text-white shadow-xs'
+                                                      : 'bg-slate-800 text-slate-400 hover:text-rose-300 border border-slate-700'
+                                                  }`}
+                                                  title="Omit this line item from final master project"
+                                                >
+                                                  Exclude
+                                                </button>
+                                              </>
+                                            ) : null}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          /* View Mode 2: Side-by-Side Dual Columns */
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-[560px] overflow-y-auto pr-1">
+                            {/* Left Column: Version Alpha Scope */}
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 sticky top-0 z-10">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                                  <span className="text-xs font-extrabold text-white">
+                                    Project Alpha Scope ({bomStatsA.count})
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-mono text-amber-300 font-bold">
+                                  {bomStatsA.totalQty} Units · ${bomStatsA.totalValue.toLocaleString()}
+                                </span>
+                              </div>
+
+                              {(activePair.projectA.bomItems || []).length === 0 ? (
+                                <div className="p-6 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-500 text-xs">
+                                  No BOM items in Project Alpha
+                                </div>
+                              ) : (
+                                (activePair.projectA.bomItems || []).map((item) => {
+                                  const key = getBOMItemKey(item);
+                                  const matchingInB = (activePair.projectB.bomItems || []).find(
+                                    (b) => getBOMItemKey(b) === key
+                                  );
+                                  const decision = bomCustomChoices[key] || (chosenBOMMode === 'A' ? 'A' : chosenBOMMode === 'B' ? 'exclude' : 'combine');
+                                  const isSelected = decision === 'A' || decision === 'combine' || decision === 'sum';
+
+                                  return (
+                                    <div
+                                      key={key}
+                                      className={`p-3 rounded-xl border transition-all text-xs space-y-2 ${
+                                        isSelected
+                                          ? 'bg-slate-950/90 border-amber-500/60 ring-1 ring-amber-500/30'
+                                          : 'bg-slate-950/40 border-slate-800 opacity-70'
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                          <span className="font-bold text-white block leading-snug">
+                                            {item.name}
+                                          </span>
+                                          <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-amber-300 border border-slate-700 font-bold">
+                                              {item.model}
+                                            </span>
+                                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">
+                                              {item.category}
+                                            </span>
+                                            {matchingInB ? (
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                                                In Both (Beta has {matchingInB.quantity}u)
+                                              </span>
+                                            ) : (
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                                                Alpha Unique
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetItemDecision(key, 'A')}
+                                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer shrink-0 ${
+                                            decision === 'A'
+                                              ? 'bg-amber-500 text-slate-950'
+                                              : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
+                                          }`}
+                                        >
+                                          {decision === 'A' ? 'Selected (A)' : 'Choose A'}
+                                        </button>
+                                      </div>
+
+                                      <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 grid grid-cols-3 gap-2 text-center text-[11px]">
+                                        <div>
+                                          <span className="text-[10px] text-slate-500 block">Quoted Qty</span>
+                                          <span className="font-bold text-white font-mono">{item.quantity}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] text-slate-500 block">Installed</span>
+                                          <span className="font-bold text-emerald-400 font-mono">{item.installedCount}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] text-slate-500 block">Line Total</span>
+                                          <span className="font-bold text-amber-300 font-mono">
+                                            ${(item.quantity * item.unitPrice).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+
+                            {/* Right Column: Version Beta Scope */}
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 sticky top-0 z-10">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                                  <span className="text-xs font-extrabold text-white">
+                                    Project Beta Scope ({bomStatsB.count})
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-mono text-cyan-300 font-bold">
+                                  {bomStatsB.totalQty} Units · ${bomStatsB.totalValue.toLocaleString()}
+                                </span>
+                              </div>
+
+                              {(activePair.projectB.bomItems || []).length === 0 ? (
+                                <div className="p-6 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-500 text-xs">
+                                  No BOM items in Project Beta
+                                </div>
+                              ) : (
+                                (activePair.projectB.bomItems || []).map((item) => {
+                                  const key = getBOMItemKey(item);
+                                  const matchingInA = (activePair.projectA.bomItems || []).find(
+                                    (a) => getBOMItemKey(a) === key
+                                  );
+                                  const decision = bomCustomChoices[key] || (chosenBOMMode === 'B' ? 'B' : chosenBOMMode === 'A' ? 'exclude' : 'combine');
+                                  const isSelected = decision === 'B' || decision === 'combine' || decision === 'sum';
+
+                                  return (
+                                    <div
+                                      key={key}
+                                      className={`p-3 rounded-xl border transition-all text-xs space-y-2 ${
+                                        isSelected
+                                          ? 'bg-slate-950/90 border-cyan-500/60 ring-1 ring-cyan-500/30'
+                                          : 'bg-slate-950/40 border-slate-800 opacity-70'
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                          <span className="font-bold text-white block leading-snug">
+                                            {item.name}
+                                          </span>
+                                          <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-cyan-300 border border-slate-700 font-bold">
+                                              {item.model}
+                                            </span>
+                                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-400">
+                                              {item.category}
+                                            </span>
+                                            {matchingInA ? (
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                                                In Both (Alpha has {matchingInA.quantity}u)
+                                              </span>
+                                            ) : (
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-purple-500/20 text-purple-300 font-mono font-bold">
+                                                Beta Unique
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetItemDecision(key, 'B')}
+                                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer shrink-0 ${
+                                            decision === 'B'
+                                              ? 'bg-cyan-500 text-slate-950'
+                                              : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
+                                          }`}
+                                        >
+                                          {decision === 'B' ? 'Selected (B)' : 'Choose B'}
+                                        </button>
+                                      </div>
+
+                                      <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 grid grid-cols-3 gap-2 text-center text-[11px]">
+                                        <div>
+                                          <span className="text-[10px] text-slate-500 block">Quoted Qty</span>
+                                          <span className="font-bold text-white font-mono">{item.quantity}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] text-slate-500 block">Installed</span>
+                                          <span className="font-bold text-emerald-400 font-mono">{item.installedCount}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] text-slate-500 block">Line Total</span>
+                                          <span className="font-bold text-cyan-300 font-mono">
+                                            ${(item.quantity * item.unitPrice).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* 5. Assigned Integrator Partners */}
