@@ -1018,6 +1018,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
         address: addressSource.address,
         city: addressSource.city,
         state: addressSource.state,
+        zipCode: addressSource.zipCode,
         unitsCount,
         assignedPM,
         platform: baseSurvivor.platform || donor.platform || 'Quext',

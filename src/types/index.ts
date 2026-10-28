@@ -799,6 +799,7 @@ export interface Quote {
   address: string;
   city: string;
   state: string;
+  zipCode?: string;
   unitsCount: number;
   stage: DealStage;
   stageUpdatedAt: string;
@@ -861,6 +862,7 @@ export interface OperationProject {
   address: string;
   city: string;
   state: string;
+  zipCode?: string;
   unitsCount: number;
   heroImage: string;
   assignedPM: ProjectManagerInfo;

@@ -15,6 +15,7 @@ import {
   normalizeFieldTech,
   CommonAreaDoor,
   StaffRoleSubmission,
+  KickoffCustomerIntake,
   calculateProjectScheduleHealth,
   Quote,
   TeamAssistEntry,
@@ -158,6 +159,60 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   })();
   const [isEditingStatusReason, setIsEditingStatusReason] = useState<boolean>(false);
   const [statusReasonInput, setStatusReasonInput] = useState<string>(project.statusReason || '');
+  const [isPmEditMode, setIsPmEditMode] = useState<boolean>(false);
+
+  const handleUpdatePropertyName = (newName: string) => {
+    onUpdateProject({
+      ...project,
+      propertyName: newName,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleUpdateLocation = (updates: { address?: string; city?: string; state?: string; zipCode?: string }) => {
+    onUpdateProject({
+      ...project,
+      ...updates,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleUpdateCustomerIntake = (updates: Partial<KickoffCustomerIntake>) => {
+    const existingIntake = project.customerIntake || {
+      pmsSoftware: 'None',
+      commonAreaDoors: [],
+      staffRoles: [],
+    };
+    onUpdateProject({
+      ...project,
+      customerIntake: {
+        ...existingIntake,
+        ...updates,
+      },
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleUpdateMilestoneTargetDate = (milestoneId: string, newDate: string) => {
+    const updatedMilestones = project.milestones.map((m) =>
+      m.id === milestoneId ? { ...m, targetDate: newDate } : m
+    );
+    const lastM = updatedMilestones[updatedMilestones.length - 1];
+    const updatedTargetDate = milestoneId === lastM.id ? newDate : project.targetCompletionDate;
+    const health = calculateProjectScheduleHealth(
+      updatedTargetDate,
+      project.statusTag,
+      updatedMilestones,
+      project.notes
+    );
+    onUpdateProject({
+      ...project,
+      milestones: updatedMilestones,
+      targetCompletionDate: updatedTargetDate,
+      statusTag: health.effectiveTag,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
   const [isPortalBuildOutOpen, setIsPortalBuildOutOpen] = useState<boolean>(false);
   const [isCSMTrainingOpen, setIsCSMTrainingOpen] = useState<boolean>(false);
   const [csmPortalInitialMode, setCsmPortalInitialMode] = useState<'csm-intro-booking' | 'csm-handoff'>('csm-intro-booking');
@@ -1640,16 +1695,219 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </button>
               )}
             </div>
+
+            {/* PM Edit Mode Button - Located directly under View Quote Counts */}
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                data-tutorial-id="pm-edit-mode-toggle-btn"
+                onClick={() => setIsPmEditMode((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg backdrop-blur-md border transition-all shadow-md cursor-pointer ${
+                  isPmEditMode
+                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-400/60 shadow-amber-500/25'
+                    : 'bg-black/65 hover:bg-black/85 text-amber-300 border-amber-400/40 hover:border-amber-400 shadow-black/40'
+                }`}
+                title="Toggle PM Edit Mode to edit project name, community site contacts, address with zipcode, and milestone target dates"
+              >
+                {isPmEditMode ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-slate-950 font-extrabold" />
+                    <span>Done Editing Project</span>
+                  </>
+                ) : (
+                  <>
+                    <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                    <span>PM Edit Mode</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="p-5 sm:p-6 bg-white rounded-b-xl border-t border-slate-100 relative z-10">
+          {/* PM Edit Mode Banner & Quick Edit Card */}
+          {isPmEditMode && (
+            <div className="mb-5 p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/5 border-2 border-amber-400/80 shadow-sm space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-300/60 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold">
+                    <Edit3 className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                      <span>PM Edit Mode Active</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
+                        Live Auto-Save
+                      </span>
+                    </h3>
+                    <p className="text-xs text-amber-900 mt-0.5">
+                      You can edit the Project Property Name, Address &amp; Zip Code, Community Site Contact Details, and Milestone Target Dates below. All changes save automatically to cloud and local storage.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPmEditMode(false)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs cursor-pointer shrink-0 transition-all self-start sm:self-center"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Done Editing</span>
+                </button>
+              </div>
+
+              {/* Quick Edit Sections in Banner */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
+                {/* Location & Zip Code Card */}
+                <div className="p-3 bg-white border border-amber-200 rounded-xl space-y-2 shadow-2xs">
+                  <div className="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                      Property Address &amp; Zip Code
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal">Location</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Street Address</label>
+                      <input
+                        type="text"
+                        value={project.address}
+                        onChange={(e) => handleUpdateLocation({ address: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-medium focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        placeholder="123 Main St"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">City</label>
+                      <input
+                        type="text"
+                        value={project.city}
+                        onChange={(e) => handleUpdateLocation({ city: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-medium focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        placeholder="Dallas"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">State</label>
+                        <input
+                          type="text"
+                          value={project.state}
+                          onChange={(e) => handleUpdateLocation({ state: e.target.value.toUpperCase() })}
+                          maxLength={2}
+                          className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2 py-1 text-xs text-slate-900 font-bold uppercase text-center focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                          placeholder="TX"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Zip Code</label>
+                        <input
+                          type="text"
+                          value={project.zipCode || ''}
+                          onChange={(e) => handleUpdateLocation({ zipCode: e.target.value })}
+                          maxLength={10}
+                          className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2 py-1 text-xs text-slate-900 font-mono font-bold text-center focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                          placeholder="75201"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Community Site Contact Details Card */}
+                <div className="p-3 bg-white border border-amber-200 rounded-xl space-y-2 shadow-2xs">
+                  <div className="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-amber-600" />
+                      Community Site Contact Details
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal">Contact info</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Site Phone Number</label>
+                      <input
+                        type="text"
+                        value={project.customerIntake?.sitePhoneNumber || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ sitePhoneNumber: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-mono font-semibold focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        placeholder="(512) 555-8900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Community Email</label>
+                      <input
+                        type="email"
+                        value={project.customerIntake?.communityEmail || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ communityEmail: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-medium focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        placeholder="leasing@property.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Primary Site Contact Name</label>
+                      <input
+                        type="text"
+                        value={project.customerIntake?.submittedBy || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ submittedBy: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-medium focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        placeholder="Property Manager"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Time Zone &amp; Priority</label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <select
+                          value={project.customerIntake?.timeZone || 'Central Time (CT)'}
+                          onChange={(e) => handleUpdateCustomerIntake({ timeZone: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2 py-1 text-[11px] text-slate-900 font-medium focus:ring-1 focus:ring-amber-500 focus:outline-none cursor-pointer"
+                        >
+                          <option value="Central Time (CT)">Central (CT)</option>
+                          <option value="Eastern Time (ET)">Eastern (ET)</option>
+                          <option value="Mountain Time (MT)">Mountain (MT)</option>
+                          <option value="Pacific Time (PT)">Pacific (PT)</option>
+                          <option value="Arizona (MST)">Arizona</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={project.customerIntake?.priorityDating || ''}
+                          onChange={(e) => handleUpdateCustomerIntake({ priorityDating: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2 py-1 text-[11px] text-slate-900 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                          placeholder="Immediate"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Title, Property Info & Personnel Selectors */}
           <div>
             <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-['Plus_Jakarta_Sans']">
-                {project.propertyName}
-              </h1>
+              {isPmEditMode ? (
+                <div className="flex-1 min-w-[280px] max-w-xl">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                      <Edit3 className="w-3 h-3 text-amber-600" />
+                      Project Property Name
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={project.propertyName}
+                    onChange={(e) => handleUpdatePropertyName(e.target.value)}
+                    className="w-full text-2xl sm:text-3xl font-extrabold text-slate-900 bg-amber-50/70 border-2 border-amber-400 rounded-xl px-3 py-1 focus:ring-2 focus:ring-amber-500 focus:outline-none font-['Plus_Jakarta_Sans'] shadow-inner"
+                    placeholder="Project Name..."
+                  />
+                </div>
+              ) : (
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-['Plus_Jakarta_Sans']">
+                  {project.propertyName}
+                </h1>
+              )}
               <span className="text-xs px-2.5 py-0.5 rounded font-bold bg-sky-100 text-sky-800 border border-sky-300">
                 Operations Focus Tab
               </span>
@@ -1680,7 +1938,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               <span>·</span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                {project.address}, {project.city}, {project.state}
+                {project.address}, {project.city}, {project.state}{project.zipCode ? ` ${project.zipCode}` : ''}
               </span>
               <span>·</span>
               <span className="flex items-center gap-1">
@@ -2036,7 +2294,13 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </span>
                 <div className="flex items-center gap-3">
                   <span className="text-[11px] text-slate-500">
-                    Click any milestone card to update status ({project.milestones.filter((m) => m.status === 'Completed').length}/{project.milestones.length} Done)
+                    {isPmEditMode ? (
+                      <span className="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                        PM Edit Mode: Adjust milestone target dates below
+                      </span>
+                    ) : (
+                      `Click any milestone card to update status (${project.milestones.filter((m) => m.status === 'Completed').length}/${project.milestones.length} Done)`
+                    )}
                   </span>
                   <span className="text-[11px] font-mono text-slate-500">
                     Target: {project.targetCompletionDate}
@@ -2056,9 +2320,17 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 {project.milestones.map((milestone) => (
                   <div
                     key={milestone.id}
-                    onClick={() => handleToggleMilestone(milestone.id)}
-                    title={`Click to cycle status (${milestone.status})`}
-                    className={`p-2 rounded-lg border text-xs transition-all cursor-pointer select-none ${
+                    onClick={() => !isPmEditMode && handleToggleMilestone(milestone.id)}
+                    title={
+                      isPmEditMode
+                        ? `Set target date for ${milestone.title}`
+                        : `Click to cycle status (${milestone.status})`
+                    }
+                    className={`p-2 rounded-lg border text-xs transition-all ${
+                      isPmEditMode
+                        ? 'cursor-default ring-2 ring-amber-400 bg-amber-50/40 shadow-xs'
+                        : 'cursor-pointer select-none hover:scale-[1.02]'
+                    } ${
                       milestone.status === 'Completed'
                         ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 font-semibold hover:bg-emerald-100/80'
                         : milestone.status === 'In Progress'
@@ -2066,10 +2338,25 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                         : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-100'
                     }`}
                   >
-                    <div className="text-[10px] truncate">{milestone.title}</div>
-                    <div className="text-[10px] font-mono text-slate-600 mt-0.5">
-                      {milestone.status === 'Completed' ? '✓ Done' : milestone.targetDate}
-                    </div>
+                    <div className="text-[10px] font-bold truncate">{milestone.title}</div>
+                    {isPmEditMode ? (
+                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                        <label className="text-[9px] font-semibold text-amber-800 block text-left">
+                          Target:
+                        </label>
+                        <input
+                          type="date"
+                          value={milestone.targetDate || ''}
+                          onChange={(e) => handleUpdateMilestoneTargetDate(milestone.id, e.target.value)}
+                          className="w-full text-[10px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                          title={`Set target date for ${milestone.title}`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-[10px] font-mono text-slate-600 mt-0.5">
+                        {milestone.status === 'Completed' ? '✓ Done' : milestone.targetDate}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -2811,32 +3098,107 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               </div>
 
               {/* Box 3: Community Site Contacts */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+              <div className={`p-3.5 border rounded-xl space-y-2 text-xs transition-all ${
+                isPmEditMode ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-400/50' : 'bg-slate-50 border-slate-200'
+              }`}>
                 <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                  <span>Community Site Contact</span>
+                  <span className="flex items-center gap-1.5">
+                    <span>Community Site Contact</span>
+                    {isPmEditMode && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-400 text-slate-950">
+                        Editable
+                      </span>
+                    )}
+                  </span>
                   <Building2 className="w-3.5 h-3.5 text-sky-600" />
                 </div>
 
-                <div className="space-y-1.5 text-[11px]">
-                  <div>
-                    <span className="text-slate-500">Site Phone Number:</span>
-                    <div className="font-bold text-slate-900 font-mono mt-0.5">
-                      {project.customerIntake?.sitePhoneNumber || '(512) 555-8900'}
+                {isPmEditMode ? (
+                  <div className="space-y-2 text-[11px]">
+                    <div>
+                      <label className="text-slate-600 block text-[10px] font-semibold">Site Phone Number:</label>
+                      <input
+                        type="text"
+                        value={project.customerIntake?.sitePhoneNumber || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ sitePhoneNumber: e.target.value })}
+                        className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        placeholder="(512) 555-8900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-600 block text-[10px] font-semibold">Community Email:</label>
+                      <input
+                        type="email"
+                        value={project.customerIntake?.communityEmail || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ communityEmail: e.target.value })}
+                        className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        placeholder="leasing@property.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-600 block text-[10px] font-semibold">Primary Site Contact Name:</label>
+                      <input
+                        type="text"
+                        value={project.customerIntake?.submittedBy || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ submittedBy: e.target.value })}
+                        className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        placeholder="Property Manager"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-600 block text-[10px] font-semibold">Time Zone &amp; Priority Dates:</label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <select
+                          value={project.customerIntake?.timeZone || 'Central Time (CT)'}
+                          onChange={(e) => handleUpdateCustomerIntake({ timeZone: e.target.value })}
+                          className="w-full bg-white border border-amber-300 rounded px-1.5 py-1 text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        >
+                          <option value="Central Time (CT)">Central (CT)</option>
+                          <option value="Eastern Time (ET)">Eastern (ET)</option>
+                          <option value="Mountain Time (MT)">Mountain (MT)</option>
+                          <option value="Pacific Time (PT)">Pacific (PT)</option>
+                          <option value="Arizona (MST)">Arizona</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={project.customerIntake?.priorityDating || ''}
+                          onChange={(e) => handleUpdateCustomerIntake({ priorityDating: e.target.value })}
+                          className="w-full bg-white border border-amber-300 rounded px-1.5 py-1 text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          placeholder="Immediate"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <span className="text-slate-500">Community Email:</span>
-                    <div className="font-semibold text-slate-900 mt-0.5 truncate">
-                      {project.customerIntake?.communityEmail || `${project.propertyName.toLowerCase().replace(/[^a-z0-9]/g, '')}@property.com`}
+                ) : (
+                  <div className="space-y-1.5 text-[11px]">
+                    <div>
+                      <span className="text-slate-500">Site Phone Number:</span>
+                      <div className="font-bold text-slate-900 font-mono mt-0.5">
+                        {project.customerIntake?.sitePhoneNumber || '(512) 555-8900'}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Time Zone &amp; Priority Dates:</span>
-                    <div className="font-semibold text-slate-800 mt-0.5">
-                      {project.customerIntake?.timeZone || 'Central Time (CT)'} · {project.customerIntake?.priorityDating || 'Immediate'}
+                    <div>
+                      <span className="text-slate-500">Community Email:</span>
+                      <div className="font-semibold text-slate-900 mt-0.5 truncate">
+                        {project.customerIntake?.communityEmail || `${project.propertyName.toLowerCase().replace(/[^a-z0-9]/g, '')}@property.com`}
+                      </div>
                     </div>
+                    <div>
+                      <span className="text-slate-500">Time Zone &amp; Priority Dates:</span>
+                      <div className="font-semibold text-slate-800 mt-0.5">
+                        {project.customerIntake?.timeZone || 'Central Time (CT)'} · {project.customerIntake?.priorityDating || 'Immediate'}
+                      </div>
+                    </div>
+                    {project.customerIntake?.submittedBy && (
+                      <div>
+                        <span className="text-slate-500">Primary Contact:</span>
+                        <div className="font-semibold text-slate-800 mt-0.5">
+                          {project.customerIntake.submittedBy}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Box 4: Common Doors & Walkthrough Subscription */}
