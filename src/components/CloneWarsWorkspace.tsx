@@ -28,6 +28,14 @@ import {
   ArrowLeft,
   GraduationCap,
   Users,
+  ShieldAlert,
+  Brain,
+  Sliders,
+  RotateCcw,
+  Trash2,
+  Check,
+  HelpCircle,
+  ThumbsDown,
 } from 'lucide-react';
 
 const COMMON_STOPWORDS = new Set([
@@ -44,6 +52,56 @@ export interface CloneCluster {
   confidence: 'High' | 'Medium' | 'Low';
 }
 
+export interface DismissedClonePair {
+  id: string;
+  projectAId: string;
+  projectBId: string;
+  projectAName: string;
+  projectBName: string;
+  sharedWords: string[];
+  dismissedAt: string;
+}
+
+export const STORAGE_DISMISSED_PAIRS_KEY = 'quext_clone_wars_dismissed_pairs_v1';
+export const STORAGE_LEARNED_WORDS_KEY = 'quext_clone_wars_learned_words_v1';
+
+export function loadDismissedPairs(): DismissedClonePair[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_DISMISSED_PAIRS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDismissedPairs(pairs: DismissedClonePair[]) {
+  try {
+    localStorage.setItem(STORAGE_DISMISSED_PAIRS_KEY, JSON.stringify(pairs));
+  } catch (e) {
+    console.warn('[Clone Wars] Failed to save dismissed pairs:', e);
+  }
+}
+
+export function loadLearnedWords(): Map<string, number> {
+  try {
+    const raw = localStorage.getItem(STORAGE_LEARNED_WORDS_KEY);
+    if (!raw) return new Map();
+    const obj = JSON.parse(raw);
+    return new Map(Object.entries(obj));
+  } catch {
+    return new Map();
+  }
+}
+
+export function saveLearnedWords(wordsMap: Map<string, number>) {
+  try {
+    const obj = Object.fromEntries(wordsMap.entries());
+    localStorage.setItem(STORAGE_LEARNED_WORDS_KEY, JSON.stringify(obj));
+  } catch (e) {
+    console.warn('[Clone Wars] Failed to save learned words:', e);
+  }
+}
+
 export function extractSignificantWords(title: string): string[] {
   return title
     .toLowerCase()
@@ -54,7 +112,9 @@ export function extractSignificantWords(title: string): string[] {
 
 export function detectCloneClusters(
   projects: OperationProject[],
-  strictMode = false
+  strictMode = false,
+  dismissedPairIds: Set<string> = new Set(),
+  learnedFalsePositiveWords: Set<string> = new Set()
 ): CloneCluster[] {
   const clusters: CloneCluster[] = [];
 
@@ -65,8 +125,19 @@ export function detectCloneClusters(
 
     for (let j = i + 1; j < projects.length; j++) {
       const p2 = projects[j];
+      const key1 = `${p1.id}__${p2.id}`;
+      const key2 = `${p2.id}__${p1.id}`;
+
+      // 1. Skip if explicitly marked as not a clone
+      if (dismissedPairIds.has(key1) || dismissedPairIds.has(key2)) {
+        continue;
+      }
+
       const words2 = extractSignificantWords(p2.propertyName);
-      const shared = Array.from(new Set(words2.filter((w) => set1.has(w))));
+      const rawShared = Array.from(new Set(words2.filter((w) => set1.has(w))));
+
+      // 2. Filter out words learned to be false-positive noise
+      const shared = rawShared.filter((w) => !learnedFalsePositiveWords.has(w.toLowerCase()));
 
       if (shared.length > 0) {
         // Calculate Jaccard similarity
@@ -85,7 +156,7 @@ export function detectCloneClusters(
         }
 
         clusters.push({
-          id: `${p1.id}__${p2.id}`,
+          id: key1,
           projectA: p1,
           projectB: p2,
           sharedWords: shared,
@@ -114,6 +185,19 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [strictScan, setStrictScan] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+
+  // Scanner Tuning & Ignored Matches state (persisted to localStorage)
+  const [dismissedPairs, setDismissedPairs] = useState<DismissedClonePair[]>(() => loadDismissedPairs());
+  const [learnedWords, setLearnedWords] = useState<Map<string, number>>(() => loadLearnedWords());
+  const [showTuningModal, setShowTuningModal] = useState<boolean>(false);
+  const [tuningTab, setTuningTab] = useState<'pairs' | 'words'>('pairs');
+  const [newWordInput, setNewWordInput] = useState<string>('');
+  const [lastDismissedNotice, setLastDismissedNotice] = useState<{
+    pairId: string;
+    pairAName: string;
+    pairBName: string;
+    words: string[];
+  } | null>(null);
 
   // Manual pair selection overrides
   const [manualProjAId, setManualProjAId] = useState<string>('');
@@ -151,10 +235,25 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     obsoleteName: string;
   } | null>(null);
 
-  // Scan clusters based on current projects list
+  // Set of dismissed pair IDs (bidirectional)
+  const dismissedSet = useMemo(() => {
+    const set = new Set<string>();
+    dismissedPairs.forEach((p) => {
+      set.add(p.id);
+      set.add(`${p.projectBId}__${p.projectAId}`);
+    });
+    return set;
+  }, [dismissedPairs]);
+
+  // Set of learned false-positive words to filter
+  const learnedWordsSet = useMemo(() => {
+    return new Set(Array.from(learnedWords.keys()));
+  }, [learnedWords]);
+
+  // Scan clusters based on current projects list, ignoring dismissed pairs & learned noise words
   const detectedClusters = useMemo(() => {
-    return detectCloneClusters(projects, strictScan);
-  }, [projects, strictScan]);
+    return detectCloneClusters(projects, strictScan, dismissedSet, learnedWordsSet);
+  }, [projects, strictScan, dismissedSet, learnedWordsSet]);
 
   const filteredClusters = useMemo(() => {
     if (!searchTerm.trim()) return detectedClusters;
@@ -166,6 +265,115 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
         c.sharedWords.some((w) => w.toLowerCase().includes(q))
     );
   }, [detectedClusters, searchTerm]);
+
+  // Mark identified match as NOT a clone: removes it and teaches the duplicate scanner
+  const handleMarkNotClone = (pA: OperationProject, pB: OperationProject, words: string[]) => {
+    const pairId = `${pA.id}__${pB.id}`;
+    const now = new Date().toISOString();
+
+    const newDismissed: DismissedClonePair = {
+      id: pairId,
+      projectAId: pA.id,
+      projectBId: pB.id,
+      projectAName: pA.propertyName,
+      projectBName: pB.propertyName,
+      sharedWords: words,
+      dismissedAt: now,
+    };
+
+    const updatedDismissed = [
+      newDismissed,
+      ...dismissedPairs.filter(
+        (p) => p.id !== pairId && p.id !== `${pB.id}__${pA.id}`
+      ),
+    ];
+    setDismissedPairs(updatedDismissed);
+    saveDismissedPairs(updatedDismissed);
+
+    // Teach scanner by counting false-positive words
+    const updatedWords = new Map(learnedWords);
+    words.forEach((w) => {
+      const clean = w.toLowerCase().trim();
+      if (clean.length >= 3 && !COMMON_STOPWORDS.has(clean)) {
+        updatedWords.set(clean, (updatedWords.get(clean) || 0) + 1);
+      }
+    });
+    setLearnedWords(updatedWords);
+    saveLearnedWords(updatedWords);
+
+    // If active in Arena, unload it
+    if (
+      activePair &&
+      ((activePair.projectA.id === pA.id && activePair.projectB.id === pB.id) ||
+        (activePair.projectA.id === pB.id && activePair.projectB.id === pA.id))
+    ) {
+      setActivePair(null);
+    }
+
+    setLastDismissedNotice({
+      pairId,
+      pairAName: pA.propertyName,
+      pairBName: pB.propertyName,
+      words,
+    });
+  };
+
+  // Undo dismissing a pair
+  const handleUndoDismiss = (pairId: string, words: string[]) => {
+    const [idA, idB] = pairId.split('__');
+    const updatedDismissed = dismissedPairs.filter(
+      (p) => p.id !== pairId && !(p.projectAId === idB && p.projectBId === idA)
+    );
+    setDismissedPairs(updatedDismissed);
+    saveDismissedPairs(updatedDismissed);
+
+    const updatedWords = new Map(learnedWords);
+    words.forEach((w) => {
+      const clean = w.toLowerCase().trim();
+      const count = (updatedWords.get(clean) || 1) - 1;
+      if (count <= 0) {
+        updatedWords.delete(clean);
+      } else {
+        updatedWords.set(clean, count);
+      }
+    });
+    setLearnedWords(updatedWords);
+    saveLearnedWords(updatedWords);
+    setLastDismissedNotice(null);
+  };
+
+  // Re-enable an ignored pair from tuning modal
+  const handleReEnablePair = (pair: DismissedClonePair) => {
+    handleUndoDismiss(pair.id, pair.sharedWords);
+  };
+
+  // Remove a learned word filter
+  const handleRemoveLearnedWord = (word: string) => {
+    const updatedWords = new Map(learnedWords);
+    updatedWords.delete(word.toLowerCase());
+    setLearnedWords(updatedWords);
+    saveLearnedWords(updatedWords);
+  };
+
+  // Add custom noise word filter
+  const handleAddNewLearnedWord = () => {
+    const clean = newWordInput.trim().toLowerCase();
+    if (!clean || clean.length < 3) return;
+    const updatedWords = new Map(learnedWords);
+    updatedWords.set(clean, (updatedWords.get(clean) || 0) + 1);
+    setLearnedWords(updatedWords);
+    saveLearnedWords(updatedWords);
+    setNewWordInput('');
+  };
+
+  // Reset all scanner training and ignored pairs
+  const handleResetAllTraining = () => {
+    setDismissedPairs([]);
+    setLearnedWords(new Map());
+    localStorage.removeItem(STORAGE_DISMISSED_PAIRS_KEY);
+    localStorage.removeItem(STORAGE_LEARNED_WORDS_KEY);
+    setLastDismissedNotice(null);
+  };
 
   // Load a pair into the Merge Studio
   const handleLoadPair = (
@@ -450,6 +658,21 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
 
             <button
               type="button"
+              onClick={() => setShowTuningModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+              title="Manage dismissed pairs and learned duplicate scanner stopwords"
+            >
+              <Brain className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Scanner Tuning</span>
+              {(dismissedPairs.length > 0 || learnedWords.size > 0) && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  {dismissedPairs.length + learnedWords.size}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition-colors cursor-pointer"
             >
@@ -550,6 +773,56 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
               </div>
             </div>
 
+            {/* Dismissal / Scanner Learning Banner */}
+            {lastDismissedNotice && (
+              <div className="p-3 rounded-2xl bg-slate-900 border border-amber-500/40 text-xs shadow-md space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="text-[11px] leading-tight text-slate-300">
+                      <span className="font-semibold text-slate-100">Dismissed as duplicate:</span>{' '}
+                      <span className="text-white font-medium">&quot;{lastDismissedNotice.pairAName}&quot;</span> &amp;{' '}
+                      <span className="text-white font-medium">&quot;{lastDismissedNotice.pairBName}&quot;</span>.
+                      {lastDismissedNotice.words.length > 0 && (
+                        <p className="text-[10px] text-cyan-300 mt-1">
+                          Scanner learned to ignore generic term(s):{' '}
+                          <span className="font-mono font-bold">{lastDismissedNotice.words.join(', ')}</span>.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLastDismissedNotice(null)}
+                    className="p-1 text-slate-400 hover:text-white rounded"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowTuningModal(true)}
+                    className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    <Brain className="w-3 h-3" />
+                    <span>View Tuning Settings</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleUndoDismiss(lastDismissedNotice.pairId, lastDismissedNotice.words);
+                      setLastDismissedNotice(null);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[11px] border border-amber-500/40 cursor-pointer transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Undo</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Clusters List */}
             <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
               {filteredClusters.length === 0 ? (
@@ -637,10 +910,24 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                       </div>
 
                       {/* Action Button */}
-                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-500">
-                          ID: {cluster.projectA.id.slice(0, 6)}... / {cluster.projectB.id.slice(0, 6)}...
-                        </span>
+                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkNotClone(
+                              cluster.projectA,
+                              cluster.projectB,
+                              cluster.sharedWords
+                            );
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-[11px] font-semibold transition-colors cursor-pointer"
+                          title="Mark this match as NOT a duplicate. Removes it and teaches scanner to ignore these words."
+                        >
+                          <ThumbsDown className="w-3 h-3" />
+                          <span>Not a Clone</span>
+                        </button>
+
                         <span className="text-xs font-bold text-amber-400 inline-flex items-center gap-1 group">
                           <span>Enter Merge Arena</span>
                           <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -770,7 +1057,24 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activePair) {
+                          handleMarkNotClone(
+                            activePair.projectA,
+                            activePair.projectB,
+                            activePair.sharedWords || []
+                          );
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 text-xs font-semibold cursor-pointer transition-colors"
+                      title="Dismiss this pair as NOT a duplicate. Unloads arena and trains scanner."
+                    >
+                      <ThumbsDown className="w-3.5 h-3.5" />
+                      <span>Not a Clone</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setActivePair(null)}
@@ -1288,6 +1592,221 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
           </div>
         </div>
       </main>
+
+      {/* =====================================================================
+          4. SCANNER TUNING & ADAPTIVE LEARNING MODAL
+      ===================================================================== */}
+      {showTuningModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-[#0F172A] border border-slate-700 rounded-3xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <Brain className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">
+                    Scanner Adaptive Learning &amp; Tuning
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Manage dismissed clone pairs and noise keywords that train the duplicate scanner.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTuningModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Tabs */}
+            <div className="px-6 pt-3 flex items-center gap-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setTuningTab('pairs')}
+                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer ${
+                  tuningTab === 'pairs'
+                    ? 'border-cyan-400 text-cyan-300 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Dismissed Pairs ({dismissedPairs.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTuningTab('words')}
+                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer ${
+                  tuningTab === 'words'
+                    ? 'border-cyan-400 text-cyan-300 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Learned Noise Words ({learnedWords.size})
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              {tuningTab === 'pairs' ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    These specific property pairs were marked as <strong className="text-slate-200">&quot;Not a Clone&quot;</strong>. The scanner permanently blacklists them from appearing together in clone alerts.
+                  </p>
+
+                  {dismissedPairs.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                      <ShieldCheck className="w-8 h-8 text-slate-500 mx-auto" />
+                      <p className="text-xs font-bold text-slate-300">No Dismissed Pairs</p>
+                      <p className="text-[11px] text-slate-500">
+                        When you click &quot;Not a Clone&quot; on a detected match card, it will be cataloged here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {dismissedPairs.map((pair) => (
+                        <div
+                          key={pair.id}
+                          className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-white truncate max-w-[200px]">
+                                {pair.projectAName}
+                              </span>
+                              <span className="text-slate-500 font-mono text-[11px]">vs</span>
+                              <span className="font-bold text-white truncate max-w-[200px]">
+                                {pair.projectBName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-slate-500">Shared tokens:</span>
+                              {pair.sharedWords.map((w) => (
+                                <span
+                                  key={w}
+                                  className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700"
+                                >
+                                  {w}
+                                </span>
+                              ))}
+                              <span className="text-[10px] text-slate-500 ml-2">
+                                {new Date(pair.dismissedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleReEnablePair(pair)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold cursor-pointer shrink-0 transition-colors"
+                            title="Re-enable duplicate detection for this pair"
+                          >
+                            <RotateCcw className="w-3 h-3 text-amber-400" />
+                            <span>Re-Enable</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Words in this negative stoplist are treated as common generic multifamily terms (e.g. <em>&quot;apartments&quot;</em>, <em>&quot;square&quot;</em>). The duplicate scanner ignores them so properties sharing only these terms are not falsely flagged.
+                  </p>
+
+                  {/* Add Custom Word Input */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add custom noise word (e.g., residences, commons)..."
+                      value={newWordInput}
+                      onChange={(e) => setNewWordInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddNewLearnedWord();
+                        }
+                      }}
+                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                    />
+                    <button
+                      type="button"
+                      disabled={!newWordInput.trim() || newWordInput.trim().length < 3}
+                      onClick={handleAddNewLearnedWord}
+                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Add Stopword
+                    </button>
+                  </div>
+
+                  {/* Learned Words Tag Cloud */}
+                  {learnedWords.size === 0 ? (
+                    <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                      <HelpCircle className="w-8 h-8 text-slate-500 mx-auto" />
+                      <p className="text-xs font-bold text-slate-300">No Noise Keywords Learned Yet</p>
+                      <p className="text-[11px] text-slate-500">
+                        When you mark a match as &quot;Not a Clone&quot;, any generic shared words will automatically appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
+                      {Array.from(learnedWords.entries()).map(([word, count]) => (
+                        <span
+                          key={word}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-medium bg-cyan-500/15 text-cyan-200 border border-cyan-500/30"
+                        >
+                          <span>&quot;{word}&quot;</span>
+                          {count > 1 && (
+                            <span className="text-[10px] px-1 py-0.2 rounded-full bg-cyan-500/30 text-cyan-300 font-bold">
+                              x{count}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLearnedWord(word)}
+                            className="p-0.5 text-cyan-300 hover:text-white rounded hover:bg-cyan-500/30 cursor-pointer"
+                            title={`Remove "${word}" from noise stoplist`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between bg-slate-900/70">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Reset all learned noise words and re-enable all dismissed clone pairs?')) {
+                    handleResetAllTraining();
+                  }
+                }}
+                className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer inline-flex items-center gap-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Reset All Training</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowTuningModal(false)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
