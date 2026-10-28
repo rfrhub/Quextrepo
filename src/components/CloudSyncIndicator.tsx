@@ -4,9 +4,19 @@ import {
   getSyncStatus,
   SyncStatus,
 } from '../services/realtimeSyncService';
-import { Cloud, CloudOff, RefreshCw, CheckCircle2, Wifi } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, Wifi } from 'lucide-react';
 
-export const CloudSyncIndicator: React.FC = () => {
+export interface CloudSyncIndicatorProps {
+  onManualSync?: () => void;
+  isManualSyncing?: boolean;
+  lastSyncedInfo?: string;
+}
+
+export const CloudSyncIndicator: React.FC<CloudSyncIndicatorProps> = ({
+  onManualSync,
+  isManualSyncing = false,
+  lastSyncedInfo,
+}) => {
   const [status, setStatus] = useState<SyncStatus>(getSyncStatus);
   const [showDetails, setShowDetails] = useState<boolean>(false);
 
@@ -17,39 +27,49 @@ export const CloudSyncIndicator: React.FC = () => {
     return unsub;
   }, []);
 
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setShowDetails(!showDetails)}
-        className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
-          status.isConnected
-            ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-            : status.isSyncing
-            ? 'bg-sky-50 text-sky-800 border-sky-300 hover:bg-sky-100 animate-pulse'
-            : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-        }`}
-        title="Live Real-Time Cloud Synchronization Status"
-      >
-        {status.isSyncing ? (
-          <RefreshCw className="w-3 h-3 text-sky-600 animate-spin" />
-        ) : status.isConnected ? (
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-        ) : (
-          <CloudOff className="w-3 h-3 text-slate-400" />
-        )}
+  const isSyncing = status.isSyncing || isManualSyncing;
 
-        <span className="hidden sm:inline font-mono text-[10px] tracking-tight">
-          {status.isSyncing
-            ? 'Cloud Syncing...'
-            : status.isConnected
-            ? 'Live Cloud'
-            : 'Local Cache'}
-        </span>
-      </button>
+  return (
+    <div className="relative shrink-0">
+      <div className="inline-flex items-center rounded-lg border border-emerald-200/80 bg-emerald-50/70 p-0.5 shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setShowDetails(!showDetails)}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold text-emerald-800 hover:bg-emerald-100/70 transition-colors cursor-pointer"
+          title={lastSyncedInfo || "Live Real-Time Cloud Synchronization Status (Click for details)"}
+        >
+          {isSyncing ? (
+            <RefreshCw className="w-3 h-3 text-emerald-600 animate-spin shrink-0" />
+          ) : status.isConnected ? (
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          ) : (
+            <CloudOff className="w-3 h-3 text-slate-400 shrink-0" />
+          )}
+
+          <span className="font-medium text-[11px] text-emerald-900 tracking-tight">
+            {isSyncing ? 'Syncing...' : 'Live Cloud'}
+          </span>
+        </button>
+
+        {onManualSync && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onManualSync();
+            }}
+            disabled={isSyncing}
+            title={lastSyncedInfo || "Instant Firestore sync"}
+            aria-label="Instant Firestore sync"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-emerald-700 hover:text-emerald-950 hover:bg-emerald-100/80 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+          </button>
+        )}
+      </div>
 
       {/* Popover Details */}
       {showDetails && (
@@ -98,12 +118,27 @@ export const CloudSyncIndicator: React.FC = () => {
               )}
             </div>
 
+            {onManualSync && (
+              <button
+                type="button"
+                onClick={() => {
+                  onManualSync();
+                  setShowDetails(false);
+                }}
+                disabled={isSyncing}
+                className="mt-3 w-full py-1.5 bg-emerald-600 text-white rounded-lg text-[11px] font-bold hover:bg-emerald-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>Sync Now</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setShowDetails(false)}
-              className="mt-3 w-full py-1.5 bg-slate-900 text-white rounded-lg text-[11px] font-bold hover:bg-slate-800 transition-colors cursor-pointer"
+              className="mt-2 w-full py-1.5 bg-slate-100 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-200 transition-colors cursor-pointer"
             >
-              Done
+              Close
             </button>
           </div>
         </>

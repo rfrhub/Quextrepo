@@ -47,6 +47,7 @@ import {
   AlertTriangle,
   GitMerge,
   KeyRound,
+  ChevronDown,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
@@ -405,9 +406,9 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
       ===================================================================== */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-2xs">
         {/* Main Header Bar (56px) */}
-        <div className="h-14 px-3 sm:px-4 lg:px-6 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="h-14 px-3 sm:px-4 lg:px-6 flex items-center justify-between gap-3 lg:gap-6">
           {/* Left: [quext] Logo + Main Platform Navigation */}
-          <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+          <div className="flex items-center gap-3 lg:gap-5 shrink-0">
             <button
               type="button"
               onClick={() => onSelectTopTab('salesHub')}
@@ -417,7 +418,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               <img
                 src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
                 alt="Quext"
-                className="h-6 sm:h-8 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+                className="h-6 sm:h-7 w-auto object-contain transition-transform group-hover:scale-[1.02]"
                 onError={(e) => {
                   if (e.currentTarget.src !== '/quext-logo-boxed.png') {
                     e.currentTarget.src = '/quext-logo-boxed.png';
@@ -426,220 +427,199 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               />
             </button>
 
-          <nav className="hidden md:flex items-center space-x-1">
-            <button
-              type="button"
-              onClick={() => onSelectTopTab('salesHub')}
-              className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTopTab === 'salesHub'
-                  ? 'bg-blue-50 text-blue-600 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`}
-            >
-              <span>Sales Hub</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100/80 text-blue-700 font-bold tabular-nums">
-                {quotes.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              data-tutorial-id="top-nav-operations"
-              onClick={() => {
-                onSelectTopTab('operations');
-                if (operationsMainTab === 'quotes') {
-                  onGoToOperationsDashboard();
-                }
-              }}
-              className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTopTab === 'operations'
-                  ? 'bg-blue-50 text-blue-600 font-semibold ring-1 ring-blue-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`}
-            >
-              <span>Operations</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums ${
-                  activeTopTab === 'operations'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-emerald-100 text-emerald-800'
+            <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => onSelectTopTab('salesHub')}
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                  activeTopTab === 'salesHub'
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
                 }`}
               >
-                {projects.length}
-              </span>
-            </button>
+                <span>Sales Hub</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100/80 text-blue-700 font-bold tabular-nums">
+                  {quotes.length}
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => onSelectTopTab('customerSuccess')}
-              className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-colors cursor-pointer whitespace-nowrap ${
-                activeTopTab === 'customerSuccess'
-                  ? 'bg-blue-50 text-blue-600 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`}
-            >
-              Customer Success
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onSelectTopTab('reports')}
-              className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-colors cursor-pointer whitespace-nowrap ${
-                activeTopTab === 'reports'
-                  ? 'bg-blue-50 text-blue-600 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`}
-            >
-              Reports
-            </button>
-
-            <button
-              type="button"
-              data-tutorial-id="top-nav-product-catalog"
-              onClick={() => onSelectTopTab('productCatalog')}
-              className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-colors cursor-pointer whitespace-nowrap ${
-                activeTopTab === 'productCatalog'
-                  ? 'bg-blue-50 text-blue-600 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-              }`}
-            >
-              Product Catalog
-            </button>
-          </nav>
-        </div>
-
-        {/* Right: Search buildings/contacts + Live Sync + Bug Icon + Raul Recalde Profile */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          {/* Global Search Pill matching myquext.com */}
-          <div className="relative hidden sm:block">
-            <div className="flex items-center w-60 lg:w-72 h-9 px-3 rounded-lg bg-slate-50 border border-slate-200/90 text-xs text-slate-500 focus-within:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 transition-all">
-              <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
-              <input
-                type="text"
-                value={globalSearch}
-                onFocus={() => setShowGlobalSearchDropdown(true)}
-                onBlur={() => setTimeout(() => setShowGlobalSearchDropdown(false), 180)}
-                onChange={(e) => {
-                  setGlobalSearch(e.target.value);
-                  setShowGlobalSearchDropdown(true);
+              <button
+                type="button"
+                data-tutorial-id="top-nav-operations"
+                onClick={() => {
+                  onSelectTopTab('operations');
+                  if (operationsMainTab === 'quotes') {
+                    onGoToOperationsDashboard();
+                  }
                 }}
-                placeholder="Search buildings, contacts..."
-                className="w-full bg-transparent text-slate-800 placeholder-slate-400 focus:outline-none text-xs"
-              />
-              <kbd className="ml-1.5 px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 bg-white border border-slate-200 rounded shadow-2xs shrink-0">
-                ⌘K
-              </kbd>
-            </div>
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                  activeTopTab === 'operations'
+                    ? 'bg-blue-50 text-blue-600 font-semibold ring-1 ring-blue-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                }`}
+              >
+                <span>Operations</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums ${
+                    activeTopTab === 'operations'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  {projects.length}
+                </span>
+              </button>
 
-            {/* Quick Search Results Dropdown across all myquext opportunities & projects */}
-            {showGlobalSearchDropdown && globalSearch.trim().length > 0 && (
-              <div className="absolute right-0 mt-1.5 w-96 max-h-96 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 divide-y divide-slate-100">
-                <div className="px-3 py-2 bg-slate-50 text-[11px] font-semibold text-slate-500 flex items-center justify-between">
-                  <span>myquext.com Opportunities &amp; Projects</span>
-                  <span>{filteredOpportunities.length} matches</span>
-                </div>
-                {filteredOpportunities.slice(0, 8).map((item) => {
-                  const isWon = item.stage === 'Deal Won';
-                  return (
-                    <div
-                      key={item.id}
-                      className="px-3.5 py-2.5 hover:bg-blue-50/60 flex items-center justify-between gap-2 text-xs"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-semibold text-slate-900 truncate">
-                          {item.propertyName}
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate">
-                          {item.clientName} • {item.unitsCount} units • {item.city}, {item.state}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {isWon ? (
-                          <button
-                            type="button"
-                            onMouseDown={() => handleOpenProjectInOperations(item.id)}
-                            className="px-2 py-1 rounded bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 cursor-pointer"
-                          >
-                            Open in Ops →
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onMouseDown={() => handleQuickPromoteToDealWon(item)}
-                            className="px-2 py-1 rounded bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 cursor-pointer"
-                          >
-                            Mark Deal Won
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={() => onSelectTopTab('customerSuccess')}
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTopTab === 'customerSuccess'
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                }`}
+              >
+                Customer Success
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSelectTopTab('reports')}
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTopTab === 'reports'
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                }`}
+              >
+                Reports
+              </button>
+
+              <button
+                type="button"
+                data-tutorial-id="top-nav-product-catalog"
+                onClick={() => onSelectTopTab('productCatalog')}
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTopTab === 'productCatalog'
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                }`}
+              >
+                Product Catalog
+              </button>
+            </nav>
           </div>
 
-          {/* Real-time Multi-User Cloud Sync Indicator */}
-          <CloudSyncIndicator />
+          {/* Right: Search buildings/contacts + Live Cloud Sync + Standalone Mode + Profile */}
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0">
+            {/* Global Search Pill matching myquext.com */}
+            <div className="relative hidden md:block">
+              <div className="flex items-center w-36 lg:w-48 xl:w-60 focus-within:w-60 xl:focus-within:w-72 h-8.5 px-2.5 rounded-lg bg-slate-50 border border-slate-200/90 text-xs text-slate-500 focus-within:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/15 transition-all">
+                <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <input
+                  type="text"
+                  value={globalSearch}
+                  onFocus={() => setShowGlobalSearchDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowGlobalSearchDropdown(false), 180)}
+                  onChange={(e) => {
+                    setGlobalSearch(e.target.value);
+                    setShowGlobalSearchDropdown(true);
+                  }}
+                  placeholder="Search buildings, contacts..."
+                  className="w-full bg-transparent text-slate-800 placeholder-slate-400 focus:outline-none text-xs min-w-0"
+                />
+                <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-400 bg-white border border-slate-200 rounded shadow-2xs shrink-0">
+                  ⌘K
+                </kbd>
+              </div>
 
-          {/* Live Sync from myquext.com Firestore button (Small Square Reload Symbol) */}
-          <button
-            type="button"
-            onClick={onSyncLiveMyQuext}
-            disabled={isSyncingLive}
-            title={
-              lastSyncedInfo ||
-              (isSyncingLive ? 'Syncing myquext.com...' : 'Live myquext.com Sync')
-            }
-            aria-label="Live myquext.com Sync"
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 transition-colors cursor-pointer shrink-0"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingLive ? 'animate-spin' : ''}`} />
-          </button>
+              {/* Quick Search Results Dropdown across all myquext opportunities & projects */}
+              {showGlobalSearchDropdown && globalSearch.trim().length > 0 && (
+                <div className="absolute right-0 mt-1.5 w-96 max-h-96 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 divide-y divide-slate-100">
+                  <div className="px-3 py-2 bg-slate-50 text-[11px] font-semibold text-slate-500 flex items-center justify-between">
+                    <span>myquext.com Opportunities &amp; Projects</span>
+                    <span>{filteredOpportunities.length} matches</span>
+                  </div>
+                  {filteredOpportunities.slice(0, 8).map((item) => {
+                    const isWon = item.stage === 'Deal Won';
+                    return (
+                      <div
+                        key={item.id}
+                        className="px-3.5 py-2.5 hover:bg-blue-50/60 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-900 truncate">
+                            {item.propertyName}
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {item.clientName} • {item.unitsCount} units • {item.city}, {item.state}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isWon ? (
+                            <button
+                              type="button"
+                              onMouseDown={() => handleOpenProjectInOperations(item.id)}
+                              className="px-2 py-1 rounded bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 cursor-pointer"
+                            >
+                              Open in Ops →
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onMouseDown={() => handleQuickPromoteToDealWon(item)}
+                              className="px-2 py-1 rounded bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 cursor-pointer"
+                            >
+                              Mark Deal Won
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-          {/* Toggle Standalone Mode */}
-          <button
-            type="button"
-            onClick={onToggleStandaloneMode}
-            title="Switch between myquext.com Platform Shell and Standalone Operations Mode"
-            className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-xs font-medium transition-colors cursor-pointer"
-          >
-            <Maximize2 className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden 2xl:inline">Standalone View</span>
-          </button>
+            {/* Real-time Multi-User Cloud Sync with integrated instant Firestore trigger */}
+            <CloudSyncIndicator
+              onManualSync={onSyncLiveMyQuext}
+              isManualSyncing={isSyncingLive}
+              lastSyncedInfo={lastSyncedInfo}
+            />
 
-          {/* Bug Icon matching screenshot */}
-          <button
-            type="button"
-            onClick={() => setIsProfileMenuOpen((v) => !v)}
-            title="Report a Bug"
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-          >
-            <Bug className="w-4 h-4" />
-          </button>
-
-          {/* Divider */}
-          <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-
-          {/* User Profile Badge + Dropdown Menu matching Screenshot 1 */}
-          <div className="relative">
+            {/* Toggle Standalone Mode */}
             <button
               type="button"
-              data-tutorial-id="top-nav-profile-menu"
-              onClick={() => setIsProfileMenuOpen((v) => !v)}
-              className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer text-left"
-              title={`${currentUserName} (${currentUserEmail})`}
+              onClick={onToggleStandaloneMode}
+              title="Switch between myquext.com Platform Shell and Standalone Operations Mode"
+              className="w-8 h-8 hidden sm:flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
             >
-              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center font-bold text-xs shrink-0">
-                {currentUserAvatarInitial}
-              </div>
-              <div className="hidden lg:block leading-tight">
-                <div className="text-xs font-semibold text-slate-800">{currentUserName}</div>
-                <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                  {currentUserRoleLabel}
-                </div>
-              </div>
+              <Maximize2 className="w-3.5 h-3.5" />
             </button>
+
+            {/* Divider */}
+            <div className="h-5 w-px bg-slate-200 hidden sm:block shrink-0" />
+
+            {/* User Profile Badge + Dropdown Menu */}
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                data-tutorial-id="top-nav-profile-menu"
+                onClick={() => setIsProfileMenuOpen((v) => !v)}
+                className="flex items-center gap-2 pl-1 pr-1.5 py-1 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                title={`${currentUserName} (${currentUserEmail})`}
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center font-bold text-xs shrink-0">
+                  {currentUserAvatarInitial}
+                </div>
+                <div className="hidden lg:block leading-tight text-left">
+                  <div className="text-xs font-semibold text-slate-800 truncate max-w-[110px]">{currentUserName}</div>
+                  <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider hidden 2xl:block truncate max-w-[130px]">
+                    {currentUserRoleLabel}
+                  </div>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block shrink-0" />
+              </button>
 
             {isProfileMenuOpen && (
               <>
