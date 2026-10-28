@@ -22975,13 +22975,13 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "m-KgU6Wf-6",
         "title": "CSM Handoff",
-        "status": "In Progress",
+        "status": "Completed",
         "targetDate": "2026-11-11"
       },
       {
         "id": "m-KgU6Wf-7",
         "title": "Project Closed",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-13"
       }
     ],
@@ -23143,13 +23143,13 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "m-HXpmnL-1",
         "title": "Project kickoff",
-        "status": "Completed",
+        "status": "Upcoming",
         "targetDate": "2026-10-08"
       },
       {
         "id": "m-HXpmnL-2",
         "title": "Portal Buildout",
-        "status": "In Progress",
+        "status": "Upcoming",
         "targetDate": "2026-10-12"
       },
       {
@@ -24188,13 +24188,13 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "m-K1qIh3-1",
         "title": "Project kickoff",
-        "status": "Completed",
+        "status": "Upcoming",
         "targetDate": "2026-10-02"
       },
       {
         "id": "m-K1qIh3-2",
         "title": "Portal Buildout",
-        "status": "In Progress",
+        "status": "Upcoming",
         "targetDate": "2026-10-06"
       },
       {
@@ -24779,13 +24779,13 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       {
         "id": "m-snHjGz-6",
         "title": "CSM Handoff",
-        "status": "In Progress",
+        "status": "Completed",
         "targetDate": "2026-11-21"
       },
       {
         "id": "m-snHjGz-7",
         "title": "Project Closed",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-23"
       }
     ],

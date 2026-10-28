@@ -1853,7 +1853,7 @@ export function createDefaultMilestones(
     {
       id: `${prefix}-1`,
       title: 'Project kickoff',
-      status: 'In Progress',
+      status: 'Upcoming',
       targetDate: addDays(Math.max(2, Math.round(totalDays * 0.08))),
     },
     {

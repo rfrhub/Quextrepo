@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   OperationProject,
   ProjectStatusTag,
@@ -53,6 +53,7 @@ import {
   X,
   Wrench,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 
 interface OverallDashboardProps {
@@ -123,9 +124,55 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
     return notSubmitted || isMissingPms || isMissingDoors || isMissingStaff;
   });
 
-  const totalProjects = projects.length;
+  // Requirement: Filter & cards for Total Completed Projects and New Projects that have not started a Milestone
+  const [lifecycleFilter, setLifecycleFilter] = useState<'all' | 'active' | 'completed' | 'not_started'>('all');
 
-  // Filter projects by PM, Field Tech, Integrator Partner, and Kickoff status for table
+  // Total Completed projects (all milestones finished or Project Closed / CSM Handoff finished)
+  const completedProjects = useMemo(() => {
+    return projects.filter((p) => {
+      if (!p.milestones || p.milestones.length === 0) return false;
+      const allDone = p.milestones.every((m) => m.status === 'Completed');
+      if (allDone) return true;
+      const closed = p.milestones.find(
+        (m) =>
+          m.title === 'Project Closed' ||
+          m.title === 'CSM Handoff' ||
+          m.title.toLowerCase().includes('closed') ||
+          m.title.toLowerCase().includes('closure')
+      );
+      if (closed && closed.status === 'Completed') return true;
+      if ((p as any).isCompleted || p.statusTag === 'Completed') return true;
+      return false;
+    });
+  }, [projects]);
+
+  // Qualifier: "have not started a Milestone is the qualifier for this to populate this card specifically."
+  const unstartedProjects = useMemo(() => {
+    return projects.filter((p) => {
+      if (!p.milestones || p.milestones.length === 0) return true;
+      const hasStartedAny = p.milestones.some(
+        (m) => m.status === 'Completed' || m.status === 'In Progress' || Boolean(m.startedAt)
+      );
+      return !hasStartedAny;
+    });
+  }, [projects]);
+
+  // Active in-flight implementation projects
+  const activeImplementationProjects = useMemo(() => {
+    return projects.filter((p) => {
+      const isCompleted = completedProjects.some((cp) => cp.id === p.id);
+      const isUnstarted = unstartedProjects.some((up) => up.id === p.id);
+      return !isCompleted && !isUnstarted;
+    });
+  }, [projects, completedProjects, unstartedProjects]);
+
+  const totalProjects = projects.length;
+  const activeResidentialUnits = activeImplementationProjects.reduce((acc, p) => acc + (p.unitsCount || 0), 0);
+  const completedResidentialUnits = completedProjects.reduce((acc, p) => acc + (p.unitsCount || 0), 0);
+  const unstartedResidentialUnits = unstartedProjects.reduce((acc, p) => acc + (p.unitsCount || 0), 0);
+  const totalResidentialUnits = projects.reduce((acc, p) => acc + p.unitsCount, 0);
+
+  // Filter projects by PM, Field Tech, Integrator Partner, Kickoff status, and Lifecycle stage for table
   const filteredProjects = projects.filter((project) => {
     const matchesPM = pmFilter === 'all' || project.assignedPM.name === pmFilter;
     const matchesFieldTech = fieldTechFilter === 'all' || (project.assignedFieldTech || 'Hector') === fieldTechFilter;
@@ -136,6 +183,11 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
       kickoffFilter === 'all' ||
       (kickoffFilter === 'needs_attention' && isAttention) ||
       (kickoffFilter === 'completed' && !isAttention);
+    const matchesLifecycle =
+      lifecycleFilter === 'all' ||
+      (lifecycleFilter === 'active' && activeImplementationProjects.some((p) => p.id === project.id)) ||
+      (lifecycleFilter === 'completed' && completedProjects.some((p) => p.id === project.id)) ||
+      (lifecycleFilter === 'not_started' && unstartedProjects.some((p) => p.id === project.id));
     const projectPlatform = getProjectPlatform(project);
     const matchesPlatform = platformFilter === 'all' || projectPlatform === platformFilter;
     const matchesSearch =
@@ -145,7 +197,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
       project.quoteNumber.toLowerCase().includes(tableSearch.toLowerCase()) ||
       projectPlatform.toLowerCase().includes(tableSearch.toLowerCase()) ||
       partners.some((p) => p.toLowerCase().includes(tableSearch.toLowerCase()));
-    return matchesPM && matchesFieldTech && matchesIntegrator && matchesKickoff && matchesPlatform && matchesSearch;
+    return matchesPM && matchesFieldTech && matchesIntegrator && matchesKickoff && matchesPlatform && matchesLifecycle && matchesSearch;
   });
 
   const onTrackProjects = projects.filter(
@@ -167,7 +219,6 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
     0
   );
   const aggregatePct = totalQuotedUnits > 0 ? Math.round((totalInstalledUnits / totalQuotedUnits) * 100) : 0;
-  const totalResidentialUnits = projects.reduce((acc, p) => acc + p.unitsCount, 0);
 
   // Upcoming Go Lives: Defined by the date the project will be handed off to CSM ('CSM Handoff' milestone targetDate)
   const upcomingGoLives = projects
@@ -449,26 +500,99 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           </button>
         </div>
 
-        {/* 6-KPI Metric Strip (Including Kickoff Intake Attention & Upcoming Go Lives) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4 mt-6 pt-5 border-t border-slate-200">
-          {/* Active Projects */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+        {/* 8-KPI Metric Strip: Active, Completed, Unstarted, Installed, Go-Lives, Kickoff, Health, Gauge */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-slate-200">
+          {/* 1. Active Implementation Projects */}
+          <div
+            onClick={() => setLifecycleFilter(lifecycleFilter === 'active' ? 'all' : 'active')}
+            className={`p-4 rounded-xl border transition-all cursor-pointer overflow-hidden ${
+              lifecycleFilter === 'active'
+                ? 'bg-sky-50 border-sky-400 ring-2 ring-sky-400/30 shadow-xs'
+                : 'bg-slate-50 hover:bg-slate-100/70 border-slate-200'
+            }`}
+            title="Click to filter active in-flight implementation projects"
+          >
             <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
-              <span className="truncate">Active Implementation Projects</span>
+              <span className="truncate font-semibold text-slate-800">Active Implementation Projects</span>
               <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
             </div>
             <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1 tabular-nums">
-              {totalProjects}
+              {activeImplementationProjects.length}
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              Spanning <span className="text-slate-800 font-bold font-mono">{totalResidentialUnits}</span> residential units
+            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center justify-between gap-1">
+              <span className="truncate">
+                Spanning <span className="text-slate-800 font-bold font-mono">{activeResidentialUnits}</span> residential units
+              </span>
+              {lifecycleFilter === 'active' && (
+                <span className="text-[10px] font-bold text-sky-700 underline shrink-0">Filtered</span>
+              )}
             </div>
           </div>
 
-          {/* BOM Total Units Installed */}
+          {/* 2. Requirement: Total Completed Projects */}
+          <div
+            onClick={() => setLifecycleFilter(lifecycleFilter === 'completed' ? 'all' : 'completed')}
+            className={`p-4 rounded-xl border transition-all cursor-pointer overflow-hidden ${
+              lifecycleFilter === 'completed'
+                ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/30 shadow-xs'
+                : 'bg-slate-50 hover:bg-slate-100/70 border-slate-200'
+            }`}
+            title="Click to filter total completed projects"
+          >
+            <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
+              <span className="truncate font-semibold text-slate-800">Total Completed Projects</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            </div>
+            <div className="text-2xl font-extrabold text-emerald-700 font-mono mt-1 tabular-nums">
+              {completedProjects.length}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center justify-between gap-1">
+              <span className="truncate">
+                Spanning <span className="text-slate-800 font-bold font-mono">{completedResidentialUnits}</span> residential units
+              </span>
+              {lifecycleFilter === 'completed' && (
+                <span className="text-[10px] font-bold text-emerald-700 underline shrink-0">Filtered</span>
+              )}
+            </div>
+          </div>
+
+          {/* 3. Requirement: Total New Projects (Not Started a Milestone) */}
+          <div
+            onClick={() => setLifecycleFilter(lifecycleFilter === 'not_started' ? 'all' : 'not_started')}
+            className={`p-4 rounded-xl border transition-all cursor-pointer overflow-hidden ${
+              lifecycleFilter === 'not_started'
+                ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-400/30 shadow-xs'
+                : 'bg-slate-50 hover:bg-slate-100/70 border-slate-200'
+            }`}
+            title="Click to filter new projects that have not started any milestone"
+          >
+            <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
+              <span className="truncate font-semibold text-slate-800">New Projects (Not Started)</span>
+              <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+            </div>
+            <div className="text-2xl font-extrabold text-purple-800 font-mono mt-1 tabular-nums">
+              {unstartedProjects.length}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center justify-between gap-1">
+              <span className="truncate">
+                {unstartedProjects.length > 0 ? (
+                  <>
+                    Spanning <span className="text-slate-800 font-bold font-mono">{unstartedResidentialUnits}</span> units
+                  </>
+                ) : (
+                  'All milestones started'
+                )}
+              </span>
+              {lifecycleFilter === 'not_started' && (
+                <span className="text-[10px] font-bold text-purple-700 underline shrink-0">Filtered</span>
+              )}
+            </div>
+          </div>
+
+          {/* 4. BOM Total Units Installed */}
           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
             <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
-              <span className="truncate">Total Hardware Installed</span>
+              <span className="truncate font-semibold text-slate-800">Total Hardware Installed</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             </div>
             <div className="text-2xl font-extrabold text-sky-700 font-mono mt-1 tabular-nums">
@@ -477,7 +601,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                 / {totalQuotedUnits.toLocaleString()}
               </span>
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
+            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
               <strong className="text-slate-900 font-mono">{aggregatePct}%</strong> of all quoted BOM hardware
             </div>
           </div>
@@ -2884,6 +3008,30 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               <option value="needs_attention">⚠ Kickoff Needs Follow-Up ({projectsNeedingKickoffAttention.length})</option>
               <option value="completed">✓ Kickoff Submitted</option>
             </select>
+
+            {/* Lifecycle Stage Filter */}
+            <select
+              value={lifecycleFilter}
+              onChange={(e) => setLifecycleFilter(e.target.value as any)}
+              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
+            >
+              <option value="all">All Lifecycle Stages ({projects.length})</option>
+              <option value="active">Active In-Flight ({activeImplementationProjects.length})</option>
+              <option value="completed">Completed Projects ({completedProjects.length})</option>
+              <option value="not_started">New (Not Started) ({unstartedProjects.length})</option>
+            </select>
+
+            {lifecycleFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setLifecycleFilter('all')}
+                className="px-2 py-1 text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                title="Clear lifecycle stage filter"
+              >
+                <span>Reset Stage</span>
+                <X className="w-3 h-3 text-sky-600" />
+              </button>
+            )}
           </div>
         </div>
 
