@@ -785,15 +785,6 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                 Health: <strong className="text-emerald-700 font-semibold">{onTrackProjects.length} Track</strong> / <strong className="text-amber-700 font-semibold">{behindScheduleProjects.length} Behind</strong> / <strong className="text-rose-700 font-semibold">{highRiskProjects.length} Risk</strong>
               </span>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setAreMetricCardsMinimized(false)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer shrink-0 self-start xl:self-auto"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-              <span>Expand Cards</span>
-            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-slate-200">
