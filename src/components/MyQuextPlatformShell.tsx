@@ -1952,17 +1952,6 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsImportProjectsModalOpen(true)}
-                className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-850 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs transition-colors cursor-pointer shrink-0"
-                title="Import projects from CSV or Excel (.xlsx / .xls) spreadsheet"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden sm:inline">Import CSV / Excel</span>
-                <span className="sm:hidden">Import</span>
-              </button>
-
               {onCreateProject && (
                 <button
                   type="button"
