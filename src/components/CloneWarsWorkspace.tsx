@@ -36,6 +36,9 @@ import {
   Check,
   HelpCircle,
   ThumbsDown,
+  ThumbsUp,
+  Star,
+  Award,
   Table,
   Columns,
   Package,
@@ -56,7 +59,18 @@ export interface CloneCluster {
   projectA: OperationProject;
   projectB: OperationProject;
   sharedWords: string[];
-  confidence: 'High' | 'Medium' | 'Low';
+  confidence: 'Confirmed' | 'High' | 'Medium' | 'Low';
+  isConfirmedClone?: boolean;
+}
+
+export interface ConfirmedClonePair {
+  id: string;
+  projectAId: string;
+  projectBId: string;
+  projectAName: string;
+  projectBName: string;
+  sharedWords: string[];
+  confirmedAt: string;
 }
 
 export interface DismissedClonePair {
@@ -71,6 +85,45 @@ export interface DismissedClonePair {
 
 export const STORAGE_DISMISSED_PAIRS_KEY = 'quext_clone_wars_dismissed_pairs_v1';
 export const STORAGE_LEARNED_WORDS_KEY = 'quext_clone_wars_learned_words_v1';
+export const STORAGE_CONFIRMED_PAIRS_KEY = 'quext_clone_wars_confirmed_pairs_v1';
+export const STORAGE_CONFIRMED_WORDS_KEY = 'quext_clone_wars_confirmed_words_v1';
+
+export function loadConfirmedPairs(): ConfirmedClonePair[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_CONFIRMED_PAIRS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveConfirmedPairs(pairs: ConfirmedClonePair[]) {
+  try {
+    localStorage.setItem(STORAGE_CONFIRMED_PAIRS_KEY, JSON.stringify(pairs));
+  } catch (e) {
+    console.warn('[Clone Wars] Failed to save confirmed pairs:', e);
+  }
+}
+
+export function loadConfirmedWords(): Map<string, number> {
+  try {
+    const raw = localStorage.getItem(STORAGE_CONFIRMED_WORDS_KEY);
+    if (!raw) return new Map();
+    const obj = JSON.parse(raw);
+    return new Map(Object.entries(obj));
+  } catch {
+    return new Map();
+  }
+}
+
+export function saveConfirmedWords(wordsMap: Map<string, number>) {
+  try {
+    const obj = Object.fromEntries(wordsMap.entries());
+    localStorage.setItem(STORAGE_CONFIRMED_WORDS_KEY, JSON.stringify(obj));
+  } catch (e) {
+    console.warn('[Clone Wars] Failed to save confirmed words:', e);
+  }
+}
 
 export function loadDismissedPairs(): DismissedClonePair[] {
   try {
@@ -127,7 +180,9 @@ export function detectCloneClusters(
   projects: OperationProject[],
   strictMode = false,
   dismissedPairIds: Set<string> = new Set(),
-  learnedFalsePositiveWords: Set<string> = new Set()
+  learnedFalsePositiveWords: Set<string> = new Set(),
+  confirmedPairIds: Set<string> = new Set(),
+  confirmedIndicatorWords: Set<string> = new Set()
 ): CloneCluster[] {
   const clusters: CloneCluster[] = [];
 
@@ -146,19 +201,30 @@ export function detectCloneClusters(
         continue;
       }
 
+      const isExplicitConfirmed = confirmedPairIds.has(key1) || confirmedPairIds.has(key2);
+
       const words2 = extractSignificantWords(p2.propertyName);
       const rawShared = Array.from(new Set(words2.filter((w) => set1.has(w))));
 
-      // 2. Filter out words learned to be false-positive noise
-      const shared = rawShared.filter((w) => !learnedFalsePositiveWords.has(w.toLowerCase()));
+      // 2. Filter out words learned to be false-positive noise, unless verified as clone
+      const shared = rawShared.filter(
+        (w) => isExplicitConfirmed || !learnedFalsePositiveWords.has(w.toLowerCase())
+      );
 
-      if (shared.length > 0) {
-        // Calculate Jaccard similarity
+      if (isExplicitConfirmed || shared.length > 0) {
+        // Calculate similarity
         const union = new Set([...words1, ...words2]);
         const ratio = shared.length / (union.size || 1);
 
-        let confidence: 'High' | 'Medium' | 'Low' = 'Low';
-        if (ratio >= 0.5 || shared.length >= 2) {
+        // Check if shares any reinforced positive indicator keywords learned from confirmed duplicates
+        const sharesPositiveIndicator = shared.some((w) =>
+          confirmedIndicatorWords.has(w.toLowerCase())
+        );
+
+        let confidence: 'Confirmed' | 'High' | 'Medium' | 'Low' = 'Low';
+        if (isExplicitConfirmed) {
+          confidence = 'Confirmed';
+        } else if (ratio >= 0.5 || shared.length >= 2 || sharesPositiveIndicator) {
           confidence = 'High';
         } else if (ratio >= 0.25 || shared.length === 1) {
           confidence = 'Medium';
@@ -172,14 +238,23 @@ export function detectCloneClusters(
           id: key1,
           projectA: p1,
           projectB: p2,
-          sharedWords: shared,
+          sharedWords: shared.length > 0 ? shared : ['confirmed_clone'],
           confidence,
+          isConfirmedClone: isExplicitConfirmed,
         });
       }
     }
   }
 
-  return clusters;
+  // Sort: Confirmed first, then High, Medium, Low
+  const score = (c: CloneCluster) => {
+    if (c.isConfirmedClone) return 1000;
+    if (c.confidence === 'High') return 100 + c.sharedWords.length;
+    if (c.confidence === 'Medium') return 20 + c.sharedWords.length;
+    return c.sharedWords.length;
+  };
+
+  return clusters.sort((a, b) => score(b) - score(a));
 }
 
 interface CloneWarsWorkspaceProps {
@@ -199,13 +274,16 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   const [strictScan, setStrictScan] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
-  // Scanner Tuning & Ignored Matches state (persisted to localStorage)
+  // Scanner Tuning, Confirmed Duplicates, & Ignored Matches state (persisted to localStorage)
+  const [confirmedPairs, setConfirmedPairs] = useState<ConfirmedClonePair[]>(() => loadConfirmedPairs());
+  const [confirmedWords, setConfirmedWords] = useState<Map<string, number>>(() => loadConfirmedWords());
   const [dismissedPairs, setDismissedPairs] = useState<DismissedClonePair[]>(() => loadDismissedPairs());
   const [learnedWords, setLearnedWords] = useState<Map<string, number>>(() => loadLearnedWords());
   const [showTuningModal, setShowTuningModal] = useState<boolean>(false);
-  const [tuningTab, setTuningTab] = useState<'pairs' | 'words'>('pairs');
+  const [tuningTab, setTuningTab] = useState<'confirmed' | 'pairs' | 'words'>('confirmed');
   const [newWordInput, setNewWordInput] = useState<string>('');
-  const [lastDismissedNotice, setLastDismissedNotice] = useState<{
+  const [trainingNotice, setTrainingNotice] = useState<{
+    type: 'confirmed' | 'dismissed';
     pairId: string;
     pairAName: string;
     pairBName: string;
@@ -253,6 +331,21 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     obsoleteName: string;
   } | null>(null);
 
+  // Set of confirmed clone pair IDs (bidirectional)
+  const confirmedSet = useMemo(() => {
+    const set = new Set<string>();
+    confirmedPairs.forEach((p) => {
+      set.add(p.id);
+      set.add(`${p.projectBId}__${p.projectAId}`);
+    });
+    return set;
+  }, [confirmedPairs]);
+
+  // Set of confirmed duplicate indicator words
+  const confirmedWordsSet = useMemo(() => {
+    return new Set(Array.from(confirmedWords.keys()));
+  }, [confirmedWords]);
+
   // Set of dismissed pair IDs (bidirectional)
   const dismissedSet = useMemo(() => {
     const set = new Set<string>();
@@ -268,10 +361,17 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     return new Set(Array.from(learnedWords.keys()));
   }, [learnedWords]);
 
-  // Scan clusters based on current projects list, ignoring dismissed pairs & learned noise words
+  // Scan clusters based on current projects list, factoring in confirmed clones & learned noise words
   const detectedClusters = useMemo(() => {
-    return detectCloneClusters(projects, strictScan, dismissedSet, learnedWordsSet);
-  }, [projects, strictScan, dismissedSet, learnedWordsSet]);
+    return detectCloneClusters(
+      projects,
+      strictScan,
+      dismissedSet,
+      learnedWordsSet,
+      confirmedSet,
+      confirmedWordsSet
+    );
+  }, [projects, strictScan, dismissedSet, learnedWordsSet, confirmedSet, confirmedWordsSet]);
 
   const filteredClusters = useMemo(() => {
     if (!searchTerm.trim()) return detectedClusters;
@@ -284,9 +384,106 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     );
   }, [detectedClusters, searchTerm]);
 
+  // Mark identified match as a VERIFIED CLONE to train the duplicate scanner
+  const handleMarkAsClone = (pA: OperationProject, pB: OperationProject, words: string[]) => {
+    const pairId = `${pA.id}__${pB.id}`;
+    const reverseKey = `${pB.id}__${pA.id}`;
+    const now = new Date().toISOString();
+
+    const newConfirmed: ConfirmedClonePair = {
+      id: pairId,
+      projectAId: pA.id,
+      projectBId: pB.id,
+      projectAName: pA.propertyName,
+      projectBName: pB.propertyName,
+      sharedWords: words,
+      confirmedAt: now,
+    };
+
+    const updatedConfirmed = [
+      newConfirmed,
+      ...confirmedPairs.filter((p) => p.id !== pairId && p.id !== reverseKey),
+    ];
+    setConfirmedPairs(updatedConfirmed);
+    saveConfirmedPairs(updatedConfirmed);
+
+    // If this pair was previously dismissed, un-dismiss it
+    const updatedDismissed = dismissedPairs.filter(
+      (p) => p.id !== pairId && p.id !== reverseKey
+    );
+    if (updatedDismissed.length !== dismissedPairs.length) {
+      setDismissedPairs(updatedDismissed);
+      saveDismissedPairs(updatedDismissed);
+    }
+
+    // Teach scanner positive indicator words
+    const updatedPosWords = new Map(confirmedWords);
+    const updatedNegWords = new Map(learnedWords);
+
+    words.forEach((w) => {
+      const clean = w.toLowerCase().trim();
+      if (clean.length >= 3 && !COMMON_STOPWORDS.has(clean)) {
+        updatedPosWords.set(clean, (updatedPosWords.get(clean) || 0) + 1);
+        // Clear from negative noise words so duplicate detection knows this is a real match indicator
+        if (updatedNegWords.has(clean)) {
+          updatedNegWords.delete(clean);
+        }
+      }
+    });
+
+    setConfirmedWords(updatedPosWords);
+    saveConfirmedWords(updatedPosWords);
+
+    setLearnedWords(updatedNegWords);
+    saveLearnedWords(updatedNegWords);
+
+    setTrainingNotice({
+      type: 'confirmed',
+      pairId,
+      pairAName: pA.propertyName,
+      pairBName: pB.propertyName,
+      words,
+    });
+  };
+
+  // Unmark a confirmed clone
+  const handleUnmarkConfirmedClone = (pairId: string, words: string[]) => {
+    const [idA, idB] = pairId.split('__');
+    const updatedConfirmed = confirmedPairs.filter(
+      (p) => p.id !== pairId && !(p.projectAId === idB && p.projectBId === idA)
+    );
+    setConfirmedPairs(updatedConfirmed);
+    saveConfirmedPairs(updatedConfirmed);
+
+    const updatedPosWords = new Map(confirmedWords);
+    words.forEach((w) => {
+      const clean = w.toLowerCase().trim();
+      if (updatedPosWords.has(clean)) {
+        const count = (updatedPosWords.get(clean) || 1) - 1;
+        if (count <= 0) {
+          updatedPosWords.delete(clean);
+        } else {
+          updatedPosWords.set(clean, count);
+        }
+      }
+    });
+    setConfirmedWords(updatedPosWords);
+    saveConfirmedWords(updatedPosWords);
+    setTrainingNotice(null);
+  };
+
+  // Remove confirmed word from positive indicators
+  const handleRemoveConfirmedWord = (word: string) => {
+    const updatedPosWords = new Map(confirmedWords);
+    updatedPosWords.delete(word.toLowerCase());
+    setConfirmedWords(updatedPosWords);
+    saveConfirmedWords(updatedPosWords);
+  };
+
   // Mark identified match as NOT a clone: removes it and teaches the duplicate scanner
   const handleMarkNotClone = (pA: OperationProject, pB: OperationProject, words: string[]) => {
     const pairId = `${pA.id}__${pB.id}`;
+    const reverseKey = `${pB.id}__${pA.id}`;
     const now = new Date().toISOString();
 
     const newDismissed: DismissedClonePair = {
@@ -302,11 +499,20 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     const updatedDismissed = [
       newDismissed,
       ...dismissedPairs.filter(
-        (p) => p.id !== pairId && p.id !== `${pB.id}__${pA.id}`
+        (p) => p.id !== pairId && p.id !== reverseKey
       ),
     ];
     setDismissedPairs(updatedDismissed);
     saveDismissedPairs(updatedDismissed);
+
+    // If this pair was previously confirmed, unconfirm it
+    const updatedConfirmed = confirmedPairs.filter(
+      (p) => p.id !== pairId && p.id !== reverseKey
+    );
+    if (updatedConfirmed.length !== confirmedPairs.length) {
+      setConfirmedPairs(updatedConfirmed);
+      saveConfirmedPairs(updatedConfirmed);
+    }
 
     // Teach scanner by counting false-positive words
     const updatedWords = new Map(learnedWords);
@@ -328,7 +534,8 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
       setActivePair(null);
     }
 
-    setLastDismissedNotice({
+    setTrainingNotice({
+      type: 'dismissed',
       pairId,
       pairAName: pA.propertyName,
       pairBName: pB.propertyName,
@@ -357,7 +564,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     });
     setLearnedWords(updatedWords);
     saveLearnedWords(updatedWords);
-    setLastDismissedNotice(null);
+    setTrainingNotice(null);
   };
 
   // Re-enable an ignored pair from tuning modal
@@ -388,9 +595,13 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   const handleResetAllTraining = () => {
     setDismissedPairs([]);
     setLearnedWords(new Map());
+    setConfirmedPairs([]);
+    setConfirmedWords(new Map());
     localStorage.removeItem(STORAGE_DISMISSED_PAIRS_KEY);
     localStorage.removeItem(STORAGE_LEARNED_WORDS_KEY);
-    setLastDismissedNotice(null);
+    localStorage.removeItem(STORAGE_CONFIRMED_PAIRS_KEY);
+    localStorage.removeItem(STORAGE_CONFIRMED_WORDS_KEY);
+    setTrainingNotice(null);
   };
 
   // Load a pair into the Merge Studio
@@ -867,13 +1078,13 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
               type="button"
               onClick={() => setShowTuningModal(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors cursor-pointer"
-              title="Manage dismissed pairs and learned duplicate scanner stopwords"
+              title="Manage confirmed duplicates, dismissed pairs, and learned scanner keywords"
             >
               <Brain className="w-3.5 h-3.5 text-cyan-400" />
               <span>Scanner Tuning</span>
-              {(dismissedPairs.length > 0 || learnedWords.size > 0) && (
+              {(confirmedPairs.length > 0 || confirmedWords.size > 0 || dismissedPairs.length > 0 || learnedWords.size > 0) && (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                  {dismissedPairs.length + learnedWords.size}
+                  {confirmedPairs.length + confirmedWords.size + dismissedPairs.length + learnedWords.size}
                 </span>
               )}
             </button>
@@ -947,9 +1158,17 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   <span>Detected Clone Clusters</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {detectedClusters.length} Found
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {confirmedPairs.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                      <Star className="w-2.5 h-2.5 fill-emerald-400 text-emerald-400" />
+                      <span>{confirmedPairs.length} Confirmed</span>
+                    </span>
+                  )}
+                  <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {detectedClusters.length} Found
+                  </span>
+                </div>
               </div>
 
               {/* Search & Strict Filter */}
@@ -980,27 +1199,47 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
               </div>
             </div>
 
-            {/* Dismissal / Scanner Learning Banner */}
-            {lastDismissedNotice && (
-              <div className="p-3 rounded-2xl bg-slate-900 border border-amber-500/40 text-xs shadow-md space-y-2">
+            {/* Scanner Learning & Dismissal Notification Banner */}
+            {trainingNotice && (
+              <div
+                className={`p-3 rounded-2xl text-xs shadow-md space-y-2 border ${
+                  trainingNotice.type === 'confirmed'
+                    ? 'bg-emerald-950/40 border-emerald-500/50'
+                    : 'bg-slate-900 border-amber-500/40'
+                }`}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 min-w-0">
-                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    {trainingNotice.type === 'confirmed' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    )}
                     <div className="text-[11px] leading-tight text-slate-300">
-                      <span className="font-semibold text-slate-100">Dismissed as duplicate:</span>{' '}
-                      <span className="text-white font-medium">&quot;{lastDismissedNotice.pairAName}&quot;</span> &amp;{' '}
-                      <span className="text-white font-medium">&quot;{lastDismissedNotice.pairBName}&quot;</span>.
-                      {lastDismissedNotice.words.length > 0 && (
-                        <p className="text-[10px] text-cyan-300 mt-1">
-                          Scanner learned to ignore generic term(s):{' '}
-                          <span className="font-mono font-bold">{lastDismissedNotice.words.join(', ')}</span>.
+                      <span className="font-semibold text-slate-100">
+                        {trainingNotice.type === 'confirmed'
+                          ? 'Confirmed as True Duplicate:'
+                          : 'Dismissed as non-duplicate:'}
+                      </span>{' '}
+                      <span className="text-white font-medium">&quot;{trainingNotice.pairAName}&quot;</span> &amp;{' '}
+                      <span className="text-white font-medium">&quot;{trainingNotice.pairBName}&quot;</span>.
+                      {trainingNotice.words.length > 0 && (
+                        <p
+                          className={`text-[10px] mt-1 ${
+                            trainingNotice.type === 'confirmed' ? 'text-emerald-300' : 'text-cyan-300'
+                          }`}
+                        >
+                          {trainingNotice.type === 'confirmed'
+                            ? 'Scanner learned positive duplicate indicator(s): '
+                            : 'Scanner learned to ignore generic term(s): '}
+                          <span className="font-mono font-bold">{trainingNotice.words.join(', ')}</span>.
                         </p>
                       )}
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setLastDismissedNotice(null)}
+                    onClick={() => setTrainingNotice(null)}
                     className="p-1 text-slate-400 hover:text-white rounded"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -1013,15 +1252,23 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                     className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
                   >
                     <Brain className="w-3 h-3" />
-                    <span>View Tuning Settings</span>
+                    <span>View Scanner Training</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      handleUndoDismiss(lastDismissedNotice.pairId, lastDismissedNotice.words);
-                      setLastDismissedNotice(null);
+                      if (trainingNotice.type === 'confirmed') {
+                        handleUnmarkConfirmedClone(trainingNotice.pairId, trainingNotice.words);
+                      } else {
+                        handleUndoDismiss(trainingNotice.pairId, trainingNotice.words);
+                      }
+                      setTrainingNotice(null);
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[11px] border border-amber-500/40 cursor-pointer transition-colors"
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] border cursor-pointer transition-colors ${
+                      trainingNotice.type === 'confirmed'
+                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+                        : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
+                    }`}
                   >
                     <RotateCcw className="w-3 h-3" />
                     <span>Undo</span>
@@ -1055,13 +1302,15 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                       className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
                         isCurrentActive
                           ? 'bg-amber-950/30 border-amber-500 shadow-md ring-1 ring-amber-500/50'
+                          : cluster.isConfirmedClone
+                          ? 'bg-emerald-950/20 border-emerald-500/40 hover:border-emerald-500'
                           : 'bg-[#0F172A] border-slate-800 hover:border-slate-700'
                       }`}
                       onClick={() =>
                         handleLoadPair(cluster.projectA, cluster.projectB, cluster.sharedWords)
                       }
                     >
-                      {/* Shared Words Badges */}
+                      {/* Shared Words Badges & Confidence */}
                       <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           Shared:
@@ -1074,15 +1323,22 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                             &quot;{w}&quot;
                           </span>
                         ))}
-                        <span
-                          className={`ml-auto text-[10px] font-bold uppercase tracking-wider ${
-                            cluster.confidence === 'High'
-                              ? 'text-rose-400'
-                              : 'text-amber-400'
-                          }`}
-                        >
-                          {cluster.confidence} Match
-                        </span>
+                        {cluster.isConfirmedClone ? (
+                          <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <Star className="w-3 h-3 text-emerald-400 fill-emerald-400" />
+                            <span>Confirmed Clone</span>
+                          </span>
+                        ) : (
+                          <span
+                            className={`ml-auto text-[10px] font-bold uppercase tracking-wider ${
+                              cluster.confidence === 'High'
+                                ? 'text-rose-400'
+                                : 'text-amber-400'
+                            }`}
+                          >
+                            {cluster.confidence} Match
+                          </span>
+                        )}
                       </div>
 
                       {/* Project A vs Project B Comparison Card */}
@@ -1116,27 +1372,63 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                         </div>
                       </div>
 
-                      {/* Action Button */}
-                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMarkNotClone(
-                              cluster.projectA,
-                              cluster.projectB,
-                              cluster.sharedWords
-                            );
-                          }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-[11px] font-semibold transition-colors cursor-pointer"
-                          title="Mark this match as NOT a duplicate. Removes it and teaches scanner to ignore these words."
-                        >
-                          <ThumbsDown className="w-3 h-3" />
-                          <span>Not a Clone</span>
-                        </button>
+                      {/* Action Buttons */}
+                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          {cluster.isConfirmedClone ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnmarkConfirmedClone(cluster.id, cluster.sharedWords);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-rose-500/20 text-emerald-300 hover:text-rose-300 border border-emerald-500/40 text-[11px] font-semibold transition-colors cursor-pointer group/unmark"
+                              title="Marked as a verified clone. Click to unmark."
+                            >
+                              <Check className="w-3 h-3 text-emerald-400 group-hover/unmark:hidden" />
+                              <X className="w-3 h-3 text-rose-400 hidden group-hover/unmark:inline" />
+                              <span className="group-hover/unmark:hidden">Confirmed Clone</span>
+                              <span className="hidden group-hover/unmark:inline">Unmark</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsClone(
+                                  cluster.projectA,
+                                  cluster.projectB,
+                                  cluster.sharedWords
+                                );
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-[11px] font-semibold transition-colors cursor-pointer"
+                              title="Mark this match as a confirmed duplicate to train the scanner"
+                            >
+                              <ThumbsUp className="w-3 h-3" />
+                              <span>Mark as Clone</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkNotClone(
+                                cluster.projectA,
+                                cluster.projectB,
+                                cluster.sharedWords
+                              );
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-[11px] font-semibold transition-colors cursor-pointer"
+                            title="Mark this match as NOT a duplicate. Removes it and teaches scanner to ignore these words."
+                          >
+                            <ThumbsDown className="w-3 h-3" />
+                            <span>Not a Clone</span>
+                          </button>
+                        </div>
 
                         <span className="text-xs font-bold text-amber-400 inline-flex items-center gap-1 group">
-                          <span>Enter Merge Arena</span>
+                          <span>Merge Arena</span>
                           <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </span>
                       </div>
@@ -1265,6 +1557,45 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
+                    {activePair &&
+                    (confirmedSet.has(`${activePair.projectA.id}__${activePair.projectB.id}`) ||
+                      confirmedSet.has(`${activePair.projectB.id}__${activePair.projectA.id}`)) ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activePair) {
+                            handleUnmarkConfirmedClone(
+                              `${activePair.projectA.id}__${activePair.projectB.id}`,
+                              activePair.sharedWords || []
+                            );
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer transition-colors"
+                        title="Marked as a verified clone. Click to unmark."
+                      >
+                        <Star className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+                        <span>Confirmed Clone</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activePair) {
+                            handleMarkAsClone(
+                              activePair.projectA,
+                              activePair.projectB,
+                              activePair.sharedWords || []
+                            );
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer transition-colors"
+                        title="Mark this match as a verified clone to teach the duplicate detector"
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        <span>Mark as Clone</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => {
@@ -2568,11 +2899,22 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
             </div>
 
             {/* Modal Tabs */}
-            <div className="px-6 pt-3 flex items-center gap-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold">
+            <div className="px-6 pt-3 flex items-center gap-2 border-b border-slate-800 bg-slate-900/50 text-xs font-semibold overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setTuningTab('confirmed')}
+                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                  tuningTab === 'confirmed'
+                    ? 'border-emerald-400 text-emerald-300 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Confirmed Clones ({confirmedPairs.length})
+              </button>
               <button
                 type="button"
                 onClick={() => setTuningTab('pairs')}
-                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer ${
+                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   tuningTab === 'pairs'
                     ? 'border-cyan-400 text-cyan-300 font-bold'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -2583,19 +2925,80 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => setTuningTab('words')}
-                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer ${
+                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   tuningTab === 'words'
                     ? 'border-cyan-400 text-cyan-300 font-bold'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Learned Noise Words ({learnedWords.size})
+                Learned Keywords ({confirmedWords.size + learnedWords.size})
               </button>
             </div>
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
-              {tuningTab === 'pairs' ? (
+              {tuningTab === 'confirmed' ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    These specific property pairs were marked as <strong className="text-emerald-300">&quot;Confirmed Clones&quot;</strong>. The scanner uses these pairs to learn positive naming patterns and boost matching confidence for other duplicates.
+                  </p>
+
+                  {confirmedPairs.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                      <Star className="w-8 h-8 text-slate-500 mx-auto" />
+                      <p className="text-xs font-bold text-slate-300">No Confirmed Clones Yet</p>
+                      <p className="text-[11px] text-slate-500">
+                        Click &quot;Mark as Clone&quot; on any duplicate match to train the scanner with positive duplicate patterns.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {confirmedPairs.map((pair) => (
+                        <div
+                          key={pair.id}
+                          className="p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-white truncate max-w-[200px]">
+                                {pair.projectAName}
+                              </span>
+                              <span className="text-slate-500 font-mono text-[11px]">vs</span>
+                              <span className="font-bold text-white truncate max-w-[200px]">
+                                {pair.projectBName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-slate-500">Learned clone tokens:</span>
+                              {pair.sharedWords.map((w) => (
+                                <span
+                                  key={w}
+                                  className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 font-bold"
+                                >
+                                  {w}
+                                </span>
+                              ))}
+                              <span className="text-[10px] text-slate-500 ml-2">
+                                {new Date(pair.confirmedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleUnmarkConfirmedClone(pair.id, pair.sharedWords)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-200 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-xs font-semibold cursor-pointer shrink-0 transition-colors"
+                            title="Unmark as confirmed clone"
+                          >
+                            <X className="w-3 h-3 text-rose-400" />
+                            <span>Unmark</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : tuningTab === 'pairs' ? (
                 <div className="space-y-3">
                   <p className="text-xs text-slate-400 leading-relaxed">
                     These specific property pairs were marked as <strong className="text-slate-200">&quot;Not a Clone&quot;</strong>. The scanner permanently blacklists them from appearing together in clone alerts.
@@ -2657,70 +3060,120 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Words in this negative stoplist are treated as common generic multifamily terms (e.g. <em>&quot;apartments&quot;</em>, <em>&quot;square&quot;</em>). The duplicate scanner ignores them so properties sharing only these terms are not falsely flagged.
-                  </p>
+                <div className="space-y-5">
+                  {/* Positive Indicators Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Star className="w-3.5 h-3.5 fill-emerald-400" />
+                        <span>Positive Duplicate Indicators ({confirmedWords.size})</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400">Boosts matching confidence</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Words learned from confirmed duplicates. When other property titles share these keywords, the scanner prioritizes them with higher duplicate confidence.
+                    </p>
 
-                  {/* Add Custom Word Input */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Add custom noise word (e.g., residences, commons)..."
-                      value={newWordInput}
-                      onChange={(e) => setNewWordInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddNewLearnedWord();
-                        }
-                      }}
-                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                    />
-                    <button
-                      type="button"
-                      disabled={!newWordInput.trim() || newWordInput.trim().length < 3}
-                      onClick={handleAddNewLearnedWord}
-                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                    >
-                      Add Stopword
-                    </button>
+                    {confirmedWords.size === 0 ? (
+                      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-slate-500 text-[11px]">
+                        No positive indicator words learned yet. Mark any cluster as &quot;Mark as Clone&quot; to train.
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-900/80 border border-emerald-500/30">
+                        {Array.from(confirmedWords.entries()).map(([word, count]) => (
+                          <span
+                            key={word}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-medium bg-emerald-500/15 text-emerald-200 border border-emerald-500/30"
+                          >
+                            <span>&quot;{word}&quot;</span>
+                            {count > 1 && (
+                              <span className="text-[10px] px-1 py-0.2 rounded-full bg-emerald-500/30 text-emerald-300 font-bold">
+                                x{count}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveConfirmedWord(word)}
+                              className="p-0.5 text-emerald-300 hover:text-white rounded hover:bg-emerald-500/30 cursor-pointer"
+                              title={`Remove "${word}" from positive duplicate indicators`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Learned Words Tag Cloud */}
-                  {learnedWords.size === 0 ? (
-                    <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
-                      <HelpCircle className="w-8 h-8 text-slate-500 mx-auto" />
-                      <p className="text-xs font-bold text-slate-300">No Noise Keywords Learned Yet</p>
-                      <p className="text-[11px] text-slate-500">
-                        When you mark a match as &quot;Not a Clone&quot;, any generic shared words will automatically appear here.
-                      </p>
+                  {/* Negative Noise Stopwords Section */}
+                  <div className="space-y-2 pt-3 border-t border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Brain className="w-3.5 h-3.5" />
+                        <span>Negative Noise Stopwords ({learnedWords.size})</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400">Suppresses false positives</span>
                     </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
-                      {Array.from(learnedWords.entries()).map(([word, count]) => (
-                        <span
-                          key={word}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-medium bg-cyan-500/15 text-cyan-200 border border-cyan-500/30"
-                        >
-                          <span>&quot;{word}&quot;</span>
-                          {count > 1 && (
-                            <span className="text-[10px] px-1 py-0.2 rounded-full bg-cyan-500/30 text-cyan-300 font-bold">
-                              x{count}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveLearnedWord(word)}
-                            className="p-0.5 text-cyan-300 hover:text-white rounded hover:bg-cyan-500/30 cursor-pointer"
-                            title={`Remove "${word}" from noise stoplist`}
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Words in this negative stoplist are treated as common generic multifamily terms (e.g. <em>&quot;apartments&quot;</em>, <em>&quot;square&quot;</em>). The duplicate scanner ignores them.
+                    </p>
+
+                    {/* Add Custom Word Input */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add custom noise word (e.g., residences, commons)..."
+                        value={newWordInput}
+                        onChange={(e) => setNewWordInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddNewLearnedWord();
+                          }
+                        }}
+                        className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                      />
+                      <button
+                        type="button"
+                        disabled={!newWordInput.trim() || newWordInput.trim().length < 3}
+                        onClick={handleAddNewLearnedWord}
+                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                      >
+                        Add Stopword
+                      </button>
+                    </div>
+
+                    {/* Learned Words Tag Cloud */}
+                    {learnedWords.size === 0 ? (
+                      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-slate-500 text-[11px]">
+                        No noise stopwords learned yet.
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
+                        {Array.from(learnedWords.entries()).map(([word, count]) => (
+                          <span
+                            key={word}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-medium bg-cyan-500/15 text-cyan-200 border border-cyan-500/30"
                           >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                            <span>&quot;{word}&quot;</span>
+                            {count > 1 && (
+                              <span className="text-[10px] px-1 py-0.2 rounded-full bg-cyan-500/30 text-cyan-300 font-bold">
+                                x{count}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLearnedWord(word)}
+                              className="p-0.5 text-cyan-300 hover:text-white rounded hover:bg-cyan-500/30 cursor-pointer"
+                              title={`Remove "${word}" from noise stoplist`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
