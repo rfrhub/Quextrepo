@@ -18046,6 +18046,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "SBH"
     ],
+    "platform": "Geokey",
     "statusTag": "Behind Schedule",
     "statusReason": "Installation pacing on Agora Heights- Roy, UT (42 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Rich Development.",
     "startDate": "2026-10-07",
@@ -20765,6 +20766,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "SBH"
     ],
+    "platform": "Geokey",
     "statusTag": "Behind Schedule",
     "statusReason": "Installation pacing on Inspire Apartments (237 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with The Dawson Company.",
     "startDate": "2026-09-23",
@@ -21832,6 +21834,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "ATB"
     ],
+    "platform": "Homebase",
     "statusTag": "Behind Schedule",
     "statusReason": "Installation pacing on Flashcube Apartments (184 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Worcester Investments.",
     "startDate": "2026-09-17",
@@ -24472,6 +24475,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "ATB"
     ],
+    "platform": "Homebase",
     "statusTag": "Behind Schedule",
     "statusReason": "Installation pacing on The Mill- Charlotte, NC (131 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Iris Innovations.",
     "startDate": "2026-09-28",

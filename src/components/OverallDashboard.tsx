@@ -114,8 +114,63 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [selectedPmpHubProjectId, setSelectedPmpHubProjectId] = useState<string>('all');
   const [pmpModalProjectId, setPmpModalProjectId] = useState<string | null>(null);
 
+  // Top-Level Dashboard Filters: Time Horizon (All Time, Month, Quarter) & Platform Tag
+  const [timeScope, setTimeScope] = useState<'all' | 'month' | 'quarter'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('2026-10');
+  const [selectedQuarter, setSelectedQuarter] = useState<string>('2026-Q4');
+  const [platformScope, setPlatformScope] = useState<'all' | ProjectPlatform>('all');
+
+  // Filter entire dashboard scope by Time Horizon and Platform Tag reference
+  const dashboardScopedProjects = useMemo(() => {
+    return projects.filter((p) => {
+      // 1. Platform Filter using platform tag as reference
+      const platform = getProjectPlatform(p);
+      if (platformScope !== 'all' && platform !== platformScope) {
+        return false;
+      }
+
+      // 2. Time Horizon Filter
+      if (timeScope === 'all') return true;
+
+      const pStart = p.startDate || '2026-10-01';
+      const pTarget = p.targetCompletionDate || '2026-11-15';
+
+      if (timeScope === 'month') {
+        const [yearStr, monthStr] = selectedMonth.split('-');
+        const y = parseInt(yearStr, 10);
+        const m = parseInt(monthStr, 10);
+        const monthStart = `${selectedMonth}-01`;
+        const lastDay = new Date(y, m, 0).getDate();
+        const monthEnd = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
+
+        const hasMilestoneInMonth = p.milestones?.some((ms) => ms.targetDate && ms.targetDate.startsWith(selectedMonth));
+        const overlaps = pStart <= monthEnd && pTarget >= monthStart;
+        return overlaps || hasMilestoneInMonth;
+      }
+
+      if (timeScope === 'quarter') {
+        const [qYearStr, qStr] = selectedQuarter.split('-Q');
+        const qNum = parseInt(qStr, 10);
+        const startMonthNum = (qNum - 1) * 3 + 1;
+        const endMonthNum = qNum * 3;
+        const qStart = `${qYearStr}-${String(startMonthNum).padStart(2, '0')}-01`;
+        const lastDay = new Date(parseInt(qYearStr, 10), endMonthNum, 0).getDate();
+        const qEnd = `${qYearStr}-${String(endMonthNum).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+        const hasMilestoneInQ = p.milestones?.some((ms) => {
+          if (!ms.targetDate) return false;
+          return ms.targetDate >= qStart && ms.targetDate <= qEnd;
+        });
+        const overlaps = pStart <= qEnd && pTarget >= qStart;
+        return overlaps || hasMilestoneInQ;
+      }
+
+      return true;
+    });
+  }, [projects, platformScope, timeScope, selectedMonth, selectedQuarter]);
+
   // Requirement: "Provide a metric for customers that have not completed their kickoff walkthroughs or are missing information on their form submissions so that project managers can keep traffic and are able to follow up with the nonresponsive customers."
-  const projectsNeedingKickoffAttention = projects.filter((p) => {
+  const projectsNeedingKickoffAttention = dashboardScopedProjects.filter((p) => {
     const intake = p.customerIntake;
     const isMissingPms = !intake?.pmsSoftware || intake.pmsSoftware === 'None';
     const isMissingDoors = !intake?.commonAreaDoors || intake.commonAreaDoors.length === 0;
@@ -129,7 +184,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
 
   // Total Completed projects (all milestones finished or Project Closed / CSM Handoff finished)
   const completedProjects = useMemo(() => {
-    return projects.filter((p) => {
+    return dashboardScopedProjects.filter((p) => {
       if (!p.milestones || p.milestones.length === 0) return false;
       const allDone = p.milestones.every((m) => m.status === 'Completed');
       if (allDone) return true;
@@ -144,36 +199,36 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
       if ((p as any).isCompleted || p.statusTag === 'Completed') return true;
       return false;
     });
-  }, [projects]);
+  }, [dashboardScopedProjects]);
 
   // Qualifier: "have not started a Milestone is the qualifier for this to populate this card specifically."
   const unstartedProjects = useMemo(() => {
-    return projects.filter((p) => {
+    return dashboardScopedProjects.filter((p) => {
       if (!p.milestones || p.milestones.length === 0) return true;
       const hasStartedAny = p.milestones.some(
         (m) => m.status === 'Completed' || m.status === 'In Progress' || Boolean(m.startedAt)
       );
       return !hasStartedAny;
     });
-  }, [projects]);
+  }, [dashboardScopedProjects]);
 
   // Active in-flight implementation projects
   const activeImplementationProjects = useMemo(() => {
-    return projects.filter((p) => {
+    return dashboardScopedProjects.filter((p) => {
       const isCompleted = completedProjects.some((cp) => cp.id === p.id);
       const isUnstarted = unstartedProjects.some((up) => up.id === p.id);
       return !isCompleted && !isUnstarted;
     });
-  }, [projects, completedProjects, unstartedProjects]);
+  }, [dashboardScopedProjects, completedProjects, unstartedProjects]);
 
-  const totalProjects = projects.length;
+  const totalProjects = dashboardScopedProjects.length;
   const activeResidentialUnits = activeImplementationProjects.reduce((acc, p) => acc + (p.unitsCount || 0), 0);
   const completedResidentialUnits = completedProjects.reduce((acc, p) => acc + (p.unitsCount || 0), 0);
   const unstartedResidentialUnits = unstartedProjects.reduce((acc, p) => acc + (p.unitsCount || 0), 0);
-  const totalResidentialUnits = projects.reduce((acc, p) => acc + p.unitsCount, 0);
+  const totalResidentialUnits = dashboardScopedProjects.reduce((acc, p) => acc + p.unitsCount, 0);
 
   // Filter projects by PM, Field Tech, Integrator Partner, Kickoff status, and Lifecycle stage for table
-  const filteredProjects = projects.filter((project) => {
+  const filteredProjects = dashboardScopedProjects.filter((project) => {
     const matchesPM = pmFilter === 'all' || project.assignedPM.name === pmFilter;
     const matchesFieldTech = fieldTechFilter === 'all' || (project.assignedFieldTech || 'Hector') === fieldTechFilter;
     const partners = getProjectIntegratorPartners(project);
@@ -200,28 +255,28 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
     return matchesPM && matchesFieldTech && matchesIntegrator && matchesKickoff && matchesPlatform && matchesLifecycle && matchesSearch;
   });
 
-  const onTrackProjects = projects.filter(
+  const onTrackProjects = dashboardScopedProjects.filter(
     (p) => calculateProjectScheduleHealth(p.targetCompletionDate, p.statusTag, p.notes, p.milestones).effectiveTag === 'On Track'
   );
-  const behindScheduleProjects = projects.filter(
+  const behindScheduleProjects = dashboardScopedProjects.filter(
     (p) => calculateProjectScheduleHealth(p.targetCompletionDate, p.statusTag, p.notes, p.milestones).effectiveTag === 'Behind Schedule'
   );
-  const highRiskProjects = projects.filter(
+  const highRiskProjects = dashboardScopedProjects.filter(
     (p) => calculateProjectScheduleHealth(p.targetCompletionDate, p.statusTag, p.notes, p.milestones).effectiveTag === 'High Risk'
   );
 
-  const totalQuotedUnits = projects.reduce(
+  const totalQuotedUnits = dashboardScopedProjects.reduce(
     (acc, p) => acc + p.bomItems.reduce((bAcc, item) => bAcc + item.quantity, 0),
     0
   );
-  const totalInstalledUnits = projects.reduce(
+  const totalInstalledUnits = dashboardScopedProjects.reduce(
     (acc, p) => acc + p.bomItems.reduce((bAcc, item) => bAcc + item.installedCount, 0),
     0
   );
   const aggregatePct = totalQuotedUnits > 0 ? Math.round((totalInstalledUnits / totalQuotedUnits) * 100) : 0;
 
   // Upcoming Go Lives: Defined by the date the project will be handed off to CSM ('CSM Handoff' milestone targetDate)
-  const upcomingGoLives = projects
+  const upcomingGoLives = dashboardScopedProjects
     .map((project) => {
       const csmMilestone = project.milestones?.find((m) =>
         m.title.toLowerCase().includes('csm handoff')
@@ -243,7 +298,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
     .sort((a, b) => a.parsedTime - b.parsedTime);
 
   // Upcoming Installs: Defined by the date reflected in the 'Implementation' milestone
-  const upcomingInstalls = projects
+  const upcomingInstalls = dashboardScopedProjects
     .map((project) => {
       const implMilestone = project.milestones?.find(
         (m) =>
@@ -278,7 +333,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
 
   // Requirement: Leadership Financial & Cost Breakdown
   // "Let's provide a cost breakdown on the installation Overview Dashboard as well so that leadership can see on, a high-level, the overall profits of the total projects, as well as how on track we are to collect that money."
-  const projectFinancials = projects.map((project) => {
+  const projectFinancials = dashboardScopedProjects.map((project) => {
     const health = calculateProjectScheduleHealth(
       project.targetCompletionDate,
       project.statusTag,
@@ -374,7 +429,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const portfolioCollectionPct = totalPortfolioRevenue > 0 ? Math.round((totalCashCollected / totalPortfolioRevenue) * 100) : 0;
 
   // Aggregate Roadblocks for "Behind the Veil"
-  const atRiskAndBehindProjects = projects.filter((p) => {
+  const atRiskAndBehindProjects = dashboardScopedProjects.filter((p) => {
     const h = calculateProjectScheduleHealth(p.targetCompletionDate, p.statusTag, p.notes, p.milestones);
     return h.effectiveTag === 'Behind Schedule' || h.effectiveTag === 'High Risk';
   });
@@ -389,7 +444,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   // Group by category with selectable Quext / Honeywell thermostat counts
   const categoryMap = new Map<string, { quoted: number; installed: number; quextStats: number; honeywellStats: number }>();
 
-  projects.forEach((p) => {
+  dashboardScopedProjects.forEach((p) => {
     p.bomItems.forEach((item) => {
       const displayName = getCategoryDisplayName(item.category);
       const existing = categoryMap.get(displayName) || { quoted: 0, installed: 0, quextStats: 0, honeywellStats: 0 };
@@ -498,6 +553,158 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             <Layers className="w-4 h-4" />
             <span>View All Active Projects Directory</span>
           </button>
+        </div>
+
+        {/* Top-Level Dashboard Filter Toolbar: Timeframe (All Time, Month, Quarter) + Platform Filter */}
+        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Timeframe Scope */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span>Timeframe:</span>
+              </span>
+              <div className="inline-flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setTimeScope('all')}
+                  className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                    timeScope === 'all'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Time
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeScope('month')}
+                  className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                    timeScope === 'month'
+                      ? 'bg-white text-sky-700 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  By Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeScope('quarter')}
+                  className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                    timeScope === 'quarter'
+                      ? 'bg-white text-sky-700 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  By Quarter
+                </button>
+              </div>
+
+              {/* Month Dropdown */}
+              {timeScope === 'month' && (
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-2.5 py-1 text-xs bg-sky-50 border border-sky-300 text-sky-900 font-bold rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 cursor-pointer"
+                >
+                  <option value="2026-10">October 2026 (Active)</option>
+                  <option value="2026-11">November 2026</option>
+                  <option value="2026-12">December 2026</option>
+                  <option value="2026-09">September 2026</option>
+                  <option value="2027-01">January 2027</option>
+                </select>
+              )}
+
+              {/* Quarter Dropdown */}
+              {timeScope === 'quarter' && (
+                <select
+                  value={selectedQuarter}
+                  onChange={(e) => setSelectedQuarter(e.target.value)}
+                  className="px-2.5 py-1 text-xs bg-sky-50 border border-sky-300 text-sky-900 font-bold rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 cursor-pointer"
+                >
+                  <option value="2026-Q4">Q4 2026 (Oct – Dec)</option>
+                  <option value="2026-Q3">Q3 2026 (Jul – Sep)</option>
+                  <option value="2027-Q1">Q1 2027 (Jan – Mar)</option>
+                  <option value="2027-Q2">Q2 2027 (Apr – Jun)</option>
+                </select>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+            {/* Platform Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0">
+                <Tag className="w-3.5 h-3.5 text-purple-600" />
+                <span>Platform:</span>
+              </span>
+              <div className="inline-flex items-center bg-slate-100/90 p-0.5 rounded-lg border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setPlatformScope('all')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                    platformScope === 'all'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Platforms ({projects.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlatformScope('Quext')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    platformScope === 'Quext'
+                      ? 'bg-white text-sky-700 shadow-2xs font-bold ring-1 ring-sky-300'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-sky-500" />
+                  <span>Quext</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlatformScope('Geokey')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    platformScope === 'Geokey'
+                      ? 'bg-white text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-300'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Geokey</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlatformScope('Homebase')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    platformScope === 'Homebase'
+                      ? 'bg-white text-purple-800 shadow-2xs font-bold ring-1 ring-purple-300'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-purple-500" />
+                  <span>Homebase</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Reset Filters Pill */}
+          {(timeScope !== 'all' || platformScope !== 'all') && (
+            <button
+              type="button"
+              onClick={() => {
+                setTimeScope('all');
+                setPlatformScope('all');
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-300 shadow-2xs"
+            >
+              <span>Reset Filters</span>
+              <X className="w-3.5 h-3.5 text-slate-500" />
+            </button>
+          )}
         </div>
 
         {/* 8-KPI Metric Strip: Active, Completed, Unstarted, Installed, Go-Lives, Kickoff, Health, Gauge */}
