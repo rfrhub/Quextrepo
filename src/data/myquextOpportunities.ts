@@ -17794,7 +17794,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SKBM"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Deal Won deployment synced from myquext.com. Field installation progressing on schedule across 173 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-09",
     "targetCompletionDate": "2026-11-11",
     "lastUpdated": "2026-09-02T14:44:29.234623Z",
@@ -17806,46 +17806,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 500.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 500,
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-sf_imp-1",
-        "projectId": "sf_imp_1788112391819_45655742",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SKBM Field Team (Hector Lopez)",
-        "itemId": "bom-sf_imp-01",
-        "itemName": "Activation and Deployment",
-        "quantityCompleted": 1,
-        "locationCompleted": "Lido Square - Pittsburg, CA — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Deal Won). Installed 1 of 1 Activation and Deployment.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-sf_imp-1",
-        "projectId": "sf_imp_1788112391819_45655742",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Deal Won deployment synced from myquext.com. Field installation progressing on schedule across 173 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-sf_imp-2",
-        "projectId": "sf_imp_1788112391819_45655742",
-        "author": "Keenan Cheung",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Imported from Salesforce Opportunity: Lido Square - Pittsburg, CA",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-sf_imp-1",
@@ -17915,7 +17883,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "ATB"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Deal Won deployment synced from myquext.com. Field installation progressing on schedule across 70 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-08",
     "targetCompletionDate": "2026-11-12",
     "lastUpdated": "2026-09-02T14:44:29.121999Z",
@@ -17927,9 +17895,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "All Residential Units",
         "quantity": 72,
-        "installedCount": 50,
+        "installedCount": 0,
         "unitPrice": 1250,
-        "description": "In-unit smart access control software integration."
+        "description": "In-unit smart access control software integration.",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-02",
@@ -17938,46 +17907,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "All Residential Units",
         "quantity": 100,
-        "installedCount": 56,
+        "installedCount": 0,
         "unitPrice": 220,
-        "description": "Mobile credential NFC wallet pass (100 credentials per pack)."
+        "description": "Mobile credential NFC wallet pass (100 credentials per pack).",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-sf_imp-1",
-        "projectId": "sf_imp_1788112877490_48123d5c",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "ATB Field Team (Sean Gates)",
-        "itemId": "bom-sf_imp-01",
-        "itemName": "Smart Communities IoT Service Fee Hub - Monthly",
-        "quantityCompleted": 50,
-        "locationCompleted": "Pinon Apartments -Davis, CA — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Deal Won). Installed 50 of 72 Smart Communities IoT Service Fee Hub - Monthly.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-sf_imp-1",
-        "projectId": "sf_imp_1788112877490_48123d5c",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Deal Won deployment synced from myquext.com. Field installation progressing on schedule across 70 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-sf_imp-2",
-        "projectId": "sf_imp_1788112877490_48123d5c",
-        "author": "Sydney Sanberg",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Imported from Salesforce Opportunity: Pinon Apartments -Davis, CA",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-sf_imp-1",
@@ -18048,7 +17985,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     ],
     "platform": "Geokey",
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on Agora Heights- Roy, UT (42 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Rich Development.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-07",
     "targetCompletionDate": "2026-11-03",
     "lastUpdated": "2026-09-02T14:44:29.290591Z",
@@ -18061,8 +17998,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Hardware / Equipment",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 2500.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "unitPrice": 2500,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-02",
@@ -18071,9 +18009,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Hardware / Equipment",
         "quantity": 42,
-        "installedCount": 12,
-        "unitPrice": 90.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 90,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-03",
@@ -18083,8 +18022,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Hardware / Equipment",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 500.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "unitPrice": 500,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-04",
@@ -18094,8 +18034,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Hardware / Equipment",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 350.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "unitPrice": 350,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-05",
@@ -18105,8 +18046,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Hardware / Equipment",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 350.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "unitPrice": 350,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-06",
@@ -18115,9 +18057,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "Hardware / Equipment",
         "quantity": 42,
-        "installedCount": 12,
-        "unitPrice": 3.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 3,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-07",
@@ -18126,46 +18069,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Hardware / Equipment",
         "quantity": 42,
-        "installedCount": 18,
-        "unitPrice": 220.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 220,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-sf_imp-1",
-        "projectId": "sf_imp_1788203832004_a55d9ebb",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SBH Field Team (Hector Lopez)",
-        "itemId": "bom-sf_imp-01",
-        "itemName": "Gateway Quext IoT",
-        "quantityCompleted": 0,
-        "locationCompleted": "Agora Heights- Roy, UT — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Deal Won). Installed 0 of 1 Gateway Quext IoT.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-sf_imp-1",
-        "projectId": "sf_imp_1788203832004_a55d9ebb",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on Agora Heights- Roy, UT (42 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Rich Development.",
-        "isPinned": true
-      },
-      {
-        "id": "note-sf_imp-2",
-        "projectId": "sf_imp_1788203832004_a55d9ebb",
-        "author": "Sydney Sanberg",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Imported from Salesforce Opportunity: Agora Heights- Roy, UT",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-sf_imp-1",
@@ -18235,7 +18146,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "Everbase"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Deal Won deployment synced from myquext.com. Field installation progressing on schedule across 8 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-06",
     "targetCompletionDate": "2026-11-14",
     "lastUpdated": "2026-10-20T20:20:19.762Z",
@@ -18247,9 +18158,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "Apartment Unit",
         "quantity": 8,
-        "installedCount": 8,
-        "unitPrice": 125.0,
-        "description": "Long-range LoRaWAN wireless bridge for extended property coverage across spread-out buildings."
+        "installedCount": 0,
+        "unitPrice": 125,
+        "description": "Long-range LoRaWAN wireless bridge for extended property coverage across spread-out buildings.",
+        "postItLogs": []
       },
       {
         "id": "bom-33om1u-02",
@@ -18258,9 +18170,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "Apartment Unit",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2500.0,
-        "description": "Commercial central head-end gateway and controller for property smart IoT networks."
+        "installedCount": 0,
+        "unitPrice": 2500,
+        "description": "Commercial central head-end gateway and controller for property smart IoT networks.",
+        "postItLogs": []
       },
       {
         "id": "bom-33om1u-03",
@@ -18269,37 +18182,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 2,
-        "installedCount": 2,
-        "unitPrice": 199.0,
-        "description": "Customized QR Plated Intercom "
+        "installedCount": 0,
+        "unitPrice": 199,
+        "description": "Customized QR Plated Intercom ",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-33om1u-1",
-        "projectId": "33om1u0TTgW3MYKO2FhH",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Everbase Field Team (Sean Gates)",
-        "itemId": "bom-33om1u-01",
-        "itemName": "LoRaWAN Bridge (Range Extension)",
-        "quantityCompleted": 8,
-        "locationCompleted": "Greenbrook Partners Pilot — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Deal Won). Installed 8 of 8 LoRaWAN Bridge (Range Extension).",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-33om1u-1",
-        "projectId": "33om1u0TTgW3MYKO2FhH",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Deal Won deployment synced from myquext.com. Field installation progressing on schedule across 8 units.",
-        "isPinned": true
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-33om1u-1",
@@ -18369,7 +18259,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "JTS"
     ],
     "statusTag": "High Risk",
-    "statusReason": "Critical path blocker on Westview at Irvine Spectrum (Irvine, CA): Total unit count (583) was taken directly from user input.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-05",
     "targetCompletionDate": "2026-10-25",
     "lastUpdated": "2026-09-30T20:54:35.246Z",
@@ -18381,9 +18271,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 583,
-        "installedCount": 175,
+        "installedCount": 0,
         "unitPrice": 416.75,
-        "description": "1 commercial interconnected deadbolt per unit entry door (single-motion emergency egress)."
+        "description": "1 commercial interconnected deadbolt per unit entry door (single-motion emergency egress).",
+        "postItLogs": []
       },
       {
         "id": "bom-FoYP0B-02",
@@ -18392,9 +18283,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 583,
-        "installedCount": 93,
-        "unitPrice": 125.0,
-        "description": "1 smart thermostat per unit with built-in IoT hub and humidity sensors."
+        "installedCount": 0,
+        "unitPrice": 125,
+        "description": "1 smart thermostat per unit with built-in IoT hub and humidity sensors.",
+        "postItLogs": []
       },
       {
         "id": "bom-FoYP0B-03",
@@ -18403,9 +18295,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 21,
-        "installedCount": 6,
-        "unitPrice": 150.0,
-        "description": "Professional reconfiguration and system migration of existing Brivo access hardware into the Quext platform."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "Professional reconfiguration and system migration of existing Brivo access hardware into the Quext platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-FoYP0B-04",
@@ -18414,46 +18307,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 584,
-        "installedCount": 93,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage."
+        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-FoYP0B-1",
-        "projectId": "FoYP0Bt5ZT969KsOfSsx",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "JTS Field Team (Hector Lopez)",
-        "itemId": "bom-FoYP0B-01",
-        "itemName": "Schlage FE410 Interconnected Deadbolt",
-        "quantityCompleted": 175,
-        "locationCompleted": "Westview at Irvine Spectrum — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 175 of 583 Schlage FE410 Interconnected Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-FoYP0B-1",
-        "projectId": "FoYP0Bt5ZT969KsOfSsx",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Critical path blocker on Westview at Irvine Spectrum (Irvine, CA): Total unit count (583) was taken directly from user input.",
-        "isPinned": true
-      },
-      {
-        "id": "note-FoYP0B-2",
-        "projectId": "FoYP0Bt5ZT969KsOfSsx",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count (583) was taken directly from user input. Per-unit device counts (Locks, Thermostats, APs, Leak Detectors) are based on the provided total unit count.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-FoYP0B-1",
@@ -18523,7 +18384,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "RMR"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 476 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-04",
     "targetCompletionDate": "2026-11-16",
     "lastUpdated": "2026-10-06T20:43:58.177Z",
@@ -18535,9 +18396,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 476,
-        "installedCount": 300,
-        "unitPrice": 250.0,
-        "description": "One lock per unit based on provided unit count."
+        "installedCount": 0,
+        "unitPrice": 250,
+        "description": "One lock per unit based on provided unit count.",
+        "postItLogs": []
       },
       {
         "id": "bom-V8jLZA-02",
@@ -18546,9 +18408,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 476,
-        "installedCount": 233,
-        "unitPrice": 150.0,
-        "description": "One thermostat per unit; standard HVAC assumed."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "One thermostat per unit; standard HVAC assumed.",
+        "postItLogs": []
       },
       {
         "id": "bom-V8jLZA-03",
@@ -18557,9 +18420,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 13,
-        "installedCount": 8,
+        "installedCount": 0,
         "unitPrice": 794.26,
-        "description": "Includes Main Entry, Fitness, Bike Room, Pool, Package Room, BOH, and 2 Vehicle Gates."
+        "description": "Includes Main Entry, Fitness, Bike Room, Pool, Package Room, BOH, and 2 Vehicle Gates.",
+        "postItLogs": []
       },
       {
         "id": "bom-V8jLZA-04",
@@ -18568,9 +18432,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Common Areas",
         "quantity": 5,
-        "installedCount": 2,
-        "unitPrice": 150.0,
-        "description": "For Lobby, Fitness Center, and Club/Lounge areas."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "For Lobby, Fitness Center, and Club/Lounge areas.",
+        "postItLogs": []
       },
       {
         "id": "bom-V8jLZA-05",
@@ -18579,9 +18444,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 476,
-        "installedCount": 300,
-        "unitPrice": 38.0,
-        "description": "In-unit Wi-Fi 7 APs"
+        "installedCount": 0,
+        "unitPrice": 38,
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-V8jLZA-06",
@@ -18590,9 +18456,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 26,
-        "installedCount": 13,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Includes Lobby, Amenities, Mail, Garage Entrances, and approx. 2 per Garage Level (7 levels) for safety."
+        "description": "Includes Lobby, Amenities, Mail, Garage Entrances, and approx. 2 per Garage Level (7 levels) for safety.",
+        "postItLogs": []
       },
       {
         "id": "bom-V8jLZA-07",
@@ -18601,46 +18468,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 26,
-        "installedCount": 16,
-        "unitPrice": 700.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-V8jLZA-1",
-        "projectId": "V8jLZAaCelxwRaUxmm1K",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "RMR Field Team (Sean Gates)",
-        "itemId": "bom-V8jLZA-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 300,
-        "locationCompleted": "The Right Angle — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 300 of 476 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-V8jLZA-1",
-        "projectId": "V8jLZAaCelxwRaUxmm1K",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 476 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-V8jLZA-2",
-        "projectId": "V8jLZAaCelxwRaUxmm1K",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Source of Unit Count: Confirmed 476 units from the 'East 5th RFP' document. Building Type: Mid-rise apartment community with a central parking structure.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-V8jLZA-1",
@@ -18710,7 +18545,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "All Media"
     ],
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on Apex Riverstone (456 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Alpha Residential.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-03",
     "targetCompletionDate": "2026-11-07",
     "lastUpdated": "2026-08-10T16:46:00.978Z",
@@ -18722,9 +18557,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 456,
-        "installedCount": 223,
+        "installedCount": 0,
         "unitPrice": 500.48,
-        "description": "Heavy-duty commercial wireless mortise lock for high-traffic amenity and entry doors."
+        "description": "Heavy-duty commercial wireless mortise lock for high-traffic amenity and entry doors.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-02",
@@ -18733,9 +18569,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 456,
-        "installedCount": 160,
-        "unitPrice": 150.0,
-        "description": "1 smart thermostat per unit with integrated IoT hub. Coordinates wireless door locks and sensors."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "1 smart thermostat per unit with integrated IoT hub. Coordinates wireless door locks and sensors.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-03",
@@ -18744,9 +18581,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 35,
-        "installedCount": 17,
+        "installedCount": 0,
         "unitPrice": 794.26,
-        "description": "Estimated quantity based on architectural plans for exterior doors, amenities, and typical community ingress/egress points."
+        "description": "Estimated quantity based on architectural plans for exterior doors, amenities, and typical community ingress/egress points.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-04",
@@ -18755,9 +18593,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 20,
-        "installedCount": 7,
-        "unitPrice": 700.0,
-        "description": "Estimated quantity to cover primary lobbies, pool deck, mail room, and fitness centers."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Estimated quantity to cover primary lobbies, pool deck, mail room, and fitness centers.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-05",
@@ -18766,9 +18605,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 3,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 1450,
-        "description": "Estimated for main building entrances and primary leasing center approach."
+        "description": "Estimated for main building entrances and primary leasing center approach.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-06",
@@ -18777,9 +18617,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 456,
-        "installedCount": 160,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage."
+        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-07",
@@ -18788,9 +18629,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 456,
-        "installedCount": 223,
+        "installedCount": 0,
         "unitPrice": 192.44,
-        "description": "1 wireless Wi-Fi water leak and freeze detector per unit (pack of 3 sensing cables). Direct Wi-Fi connection."
+        "description": "1 wireless Wi-Fi water leak and freeze detector per unit (pack of 3 sensing cables). Direct Wi-Fi connection.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-08",
@@ -18799,9 +18641,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 456,
-        "installedCount": 160,
+        "installedCount": 0,
         "unitPrice": 87.16,
-        "description": "Dependency for Apartment Unit IoT Control"
+        "description": "Dependency for Apartment Unit IoT Control",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-09",
@@ -18810,9 +18653,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 20,
-        "installedCount": 10,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Standard cloud video surveillance license: 60-day local retention, remote live view, and motion alerts."
+        "description": "Standard cloud video surveillance license: 60-day local retention, remote live view, and motion alerts.",
+        "postItLogs": []
       },
       {
         "id": "bom-El6ocI-10",
@@ -18821,46 +18665,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Apartment Unit",
         "quantity": 456,
-        "installedCount": 160,
-        "unitPrice": 150.0,
-        "description": "Pack of 4 smart wall switches (Z-Wave). Requires Quext Thermostat Hub for connectivity."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "Pack of 4 smart wall switches (Z-Wave). Requires Quext Thermostat Hub for connectivity.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-El6ocI-1",
-        "projectId": "El6ocIJcWg2MAUxEOLnf",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "integrate Field Team (Hector Lopez)",
-        "itemId": "bom-El6ocI-01",
-        "itemName": "Schlage XE360 Mortise",
-        "quantityCompleted": 223,
-        "locationCompleted": "Apex Riverstone — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 223 of 456 Schlage XE360 Mortise.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-El6ocI-1",
-        "projectId": "El6ocIJcWg2MAUxEOLnf",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on Apex Riverstone (456 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Alpha Residential.",
-        "isPinned": true
-      },
-      {
-        "id": "note-El6ocI-2",
-        "projectId": "El6ocIJcWg2MAUxEOLnf",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: North Star Total: The provided user input of 456 units was used as the absolute truth for calculating in-unit requirements. OFF-SWITCH Architecture: All 456 In-Unit Wi-Fi 7 APs are assumed to connect directly to the in-unit Google Fiber ONTs. Switch ports have NOT been allocated for residential units.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-El6ocI-1",
@@ -18930,7 +18742,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SKBM"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 347 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-02",
     "targetCompletionDate": "2026-11-18",
     "lastUpdated": "2026-06-03T02:44:27.345Z",
@@ -18942,9 +18754,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 347,
-        "installedCount": 347,
+        "installedCount": 0,
         "unitPrice": 204.52,
-        "description": "1 standard smart lock allocated per unit entry door."
+        "description": "1 standard smart lock allocated per unit entry door.",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-02",
@@ -18953,9 +18766,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 347,
-        "installedCount": 298,
-        "unitPrice": 150.0,
-        "description": "does this work??"
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "does this work??",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-03",
@@ -18964,9 +18778,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 18,
-        "installedCount": 18,
+        "installedCount": 0,
         "unitPrice": 358.8,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-04",
@@ -18975,9 +18790,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 347,
-        "installedCount": 298,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs"
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-05",
@@ -18986,9 +18802,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 694,
-        "installedCount": 694,
+        "installedCount": 0,
         "unitPrice": 43.76,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-06",
@@ -18997,9 +18814,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 8,
-        "installedCount": 7,
+        "installedCount": 0,
         "unitPrice": 358.8,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-07",
@@ -19008,9 +18826,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 9,
-        "installedCount": 9,
-        "unitPrice": 425.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 425,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-08",
@@ -19019,9 +18838,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 27,
-        "installedCount": 23,
-        "unitPrice": 425.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 425,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-09",
@@ -19030,9 +18850,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 2,
-        "installedCount": 2,
-        "unitPrice": 1150.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 1150,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-10",
@@ -19041,9 +18862,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 4000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 4000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-11",
@@ -19052,9 +18874,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 5000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 5000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-12",
@@ -19063,9 +18886,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 1,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 220,
-        "description": "Install Access Control based on 27 (2 @ gate) door locations (Includes Labor and Ancillary hardware, wiring, and locking hardware)"
+        "description": "Install Access Control based on 27 (2 @ gate) door locations (Includes Labor and Ancillary hardware, wiring, and locking hardware)",
+        "postItLogs": []
       },
       {
         "id": "bom-vzP34Z-13",
@@ -19074,46 +18898,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 1,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Install CCTV System based on 37 locations ( Includes wiring and Ancillary hardware )"
+        "description": "Install CCTV System based on 37 locations ( Includes wiring and Ancillary hardware )",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-vzP34Z-1",
-        "projectId": "vzP34ZLqePwXnEVBK2b0",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SKBM Field Team (Sean Gates)",
-        "itemId": "bom-vzP34Z-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 347,
-        "locationCompleted": "Satellite Square — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 347 of 347 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-vzP34Z-1",
-        "projectId": "vzP34ZLqePwXnEVBK2b0",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 347 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-vzP34Z-2",
-        "projectId": "vzP34ZLqePwXnEVBK2b0",
-        "author": "Danielle Finley",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total Unit Count established as 355 based directly on User Input. Per-Unit Technology (OFF-SWITCH): 1 Wi-Fi 7 Unit AP allocated per unit (355 total). These connect directly to the in-unit Fiber ONT. No switch ports were calculated for these APs.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-vzP34Z-1",
@@ -19183,7 +18975,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "ATB"
     ],
     "statusTag": "High Risk",
-    "statusReason": "Critical path blocker on Paradise Valley (Phoenix, Arizona): Used user-supplied 'Notes' for all specific hardware counts (Locks, Readers, APs).",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-01",
     "targetCompletionDate": "2026-10-24",
     "lastUpdated": "2026-10-12T18:16:04.518Z",
@@ -19195,9 +18987,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 334,
-        "installedCount": 87,
+        "installedCount": 0,
         "unitPrice": 479.84,
-        "description": "327 Units + 7 Spares (User Input)."
+        "description": "327 Units + 7 Spares (User Input).",
+        "postItLogs": []
       },
       {
         "id": "bom-4FbLTo-02",
@@ -19206,9 +18999,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 57,
-        "installedCount": 7,
-        "unitPrice": 663.0,
-        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access."
+        "installedCount": 0,
+        "unitPrice": 663,
+        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access.",
+        "postItLogs": []
       },
       {
         "id": "bom-4FbLTo-03",
@@ -19217,9 +19011,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 63,
-        "installedCount": 16,
+        "installedCount": 0,
         "unitPrice": 435.75,
-        "description": "Wireless smart cylindrical lockset for resident units and student bedrooms. Supports mobile credentials and remote management."
+        "description": "Wireless smart cylindrical lockset for resident units and student bedrooms. Supports mobile credentials and remote management.",
+        "postItLogs": []
       },
       {
         "id": "bom-4FbLTo-04",
@@ -19228,9 +19023,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 97,
-        "installedCount": 12,
+        "installedCount": 0,
         "unitPrice": 229.71,
-        "description": "Taking into account additional access in units."
+        "description": "Taking into account additional access in units.",
+        "postItLogs": []
       },
       {
         "id": "bom-4FbLTo-05",
@@ -19239,9 +19035,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 9,
-        "installedCount": 2,
+        "installedCount": 0,
         "unitPrice": 707.44,
-        "description": "Wireless commercial exit device trim for common area egress doors, fitness centers, and perimeter exits."
+        "description": "Wireless commercial exit device trim for common area egress doors, fitness centers, and perimeter exits.",
+        "postItLogs": []
       },
       {
         "id": "bom-4FbLTo-06",
@@ -19250,9 +19047,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "One-Time Quext Fees",
         "quantity": 327,
-        "installedCount": 39,
-        "unitPrice": 30.0,
-        "description": "Device programming, cloud portal configuration, and backend account initialization."
+        "installedCount": 0,
+        "unitPrice": 30,
+        "description": "Device programming, cloud portal configuration, and backend account initialization.",
+        "postItLogs": []
       },
       {
         "id": "bom-4FbLTo-07",
@@ -19262,8 +19060,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "One-Time Quext Fees",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 2000.0,
-        "description": "Silver onboarding package: Remote database configuration, staff training, and go-live deployment support."
+        "unitPrice": 2000,
+        "description": "Silver onboarding package: Remote database configuration, staff training, and go-live deployment support.",
+        "postItLogs": []
       },
       {
         "id": "bom-4FbLTo-08",
@@ -19273,45 +19072,13 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "One-Time Quext Fees",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 2000.0,
-        "description": "Dedicated project management: Vendor liaison, remote install support, trade coordination, and milestone tracking."
+        "unitPrice": 2000,
+        "description": "Dedicated project management: Vendor liaison, remote install support, trade coordination, and milestone tracking.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-4FbLTo-1",
-        "projectId": "4FbLToKBWCIoIIluD3lT",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "ATB Field Team (Hector Lopez)",
-        "itemId": "bom-4FbLTo-01",
-        "itemName": "Schlage FE410 Interconnected Deadbolt",
-        "quantityCompleted": 87,
-        "locationCompleted": "Paradise Valley — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 87 of 334 Schlage FE410 Interconnected Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-4FbLTo-1",
-        "projectId": "4FbLToKBWCIoIIluD3lT",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Critical path blocker on Paradise Valley (Phoenix, Arizona): Used user-supplied 'Notes' for all specific hardware counts (Locks, Readers, APs).",
-        "isPinned": true
-      },
-      {
-        "id": "note-4FbLTo-2",
-        "projectId": "4FbLToKBWCIoIIluD3lT",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Used user-supplied 'Notes' for all specific hardware counts (Locks, Readers, APs). Allocated all 46 User-Defined Amenity APs to 'Indoor Common' category; no specific outdoor breakdown provided.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-4FbLTo-1",
@@ -19381,7 +19148,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SBH"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 326 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-30",
     "targetCompletionDate": "2026-11-20",
     "lastUpdated": "2026-07-06T20:29:24.219Z",
@@ -19393,9 +19160,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 326,
-        "installedCount": 254,
+        "installedCount": 0,
         "unitPrice": 500.48,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-l6Miuf-02",
@@ -19404,9 +19172,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 326,
-        "installedCount": 209,
+        "installedCount": 0,
         "unitPrice": 177.27,
-        "description": "1 per unit."
+        "description": "1 per unit.",
+        "postItLogs": []
       },
       {
         "id": "bom-l6Miuf-03",
@@ -19415,9 +19184,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 15,
-        "installedCount": 12,
+        "installedCount": 0,
         "unitPrice": 794.26,
-        "description": "Subject to review. This is an estimated count for main entrances, amenities, and garage elevators."
+        "description": "Subject to review. This is an estimated count for main entrances, amenities, and garage elevators.",
+        "postItLogs": []
       },
       {
         "id": "bom-l6Miuf-04",
@@ -19426,9 +19196,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 30,
-        "installedCount": 19,
-        "unitPrice": 700.0,
-        "description": "Subject to review. This is an estimated count based on review of building plans."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Subject to review. This is an estimated count based on review of building plans.",
+        "postItLogs": []
       },
       {
         "id": "bom-l6Miuf-05",
@@ -19437,9 +19208,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 326,
-        "installedCount": 254,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs. Wi-Fi 7 AP coverage in all amenity and staff spaces."
+        "description": "In-unit Wi-Fi 7 APs. Wi-Fi 7 AP coverage in all amenity and staff spaces.",
+        "postItLogs": []
       },
       {
         "id": "bom-l6Miuf-06",
@@ -19448,9 +19220,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Network Infrastructure",
         "quantity": 6,
-        "installedCount": 4,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "Outdoor common area Wi-Fi 6 APs"
+        "description": "Outdoor common area Wi-Fi 6 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-l6Miuf-07",
@@ -19459,9 +19232,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Network Infrastructure",
         "quantity": 10,
-        "installedCount": 8,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "Optional parking garage Wi-Fi 6 APs"
+        "description": "Optional parking garage Wi-Fi 6 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-l6Miuf-08",
@@ -19470,46 +19244,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 30,
-        "installedCount": 19,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Optional 7 day Camera Recording."
+        "description": "Optional 7 day Camera Recording.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-l6Miuf-1",
-        "projectId": "l6MiufxI8YCEnEiFa8rM",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SBH Field Team (Sean Gates)",
-        "itemId": "bom-l6Miuf-01",
-        "itemName": "Schlage XE360 Mortise",
-        "quantityCompleted": 254,
-        "locationCompleted": "The Motley — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 254 of 326 Schlage XE360 Mortise.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-l6Miuf-1",
-        "projectId": "l6MiufxI8YCEnEiFa8rM",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 326 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-l6Miuf-2",
-        "projectId": "l6MiufxI8YCEnEiFa8rM",
-        "author": "Danielle Finley",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Source of Truth: User input 'Total Units: 326' used as the master unit count. Excluded 80 APs located in Residential Hallways and Elevator Lobbies (Levels 6-25) per 'Negative Constraint' instructions.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-l6Miuf-1",
@@ -19579,7 +19321,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "Everbase"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 289 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-29",
     "targetCompletionDate": "2026-11-21",
     "lastUpdated": "2026-09-03T17:26:00.817Z",
@@ -19591,9 +19333,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common & Amenity Spaces",
         "quantity": 18,
-        "installedCount": 15,
+        "installedCount": 0,
         "unitPrice": 707.44,
-        "description": "The XE360 Wireless Exit Trim for perimeter & common areas. Quext adds keyless entry and remote management without the cost of wired readers."
+        "description": "The XE360 Wireless Exit Trim for perimeter & common areas. Quext adds keyless entry and remote management without the cost of wired readers.",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-02",
@@ -19602,9 +19345,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common & Amenity Spaces",
         "quantity": 26,
-        "installedCount": 19,
-        "unitPrice": 663.0,
-        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage "
+        "installedCount": 0,
+        "unitPrice": 663,
+        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage ",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-03",
@@ -19613,9 +19357,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Apartment Units",
         "quantity": 289,
-        "installedCount": 249,
+        "installedCount": 0,
         "unitPrice": 479.84,
-        "description": "1 interconnected deadbolt per unit entry door."
+        "description": "1 interconnected deadbolt per unit entry door.",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-04",
@@ -19624,9 +19369,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common & Amenity Spaces",
         "quantity": 33,
-        "installedCount": 24,
+        "installedCount": 0,
         "unitPrice": 435.75,
-        "description": "Battery powered wireless tubular lock. Quext adds keyless mobile entry and remote \"No-Tour\" management, with or without a Quext smart hub."
+        "description": "Battery powered wireless tubular lock. Quext adds keyless mobile entry and remote \"No-Tour\" management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-05",
@@ -19635,9 +19381,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Apartment Units",
         "quantity": 289,
-        "installedCount": 249,
-        "unitPrice": 140.0,
-        "description": "1 Wi-Fi smart thermostat per unit."
+        "installedCount": 0,
+        "unitPrice": 140,
+        "description": "1 Wi-Fi smart thermostat per unit.",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-06",
@@ -19646,9 +19393,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 300.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 300,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-07",
@@ -19657,9 +19405,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 831.0,
-        "description": "Credential enrollment reader for staff credential programming."
+        "installedCount": 0,
+        "unitPrice": 831,
+        "description": "Credential enrollment reader for staff credential programming.",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-08",
@@ -19668,46 +19417,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software & Services",
         "quantity": 289,
-        "installedCount": 208,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community."
+        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-sf_imp-1",
-        "projectId": "sf_imp_1787679493344_91676b8e",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Everbase Field Team (Hector Lopez)",
-        "itemId": "bom-sf_imp-01",
-        "itemName": "Custom Hardware Product",
-        "quantityCompleted": 15,
-        "locationCompleted": "The Exchange — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 15 of 18 Custom Hardware Product.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-sf_imp-1",
-        "projectId": "sf_imp_1787679493344_91676b8e",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 289 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-sf_imp-2",
-        "projectId": "sf_imp_1787679493344_91676b8e",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Imported from Salesforce Opportunity: Lifetime Living Residential - Raleigh",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-sf_imp-1",
@@ -19777,7 +19494,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "JTS"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 288 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-28",
     "targetCompletionDate": "2026-11-22",
     "lastUpdated": "2026-09-30T01:29:53.239551Z",
@@ -19789,9 +19506,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "Network Infrastructure",
         "quantity": 3,
-        "installedCount": 2,
-        "unitPrice": 2500.0,
-        "description": "The slim Schlage RC11 wired IP reader for narrow door frames. Get real-time, high-security access control managed by the Quext platform."
+        "installedCount": 0,
+        "unitPrice": 2500,
+        "description": "The slim Schlage RC11 wired IP reader for narrow door frames. Get real-time, high-security access control managed by the Quext platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-02",
@@ -19800,9 +19518,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 288,
-        "installedCount": 161,
-        "unitPrice": 180.0,
-        "description": "Quext Thermostat 2.0"
+        "installedCount": 0,
+        "unitPrice": 180,
+        "description": "Quext Thermostat 2.0",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-03",
@@ -19811,9 +19530,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 288,
-        "installedCount": 202,
-        "unitPrice": 120.0,
-        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub."
+        "installedCount": 0,
+        "unitPrice": 120,
+        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-04",
@@ -19822,9 +19542,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 288,
-        "installedCount": 161,
-        "unitPrice": 40.0,
-        "description": "Quext Thermostat 2.0"
+        "installedCount": 0,
+        "unitPrice": 40,
+        "description": "Quext Thermostat 2.0",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-05",
@@ -19833,9 +19554,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 288,
-        "installedCount": 202,
-        "unitPrice": 20.0,
-        "description": "1 Z-Wave leak sensor per unit."
+        "installedCount": 0,
+        "unitPrice": 20,
+        "description": "1 Z-Wave leak sensor per unit.",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-06",
@@ -19844,9 +19566,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": "Training and Onboarding, one-time cost"
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "Training and Onboarding, one-time cost",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-07",
@@ -19855,9 +19578,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": "Project Management Fee"
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "Project Management Fee",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-08",
@@ -19866,9 +19590,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 6,
-        "installedCount": 3,
-        "unitPrice": 1517.0,
-        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage "
+        "installedCount": 0,
+        "unitPrice": 1517,
+        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage ",
+        "postItLogs": []
       },
       {
         "id": "bom-uRQX5q-09",
@@ -19877,46 +19602,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 6,
-        "installedCount": 4,
+        "installedCount": 0,
         "unitPrice": 516.05,
-        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage "
+        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage ",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-uRQX5q-1",
-        "projectId": "uRQX5qZn76fdQ4uTnce2",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Taylor Williams Field Team (Sean Gates)",
-        "itemId": "bom-uRQX5q-01",
-        "itemName": "Quext Gateway",
-        "quantityCompleted": 2,
-        "locationCompleted": "The Holly — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 2 of 3 Quext Gateway.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-uRQX5q-1",
-        "projectId": "uRQX5qZn76fdQ4uTnce2",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 288 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-uRQX5q-2",
-        "projectId": "uRQX5qZn76fdQ4uTnce2",
-        "author": "Taylor Williams",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count (288) was provided by user input. Property identified as Student Housing. A 25% uplift was applied to the in-unit AP count (288 * 1.25 = 360) and locks are calculated per-bedroom.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-uRQX5q-1",
@@ -19986,7 +19679,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "RMR"
     ],
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on The Bowery at Old Fourth Ward (285 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Related Companies.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-27",
     "targetCompletionDate": "2026-11-03",
     "lastUpdated": "2026-10-06T00:55:05.374Z",
@@ -19998,9 +19691,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 292,
-        "installedCount": 123,
+        "installedCount": 0,
         "unitPrice": 252.68,
-        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub."
+        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-uOZlln-02",
@@ -20009,9 +19703,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 292,
-        "installedCount": 82,
-        "unitPrice": 205.0,
-        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub."
+        "installedCount": 0,
+        "unitPrice": 205,
+        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-uOZlln-03",
@@ -20020,9 +19715,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 285,
-        "installedCount": 120,
-        "unitPrice": 225.0,
-        "description": "Quext Thermostat 2.0"
+        "installedCount": 0,
+        "unitPrice": 225,
+        "description": "Quext Thermostat 2.0",
+        "postItLogs": []
       },
       {
         "id": "bom-uOZlln-04",
@@ -20031,9 +19727,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 16,
-        "installedCount": 4,
+        "installedCount": 0,
         "unitPrice": 588.34,
-        "description": "For high-traffic perimeters, the Schlage RCK15 wired IP reader. Get real-time control and Card + PIN security, managed by the Quext platform."
+        "description": "For high-traffic perimeters, the Schlage RCK15 wired IP reader. Get real-time control and Card + PIN security, managed by the Quext platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-uOZlln-05",
@@ -20042,9 +19739,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 33,
-        "installedCount": 14,
-        "unitPrice": 700.0,
-        "description": "Standard Bullet"
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Standard Bullet",
+        "postItLogs": []
       },
       {
         "id": "bom-uOZlln-06",
@@ -20053,46 +19751,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 285,
-        "installedCount": 80,
-        "unitPrice": 45.0,
-        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community."
+        "installedCount": 0,
+        "unitPrice": 45,
+        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-uOZlln-1",
-        "projectId": "uOZllnZpCNzPoUFWjpUr",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "RMR Field Team (Hector Lopez)",
-        "itemId": "bom-uOZlln-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 123,
-        "locationCompleted": "The Bowery at Old Fourth Ward — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 123 of 292 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-uOZlln-1",
-        "projectId": "uOZllnZpCNzPoUFWjpUr",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on The Bowery at Old Fourth Ward (285 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Related Companies.",
-        "isPinned": true
-      },
-      {
-        "id": "note-uOZlln-2",
-        "projectId": "uOZllnZpCNzPoUFWjpUr",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count (285) was carried over from the initial user-provided data, as a Unit Mix schedule was not present in the provided telecom plans. All Common Area APs, Security Cameras, and Access Control Readers are based on explicit counts of symbols on the provided telecom floor plans.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-uOZlln-1",
@@ -20162,7 +19828,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "All Media"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 271 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-26",
     "targetCompletionDate": "2026-11-24",
     "lastUpdated": "2026-07-06T20:27:47.819Z",
@@ -20174,9 +19840,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 271,
-        "installedCount": 260,
+        "installedCount": 0,
         "unitPrice": 123.5,
-        "description": "Per user notes."
+        "description": "Per user notes.",
+        "postItLogs": []
       },
       {
         "id": "bom-ZWILZN-02",
@@ -20185,9 +19852,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 271,
-        "installedCount": 222,
+        "installedCount": 0,
         "unitPrice": 399.22,
-        "description": "Per user notes (FE410)."
+        "description": "Per user notes (FE410).",
+        "postItLogs": []
       },
       {
         "id": "bom-ZWILZN-03",
@@ -20196,9 +19864,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 30,
-        "installedCount": 29,
-        "unitPrice": 1300.0,
-        "description": "Per user notes. Requires PoE switch port."
+        "installedCount": 0,
+        "unitPrice": 1300,
+        "description": "Per user notes. Requires PoE switch port.",
+        "postItLogs": []
       },
       {
         "id": "bom-ZWILZN-04",
@@ -20207,9 +19876,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 34,
-        "installedCount": 28,
-        "unitPrice": 450.0,
-        "description": "Per user notes. Wireless/Battery common area locks."
+        "installedCount": 0,
+        "unitPrice": 450,
+        "description": "Per user notes. Wireless/Battery common area locks.",
+        "postItLogs": []
       },
       {
         "id": "bom-ZWILZN-05",
@@ -20218,9 +19888,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 16,
-        "installedCount": 15,
-        "unitPrice": 700.0,
-        "description": "Per user notes. Wireless/Battery common area locks."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Per user notes. Wireless/Battery common area locks.",
+        "postItLogs": []
       },
       {
         "id": "bom-ZWILZN-06",
@@ -20229,9 +19900,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 271,
-        "installedCount": 222,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs"
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-ZWILZN-07",
@@ -20240,46 +19912,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Network Infrastructure",
         "quantity": 4,
-        "installedCount": 4,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "Outdoor common area Wi-Fi 6 APs"
+        "description": "Outdoor common area Wi-Fi 6 APs",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-ZWILZN-1",
-        "projectId": "ZWILZNFVojNB0J4zADEo",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "All Media Field Team (Sean Gates)",
-        "itemId": "bom-ZWILZN-01",
-        "itemName": "Smart Thermostat",
-        "quantityCompleted": 260,
-        "locationCompleted": "Raleigh — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 260 of 271 Smart Thermostat.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-ZWILZN-1",
-        "projectId": "ZWILZNFVojNB0J4zADEo",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 271 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-ZWILZN-2",
-        "projectId": "ZWILZNFVojNB0J4zADEo",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Used user input for Total Units (271) and specific device counts (Thermostats, Locks, Readers). Estimated AP count for '20 amenity spaces' as 16 Indoor and 4 Outdoor APs.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-ZWILZN-1",
@@ -20349,7 +19989,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SKBM"
     ],
     "statusTag": "High Risk",
-    "statusReason": "Critical path blocker on Richmond Heights (Richmond Heights, Missouri): CRITICAL ZIP CODE CONSTRAINT APPLIED: Property is located in 63117 (outside GFiber service area). All Wi-Fi 7 hardware substituted with generic Wi-Fi 6 Managed Access Points.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-25",
     "targetCompletionDate": "2026-10-25",
     "lastUpdated": "2026-09-03T17:26:00.801Z",
@@ -20361,9 +20001,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 263,
-        "installedCount": 79,
+        "installedCount": 0,
         "unitPrice": 548.5,
-        "description": "Per user notes (FE410)."
+        "description": "Per user notes (FE410).",
+        "postItLogs": []
       },
       {
         "id": "bom-Svgce0-02",
@@ -20372,9 +20013,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 263,
-        "installedCount": 42,
-        "unitPrice": 140.0,
-        "description": "Per user notes."
+        "installedCount": 0,
+        "unitPrice": 140,
+        "description": "Per user notes.",
+        "postItLogs": []
       },
       {
         "id": "bom-Svgce0-03",
@@ -20383,9 +20025,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 28,
-        "installedCount": 8,
-        "unitPrice": 1300.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 1300,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-Svgce0-04",
@@ -20394,9 +20037,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 30,
-        "installedCount": 5,
-        "unitPrice": 498.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 498,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-Svgce0-05",
@@ -20405,9 +20049,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 12,
-        "installedCount": 4,
-        "unitPrice": 700.0,
-        "description": "Per user notes."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Per user notes.",
+        "postItLogs": []
       },
       {
         "id": "bom-Svgce0-06",
@@ -20418,44 +20063,12 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "quantity": 2,
         "installedCount": 0,
         "unitPrice": 195,
-        "description": "Outdoor common area Wi-Fi 6 APs"
+        "description": "Outdoor common area Wi-Fi 6 APs",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-Svgce0-1",
-        "projectId": "Svgce0Av4QZ2HVfY4byI",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SKBM Field Team (Hector Lopez)",
-        "itemId": "bom-Svgce0-01",
-        "itemName": "Schlage FE410 Interconnected Deadbolt",
-        "quantityCompleted": 79,
-        "locationCompleted": "Richmond Heights — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 79 of 263 Schlage FE410 Interconnected Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-Svgce0-1",
-        "projectId": "Svgce0Av4QZ2HVfY4byI",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Critical path blocker on Richmond Heights (Richmond Heights, Missouri): CRITICAL ZIP CODE CONSTRAINT APPLIED: Property is located in 63117 (outside GFiber service area). All Wi-Fi 7 hardware substituted with generic Wi-Fi 6 Managed Access Points.",
-        "isPinned": true
-      },
-      {
-        "id": "note-Svgce0-2",
-        "projectId": "Svgce0Av4QZ2HVfY4byI",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: CRITICAL ZIP CODE CONSTRAINT APPLIED: Property is located in 63117 (outside GFiber service area). All Wi-Fi 7 hardware substituted with generic Wi-Fi 6 Managed Access Points. CRITICAL ZIP CODE CONSTRAINT APPLIED: 'Quext powered by Google Fiber' branding removed. Substituted with generic smart community head-end and standard PoE+ switching.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-Svgce0-1",
@@ -20525,7 +20138,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "ATB"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 250 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-24",
     "targetCompletionDate": "2026-11-26",
     "lastUpdated": "2026-07-06T20:28:26.463Z",
@@ -20537,9 +20150,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 250,
-        "installedCount": 158,
-        "unitPrice": 275.0,
-        "description": "1 per unit entry door, based on Total Units provided and unit plans."
+        "installedCount": 0,
+        "unitPrice": 275,
+        "description": "1 per unit entry door, based on Total Units provided and unit plans.",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-02",
@@ -20548,9 +20162,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 250,
-        "installedCount": 123,
-        "unitPrice": 205.0,
-        "description": "1 per unit, based on Total Units provided and unit plans."
+        "installedCount": 0,
+        "unitPrice": 205,
+        "description": "1 per unit, based on Total Units provided and unit plans.",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-03",
@@ -20559,9 +20174,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Apartment Unit",
         "quantity": 250,
-        "installedCount": 158,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "1 per unit, as shown on sheet T400."
+        "description": "1 per unit, as shown on sheet T400.",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-04",
@@ -20570,9 +20186,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 43,
-        "installedCount": 21,
-        "unitPrice": 1300.0,
-        "description": "Counted at amenity, staff, exterior, and key access doors across all floors."
+        "installedCount": 0,
+        "unitPrice": 1300,
+        "description": "Counted at amenity, staff, exterior, and key access doors across all floors.",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-05",
@@ -20581,9 +20198,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 26,
-        "installedCount": 16,
-        "unitPrice": 700.0,
-        "description": "Counted at key locations in lobbies, amenities, parking areas, and corridors."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Counted at key locations in lobbies, amenities, parking areas, and corridors.",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-06",
@@ -20592,9 +20210,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Common Areas",
         "quantity": 5,
-        "installedCount": 2,
-        "unitPrice": 205.0,
-        "description": "Estimated for major amenity areas (Leasing, Co-working, Fitness, Lounges). Verify locations."
+        "installedCount": 0,
+        "unitPrice": 205,
+        "description": "Estimated for major amenity areas (Leasing, Co-working, Fitness, Lounges). Verify locations.",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-07",
@@ -20603,9 +20222,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Outdoor Areas",
         "quantity": 2,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 220,
-        "description": "Based on card readers shown at two parking gates on plans."
+        "description": "Based on card readers shown at two parking gates on plans.",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-08",
@@ -20614,9 +20234,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 6,
-        "installedCount": 3,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for wifi6OutdoorCommonAP"
+        "description": "From Wi-Fi BOM analysis for wifi6OutdoorCommonAP",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-09",
@@ -20625,9 +20246,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 16,
-        "installedCount": 10,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for switches2_5G"
+        "description": "From Wi-Fi BOM analysis for switches2_5G",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-10",
@@ -20636,9 +20258,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 5,
-        "installedCount": 2,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for switches1G"
+        "description": "From Wi-Fi BOM analysis for switches1G",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-11",
@@ -20647,9 +20270,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 12,
-        "installedCount": 8,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for optionalWifi6GarageAP"
+        "description": "From Wi-Fi BOM analysis for optionalWifi6GarageAP",
+        "postItLogs": []
       },
       {
         "id": "bom-dYgCqm-12",
@@ -20658,46 +20282,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Quext Services",
         "quantity": 250,
-        "installedCount": 123,
-        "unitPrice": 205.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 205,
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-dYgCqm-1",
-        "projectId": "dYgCqmkyQLw6hQleF1xW",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "ATB Field Team (Sean Gates)",
-        "itemId": "bom-dYgCqm-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 158,
-        "locationCompleted": "Oak Springs — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 158 of 250 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-dYgCqm-1",
-        "projectId": "dYgCqmkyQLw6hQleF1xW",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 250 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-dYgCqm-2",
-        "projectId": "dYgCqmkyQLw6hQleF1xW",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: No information on interior wall construction was provided. If high-attenuation materials (e.g., concrete) are used, a professional on-site RF survey is strongly recommended to validate Wi-Fi AP quantities. The list of areas requiring technology coverage was derived solely from the provided architectural plans. Please confirm this list is comprehensive and aligns with client expectations.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-dYgCqm-1",
@@ -20768,7 +20360,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     ],
     "platform": "Geokey",
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on Inspire Apartments (237 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with The Dawson Company.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-23",
     "targetCompletionDate": "2026-11-07",
     "lastUpdated": "2026-09-29T21:36:00.330Z",
@@ -20780,46 +20372,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 237,
-        "installedCount": 116,
-        "unitPrice": 40.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 40,
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-UKhDCI-1",
-        "projectId": "UKhDCIc67oxrSHWlg9Z2",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SBH Field Team (Hector Lopez)",
-        "itemId": "bom-UKhDCI-01",
-        "itemName": "GFiber Managed Wifi",
-        "quantityCompleted": 116,
-        "locationCompleted": "Inspire Apartments — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 116 of 237 GFiber Managed Wifi.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-UKhDCI-1",
-        "projectId": "UKhDCIc67oxrSHWlg9Z2",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on Inspire Apartments (237 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with The Dawson Company.",
-        "isPinned": true
-      },
-      {
-        "id": "note-UKhDCI-2",
-        "projectId": "UKhDCIc67oxrSHWlg9Z2",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Unit Mix Analysis: Identified 10 3-Bedroom units (Types C1, C2) requiring 2 APs each. Remaining 227 units allocated 1 AP. Bldg 1000/2000 C-Units: 1 stack each x 3 floors = 6 units.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-UKhDCI-1",
@@ -20889,7 +20449,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "Everbase"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 227 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-22",
     "targetCompletionDate": "2026-11-28",
     "lastUpdated": "2026-09-30T01:29:49.213311Z",
@@ -20901,9 +20461,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 237,
-        "installedCount": 237,
-        "unitPrice": 225.0,
-        "description": "does this work??"
+        "installedCount": 0,
+        "unitPrice": 225,
+        "description": "does this work??",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-02",
@@ -20912,9 +20473,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Apartment Unit",
         "quantity": 227,
-        "installedCount": 195,
-        "unitPrice": 40.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 40,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-03",
@@ -20923,9 +20485,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 232,
-        "installedCount": 232,
-        "unitPrice": 150.0,
-        "description": "does this work??"
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "does this work??",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-04",
@@ -20934,9 +20497,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 30,
-        "installedCount": 26,
+        "installedCount": 0,
         "unitPrice": 770.73,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-05",
@@ -20945,9 +20509,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 10,
-        "installedCount": 10,
+        "installedCount": 0,
         "unitPrice": 676.03,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-06",
@@ -20956,9 +20521,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 2,
-        "installedCount": 2,
+        "installedCount": 0,
         "unitPrice": 770.73,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-07",
@@ -20967,9 +20533,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 70,
-        "installedCount": 70,
-        "unitPrice": 500.0,
-        "description": "Battery powered wireless tubular lock. Quext adds keyless mobile entry and remote \"No-Tour\" management, with or without a Quext smart hub."
+        "installedCount": 0,
+        "unitPrice": 500,
+        "description": "Battery powered wireless tubular lock. Quext adds keyless mobile entry and remote \"No-Tour\" management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-08",
@@ -20978,9 +20545,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 3,
-        "installedCount": 3,
-        "unitPrice": 199.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 199,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-09",
@@ -20989,9 +20557,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "Common Areas",
         "quantity": 3,
-        "installedCount": 3,
-        "unitPrice": 2500.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2500,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-10",
@@ -21000,9 +20569,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 227,
-        "installedCount": 195,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs"
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-11",
@@ -21011,9 +20581,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 1500.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 1500,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-12",
@@ -21022,9 +20593,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-13",
@@ -21033,9 +20605,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 1500.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 1500,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-14",
@@ -21044,9 +20617,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 152,
-        "installedCount": 131,
-        "unitPrice": 225.0,
-        "description": "Comes in packs of 3. Wireless, battery-operated water leak and freeze detector. Features a 5ft sensing cable to detect leaks along its entire length and sends alerts via WiFi without requiring a separate hub."
+        "installedCount": 0,
+        "unitPrice": 225,
+        "description": "Comes in packs of 3. Wireless, battery-operated water leak and freeze detector. Features a 5ft sensing cable to detect leaks along its entire length and sends alerts via WiFi without requiring a separate hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-d6dlnq-15",
@@ -21055,46 +20629,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 227,
-        "installedCount": 227,
-        "unitPrice": 300.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 300,
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-d6dlnq-1",
-        "projectId": "d6dlnqGvrAPlk9ws7Q5b",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Everbase Field Team (Sean Gates)",
-        "itemId": "bom-d6dlnq-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 237,
-        "locationCompleted": "Canvas — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 237 of 237 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-d6dlnq-1",
-        "projectId": "d6dlnqGvrAPlk9ws7Q5b",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 227 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-d6dlnq-2",
-        "projectId": "d6dlnqGvrAPlk9ws7Q5b",
-        "author": "Gavin Iversen",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: North Star unit count (226) provided directly via user input. Sheet A700 (Door Schedule) was referenced in the drawing notes but not provided in the text. Reader and camera counts are estimated based on standard multi-family coverage.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-d6dlnq-1",
@@ -21164,7 +20706,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "JTS"
     ],
     "statusTag": "High Risk",
-    "statusReason": "Critical path blocker on Macedonia (Cary, North Carolina): Used exact hardware counts provided in notes (FE410, XE360, XE Tubular, RCs).",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-21",
     "targetCompletionDate": "2026-10-24",
     "lastUpdated": "2026-09-03T15:42:35.515Z",
@@ -21176,9 +20718,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 226,
-        "installedCount": 59,
+        "installedCount": 0,
         "unitPrice": 136.36,
-        "description": "1 per unit as requested."
+        "description": "1 per unit as requested.",
+        "postItLogs": []
       },
       {
         "id": "bom-44czMf-02",
@@ -21187,9 +20730,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 226,
-        "installedCount": 27,
+        "installedCount": 0,
         "unitPrice": 479.84,
-        "description": "Unit entry hardware as specified in notes."
+        "description": "Unit entry hardware as specified in notes.",
+        "postItLogs": []
       },
       {
         "id": "bom-44czMf-03",
@@ -21198,9 +20742,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 24,
-        "installedCount": 6,
+        "installedCount": 0,
         "unitPrice": 605.15,
-        "description": "Wired access control points (Requires PoE)."
+        "description": "Wired access control points (Requires PoE).",
+        "postItLogs": []
       },
       {
         "id": "bom-44czMf-04",
@@ -21209,9 +20754,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 14,
-        "installedCount": 2,
+        "installedCount": 0,
         "unitPrice": 707.44,
-        "description": "Specified in notes (Wireless)."
+        "description": "Specified in notes (Wireless).",
+        "postItLogs": []
       },
       {
         "id": "bom-44czMf-05",
@@ -21220,9 +20766,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 25,
-        "installedCount": 7,
+        "installedCount": 0,
         "unitPrice": 435.75,
-        "description": "Specified in notes (Wireless)."
+        "description": "Specified in notes (Wireless).",
+        "postItLogs": []
       },
       {
         "id": "bom-44czMf-06",
@@ -21231,9 +20778,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 226,
-        "installedCount": 27,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs"
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-44czMf-07",
@@ -21242,46 +20790,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Network Infrastructure",
         "quantity": 4,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "Outdoor common area Wi-Fi 6 APs"
+        "description": "Outdoor common area Wi-Fi 6 APs",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-44czMf-1",
-        "projectId": "44czMfxkVuByIVAuuwVk",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "JTS Field Team (Hector Lopez)",
-        "itemId": "bom-44czMf-01",
-        "itemName": "Smart Thermostat",
-        "quantityCompleted": 59,
-        "locationCompleted": "Macedonia — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 59 of 226 Smart Thermostat.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-44czMf-1",
-        "projectId": "44czMfxkVuByIVAuuwVk",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Critical path blocker on Macedonia (Cary, North Carolina): Used exact hardware counts provided in notes (FE410, XE360, XE Tubular, RCs).",
-        "isPinned": true
-      },
-      {
-        "id": "note-44czMf-2",
-        "projectId": "44czMfxkVuByIVAuuwVk",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Used exact hardware counts provided in notes (FE410, XE360, XE Tubular, RCs). Used user-specified coverage count of 22 for Amenity APs; split 18 Indoor / 4 Outdoor.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-44czMf-1",
@@ -21351,7 +20867,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "RMR"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 216 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-20",
     "targetCompletionDate": "2026-11-30",
     "lastUpdated": "2026-09-03T15:42:10.506Z",
@@ -21363,9 +20879,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 216,
-        "installedCount": 168,
+        "installedCount": 0,
         "unitPrice": 399.22,
-        "description": "1 per unit as specified in notes."
+        "description": "1 per unit as specified in notes.",
+        "postItLogs": []
       },
       {
         "id": "bom-egVQ7U-02",
@@ -21374,9 +20891,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 216,
-        "installedCount": 138,
+        "installedCount": 0,
         "unitPrice": 123.5,
-        "description": "1 per unit as specified in notes."
+        "description": "1 per unit as specified in notes.",
+        "postItLogs": []
       },
       {
         "id": "bom-egVQ7U-03",
@@ -21385,9 +20903,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 22,
-        "installedCount": 17,
-        "unitPrice": 1300.0,
-        "description": "Requires wired network connection."
+        "installedCount": 0,
+        "unitPrice": 1300,
+        "description": "Requires wired network connection.",
+        "postItLogs": []
       },
       {
         "id": "bom-egVQ7U-04",
@@ -21396,9 +20915,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 6,
-        "installedCount": 4,
-        "unitPrice": 700.0,
-        "description": "Common area smart lock."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Common area smart lock.",
+        "postItLogs": []
       },
       {
         "id": "bom-egVQ7U-05",
@@ -21407,9 +20927,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 16,
-        "installedCount": 12,
-        "unitPrice": 450.0,
-        "description": "Interior/Passage locks."
+        "installedCount": 0,
+        "unitPrice": 450,
+        "description": "Interior/Passage locks.",
+        "postItLogs": []
       },
       {
         "id": "bom-egVQ7U-06",
@@ -21418,46 +20939,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 216,
-        "installedCount": 138,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs"
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-egVQ7U-1",
-        "projectId": "egVQ7U0YEivd9swwccVB",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "RMR Field Team (Sean Gates)",
-        "itemId": "bom-egVQ7U-01",
-        "itemName": "Schlage FE410 Interconnected Deadbolt",
-        "quantityCompleted": 168,
-        "locationCompleted": "Mitchell Mills — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 168 of 216 Schlage FE410 Interconnected Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-egVQ7U-1",
-        "projectId": "egVQ7U0YEivd9swwccVB",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 216 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-egVQ7U-2",
-        "projectId": "egVQ7U0YEivd9swwccVB",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: North Star: Used explicit user input of 216 Total Units. Allocated 20 Indoor Common Area APs based on the note 'About 20 amenity spaces need coverage'.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-egVQ7U-1",
@@ -21527,7 +21016,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "All Media"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 215 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-19",
     "targetCompletionDate": "2026-12-01",
     "lastUpdated": "2026-07-06T20:29:19.283Z",
@@ -21539,9 +21028,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 215,
-        "installedCount": 185,
+        "installedCount": 0,
         "unitPrice": 266.68,
-        "description": "1 per unit (Standard entry)."
+        "description": "1 per unit (Standard entry).",
+        "postItLogs": []
       },
       {
         "id": "bom-kIn4eb-02",
@@ -21550,9 +21040,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 215,
-        "installedCount": 155,
+        "installedCount": 0,
         "unitPrice": 123.5,
-        "description": "1 per unit (Standard)."
+        "description": "1 per unit (Standard).",
+        "postItLogs": []
       },
       {
         "id": "bom-kIn4eb-03",
@@ -21561,9 +21052,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 20,
-        "installedCount": 17,
-        "unitPrice": 700.0,
-        "description": "Estimated coverage for Lobbies, Amenities, Pool, and Building Entries."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Estimated coverage for Lobbies, Amenities, Pool, and Building Entries.",
+        "postItLogs": []
       },
       {
         "id": "bom-kIn4eb-04",
@@ -21572,9 +21064,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 10,
-        "installedCount": 7,
+        "installedCount": 0,
         "unitPrice": 794.26,
-        "description": "Estimated for Main Entries, Amenity Doors, and Garage pedestrian access."
+        "description": "Estimated for Main Entries, Amenity Doors, and Garage pedestrian access.",
+        "postItLogs": []
       },
       {
         "id": "bom-kIn4eb-05",
@@ -21583,9 +21076,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 2,
-        "installedCount": 2,
+        "installedCount": 0,
         "unitPrice": 1450,
-        "description": "1 per main building entrance vestibule (Bldg 1 & Bldg 2)."
+        "description": "1 per main building entrance vestibule (Bldg 1 & Bldg 2).",
+        "postItLogs": []
       },
       {
         "id": "bom-kIn4eb-06",
@@ -21594,9 +21088,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 215,
-        "installedCount": 155,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs"
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-kIn4eb-07",
@@ -21605,46 +21100,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 20,
-        "installedCount": 17,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Dependency for Eagle Eye Security Cameras"
+        "description": "Dependency for Eagle Eye Security Cameras",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-kIn4eb-1",
-        "projectId": "kIn4eb4LZvfluuTSOFag",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "All Media Field Team (Hector Lopez)",
-        "itemId": "bom-kIn4eb-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 185,
-        "locationCompleted": "Renner 87 — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 185 of 215 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-kIn4eb-1",
-        "projectId": "kIn4eb4LZvfluuTSOFag",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 215 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-kIn4eb-2",
-        "projectId": "kIn4eb4LZvfluuTSOFag",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Unit Mix Verification: Used 'Multi-Family Building Load Analysis' on Sheet E303 to identify 8 three-bedroom units (Type C1) which require 2 APs. All other units (1-2 Bed) allocated 1 AP. Common Area APs: Allocated based on 'Lighting Allowance' notes indicating amenity spaces: Leasing, Club Room (B1 L1), Gym, Spa, WeWork Space (B2 L2), and Skydeck (B2 L5).",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-kIn4eb-1",
@@ -21714,7 +21177,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SKBM"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 197 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-18",
     "targetCompletionDate": "2026-12-02",
     "lastUpdated": "2026-09-30T14:08:08.823Z",
@@ -21726,46 +21189,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 197,
-        "installedCount": 138,
-        "unitPrice": 35.0,
-        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage."
+        "installedCount": 0,
+        "unitPrice": 35,
+        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-UWmoFT-1",
-        "projectId": "UWmoFTaQM2SCy5rVOR4F",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SKBM Field Team (Sean Gates)",
-        "itemId": "bom-UWmoFT-01",
-        "itemName": "GFiber Managed Wifi",
-        "quantityCompleted": 138,
-        "locationCompleted": "One Lady Bird — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 138 of 197 GFiber Managed Wifi.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-UWmoFT-1",
-        "projectId": "UWmoFTaQM2SCy5rVOR4F",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 197 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-UWmoFT-2",
-        "projectId": "UWmoFTaQM2SCy5rVOR4F",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: The total unit count of 197 is based on direct user instruction, overriding the 208 multifamily units listed in the Site Vehicle Parking Table on sheet SP-2022-0438C. The scope is strictly limited to the 197 apartment units; the 101 condo units are excluded per user instruction.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-UWmoFT-1",
@@ -21836,7 +21267,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     ],
     "platform": "Homebase",
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on Flashcube Apartments (184 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Worcester Investments.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-17",
     "targetCompletionDate": "2026-11-03",
     "lastUpdated": "2026-07-06T20:29:41.391Z",
@@ -21848,9 +21279,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 184,
-        "installedCount": 77,
+        "installedCount": 0,
         "unitPrice": 220,
-        "description": "Schlage locks already exist and would just need converted to the new Quext powered by GFiber platform."
+        "description": "Schlage locks already exist and would just need converted to the new Quext powered by GFiber platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-nIhr7S-02",
@@ -21859,9 +21291,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 184,
-        "installedCount": 52,
+        "installedCount": 0,
         "unitPrice": 165,
-        "description": "does this work??"
+        "description": "does this work??",
+        "postItLogs": []
       },
       {
         "id": "bom-nIhr7S-03",
@@ -21870,9 +21303,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 10,
-        "installedCount": 4,
+        "installedCount": 0,
         "unitPrice": 220,
-        "description": "Estimate for key common entry points: Main Entry, Loading Dock, Fitness Centers (x2), Coworking Space, Package Room, and Basement amenities."
+        "description": "Estimate for key common entry points: Main Entry, Loading Dock, Fitness Centers (x2), Coworking Space, Package Room, and Basement amenities.",
+        "postItLogs": []
       },
       {
         "id": "bom-nIhr7S-04",
@@ -21881,9 +21315,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 14,
-        "installedCount": 4,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Recommended coverage for Main Entrance, Lobby, Loading Dock, Sports Court/Plaza areas, Fitness Centers, and perimeter."
+        "description": "Recommended coverage for Main Entrance, Lobby, Loading Dock, Sports Court/Plaza areas, Fitness Centers, and perimeter.",
+        "postItLogs": []
       },
       {
         "id": "bom-nIhr7S-05",
@@ -21892,46 +21327,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 184,
-        "installedCount": 77,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "- 3 Gig symmetrical over a wired connection\n- Up to 1 Gig with Wi-Fi 7\n- GFiber covers the Access Point upgrade\n- Seamless property wide Wi-Fi coverage"
+        "description": "- 3 Gig symmetrical over a wired connection\n- Up to 1 Gig with Wi-Fi 7\n- GFiber covers the Access Point upgrade\n- Seamless property wide Wi-Fi coverage",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-nIhr7S-1",
-        "projectId": "nIhr7SLZS1uJuf6KAWqf",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "ATB Field Team (Hector Lopez)",
-        "itemId": "bom-nIhr7S-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 77,
-        "locationCompleted": "Flashcube Apartments — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 77 of 184 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-nIhr7S-1",
-        "projectId": "nIhr7SLZS1uJuf6KAWqf",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on Flashcube Apartments (184 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Worcester Investments.",
-        "isPinned": true
-      },
-      {
-        "id": "note-nIhr7S-2",
-        "projectId": "nIhr7SLZS1uJuf6KAWqf",
-        "author": "Jasmine Hunt",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: North Star Unit Count: 184 (Based on User-Provided Count in Project Details). STRATEGIC VALUE: This is a 'Managed WiFi+' solution. The 'Property-wide WiFi Coverage' in this BOM (enabled by 207 total APs) delivers 'Instant On' service, seamless resident roaming, and a property-wide guest network.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-nIhr7S-1",
@@ -22001,7 +21404,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SBH"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 180 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-16",
     "targetCompletionDate": "2026-12-04",
     "lastUpdated": "2026-10-23T16:51:33.845Z",
@@ -22013,9 +21416,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 25,
-        "installedCount": 24,
-        "unitPrice": 1300.0,
-        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage."
+        "installedCount": 0,
+        "unitPrice": 1300,
+        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage.",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-02",
@@ -22024,9 +21428,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 4,
-        "installedCount": 3,
-        "unitPrice": 1300.0,
-        "description": "For high-traffic perimeters, the Schlage RCK15 wired IP reader. Get real-time control and Card + PIN security, managed by the Quext platform."
+        "installedCount": 0,
+        "unitPrice": 1300,
+        "description": "For high-traffic perimeters, the Schlage RCK15 wired IP reader. Get real-time control and Card + PIN security, managed by the Quext platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-03",
@@ -22035,9 +21440,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 2,
-        "installedCount": 2,
-        "unitPrice": 750.0,
-        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access."
+        "installedCount": 0,
+        "unitPrice": 750,
+        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access.",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-04",
@@ -22046,9 +21452,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Quext Services",
         "quantity": 180,
-        "installedCount": 148,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-05",
@@ -22057,9 +21464,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 180,
-        "installedCount": 173,
+        "installedCount": 0,
         "unitPrice": 118.75,
-        "description": "Automatically added as a dependency for Apartment Unit IoT Control."
+        "description": "Automatically added as a dependency for Apartment Unit IoT Control.",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-06",
@@ -22068,9 +21476,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 180,
-        "installedCount": 148,
+        "installedCount": 0,
         "unitPrice": 281.21,
-        "description": "does this work??"
+        "description": "does this work??",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-07",
@@ -22079,9 +21488,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 220.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 220,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-08",
@@ -22090,9 +21500,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Quext Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-09",
@@ -22101,9 +21512,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Quext Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-10",
@@ -22112,9 +21524,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Quext Services",
         "quantity": 211,
-        "installedCount": 173,
-        "unitPrice": 30.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 30,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-vWnYmE-11",
@@ -22123,46 +21536,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 199.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 199,
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-vWnYmE-1",
-        "projectId": "vWnYmEUJNnJdWNG43Z7c",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Tray Johnson Field Team (Sean Gates)",
-        "itemId": "bom-vWnYmE-01",
-        "itemName": "Schlage Electrified Reader - RC15",
-        "quantityCompleted": 24,
-        "locationCompleted": "Mission Encore — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 24 of 25 Schlage Electrified Reader - RC15.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-vWnYmE-1",
-        "projectId": "vWnYmEUJNnJdWNG43Z7c",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 180 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-vWnYmE-2",
-        "projectId": "vWnYmEUJNnJdWNG43Z7c",
-        "author": "Gavin Iversen",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: The total unit count of 180 was determined by the user-provided value, which is the primary source of truth. Assumed the presence of standard amenities not explicitly detailed on the floor plan, such as a leasing office, fitness center, and package room, for a comprehensive quote.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-vWnYmE-1",
@@ -22232,7 +21613,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "Everbase"
     ],
     "statusTag": "High Risk",
-    "statusReason": "Critical path blocker on Mission Lanes (Mission, Kansas): The Total Unit Count of 176 was determined based on the user-provided count (Priority 1).",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-15",
     "targetCompletionDate": "2026-10-25",
     "lastUpdated": "2026-10-12T16:03:52.572Z",
@@ -22244,9 +21625,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 176,
-        "installedCount": 53,
+        "installedCount": 0,
         "unitPrice": 220,
-        "description": "Mission Lanes already has Schlage Deadbolt locks. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform."
+        "description": "Mission Lanes already has Schlage Deadbolt locks. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-02",
@@ -22255,9 +21637,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 176,
-        "installedCount": 28,
+        "installedCount": 0,
         "unitPrice": 165,
-        "description": "Mission Lanes already has Honeywell t6 thermostats. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform."
+        "description": "Mission Lanes already has Honeywell t6 thermostats. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-03",
@@ -22266,9 +21649,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 17,
-        "installedCount": 5,
+        "installedCount": 0,
         "unitPrice": 1450,
-        "description": "Mission Lanes already has Schlage Readers. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform."
+        "description": "Mission Lanes already has Schlage Readers. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-04",
@@ -22277,9 +21661,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 15,
-        "installedCount": 2,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Mission Lanes already has Security Cameras. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform."
+        "description": "Mission Lanes already has Security Cameras. This would be a transition from the Homebase platform to the new Quext powered by GFiber platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-05",
@@ -22288,9 +21673,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 2,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for wifi6OutdoorCommonAP"
+        "description": "From Wi-Fi BOM analysis for wifi6OutdoorCommonAP",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-06",
@@ -22299,9 +21685,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 9,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for switches2_5G"
+        "description": "From Wi-Fi BOM analysis for switches2_5G",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-07",
@@ -22310,9 +21697,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 3,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for switches1G"
+        "description": "From Wi-Fi BOM analysis for switches1G",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-08",
@@ -22321,9 +21709,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Google Fiber Network Hardware",
         "quantity": 8,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "From Wi-Fi BOM analysis for optionalWifi6GarageAP"
+        "description": "From Wi-Fi BOM analysis for optionalWifi6GarageAP",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-09",
@@ -22332,9 +21721,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Miscellaneous",
         "quantity": 176,
-        "installedCount": 53,
+        "installedCount": 0,
         "unitPrice": 118.75,
-        "description": "Automatically added as a dependency for Apartment Unit IoT Control."
+        "description": "Automatically added as a dependency for Apartment Unit IoT Control.",
+        "postItLogs": []
       },
       {
         "id": "bom-niIRWi-10",
@@ -22343,46 +21733,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Quext Services",
         "quantity": 179,
-        "installedCount": 29,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-niIRWi-1",
-        "projectId": "niIRWifT4ZAENi7MIHcv",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Everbase Field Team (Hector Lopez)",
-        "itemId": "bom-niIRWi-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 53,
-        "locationCompleted": "Mission Lanes — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 53 of 176 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-niIRWi-1",
-        "projectId": "niIRWifT4ZAENi7MIHcv",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Critical path blocker on Mission Lanes (Mission, Kansas): The Total Unit Count of 176 was determined based on the user-provided count (Priority 1).",
-        "isPinned": true
-      },
-      {
-        "id": "note-niIRWi-2",
-        "projectId": "niIRWifT4ZAENi7MIHcv",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: The Total Unit Count of 176 was determined based on the user-provided count (Priority 1). FLAG: No architectural plans were provided. All common area quantities (Access Control, Cameras, Wi-Fi APs, Thermostats) are estimates based on a typical Class A property of this size. A full review of plans is required for a final BOM.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-niIRWi-1",
@@ -22452,7 +21810,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "JTS"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 144 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-09",
     "targetCompletionDate": "2026-11-11",
     "lastUpdated": "2026-10-20T19:30:22.276Z",
@@ -22464,9 +21822,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 144,
-        "installedCount": 91,
+        "installedCount": 0,
         "unitPrice": 252.68,
-        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub."
+        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-ky1QGq-02",
@@ -22475,9 +21834,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 144,
-        "installedCount": 71,
-        "unitPrice": 150.0,
-        "description": "Basic Access Control Management with Quext Resident and Property Manager App."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "Basic Access Control Management with Quext Resident and Property Manager App.",
+        "postItLogs": []
       },
       {
         "id": "bom-ky1QGq-03",
@@ -22486,9 +21846,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 5,
-        "installedCount": 3,
-        "unitPrice": 1517.0,
-        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community."
+        "installedCount": 0,
+        "unitPrice": 1517,
+        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community.",
+        "postItLogs": []
       },
       {
         "id": "bom-ky1QGq-04",
@@ -22497,9 +21858,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 8,
-        "installedCount": 4,
-        "unitPrice": 700.0,
-        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage "
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "The RC15 wall mount is a next-generation IP reader controller designed for scalable and flexible real-time access control in perimeter and high security applications. The all-in-one device leverages the comprehensive ecosystem from Schlage ",
+        "postItLogs": []
       },
       {
         "id": "bom-ky1QGq-05",
@@ -22508,9 +21870,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 144,
-        "installedCount": 91,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community."
+        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community.",
+        "postItLogs": []
       },
       {
         "id": "bom-ky1QGq-06",
@@ -22521,44 +21884,12 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "quantity": 1,
         "installedCount": 0,
         "unitPrice": 180,
-        "description": "60-day local retention, remote live view, standard motion alerts, unified dashboard."
+        "description": "60-day local retention, remote live view, standard motion alerts, unified dashboard.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-ky1QGq-1",
-        "projectId": "ky1QGq36MzwlJvKMzlaT",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "JTS Field Team (Sean Gates)",
-        "itemId": "bom-ky1QGq-01",
-        "itemName": "In-Unit Smart Lock",
-        "quantityCompleted": 91,
-        "locationCompleted": "Mills Crossing — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 91 of 144 In-Unit Smart Lock.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-ky1QGq-1",
-        "projectId": "ky1QGq36MzwlJvKMzlaT",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 144 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-ky1QGq-2",
-        "projectId": "ky1QGq36MzwlJvKMzlaT",
-        "author": "Michael Mays",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: CRITICAL: Total unit count updated to 188, based on the Site Plan (Sheet A0.1, 'PROPOSED NUMBER OF MULTI-FAMILY UNITS'), overriding the initial user input of 144. In-unit device counts (APs, Locks, Thermostats, Leak Detectors) are based on a 1:1 ratio with the updated 188 unit count. Detailed unit plans were not available for analysis of larger units that might require additional APs.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-ky1QGq-1",
@@ -22628,7 +21959,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "RMR"
     ],
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on The Interurban Building (134 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Lincoln Property Company.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-08",
     "targetCompletionDate": "2026-11-07",
     "lastUpdated": "2026-10-05T17:34:11.263Z",
@@ -22640,9 +21971,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 136,
-        "installedCount": 67,
-        "unitPrice": 225.0,
-        "description": "1 lock per unit entry door. +2 for storage locker."
+        "installedCount": 0,
+        "unitPrice": 225,
+        "description": "1 lock per unit entry door. +2 for storage locker.",
+        "postItLogs": []
       },
       {
         "id": "bom-0SD2YX-02",
@@ -22651,9 +21983,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 168,
-        "installedCount": 59,
-        "unitPrice": 125.0,
-        "description": "1 thermostat per unit. 25 units have 2 thermostats. 9 Common area."
+        "installedCount": 0,
+        "unitPrice": 125,
+        "description": "1 thermostat per unit. 25 units have 2 thermostats. 9 Common area.",
+        "postItLogs": []
       },
       {
         "id": "bom-0SD2YX-03",
@@ -22662,9 +21995,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 21,
-        "installedCount": 10,
-        "unitPrice": 1750.0,
-        "description": "Based on site survey, taking over existing HID reader wiring."
+        "installedCount": 0,
+        "unitPrice": 1750,
+        "description": "Based on site survey, taking over existing HID reader wiring.",
+        "postItLogs": []
       },
       {
         "id": "bom-0SD2YX-04",
@@ -22673,46 +22007,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 134,
-        "installedCount": 47,
-        "unitPrice": 60.0,
-        "description": "1 Z-Wave leak sensor per unit."
+        "installedCount": 0,
+        "unitPrice": 60,
+        "description": "1 Z-Wave leak sensor per unit.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-0SD2YX-1",
-        "projectId": "0SD2YXBmJXWZa1qM7Rk4",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "iTech Monitoring Field Team (Hector Lopez)",
-        "itemId": "bom-0SD2YX-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 67,
-        "locationCompleted": "The Interurban Building — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 67 of 136 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-0SD2YX-1",
-        "projectId": "0SD2YXBmJXWZa1qM7Rk4",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on The Interurban Building (134 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Lincoln Property Company.",
-        "isPinned": true
-      },
-      {
-        "id": "note-0SD2YX-2",
-        "projectId": "0SD2YXBmJXWZa1qM7Rk4",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count of 134 was confirmed from user input and the plan cover sheet. In-unit AP count (134) is based on a 1:1 ratio with the unit count. Assumes no units are over 2000 sq. ft. or 3+ bedrooms, which would require an additional AP.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-0SD2YX-1",
@@ -22782,7 +22084,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "All Media"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 132 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-07",
     "targetCompletionDate": "2026-11-13",
     "lastUpdated": "2026-10-23T13:40:21.398Z",
@@ -22794,9 +22096,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "Network Infrastructure",
         "quantity": 2,
-        "installedCount": 2,
-        "unitPrice": 2500.0,
-        "description": "Installed included with Unit Lock and Unit Thermostat combo.\n\nMain head-end IoT controller for the property."
+        "installedCount": 0,
+        "unitPrice": 2500,
+        "description": "Installed included with Unit Lock and Unit Thermostat combo.\n\nMain head-end IoT controller for the property.",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-02",
@@ -22805,9 +22108,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 132,
-        "installedCount": 114,
-        "unitPrice": 225.0,
-        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub."
+        "installedCount": 0,
+        "unitPrice": 225,
+        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-03",
@@ -22816,9 +22120,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 132,
-        "installedCount": 132,
-        "unitPrice": 155.0,
-        "description": "Vandal-resistant indoor/outdoor dome security camera for amenity areas, fitness centers, and perimeter coverage."
+        "installedCount": 0,
+        "unitPrice": 155,
+        "description": "Vandal-resistant indoor/outdoor dome security camera for amenity areas, fitness centers, and perimeter coverage.",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-04",
@@ -22827,9 +22132,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 1000.0,
-        "description": "60-day local retention, remote live view, standard motion alerts, unified dashboard."
+        "installedCount": 0,
+        "unitPrice": 1000,
+        "description": "60-day local retention, remote live view, standard motion alerts, unified dashboard.",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-05",
@@ -22838,9 +22144,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 19,
-        "installedCount": 19,
-        "unitPrice": 675.0,
-        "description": "50-pack of high-security Schlage thin multi-technology RFID key fobs."
+        "installedCount": 0,
+        "unitPrice": 675,
+        "description": "50-pack of high-security Schlage thin multi-technology RFID key fobs.",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-06",
@@ -22849,9 +22156,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 12,
-        "installedCount": 10,
-        "unitPrice": 1172.0,
-        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub."
+        "installedCount": 0,
+        "unitPrice": 1172,
+        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-07",
@@ -22860,9 +22168,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 12,
-        "installedCount": 12,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Store digital keys in  Google Wallet™ or Apple Wallet® for simple, tap-to-unlock access—even if your phone is dead."
+        "description": "Store digital keys in  Google Wallet™ or Apple Wallet® for simple, tap-to-unlock access—even if your phone is dead.",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-08",
@@ -22871,9 +22180,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-09",
@@ -22882,9 +22192,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-10",
@@ -22893,9 +22204,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 132,
-        "installedCount": 114,
-        "unitPrice": 35.0,
-        "description": "Programming cost from Quext Channel Partner"
+        "installedCount": 0,
+        "unitPrice": 35,
+        "description": "Programming cost from Quext Channel Partner",
+        "postItLogs": []
       },
       {
         "id": "bom-KgU6Wf-11",
@@ -22904,46 +22216,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 6,
-        "installedCount": 6,
-        "unitPrice": 500.0,
-        "description": "Slim profile IP reader controller for narrow door frames, glass mullions, and gates."
+        "installedCount": 0,
+        "unitPrice": 500,
+        "description": "Slim profile IP reader controller for narrow door frames, glass mullions, and gates.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-KgU6Wf-1",
-        "projectId": "KgU6WfWMmU7fR7UxgED8",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "All Media Field Team (Sean Gates)",
-        "itemId": "bom-KgU6Wf-01",
-        "itemName": "Quext Gateway",
-        "quantityCompleted": 2,
-        "locationCompleted": "3538 Lake Eastbrook — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 2 of 2 Quext Gateway.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-KgU6Wf-1",
-        "projectId": "KgU6WfWMmU7fR7UxgED8",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 132 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-KgU6Wf-2",
-        "projectId": "KgU6WfWMmU7fR7UxgED8",
-        "author": "Gavin Iversen",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Unit count of 132 was provided by user input as the North Star. AP density has been increased by 25% per Step 5 instructions.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-KgU6Wf-1",
@@ -23013,7 +22293,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SKBM"
     ],
     "statusTag": "High Risk",
-    "statusReason": "Critical path blocker on Blair Crossing (Blair, NE): Total unit count established from user input: 132 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-06",
     "targetCompletionDate": "2026-10-24",
     "lastUpdated": "2026-09-25T19:28:36.679535Z",
@@ -23027,7 +22307,8 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "quantity": 1,
         "installedCount": 0,
         "unitPrice": 1250,
-        "description": "Head-end controller."
+        "description": "Head-end controller.",
+        "postItLogs": []
       },
       {
         "id": "bom-HXpmnL-02",
@@ -23038,7 +22319,8 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "quantity": 1,
         "installedCount": 0,
         "unitPrice": 1250,
-        "description": "Storage for cameras."
+        "description": "Storage for cameras.",
+        "postItLogs": []
       },
       {
         "id": "bom-HXpmnL-03",
@@ -23047,9 +22329,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "All Residential Units",
         "quantity": 198,
-        "installedCount": 51,
+        "installedCount": 0,
         "unitPrice": 220,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-HXpmnL-04",
@@ -23058,9 +22341,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "All Residential Units",
         "quantity": 132,
-        "installedCount": 16,
+        "installedCount": 0,
         "unitPrice": 165,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-HXpmnL-05",
@@ -23069,9 +22353,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "All Residential Units",
         "quantity": 132,
-        "installedCount": 34,
+        "installedCount": 0,
         "unitPrice": 55,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-HXpmnL-06",
@@ -23080,9 +22365,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas & Head-End",
         "quantity": 5,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 1450,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-HXpmnL-07",
@@ -23091,9 +22377,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas & Head-End",
         "quantity": 10,
-        "installedCount": 3,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-HXpmnL-08",
@@ -23102,46 +22389,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Residential Units & Amenity Spaces",
         "quantity": 172,
-        "installedCount": 21,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "Wi-Fi 7 deployment (165 in-unit APs, 4 indoor common, 3 outdoor)."
+        "description": "Wi-Fi 7 deployment (165 in-unit APs, 4 indoor common, 3 outdoor).",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-HXpmnL-1",
-        "projectId": "HXpmnL2kOhIjFPLvTe5c",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SKBM Field Team (Hector Lopez)",
-        "itemId": "bom-HXpmnL-01",
-        "itemName": "Quext Gateway",
-        "quantityCompleted": 0,
-        "locationCompleted": "Blair Crossing — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 0 of 1 Quext Gateway.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-HXpmnL-1",
-        "projectId": "HXpmnL2kOhIjFPLvTe5c",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Critical path blocker on Blair Crossing (Blair, NE): Total unit count established from user input: 132 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-HXpmnL-2",
-        "projectId": "HXpmnL2kOhIjFPLvTe5c",
-        "author": "Taylor Williams",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count established from user input: 132 units. Estimated 7500 sq ft of indoor common area space for a 132-unit apartment.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-HXpmnL-1",
@@ -23211,7 +22466,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "ATB"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 92 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-05",
     "targetCompletionDate": "2026-11-15",
     "lastUpdated": "2026-10-25T03:14:53.420Z",
@@ -23223,9 +22478,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 138,
-        "installedCount": 108,
-        "unitPrice": 500.0,
-        "description": "Dependency for Common Area Access Control"
+        "installedCount": 0,
+        "unitPrice": 500,
+        "description": "Dependency for Common Area Access Control",
+        "postItLogs": []
       },
       {
         "id": "bom-Ygomho-02",
@@ -23234,9 +22490,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 92,
-        "installedCount": 59,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-Ygomho-03",
@@ -23245,9 +22502,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 288,
-        "installedCount": 225,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-Ygomho-04",
@@ -23256,46 +22514,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 390,
-        "installedCount": 250,
-        "unitPrice": 215.0,
-        "description": "With Handles"
+        "installedCount": 0,
+        "unitPrice": 215,
+        "description": "With Handles",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-Ygomho-1",
-        "projectId": "YgomhonPuWJiQoCRv6UU",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "ATB Field Team (Sean Gates)",
-        "itemId": "bom-Ygomho-01",
-        "itemName": "Schlage Enrollment Reader MT20W",
-        "quantityCompleted": 108,
-        "locationCompleted": "Clemson Village — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 108 of 138 Schlage Enrollment Reader MT20W.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-Ygomho-1",
-        "projectId": "YgomhonPuWJiQoCRv6UU",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 92 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-Ygomho-2",
-        "projectId": "YgomhonPuWJiQoCRv6UU",
-        "author": "Keenan Cheung",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count of 92 derived from user input. Assumed 2500 sq ft of indoor common area for 1 Wi-Fi 7 Indoor Common AP due to lack of specific plan details.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-Ygomho-1",
@@ -23365,7 +22591,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SBH"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 60 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-04",
     "targetCompletionDate": "2026-11-16",
     "lastUpdated": "2026-07-06T20:28:05.075Z",
@@ -23377,9 +22603,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 60,
-        "installedCount": 52,
-        "unitPrice": 275.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 275,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-aS0DVl-02",
@@ -23388,9 +22615,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 60,
-        "installedCount": 43,
-        "unitPrice": 150.0,
-        "description": "1 per unit."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "1 per unit.",
+        "postItLogs": []
       },
       {
         "id": "bom-aS0DVl-03",
@@ -23399,9 +22627,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 26,
-        "installedCount": 22,
-        "unitPrice": 550.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 550,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-aS0DVl-04",
@@ -23410,9 +22639,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 1,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 1450,
-        "description": "Assumed for Main Entry."
+        "description": "Assumed for Main Entry.",
+        "postItLogs": []
       },
       {
         "id": "bom-aS0DVl-05",
@@ -23421,9 +22651,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 20,
-        "installedCount": 17,
-        "unitPrice": 1200.0,
-        "description": "Estimate: Main, Side, Amenity, Office doors."
+        "installedCount": 0,
+        "unitPrice": 1200,
+        "description": "Estimate: Main, Side, Amenity, Office doors.",
+        "postItLogs": []
       },
       {
         "id": "bom-aS0DVl-06",
@@ -23432,46 +22663,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 60,
-        "installedCount": 43,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs and amenity coverage."
+        "description": "In-unit Wi-Fi 7 APs and amenity coverage.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-aS0DVl-1",
-        "projectId": "aS0DVlt0j4hymbdhApdm",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SBH Field Team (Hector Lopez)",
-        "itemId": "bom-aS0DVl-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 52,
-        "locationCompleted": "Linwood — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 52 of 60 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-aS0DVl-1",
-        "projectId": "aS0DVlt0j4hymbdhApdm",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 60 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-aS0DVl-2",
-        "projectId": "aS0DVlt0j4hymbdhApdm",
-        "author": "Mark Zanders",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Unit count set to 60 based on user input. Camera count set to 30 based on specific user request.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-aS0DVl-1",
@@ -23541,7 +22740,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "Everbase"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 39 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-03",
     "targetCompletionDate": "2026-11-17",
     "lastUpdated": "2026-09-30T01:29:50.398591Z",
@@ -23553,9 +22752,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 39,
-        "installedCount": 27,
+        "installedCount": 0,
         "unitPrice": 266.68,
-        "description": "does this work??"
+        "description": "does this work??",
+        "postItLogs": []
       },
       {
         "id": "bom-jXSru6-02",
@@ -23564,9 +22764,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 39,
-        "installedCount": 22,
-        "unitPrice": 150.0,
-        "description": "One thermostat per residential unit."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "One thermostat per residential unit.",
+        "postItLogs": []
       },
       {
         "id": "bom-jXSru6-03",
@@ -23575,9 +22776,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 2,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 794.26,
-        "description": "Assumes a leasing office and a fitness center entrance. Requires verification."
+        "description": "Assumes a leasing office and a fitness center entrance. Requires verification.",
+        "postItLogs": []
       },
       {
         "id": "bom-jXSru6-04",
@@ -23586,9 +22788,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 8,
-        "installedCount": 4,
-        "unitPrice": 700.0,
-        "description": "Assumes a baseline of cameras covering building exteriors and parking areas. Requires scope confirmation."
+        "installedCount": 0,
+        "unitPrice": 700,
+        "description": "Assumes a baseline of cameras covering building exteriors and parking areas. Requires scope confirmation.",
+        "postItLogs": []
       },
       {
         "id": "bom-jXSru6-05",
@@ -23597,9 +22800,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 39,
-        "installedCount": 27,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "In-unit Wi-Fi 7 APs"
+        "description": "In-unit Wi-Fi 7 APs",
+        "postItLogs": []
       },
       {
         "id": "bom-jXSru6-06",
@@ -23608,9 +22812,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Sensors & Leak Protection",
         "location": "Apartment Unit",
         "quantity": 39,
-        "installedCount": 22,
+        "installedCount": 0,
         "unitPrice": 192.44,
-        "description": "Dependency for Apartment Unit IoT Control"
+        "description": "Dependency for Apartment Unit IoT Control",
+        "postItLogs": []
       },
       {
         "id": "bom-jXSru6-07",
@@ -23619,46 +22824,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 8,
-        "installedCount": 6,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": ""
+        "description": "",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-jXSru6-1",
-        "projectId": "jXSru6KLcysHJQMMnsgV",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Everbase Field Team (Sean Gates)",
-        "itemId": "bom-jXSru6-01",
-        "itemName": "Smart Lock",
-        "quantityCompleted": 27,
-        "locationCompleted": "The Darby at Briarcliff — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 27 of 39 Smart Lock.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-jXSru6-1",
-        "projectId": "jXSru6KLcysHJQMMnsgV",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active Project Kickoff deployment synced from myquext.com. Field installation progressing on schedule across 39 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-jXSru6-2",
-        "projectId": "jXSru6KLcysHJQMMnsgV",
-        "author": "Blake Miller",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count of 39 was established from user-provided notes, which was used as the primary source for all per-unit calculations. No dedicated common amenity areas such as a clubhouse, leasing office, gym, or pool were identified in the provided plan set. Therefore, no common area APs or associated PoE switches have been included.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-jXSru6-1",
@@ -23728,7 +22901,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "JTS"
     ],
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on Hideaway Lofts (38 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Greystar Real Estate Partners.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-02",
     "targetCompletionDate": "2026-11-03",
     "lastUpdated": "2026-10-23T13:50:32.924Z",
@@ -23740,9 +22913,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 38,
-        "installedCount": 16,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community."
+        "description": "3G Fiber Internet Service to the apartment unit with powerful Managed Wifi 7 blanketing your community.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-02",
@@ -23751,9 +22925,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 38,
-        "installedCount": 11,
-        "unitPrice": 250.0,
-        "description": "1 battery-powered smart deadbolt per residential unit entry door with mobile credential support."
+        "installedCount": 0,
+        "unitPrice": 250,
+        "description": "1 battery-powered smart deadbolt per residential unit entry door with mobile credential support.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-03",
@@ -23762,9 +22937,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 38,
-        "installedCount": 16,
-        "unitPrice": 125.0,
-        "description": "1 smart thermostat per unit with built-in IoT hub and humidity sensors."
+        "installedCount": 0,
+        "unitPrice": 125,
+        "description": "1 smart thermostat per unit with built-in IoT hub and humidity sensors.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-04",
@@ -23773,9 +22949,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 3,
-        "installedCount": 1,
-        "unitPrice": 1500.0,
-        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access."
+        "installedCount": 0,
+        "unitPrice": 1500,
+        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-05",
@@ -23785,8 +22962,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Common Areas",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 199.0,
-        "description": "Customized QR-plated video intercom station for visitor self-guided check-in and delivery access."
+        "unitPrice": 199,
+        "description": "Customized QR-plated video intercom station for visitor self-guided check-in and delivery access.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-06",
@@ -23796,8 +22974,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Common Areas",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 2500.0,
-        "description": "Commercial central head-end gateway and controller for property smart IoT networks."
+        "unitPrice": 2500,
+        "description": "Commercial central head-end gateway and controller for property smart IoT networks.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-07",
@@ -23806,9 +22985,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 38,
-        "installedCount": 16,
-        "unitPrice": 30.0,
-        "description": "Device programming, cloud portal configuration, and backend account initialization."
+        "installedCount": 0,
+        "unitPrice": 30,
+        "description": "Device programming, cloud portal configuration, and backend account initialization.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-08",
@@ -23818,8 +22998,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Professional Services",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 1500.0,
-        "description": "Device programming, cloud portal configuration, and backend account initialization."
+        "unitPrice": 1500,
+        "description": "Device programming, cloud portal configuration, and backend account initialization.",
+        "postItLogs": []
       },
       {
         "id": "bom-G43OjH-09",
@@ -23829,45 +23010,13 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Professional Services",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 1500.0,
-        "description": "Silver onboarding package: Remote database configuration, staff training, and go-live deployment support."
+        "unitPrice": 1500,
+        "description": "Silver onboarding package: Remote database configuration, staff training, and go-live deployment support.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-G43OjH-1",
-        "projectId": "G43OjH7UW5lpwFGD6eB3",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Tray Johnson Field Team (Hector Lopez)",
-        "itemId": "bom-G43OjH-01",
-        "itemName": "GFiber Managed Wifi",
-        "quantityCompleted": 16,
-        "locationCompleted": "Hideaway Lofts — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (Project Kickoff). Installed 16 of 38 GFiber Managed Wifi.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-G43OjH-1",
-        "projectId": "G43OjH7UW5lpwFGD6eB3",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on Hideaway Lofts (38 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Greystar Real Estate Partners.",
-        "isPinned": true
-      },
-      {
-        "id": "note-G43OjH-2",
-        "projectId": "G43OjH7UW5lpwFGD6eB3",
-        "author": "Gavin Iversen",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count of 38 was provided directly by user input. No floor plans, amenity square footage, or site plans were provided. All common area device quantities (APs, cameras, readers) are estimates based on a standard property of this size.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-G43OjH-1",
@@ -23937,7 +23086,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "RMR"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active On Deck deployment synced from myquext.com. Field installation progressing on schedule across 260 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-10-01",
     "targetCompletionDate": "2026-11-19",
     "lastUpdated": "2026-09-25T19:42:19.373855Z",
@@ -23949,9 +23098,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-buuP51-02",
@@ -23960,9 +23110,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Professional Services",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2000.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2000,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-buuP51-03",
@@ -23971,9 +23122,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "IoT Gateways & Mesh",
         "location": "Apartment Unit",
         "quantity": 3,
-        "installedCount": 3,
-        "unitPrice": 2500.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 2500,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-buuP51-04",
@@ -23982,9 +23134,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 260,
-        "installedCount": 213,
-        "unitPrice": 220.0,
-        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub."
+        "installedCount": 0,
+        "unitPrice": 220,
+        "description": "A battery-powered, offline deadbolt. Keyless mobile entry and remote management, with or without a Quext smart hub.",
+        "postItLogs": []
       },
       {
         "id": "bom-buuP51-05",
@@ -23993,46 +23146,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 260,
-        "installedCount": 250,
-        "unitPrice": 120.0,
-        "description": "Our patented smart thermostat with built-in hub. Connects locks and sensors, detects occupancy, and saves energy, all without needing resident Wi-Fi."
+        "installedCount": 0,
+        "unitPrice": 120,
+        "description": "Our patented smart thermostat with built-in hub. Connects locks and sensors, detects occupancy, and saves energy, all without needing resident Wi-Fi.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-buuP51-1",
-        "projectId": "buuP51JrJT6WnogdVlDT",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "Midwest Protection Services Field Team (Sean Gates)",
-        "itemId": "bom-buuP51-01",
-        "itemName": "Pro Services - Silver",
-        "quantityCompleted": 1,
-        "locationCompleted": "Shadow View Village — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (On Deck). Installed 1 of 1 Pro Services - Silver.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-buuP51-1",
-        "projectId": "buuP51JrJT6WnogdVlDT",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active On Deck deployment synced from myquext.com. Field installation progressing on schedule across 260 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-buuP51-2",
-        "projectId": "buuP51JrJT6WnogdVlDT",
-        "author": "Taylor Williams",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Total unit count of 260 was provided by user input. No floor plans or site plans were provided. All common area device quantities (Wi-Fi, Cameras, Access Control) are estimates based on a typical property of this size and should be verified.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-buuP51-1",
@@ -24102,7 +23223,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "All Media"
     ],
     "statusTag": "High Risk",
-    "statusReason": "Critical path blocker on Southern Downs (Statesboro, GA): CRITICAL SALES FLAG: The customer explicitly stated they want to keep their current ISP (Xiber) and are only interested in IoT device management. This BOM represents the full, integrated Quext powered by Google Fiber package. The sales team must address this misalignment and emphasize the benefits of a single, fully managed network for both residents and staff.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-30",
     "targetCompletionDate": "2026-10-25",
     "lastUpdated": "2026-10-19T18:34:30.094367Z",
@@ -24114,9 +23235,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 214,
-        "installedCount": 64,
-        "unitPrice": 100.0,
-        "description": "Dependency for Quext Thermostat v2"
+        "installedCount": 0,
+        "unitPrice": 100,
+        "description": "Dependency for Quext Thermostat v2",
+        "postItLogs": []
       },
       {
         "id": "bom-K1qIh3-02",
@@ -24126,8 +23248,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Apartment Unit",
         "quantity": 2,
         "installedCount": 0,
-        "unitPrice": 2500.0,
-        "description": "Commercial central head-end gateway and controller for property smart IoT networks."
+        "unitPrice": 2500,
+        "description": "Commercial central head-end gateway and controller for property smart IoT networks.",
+        "postItLogs": []
       },
       {
         "id": "bom-K1qIh3-03",
@@ -24137,8 +23260,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Apartment Unit",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 500.0,
-        "description": "Freight and standard ground delivery for hardware and deployment shipments."
+        "unitPrice": 500,
+        "description": "Freight and standard ground delivery for hardware and deployment shipments.",
+        "postItLogs": []
       },
       {
         "id": "bom-K1qIh3-04",
@@ -24147,46 +23271,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 214,
-        "installedCount": 34,
-        "unitPrice": 49.0,
-        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage."
+        "installedCount": 0,
+        "unitPrice": 49,
+        "description": "1GB/3GB bulk Fiber internet to the unit with managed Wi-Fi 7 in-unit and common area amenity coverage.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-K1qIh3-1",
-        "projectId": "K1qIh3Ym7iXdpkGRvAzS",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "All Media Field Team (Hector Lopez)",
-        "itemId": "bom-K1qIh3-01",
-        "itemName": "Quext Thermostats",
-        "quantityCompleted": 64,
-        "locationCompleted": "Southern Downs — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (On Deck). Installed 64 of 214 Quext Thermostats.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-K1qIh3-1",
-        "projectId": "K1qIh3Ym7iXdpkGRvAzS",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Critical path blocker on Southern Downs (Statesboro, GA): CRITICAL SALES FLAG: The customer explicitly stated they want to keep their current ISP (Xiber) and are only interested in IoT device management. This BOM represents the full, integrated Quext powered by Google Fiber package. The sales team must address this misalignment and emphasize the benefits of a single, fully managed network for both residents and staff.",
-        "isPinned": true
-      },
-      {
-        "id": "note-K1qIh3-2",
-        "projectId": "K1qIh3Ym7iXdpkGRvAzS",
-        "author": "Keenan Cheung",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: CRITICAL SALES FLAG: The customer explicitly stated they want to keep their current ISP (Xiber) and are only interested in IoT device management. This BOM represents the full, integrated Quext powered by Google Fiber package. The sales team must address this misalignment and emphasize the benefits of a single, fully managed network for both residents and staff. Total unit count of 214 was provided directly by the user.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-K1qIh3-1",
@@ -24256,7 +23348,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SKBM"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active On Deck deployment synced from myquext.com. Field installation progressing on schedule across 199 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-29",
     "targetCompletionDate": "2026-11-21",
     "lastUpdated": "2026-10-15T18:44:39.258Z",
@@ -24268,9 +23360,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Apartment Unit",
         "quantity": 199,
-        "installedCount": 125,
-        "unitPrice": 225.0,
-        "description": "1 per unit main entry."
+        "installedCount": 0,
+        "unitPrice": 225,
+        "description": "1 per unit main entry.",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-02",
@@ -24279,9 +23372,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Apartment Unit",
         "quantity": 199,
-        "installedCount": 98,
-        "unitPrice": 150.0,
-        "description": "1 per residential unit."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "1 per residential unit.",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-03",
@@ -24290,9 +23384,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 2,
-        "installedCount": 1,
-        "unitPrice": 199.0,
-        "description": "Customized QR-plated video intercom station for visitor self-guided check-in and delivery access."
+        "installedCount": 0,
+        "unitPrice": 199,
+        "description": "Customized QR-plated video intercom station for visitor self-guided check-in and delivery access.",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-04",
@@ -24301,9 +23396,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 3,
-        "installedCount": 1,
+        "installedCount": 0,
         "unitPrice": 770.73,
-        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access."
+        "description": "Wired IP reader controller with keypad for high-traffic perimeter doors, main lobbies, and amenity access.",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-05",
@@ -24312,9 +23408,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Common Areas",
         "quantity": 59,
-        "installedCount": 37,
-        "unitPrice": 1300.0,
-        "description": "The slim Schlage RC11 wired IP reader for narrow door frames. Get real-time, high-security access control managed by the Quext platform."
+        "installedCount": 0,
+        "unitPrice": 1300,
+        "description": "The slim Schlage RC11 wired IP reader for narrow door frames. Get real-time, high-security access control managed by the Quext platform.",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-06",
@@ -24323,9 +23420,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Common Areas",
         "quantity": 98,
-        "installedCount": 48,
+        "installedCount": 0,
         "unitPrice": 746.72,
-        "description": "This is a place holder for the Camera proposal from Eagle Eye. This will be removed from Quext letterhead and contracted through Southbay Hardware"
+        "description": "This is a place holder for the Camera proposal from Eagle Eye. This will be removed from Quext letterhead and contracted through Southbay Hardware",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-07",
@@ -24334,9 +23432,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Bulk Managed Wi-Fi",
         "location": "Software and Services",
         "quantity": 199,
-        "installedCount": 125,
+        "installedCount": 0,
         "unitPrice": 195,
-        "description": "3GB Fiber Internet to the Unit with Managed Wifi 7 coverage in unit and community spaces.\n\nMonths 1-3 at $0.00 per unit (100% discount)\nMonths 4-6 at $11.75 per unit (75% discount)\nMonths 7-9 at $23.50 per unit (50% discount)\nMonths 10-12 a"
+        "description": "3GB Fiber Internet to the Unit with Managed Wifi 7 coverage in unit and community spaces.\n\nMonths 1-3 at $0.00 per unit (100% discount)\nMonths 4-6 at $11.75 per unit (75% discount)\nMonths 7-9 at $23.50 per unit (50% discount)\nMonths 10-12 a",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-08",
@@ -24345,9 +23444,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Software and Services",
         "quantity": 98,
-        "installedCount": 48,
+        "installedCount": 0,
         "unitPrice": 180,
-        "description": "Standard cloud video surveillance license: 60-day local retention, remote live view, and motion alerts."
+        "description": "Standard cloud video surveillance license: 60-day local retention, remote live view, and motion alerts.",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-09",
@@ -24356,9 +23456,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Thermostats & HVAC",
         "location": "Common Areas",
         "quantity": 6,
-        "installedCount": 4,
-        "unitPrice": 150.0,
-        "description": "1 Wi-Fi smart commercial thermostat per unit, pre-configured for property Wi-Fi networks."
+        "installedCount": 0,
+        "unitPrice": 150,
+        "description": "1 Wi-Fi smart commercial thermostat per unit, pre-configured for property Wi-Fi networks.",
+        "postItLogs": []
       },
       {
         "id": "bom-6kzshT-10",
@@ -24368,45 +23469,13 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Common Areas",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 5000.0,
-        "description": "Long-range RFID reader for vehicle gate automation and resident parking garages."
+        "unitPrice": 5000,
+        "description": "Long-range RFID reader for vehicle gate automation and resident parking garages.",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-6kzshT-1",
-        "projectId": "6kzshTGPWEyNMdljq5ZZ",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SKBM Field Team (Sean Gates)",
-        "itemId": "bom-6kzshT-01",
-        "itemName": "Schlage BE467 Deadbolt",
-        "quantityCompleted": 125,
-        "locationCompleted": "KU East Gateway — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (On Deck). Installed 125 of 199 Schlage BE467 Deadbolt.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-6kzshT-1",
-        "projectId": "6kzshTGPWEyNMdljq5ZZ",
-        "author": "Megan Rossman",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active On Deck deployment synced from myquext.com. Field installation progressing on schedule across 199 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-6kzshT-2",
-        "projectId": "6kzshTGPWEyNMdljq5ZZ",
-        "author": "Gavin Iversen",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: GEOGRAPHIC CONSTRAINT APPLIED: Property is in ZIP 66045, outside Google Fiber service area. Per instructions, Wi-Fi 6 hardware will be substituted. Schema keys labeled 'wifi7' are retained strictly for JSON validation but represent standard Wi-Fi 6 equivalents. No Google Fiber or 'Quext powered by Google Fiber' branding has been included in the BOM due to the out-of-market constraint.",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-6kzshT-1",
@@ -24477,7 +23546,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
     ],
     "platform": "Homebase",
     "statusTag": "Behind Schedule",
-    "statusReason": "Installation pacing on The Mill- Charlotte, NC (131 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Iris Innovations.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-28",
     "targetCompletionDate": "2026-11-07",
     "lastUpdated": "2026-09-25T19:41:03.746911Z",
@@ -24490,8 +23559,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Accessories",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 300.0,
-        "description": ""
+        "unitPrice": 300,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-02",
@@ -24501,8 +23571,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Accessories",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 500.0,
-        "description": ""
+        "unitPrice": 500,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-03",
@@ -24512,8 +23583,9 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "location": "Hardware / Equipment",
         "quantity": 1,
         "installedCount": 0,
-        "unitPrice": 4000.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "unitPrice": 4000,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-04",
@@ -24522,9 +23594,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Access Control",
         "quantity": 136,
-        "installedCount": 48,
-        "unitPrice": 180.0,
-        "description": "Unlock powerful access control with the Schlage BE467, a robust, battery-powered, offline smart deadbolt. When activated by Quext software, this lock provides intelligent access control without the cost of new wiring or network infrastructu"
+        "installedCount": 0,
+        "unitPrice": 180,
+        "description": "Unlock powerful access control with the Schlage BE467, a robust, battery-powered, offline smart deadbolt. When activated by Quext software, this lock provides intelligent access control without the cost of new wiring or network infrastructu",
+        "postItLogs": []
       },
       {
         "id": "bom-sf_imp-05",
@@ -24533,46 +23606,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Hardware / Equipment",
         "quantity": 136,
-        "installedCount": 67,
-        "unitPrice": 35.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 35,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-sf_imp-1",
-        "projectId": "sf_imp_1785373518753_ac961e07",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "ATB Field Team (Hector Lopez)",
-        "itemId": "bom-sf_imp-01",
-        "itemName": "Key Fobs",
-        "quantityCompleted": 0,
-        "locationCompleted": "The Mill- Charlotte, NC — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (On Deck). Installed 0 of 1 Key Fobs.",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-sf_imp-1",
-        "projectId": "sf_imp_1785373518753_ac961e07",
-        "author": "Raul Recalde",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "Inspection & Commissioning",
-        "text": "Installation pacing on The Mill- Charlotte, NC (131 units) trailing baseline schedule due to phased building access & corridor make-ready coordination with Iris Innovations.",
-        "isPinned": true
-      },
-      {
-        "id": "note-sf_imp-2",
-        "projectId": "sf_imp_1785373518753_ac961e07",
-        "author": "Keenan Cheung",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Imported from Salesforce Opportunity: The Mill- Charlotte, NC",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-sf_imp-1",
@@ -24642,7 +23683,7 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
       "SBH"
     ],
     "statusTag": "On Track",
-    "statusReason": "Active On Deck deployment synced from myquext.com. Field installation progressing on schedule across 99 units.",
+    "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-27",
     "targetCompletionDate": "2026-11-23",
     "lastUpdated": "2026-09-25T19:41:06.051167Z",
@@ -24654,9 +23695,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 500.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 500,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-snHjGz-02",
@@ -24665,9 +23707,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Smart Access Control",
         "location": "Accessories",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 300.0,
-        "description": ""
+        "installedCount": 0,
+        "unitPrice": 300,
+        "description": "",
+        "postItLogs": []
       },
       {
         "id": "bom-snHjGz-03",
@@ -24676,9 +23719,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Hardware / Equipment",
         "quantity": 104,
-        "installedCount": 104,
-        "unitPrice": 35.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 35,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-snHjGz-04",
@@ -24687,9 +23731,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Hardware / Equipment",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 3500.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 3500,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       },
       {
         "id": "bom-snHjGz-05",
@@ -24698,9 +23743,10 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Apartment Units",
         "quantity": 104,
-        "installedCount": 104,
-        "unitPrice": 180.0,
-        "description": "Unlock powerful access control with the Schlage BE467, a robust, battery-powered, offline smart deadbolt. When activated by Quext software, this lock provides intelligent access control without the cost of new wiring or network infrastructu"
+        "installedCount": 0,
+        "unitPrice": 180,
+        "description": "Unlock powerful access control with the Schlage BE467, a robust, battery-powered, offline smart deadbolt. When activated by Quext software, this lock provides intelligent access control without the cost of new wiring or network infrastructu",
+        "postItLogs": []
       },
       {
         "id": "bom-snHjGz-06",
@@ -24709,46 +23755,14 @@ export const MYQUEXT_PROJECTS: OperationProject[] = [
         "category": "Common Area & Utilities",
         "location": "Hardware / Equipment",
         "quantity": 1,
-        "installedCount": 1,
-        "unitPrice": 2500.0,
-        "description": "Quoted on myquext.com (Smart Community BOM)"
+        "installedCount": 0,
+        "unitPrice": 2500,
+        "description": "Quoted on myquext.com (Smart Community BOM)",
+        "postItLogs": []
       }
     ],
-    "installLogs": [
-      {
-        "id": "log-snHjGz-1",
-        "projectId": "snHjGzXuymQfGp4dqIuc",
-        "timestamp": "2026-10-21 02:15 PM",
-        "installerName": "SBH Field Team (Sean Gates)",
-        "itemId": "bom-snHjGz-01",
-        "itemName": "Schlage Enrollment Reader(MT20)",
-        "quantityCompleted": 1,
-        "locationCompleted": "The Union - Charlotte, NC — Residential Buildings",
-        "statusCheck": "Verified & Online",
-        "notes": "Synced from myquext.com (On Deck). Installed 1 of 1 Schlage Enrollment Reader(MT20).",
-        "color": "emerald"
-      }
-    ],
-    "notes": [
-      {
-        "id": "note-snHjGz-1",
-        "projectId": "snHjGzXuymQfGp4dqIuc",
-        "author": "Bethany Condon",
-        "timestamp": "Oct 22, 2026, 10:15 AM",
-        "category": "General Context",
-        "text": "Active On Deck deployment synced from myquext.com. Field installation progressing on schedule across 99 units.",
-        "isPinned": true
-      },
-      {
-        "id": "note-snHjGz-2",
-        "projectId": "snHjGzXuymQfGp4dqIuc",
-        "author": "Keenan Cheung",
-        "timestamp": "Oct 19, 2026, 02:30 PM",
-        "category": "Site Access & Keys",
-        "text": "myquext.com Sales Engineering Take-Off Note: Imported from Salesforce Opportunity: The Union - Charlotte, NC",
-        "isPinned": false
-      }
-    ],
+    "installLogs": [],
+    "notes": [],
     "milestones": [
       {
         "id": "m-snHjGz-1",

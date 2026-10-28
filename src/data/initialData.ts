@@ -14,6 +14,7 @@ import {
   isDiyPartner,
   getProjectPlatform,
   ProjectPlatform,
+  isRealTeamMember,
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
@@ -732,7 +733,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'All Residential Units & Common Amenities',
         quantity: 254,
-        installedCount: 202,
+        installedCount: 0,
         unitPrice: 220,
         sparesCount: 10,
         sparesDelivered: true,
@@ -742,21 +743,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
           befeColorFinish: '622 - Matte Black',
         },
         description: 'Integrated digital key deadbolt with NFC/BLE reader, hardened brass latch, and remote lock/unlock.',
-        postItLogs: [
-          {
-            id: 'log-33-101',
-            projectId: '33om1u0TTgW3MYKO2FhH',
-            timestamp: '2026-10-21 09:45 AM',
-            installerName: 'Austin Field Crew Alpha (Marco T.)',
-            itemId: 'bom-33-01',
-            itemName: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
-            quantityCompleted: 24,
-            locationCompleted: 'Building 4, Units 401 through 424',
-            statusCheck: 'Verified & Online',
-            notes: 'Calibrated door strike plates and provisioned Apple Wallet digital credentials for property management test master key.',
-            color: 'yellow',
-          },
-        ],
+        postItLogs: [],
       },
       {
         id: 'bom-33-02',
@@ -765,27 +752,13 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'All Residential Units',
         quantity: 248,
-        installedCount: 188,
+        installedCount: 0,
         unitPrice: 165,
         thermostatBrand: 'Quext',
         sparesCount: 8,
         sparesDelivered: false,
         description: 'Hubless LoRaWAN thermostat with dual humidity sensing and automated vacant unit temperature drift control.',
-        postItLogs: [
-          {
-            id: 'log-33-102',
-            projectId: '33om1u0TTgW3MYKO2FhH',
-            timestamp: '2026-10-20 03:30 PM',
-            installerName: 'Austin Field Crew Beta (Dave Chen)',
-            itemId: 'bom-33-02',
-            itemName: 'Quext IoT Smart Thermostat (LoRaWAN)',
-            quantityCompleted: 28,
-            locationCompleted: 'Building 3, Floors 2 & 3',
-            statusCheck: 'Signal Testing Passed',
-            notes: 'LoRaWAN RSSI verified at -78 dBm across all units. C-wire test passed 24V steady.',
-            color: 'yellow',
-          },
-        ],
+        postItLogs: [],
       },
       {
         id: 'bom-33-03',
@@ -794,24 +767,10 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Rooftops & Clubhouse Tower',
         quantity: 4,
-        installedCount: 4,
+        installedCount: 0,
         unitPrice: 1250,
         description: 'IP67 rated 8-channel cellular-backhaul LoRa base station providing property-wide 915MHz coverage.',
-        postItLogs: [
-          {
-            id: 'log-33-103',
-            projectId: '33om1u0TTgW3MYKO2FhH',
-            timestamp: '2026-10-19 11:15 AM',
-            installerName: 'Quext Network Deployment Team',
-            itemId: 'bom-33-03',
-            itemName: 'Quext LoRaWAN Outdoor Gateway Base Station',
-            quantityCompleted: 2,
-            locationCompleted: 'Clubhouse Tower & Building 2 Parapet',
-            statusCheck: 'Verified & Online',
-            notes: 'All 4 property gateways are now fully synced to Quext Cloud IoT core with LTE failover backup enabled.',
-            color: 'yellow',
-          },
-        ],
+        postItLogs: [],
       },
       {
         id: 'bom-33-04',
@@ -820,24 +779,10 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Sensors & Leak Protection',
         location: 'Water Heater Pan & Under Kitchen Sink (2/unit)',
         quantity: 496,
-        installedCount: 340,
+        installedCount: 0,
         unitPrice: 42,
         description: 'Instant conductivity alarm with LoRaWAN wireless telemetry and 5-year coin battery life.',
-        postItLogs: [
-          {
-            id: 'log-33-104',
-            projectId: '33om1u0TTgW3MYKO2FhH',
-            timestamp: '2026-10-18 04:00 PM',
-            installerName: 'Austin Field Crew Alpha',
-            itemId: 'bom-33-04',
-            itemName: 'Smart Flood & Water Leak Detector Pro',
-            quantityCompleted: 60,
-            locationCompleted: 'Building 1 & 2 Kitchen Sinks & Hot Water Closets',
-            statusCheck: 'Verified & Online',
-            notes: 'Moisture probe test triggered automatic LED flash and notification callback.',
-            color: 'yellow',
-          },
-        ],
+        postItLogs: [],
       },
       {
         id: 'bom-33-05',
@@ -846,7 +791,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'Pedestrian Gates & Clubhouse Main Entrance',
         quantity: 6,
-        installedCount: 5,
+        installedCount: 0,
         unitPrice: 1850,
         description: 'Vandal-proof touchscreen video intercom with mobile directory calling and digital guest passes.',
       },
@@ -857,7 +802,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Bulk Managed Wi-Fi',
         location: 'Unit Living Rooms & Clubhouse',
         quantity: 256,
-        installedCount: 168,
+        installedCount: 0,
         unitPrice: 195,
         description: 'Tri-band Wi-Fi 7 with integrated 4-port Gigabit switch for high-density smart multifamily living.',
       },
@@ -868,108 +813,13 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Common Area & Utilities',
         location: 'Individual Unit Utility Closets',
         quantity: 248,
-        installedCount: 120,
+        installedCount: 0,
         unitPrice: 85,
         description: 'Auto-shutoff relay triggered by leak sensor alerts to prevent catastrophic water damage.',
       },
     ],
-    installLogs: [
-      {
-        id: 'log-33-101',
-        projectId: '33om1u0TTgW3MYKO2FhH',
-        timestamp: '2026-10-21 09:45 AM',
-        installerName: 'Austin Field Crew Alpha (Sean Gates)',
-        itemId: 'bom-33-01',
-        itemName: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
-        quantityCompleted: 24,
-        locationCompleted: 'Building 4, Units 401 through 424',
-        statusCheck: 'Verified & Online',
-        notes: 'Calibrated door strike plates and provisioned Apple Wallet digital credentials for property management test master key.',
-        itemNotes: 'Calibrated door strike plates and provisioned Apple Wallet digital credentials for property management test master key.',
-        color: 'yellow',
-        submittedByRole: 'field_tech',
-        photos: [
-          '/src/assets/images/schlage_befe_control_lock_1791238473031.jpg',
-          '/src/assets/images/schlage_befe_control_lock_interior.png',
-        ],
-        audioNoteUrl: 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAAAAAAAAAAAAAAAA=',
-        audioNoteDuration: 8,
-      },
-      {
-        id: 'log-33-102',
-        projectId: '33om1u0TTgW3MYKO2FhH',
-        timestamp: '2026-10-20 03:30 PM',
-        installerName: 'SKBM Partner Crew (Bill Meyers)',
-        itemId: 'bom-33-02',
-        itemName: 'Quext IoT Smart Thermostat (LoRaWAN)',
-        quantityCompleted: 28,
-        locationCompleted: 'Building 3, Floors 2 & 3',
-        statusCheck: 'Signal Testing Passed',
-        notes: 'LoRaWAN RSSI verified at -78 dBm across all units. C-wire test passed 24V steady.',
-        itemNotes: 'LoRaWAN RSSI verified at -78 dBm across all units. C-wire test passed 24V steady.',
-        color: 'yellow',
-        submittedByRole: 'integrator_partner',
-        photos: [
-          '/src/assets/images/quext_iot_thermostat_1791229740444.jpg',
-          '/src/assets/images/cover_quext_thermostat_1791385399191.jpg',
-        ],
-        audioNoteUrl: 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAAAAAAAAAAAAAAAA=',
-        audioNoteDuration: 12,
-      },
-      {
-        id: 'log-33-103',
-        projectId: '33om1u0TTgW3MYKO2FhH',
-        timestamp: '2026-10-19 11:15 AM',
-        installerName: 'Quext Network Deployment Team',
-        itemId: 'bom-33-03',
-        itemName: 'Quext LoRaWAN Outdoor Gateway Base Station',
-        quantityCompleted: 2,
-        locationCompleted: 'Clubhouse Tower & Building 2 Parapet',
-        statusCheck: 'Verified & Online',
-        notes: 'All 4 property gateways are now fully synced to Quext Cloud IoT core with LTE failover backup enabled.',
-        itemNotes: 'Base station antenna torqued to spec, LTE failover verified on carrier test.',
-        color: 'yellow',
-        submittedByRole: 'field_tech',
-        photos: [
-          '/src/assets/images/tektelic_gateway_iot_1791238061805.jpg',
-        ],
-        audioNoteUrl: 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAAAAAAAAAAAAAAAA=',
-        audioNoteDuration: 6,
-      },
-      {
-        id: 'log-33-104',
-        projectId: '33om1u0TTgW3MYKO2FhH',
-        timestamp: '2026-10-18 04:00 PM',
-        installerName: 'Austin Field Crew Alpha',
-        itemId: 'bom-33-04',
-        itemName: 'Smart Flood & Water Leak Detector Pro',
-        quantityCompleted: 60,
-        locationCompleted: 'Building 1 & 2 Kitchen Sinks & Hot Water Closets',
-        statusCheck: 'Verified & Online',
-        notes: 'Moisture probe test triggered automatic LED flash and notification callback.',
-        color: 'yellow',
-      },
-    ],
-    notes: [
-      {
-        id: 'note-33-01',
-        projectId: '33om1u0TTgW3MYKO2FhH',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-21 08:30 AM',
-        category: 'General Context',
-        text: 'Met with Greystar Regional Property Manager (Elena Vance) this morning. Walkthrough of Buildings 1 & 2 completed with zero punch list defects. Building 4 doors accepted new deadbolt mortises smoothly.',
-        isPinned: true,
-      },
-      {
-        id: 'note-33-02',
-        projectId: '33om1u0TTgW3MYKO2FhH',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-20 01:15 PM',
-        category: 'Site Access & Keys',
-        text: 'Maintenance crew granted master key badge clearance for all risers. Wi-Fi 7 cabling drops in Building 4 are 100% terminated by the low-voltage contractor.',
-        isPinned: false,
-      },
-    ],
+    installLogs: [],
+    notes: [],
     milestones: [
       { id: 'm1-1', title: 'Project kickoff', status: 'Completed', targetDate: '2026-10-14' },
       { id: 'm1-2', title: 'Portal Buildout', status: 'Completed', targetDate: '2026-10-16' },
@@ -1040,28 +890,14 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'All Residential Units & Balconies',
         quantity: 342,
-        installedCount: 220,
+        installedCount: 0,
         unitPrice: 220,
         lockFinishConfig: {
           family: 'befe',
           befeTrimStyle: 'Addison',
           befeColorFinish: '619 - Satin Nickel',
         },
-        postItLogs: [
-          {
-            id: 'log-kat-01',
-            projectId: 'kathryn-canals-55',
-            timestamp: '2026-10-20 02:30 PM',
-            installerName: 'DFW Tech Crew A',
-            itemId: 'bom-kat-01',
-            itemName: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
-            quantityCompleted: 40,
-            locationCompleted: 'Building 2 Balcony Corridors',
-            statusCheck: 'Verified & Online',
-            notes: 'Digital key guest passes verified with onsite leasing staff.',
-            color: 'yellow',
-          },
-        ],
+        postItLogs: [],
       },
       {
         id: 'bom-kat-02',
@@ -1070,7 +906,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'All Units',
         quantity: 342,
-        installedCount: 215,
+        installedCount: 0,
         unitPrice: 165,
       },
       {
@@ -1080,7 +916,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Canal Tower & Clubhouse',
         quantity: 5,
-        installedCount: 5,
+        installedCount: 0,
         unitPrice: 1250,
       },
       {
@@ -1090,7 +926,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Sensors & Leak Protection',
         location: 'All Unit Sinks & Water Heaters',
         quantity: 684,
-        installedCount: 420,
+        installedCount: 0,
         unitPrice: 42,
       },
       {
@@ -1100,36 +936,12 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'Marina Dock Gates & Pedestrian Entrances',
         quantity: 8,
-        installedCount: 7,
+        installedCount: 0,
         unitPrice: 1850,
       },
     ],
-    installLogs: [
-      {
-        id: 'log-kat-01',
-        projectId: 'kathryn-canals-55',
-        timestamp: '2026-10-20 02:30 PM',
-        installerName: 'DFW Tech Crew A',
-        itemId: 'bom-kat-01',
-        itemName: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
-        quantityCompleted: 40,
-        locationCompleted: 'Building 2 Balcony Corridors',
-        statusCheck: 'Verified & Online',
-        notes: 'Digital key guest passes verified with onsite leasing staff.',
-        color: 'yellow',
-      },
-    ],
-    notes: [
-      {
-        id: 'note-kat-01',
-        projectId: 'kathryn-canals-55',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-20 04:00 PM',
-        category: 'General Context',
-        text: 'Coordinating with Greystar property manager for marina dock gate testing on Thursday morning.',
-        isPinned: true,
-      },
-    ],
+    installLogs: [],
+    notes: [],
     milestones: [
       { id: 'm-kat-1', title: 'Project kickoff', status: 'Completed', targetDate: '2026-10-14' },
       { id: 'm-kat-2', title: 'Portal Buildout', status: 'Completed', targetDate: '2026-10-16' },
@@ -1172,7 +984,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'All Residential Units',
         quantity: 280,
-        installedCount: 160,
+        installedCount: 0,
         unitPrice: 220,
       },
       {
@@ -1182,7 +994,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'All Residential Units',
         quantity: 280,
-        installedCount: 145,
+        installedCount: 0,
         unitPrice: 165,
       },
       {
@@ -1192,7 +1004,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Buildings 1, 4, and 7 Roofs',
         quantity: 4,
-        installedCount: 4,
+        installedCount: 0,
         unitPrice: 1250,
       },
       {
@@ -1202,36 +1014,12 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Sensors & Leak Protection',
         location: 'Sinks & Laundry Closets',
         quantity: 560,
-        installedCount: 280,
+        installedCount: 0,
         unitPrice: 42,
       },
     ],
-    installLogs: [
-      {
-        id: 'log-pk-01',
-        projectId: 'parkside-craig-ranch-38',
-        timestamp: '2026-10-19 01:15 PM',
-        installerName: 'Texas Low Voltage Systems',
-        itemId: 'bom-pk-01',
-        itemName: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
-        quantityCompleted: 35,
-        locationCompleted: 'Buildings 3 & 4 Upper Floors',
-        statusCheck: 'Verified & Online',
-        notes: 'Door fitment verified and strike plates centered.',
-        color: 'yellow',
-      },
-    ],
-    notes: [
-      {
-        id: 'note-pk-01',
-        projectId: 'parkside-craig-ranch-38',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-19 03:00 PM',
-        category: 'Hardware Delivery',
-        text: 'Remaining batch of 120 deadbolts verified in property storage.',
-        isPinned: false,
-      },
-    ],
+    installLogs: [],
+    notes: [],
     milestones: [
       { id: 'm-pk-1', title: 'Project kickoff', status: 'Completed', targetDate: '2026-10-09' },
       { id: 'm-pk-2', title: 'Portal Buildout', status: 'Completed', targetDate: '2026-10-11' },
@@ -1273,7 +1061,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'Midrise Units',
         quantity: 310,
-        installedCount: 180,
+        installedCount: 0,
         unitPrice: 280,
         lockFinishConfig: {
           family: 'xe360',
@@ -1291,7 +1079,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'All Units',
         quantity: 310,
-        installedCount: 175,
+        installedCount: 0,
         unitPrice: 165,
       },
       {
@@ -1301,7 +1089,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Garage Top Deck & Elevator Shafts',
         quantity: 4,
-        installedCount: 4,
+        installedCount: 0,
         unitPrice: 1250,
       },
       {
@@ -1311,22 +1099,12 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Bulk Managed Wi-Fi',
         location: 'Living Rooms & Leasing Lounge',
         quantity: 310,
-        installedCount: 120,
+        installedCount: 0,
         unitPrice: 195,
       },
     ],
     installLogs: [],
-    notes: [
-      {
-        id: 'note-dom-01',
-        projectId: 'domain-citycenter-92',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-20 09:00 AM',
-        category: 'Site Access & Keys',
-        text: 'Conduit inspection scheduled for Tuesday with retail master association.',
-        isPinned: true,
-      },
-    ],
+    notes: [],
     milestones: [
       { id: 'm-dom-1', title: 'Project kickoff', status: 'Completed', targetDate: '2026-10-12' },
       { id: 'm-dom-2', title: 'Portal Buildout', status: 'Completed', targetDate: '2026-10-14' },
@@ -1369,7 +1147,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'All Residential Units',
         quantity: 260,
-        installedCount: 140,
+        installedCount: 0,
         unitPrice: 220,
       },
       {
@@ -1379,7 +1157,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'All Residential Units',
         quantity: 260,
-        installedCount: 135,
+        installedCount: 0,
         unitPrice: 165,
       },
       {
@@ -1389,7 +1167,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Rooftops',
         quantity: 3,
-        installedCount: 3,
+        installedCount: 0,
         unitPrice: 1250,
       },
       {
@@ -1399,7 +1177,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Sensors & Leak Protection',
         location: 'Kitchen & Bathrooms',
         quantity: 520,
-        installedCount: 260,
+        installedCount: 0,
         unitPrice: 42,
       },
     ],
@@ -1447,7 +1225,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'All Residential Units',
         quantity: 180,
-        installedCount: 82,
+        installedCount: 0,
         unitPrice: 220,
         sparesCount: 8,
         sparesDelivered: true,
@@ -1459,7 +1237,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'All Residential Units',
         quantity: 180,
-        installedCount: 75,
+        installedCount: 0,
         unitPrice: 165,
         thermostatBrand: 'Honeywell',
         sparesCount: 6,
@@ -1472,7 +1250,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Building A & B Parapets',
         quantity: 3,
-        installedCount: 3,
+        installedCount: 0,
         unitPrice: 1250,
       },
       {
@@ -1482,7 +1260,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Sensors & Leak Protection',
         location: 'Kitchen & HVAC Pans',
         quantity: 360,
-        installedCount: 110,
+        installedCount: 0,
         unitPrice: 42,
       },
       {
@@ -1492,36 +1270,12 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'Elevator Cabs 1 & 2',
         quantity: 4,
-        installedCount: 1,
+        installedCount: 0,
         unitPrice: 1450,
       },
     ],
-    installLogs: [
-      {
-        id: 'log-apex-01',
-        projectId: 'apex-tech-lofts-88',
-        timestamp: '2026-10-20 02:00 PM',
-        installerName: 'Rocky Mountain Low Voltage (Lead: Sam K.)',
-        itemId: 'bom-apex-01',
-        itemName: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
-        quantityCompleted: 30,
-        locationCompleted: 'Building B, 2nd Floor Corridor',
-        statusCheck: 'Verified & Online',
-        notes: 'Door prep completed. Tested latch retraction and digital guest pass access.',
-        color: 'yellow',
-      },
-    ],
-    notes: [
-      {
-        id: 'note-apex-01',
-        projectId: 'apex-tech-lofts-88',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-20 04:45 PM',
-        category: 'Site Access & Keys',
-        text: 'Elevator technician signoff requires permit addendum from city inspector. We have prioritized in-unit locks and thermostats while elevator clearance is processed.',
-        isPinned: true,
-      },
-    ],
+    installLogs: [],
+    notes: [],
     milestones: [
       { id: 'm-ap-1', title: 'Project kickoff', status: 'Completed', targetDate: '2026-10-15' },
       { id: 'm-ap-2', title: 'Portal Buildout', status: 'Completed', targetDate: '2026-10-17' },
@@ -1564,7 +1318,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'Tower Units (Floors 1-16)',
         quantity: 320,
-        installedCount: 95,
+        installedCount: 0,
         unitPrice: 280,
         sparesCount: 16,
         sparesDelivered: false,
@@ -1576,7 +1330,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'All Units',
         quantity: 320,
-        installedCount: 90,
+        installedCount: 0,
         unitPrice: 165,
         thermostatBrand: 'Quext',
         sparesCount: 12,
@@ -1589,7 +1343,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Tower Risers (Floors 4, 8, 12, 16)',
         quantity: 5,
-        installedCount: 2,
+        installedCount: 0,
         unitPrice: 1100,
       },
       {
@@ -1599,7 +1353,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Sensors & Leak Protection',
         location: 'Luxury Kitchen & Utility Pans',
         quantity: 640,
-        installedCount: 140,
+        installedCount: 0,
         unitPrice: 42,
       },
       {
@@ -1609,36 +1363,12 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Bulk Managed Wi-Fi',
         location: 'All Tower Units',
         quantity: 320,
-        installedCount: 65,
+        installedCount: 0,
         unitPrice: 195,
       },
     ],
-    installLogs: [
-      {
-        id: 'log-sol-01',
-        projectId: 'solara-luxury-71',
-        timestamp: '2026-10-19 04:15 PM',
-        installerName: 'Florida Smart Home Contractors',
-        itemId: 'bom-sol-01',
-        itemName: 'Quext Smart Mortise Lock (Keyless Entry)',
-        quantityCompleted: 20,
-        locationCompleted: 'Tower Level 4 (Units 401-420)',
-        statusCheck: 'Verified & Online',
-        notes: 'Mortise pockets needed minor router trimming for weather stripping clearance.',
-        color: 'yellow',
-      },
-    ],
-    notes: [
-      {
-        id: 'note-sol-01',
-        projectId: 'solara-luxury-71',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-21 07:30 AM',
-        category: 'Inspection & Commissioning',
-        text: 'Escalated PoE switch availability with general contractor. High risk flag remains active until riser switch gear is mounted.',
-        isPinned: true,
-      },
-    ],
+    installLogs: [],
+    notes: [],
     milestones: [
       { id: 'm-sol-1', title: 'Project kickoff', status: 'Completed', targetDate: '2026-10-08' },
       { id: 'm-sol-2', title: 'Portal Buildout', status: 'Completed', targetDate: '2026-10-12' },
@@ -1681,7 +1411,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Access Control',
         location: 'Residential Units',
         quantity: 140,
-        installedCount: 138,
+        installedCount: 0,
         unitPrice: 220,
       },
       {
@@ -1691,7 +1421,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Smart Thermostats & HVAC',
         location: 'Residential Units',
         quantity: 140,
-        installedCount: 135,
+        installedCount: 0,
         unitPrice: 165,
       },
       {
@@ -1701,7 +1431,7 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'IoT Gateways & Mesh',
         location: 'Leasing Office Roof',
         quantity: 2,
-        installedCount: 2,
+        installedCount: 0,
         unitPrice: 1250,
       },
       {
@@ -1711,36 +1441,12 @@ export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
         category: 'Sensors & Leak Protection',
         location: 'Water Heater & AC Drain',
         quantity: 280,
-        installedCount: 270,
+        installedCount: 0,
         unitPrice: 42,
       },
     ],
-    installLogs: [
-      {
-        id: 'log-sum-01',
-        projectId: 'summit-park-52',
-        timestamp: '2026-10-20 11:00 AM',
-        installerName: 'Desert Tech Solutions (Lead: Tyler B.)',
-        itemId: 'bom-sum-04',
-        itemName: 'Smart Flood & Water Leak Detector Pro',
-        quantityCompleted: 40,
-        locationCompleted: 'Buildings 6 & 7',
-        statusCheck: 'Verified & Online',
-        notes: 'Final batch of leak detectors placed. Signal reception confirmed at 915 MHz with 100% packet receipt.',
-        color: 'yellow',
-      },
-    ],
-    notes: [
-      {
-        id: 'note-sum-01',
-        projectId: 'summit-park-52',
-        author: 'Raul Recalde',
-        timestamp: '2026-10-20 04:00 PM',
-        category: 'Resident Notice',
-        text: 'On-site leasing staff trained on Quext Staff Dashboard. Ready for final resident credential generation on Monday.',
-        isPinned: false,
-      },
-    ],
+    installLogs: [],
+    notes: [],
     csmHandoffEnteredAt: '2026-10-18',
     milestones: [
       { id: 'm-sum-1', title: 'Project kickoff', status: 'Completed', targetDate: '2026-09-28' },
@@ -2053,19 +1759,14 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
     }),
     installLogs:
       p.installLogs && p.installLogs.length > 0
-        ? p.installLogs.map((l) => {
-            const initMatch = INITIAL_PROJECTS.find((ip) => ip.id === p.id)?.installLogs?.find(
-              (il) => il.id === l.id
-            );
-            return {
-              ...l,
-              photos: l.photos && l.photos.length > 0 ? l.photos : initMatch?.photos || [],
-              audioNoteUrl: l.audioNoteUrl || initMatch?.audioNoteUrl,
-              audioNoteDuration: l.audioNoteDuration || initMatch?.audioNoteDuration,
-              itemNotes: l.itemNotes || initMatch?.itemNotes,
-            };
-          })
-        : INITIAL_PROJECTS.find((ip) => ip.id === p.id)?.installLogs || [],
+        ? p.installLogs.map((l) => ({
+            ...l,
+            photos: l.photos && l.photos.length > 0 ? l.photos : [],
+            audioNoteUrl: l.audioNoteUrl,
+            audioNoteDuration: l.audioNoteDuration,
+            itemNotes: l.itemNotes,
+          }))
+        : [],
     useNfcWallet:
       p.useNfcWallet !== undefined
         ? p.useNfcWallet
@@ -2149,26 +1850,179 @@ export function addArchivedProjectId(id: string) {
   saveArchivedProjectIds(current);
 }
 
+export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v2';
+
+export function isFakeNote(note: { id?: string; author?: string; text?: string }): boolean {
+  if (!note) return true;
+  if (!isRealTeamMember(note.author)) return true;
+  const text = (note.text || '').toLowerCase();
+  const id = (note.id || '').toLowerCase();
+  if (
+    id.startsWith('note-sf_imp-') ||
+    id.startsWith('note-deal-') ||
+    id.startsWith('note-sample-') ||
+    id.startsWith('note-init-') ||
+    id.startsWith('note-legacy-')
+  ) {
+    return true;
+  }
+  if (
+    text.includes('synced from myquext.com') ||
+    text.includes('sales engineering take-off note') ||
+    text.includes('active deal won deployment synced') ||
+    text.includes('active project kickoff deployment synced') ||
+    text.includes('installation pacing on') ||
+    text.includes('trailing baseline schedule') ||
+    text.includes('critical path blocker on') ||
+    text.includes('deal won converted into active operations project') ||
+    text.includes('met with greystar regional property manager') ||
+    text.includes('maintenance crew granted master key badge') ||
+    text.includes('coordinating with greystar property manager') ||
+    text.includes('remaining batch of 120 deadbolts verified') ||
+    text.includes('conduit inspection scheduled') ||
+    text.includes('elevator technician signoff requires permit') ||
+    text.includes('escalated poe switch availability') ||
+    text.includes('on-site leasing staff trained on quext staff dashboard')
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function isFakeInstallLog(log: { id?: string; installerName?: string; notes?: string }): boolean {
+  if (!log) return true;
+  if (!isRealTeamMember(log.installerName)) return true;
+  const notes = (log.notes || '').toLowerCase();
+  const id = (log.id || '').toLowerCase();
+  const installer = (log.installerName || '').toLowerCase();
+  if (
+    id.startsWith('log-sf_imp-') ||
+    id.startsWith('log-deal-') ||
+    id.startsWith('log-sample-') ||
+    id.startsWith('log-init-') ||
+    id.startsWith('log-33-') ||
+    id.startsWith('log-kat-') ||
+    id.startsWith('log-prk-') ||
+    id.startsWith('log-dom-') ||
+    id.startsWith('log-apx-') ||
+    id.startsWith('log-sol-') ||
+    id.startsWith('log-sum-')
+  ) {
+    return true;
+  }
+  if (
+    notes.includes('synced from myquext.com') ||
+    notes.includes('calibrated door strike plates and provisioned apple wallet') ||
+    notes.includes('lorawan rssi verified') ||
+    notes.includes('all 4 property gateways are now fully synced') ||
+    notes.includes('moisture probe test triggered automatic led flash') ||
+    notes.includes('digital key guest passes verified with onsite') ||
+    notes.includes('door fitment verified and strike plates centered') ||
+    notes.includes('door prep completed. tested latch retraction') ||
+    notes.includes('mortise pockets needed minor router trimming') ||
+    notes.includes('final batch of leak detectors placed')
+  ) {
+    return true;
+  }
+  if (
+    installer.includes('field team (') ||
+    installer.includes('crew (') ||
+    installer.includes('partner crew') ||
+    installer.includes('deployment team')
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function sanitizeProjectRealTeamOnly(project: OperationProject): OperationProject {
+  const cleanNotes = (project.notes || []).filter((n) => !isFakeNote(n));
+  const cleanLogs = (project.installLogs || []).filter((l) => !isFakeInstallLog(l));
+
+  const cleanPending = (project.pendingInstallationChanges || []).filter((pc) => {
+    if (pc.associatedLog && isFakeInstallLog(pc.associatedLog)) return false;
+    if (pc.submittedBy && !isRealTeamMember(pc.submittedBy)) return false;
+    return true;
+  });
+
+  const cleanBom = (project.bomItems || []).map((item) => {
+    const realItemLogs = cleanLogs.filter((l) => l.itemId === item.id);
+    const realInstalledCount = realItemLogs.reduce(
+      (sum, l) => sum + (Number(l.quantityCompleted) || 0),
+      0
+    );
+    const cleanPostItLogs = (item.postItLogs || []).filter((l) => !isFakeInstallLog(l));
+    return {
+      ...item,
+      installedCount: realInstalledCount,
+      postItLogs: cleanPostItLogs,
+    };
+  });
+
+  let statusReason = project.statusReason || '';
+  if (
+    statusReason.toLowerCase().includes('synced from myquext.com') ||
+    statusReason.toLowerCase().includes('trailing baseline schedule') ||
+    statusReason.toLowerCase().includes('critical path blocker on') ||
+    statusReason.toLowerCase().includes('pacing 4 days ahead')
+  ) {
+    statusReason = 'Active deployment.';
+  }
+
+  const cleanActivityNotifs = (project.activityNotifications || []).filter((n) => {
+    const text = `${n.details || ''} ${n.title || ''}`.toLowerCase();
+    if (text.includes('synced from myquext.com')) return false;
+    if (text.includes('sales engineering take-off note')) return false;
+    if (n.actorName && !isRealTeamMember(n.actorName)) return false;
+    return true;
+  });
+
+  return {
+    ...project,
+    notes: cleanNotes,
+    installLogs: cleanLogs,
+    pendingInstallationChanges: cleanPending,
+    activityNotifications: cleanActivityNotifs,
+    bomItems: cleanBom,
+    statusReason,
+  };
+}
+
 export function loadStoredProjects(): OperationProject[] {
   try {
     const archivedIds = loadArchivedProjectIds();
     const raw = localStorage.getItem(STORAGE_KEY_PROJECTS);
     if (raw) {
       const parsed: OperationProject[] = JSON.parse(raw);
-      return parsed
+      const isAlreadyPurged = localStorage.getItem(REAL_TEAM_PURGE_VERSION_KEY) === 'true';
+
+      const sanitizedList = parsed
         .filter((p) => !archivedIds.has(p.id))
-        .map((p) => enrichProjectDefaults(p));
+        .map((p) => {
+          const enriched = enrichProjectDefaults(p);
+          return sanitizeProjectRealTeamOnly(enriched);
+        });
+
+      if (!isAlreadyPurged) {
+        localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitizedList));
+        localStorage.setItem(REAL_TEAM_PURGE_VERSION_KEY, 'true');
+      }
+
+      return sanitizedList;
     }
   } catch (e) {
     console.error('Failed to parse stored projects', e);
   }
-  return INITIAL_PROJECTS.map((p) => enrichProjectDefaults(p));
+  return INITIAL_PROJECTS.map((p) => {
+    const enriched = enrichProjectDefaults(p);
+    return sanitizeProjectRealTeamOnly(enriched);
+  });
 }
 
 export function saveStoredProjects(projects: OperationProject[]) {
   try {
-    const enriched = projects.map((p) => enrichProjectDefaults(p));
-    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(enriched));
+    const sanitized = projects.map((p) => sanitizeProjectRealTeamOnly(enrichProjectDefaults(p)));
+    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitized));
   } catch (e) {
     console.error('Failed to save projects', e);
   }
@@ -2205,50 +2059,11 @@ export function createProjectFromQuote(quote: Quote): OperationProject {
     lastUpdated: new Date().toISOString(),
     bomItems: quote.bomItems.map((item) => ({
       ...item,
-      installedCount: item.installedCount || 0,
+      installedCount: 0,
       postItLogs: [],
     })),
-    installLogs: [
-      {
-        id: `log-init-${Date.now()}`,
-        projectId: quote.id,
-        timestamp: new Date().toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        installerName: 'Quext Operations Staging',
-        itemId: quote.bomItems[0]?.id || 'init',
-        itemName: quote.bomItems[0]?.name || 'Initial BOM Staging',
-        quantityCompleted: 0,
-        locationCompleted: 'Central Staging Facility',
-        statusCheck: 'Verified & Online',
-        notes: `Project generated automatically upon quote #${quote.quoteNumber} reaching Deal Won status. Pre-packaged Partner Academy course bundle assembled for assigned integrator partner.`,
-        color: 'yellow',
-      },
-    ],
-    notes: [
-      {
-        id: `note-init-${Date.now()}`,
-        projectId: quote.id,
-        author: 'Raul Recalde',
-        timestamp: new Date().toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        category: 'General Context',
-        text: `Deal Won conversion verified. Quoted ${quote.unitsCount} units for ${quote.clientName}. Total hardware units on BOM: ${quote.bomItems.reduce(
-          (acc, item) => acc + item.quantity,
-          0
-        )}. Pre-packaged Quext Partner Academy courses & guides automatically assigned.`,
-        isPinned: true,
-      },
-    ],
+    installLogs: [],
+    notes: [],
     milestones: createDefaultMilestones(`m-${quote.id}`, startDate, targetDate),
     customerIntake: {
       pmsSoftware: 'None',

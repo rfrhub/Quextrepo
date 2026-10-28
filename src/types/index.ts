@@ -216,6 +216,26 @@ export const AVAILABLE_PMS: ProjectManagerInfo[] = [
   },
 ];
 
+export const REAL_TEAM_MEMBERS: readonly string[] = [
+  'raul recalde',
+  'ian robertson',
+  'megan rossman',
+  'megan rossnman',
+  'sean gates',
+  'hector lopez',
+  'bethany condon',
+];
+
+/**
+ * Checks whether an author, installer, or user matches one of the 6 authorized team members:
+ * Raul Recalde, Ian Robertson, Megan Rossman, Sean Gates, Hector Lopez, Bethany Condon.
+ */
+export function isRealTeamMember(nameOrEmail?: string | null): boolean {
+  if (!nameOrEmail) return false;
+  const lower = nameOrEmail.toLowerCase().trim();
+  return REAL_TEAM_MEMBERS.some((member) => lower.includes(member));
+}
+
 /**
  * Checks whether the current user holds a Project Manager or Director role.
  * Sean Gates and Hector Lopez are Field Operations / Technicians and not PMs.

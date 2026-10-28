@@ -292,17 +292,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
       isBomLocked: true, // Baseline lock
       bomItems: formattedBOM,
       installLogs: [],
-      notes: [
-        {
-          id: `note-${Date.now()}`,
-          projectId,
-          author: selectedPM.name,
-          timestamp: 'Just now',
-          category: 'General Context',
-          text: `Project created manually with ${formattedBOM.length} BOM line items. Total quoted hardware: $${totalHardwareAmount.toLocaleString()}. Projected software: $${totalMonthlyFee.toLocaleString()}/mo across ${selectedSoftwareIds.length} modules.`,
-          isPinned: true,
-        },
-      ],
+      notes: [],
       milestones: createDefaultMilestones(`m-${projectId}`, new Date().toISOString().split('T')[0], targetDate),
       customerIntake: {
         pmsSoftware: 'Yardi',

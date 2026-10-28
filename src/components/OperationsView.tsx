@@ -29,6 +29,7 @@ interface OperationsViewProps {
   quotesList: Quote[];
   onUpdateProject: (updated: OperationProject) => void;
   onCreateProject: (newProject: OperationProject) => void;
+  onDeleteProject?: (projectId: string) => void;
   onUpdateProjectStatusTag: (projectId: string, newTag: ProjectStatusTag) => void;
   onViewQuoteAnalysis: (quoteId: string) => void;
   activeSubTab: string; // 'dashboard' | 'all-projects' | projectId
@@ -46,6 +47,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
   quotesList,
   onUpdateProject,
   onCreateProject,
+  onDeleteProject,
   onUpdateProjectStatusTag,
   onViewQuoteAnalysis,
   activeSubTab,
@@ -456,6 +458,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
             project={selectedProject}
             quotesList={quotesList}
             onUpdateProject={onUpdateProject}
+            onDeleteProject={onDeleteProject}
             onBackToDashboard={() => onSelectSubTab('dashboard')}
             onViewQuoteAnalysis={onViewQuoteAnalysis}
             onOpenProjectInPartnerAcademy={onOpenProjectInPartnerAcademy}

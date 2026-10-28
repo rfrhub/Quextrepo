@@ -20,6 +20,7 @@ import {
   INITIAL_PROJECTS,
   INITIAL_QUOTES,
   enrichProjectDefaults,
+  sanitizeProjectRealTeamOnly,
   saveStoredProjects,
   saveStoredQuotes,
   loadArchivedProjectIds,
@@ -126,7 +127,7 @@ export function subscribeToLiveProjects(
             const hasInvalidLockTag = (data.bomItems || []).some(
               (b) => !isLockBOMItem(b) && Boolean(b.lockFinishConfig)
             );
-            const enriched = enrichProjectDefaults(data);
+            const enriched = sanitizeProjectRealTeamOnly(enrichProjectDefaults(data));
             if (hasInvalidLockTag) {
               hadNonLockTagsInCloud = true;
               projectsToCleanseInCloud.push(enriched);

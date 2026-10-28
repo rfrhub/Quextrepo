@@ -1074,6 +1074,17 @@ export default function App() {
     }
   };
 
+  // Delete project from Operations workspace
+  const handleDeleteProject = (projectId: string) => {
+    addArchivedProjectId(projectId);
+    const updated = projects.filter((p) => p.id !== projectId);
+    setProjects(updated);
+    saveStoredProjects(updated);
+    deleteLiveProject(projectId).catch(() => {});
+    setOperationsSubTab('all_projects');
+    window.location.hash = '/operations/all_projects';
+  };
+
   // View quote analysis
   const handleViewQuoteAnalysis = (quoteId: string) => {
     setSelectedAnalysisQuoteId(quoteId);
@@ -1772,6 +1783,7 @@ export default function App() {
           quotesList={quotes}
           onUpdateProject={handleUpdateProject}
           onCreateProject={handleCreateManualProject}
+          onDeleteProject={handleDeleteProject}
           onUpdateProjectStatusTag={handleUpdateProjectStatusTag}
           onViewQuoteAnalysis={handleViewQuoteAnalysis}
           activeSubTab={operationsSubTab}
