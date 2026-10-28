@@ -188,7 +188,11 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
 
     const relevantProjects =
       mode === 'field-tech' && fieldTech
-        ? projects.filter((p) => normalizeFieldTech(p.assignedFieldTech) === fieldTech)
+        ? projects.filter(
+            (p) =>
+              normalizeFieldTech(p.assignedFieldTech) === fieldTech ||
+              p.assignedPM?.name?.toLowerCase() === fieldTech.toLowerCase()
+          )
         : projects;
 
     relevantProjects.forEach((p) => {

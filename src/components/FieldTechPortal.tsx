@@ -65,7 +65,39 @@ export interface FieldTechAccountProfile {
   initials: string;
 }
 
-export const FIELD_TECH_PROFILES: Record<FieldTechName, FieldTechAccountProfile> = {
+export const FIELD_TECH_PROFILES: Record<string, FieldTechAccountProfile> = {
+  'Raul Recalde': {
+    name: 'Raul Recalde',
+    email: 'raul.recalde@onequext.com',
+    role: 'Director of Implementation',
+    badgeCode: 'QXT-DIR-001',
+    region: 'All Operations Territories',
+    initials: 'RR',
+  },
+  'Bethany Condon': {
+    name: 'Bethany Condon',
+    email: 'bethany.condon@onequext.com',
+    role: 'Project Manager',
+    badgeCode: 'QXT-PM-102',
+    region: 'Eastern & Midwest Region',
+    initials: 'BC',
+  },
+  'Megan Rossman': {
+    name: 'Megan Rossman',
+    email: 'megan.rossman@onequext.com',
+    role: 'Director of Operations',
+    badgeCode: 'QXT-DIR-002',
+    region: 'All Operations Territories',
+    initials: 'MR',
+  },
+  'Ian Robertson': {
+    name: 'Ian Robertson',
+    email: 'ian.robertson@onequext.com',
+    role: 'Project Coordinator',
+    badgeCode: 'QXT-PC-105',
+    region: 'Central & Texas Region',
+    initials: 'IR',
+  },
   'Sean Gates': {
     name: 'Sean Gates',
     email: 'sean.gates@onequext.com',
@@ -83,6 +115,32 @@ export const FIELD_TECH_PROFILES: Record<FieldTechName, FieldTechAccountProfile>
     initials: 'HL',
   },
 };
+
+export function getFieldTechProfile(nameOrEmail?: string | null): FieldTechAccountProfile {
+  if (!nameOrEmail) return FIELD_TECH_PROFILES['Raul Recalde'];
+  if (FIELD_TECH_PROFILES[nameOrEmail]) return FIELD_TECH_PROFILES[nameOrEmail];
+
+  const lower = nameOrEmail.toLowerCase().trim();
+  for (const [key, profile] of Object.entries(FIELD_TECH_PROFILES)) {
+    if (lower === key.toLowerCase() || lower.includes(key.toLowerCase()) || lower.includes(profile.email.toLowerCase())) {
+      return profile;
+    }
+  }
+
+  const parts = nameOrEmail.trim().split(/\s+/);
+  const initials = parts.length > 1
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : nameOrEmail.slice(0, 2).toUpperCase();
+
+  return {
+    name: nameOrEmail,
+    email: lower.includes('@') ? lower : `${parts.join('.').toLowerCase()}@onequext.com`,
+    role: 'Field Operations Specialist',
+    badgeCode: `QXT-OPS-${Math.abs(nameOrEmail.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)) % 900 + 100}`,
+    region: 'All Operations Territories',
+    initials,
+  };
+}
 
 interface FieldTechLoginModalProps {
   isOpen: boolean;
@@ -458,13 +516,29 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
   onLogoutToMainSite,
   onOpenLoginModal,
 }) => {
-  const techProfile = FIELD_TECH_PROFILES[fieldTech];
+  const techProfile = getFieldTechProfile(fieldTech);
 
-  // Filter projects strictly to those assigned to the logged-in Field Tech
-  const assignedProjects = useMemo(
-    () => projects.filter((p) => normalizeFieldTech(p.assignedFieldTech) === fieldTech),
-    [projects, fieldTech]
-  );
+  // Filter projects strictly to those assigned to the logged-in Field Tech / PM
+  const assignedProjects = useMemo(() => {
+    // 1. If Sean Gates or Hector Lopez, filter by assignedFieldTech
+    if (fieldTech === 'Sean Gates' || fieldTech === 'Hector Lopez') {
+      return projects.filter((p) => normalizeFieldTech(p.assignedFieldTech) === fieldTech);
+    }
+    // 2. If matching assignedPM
+    const byPM = projects.filter(
+      (p) => p.assignedPM?.name?.toLowerCase() === fieldTech.toLowerCase()
+    );
+    if (byPM.length > 0) return byPM;
+
+    // 3. If field tech specifically assigned matches
+    const byFieldTech = projects.filter(
+      (p) => p.assignedFieldTech?.toLowerCase() === fieldTech.toLowerCase()
+    );
+    if (byFieldTech.length > 0) return byFieldTech;
+
+    // 4. Default for Director or PM with no direct projects: return all projects
+    return projects;
+  }, [projects, fieldTech]);
 
   // 'hub' = Field Tech's Live Activity Hub, or a specific project ID
   const [activeTab, setActiveTab] = useState<string>('hub');

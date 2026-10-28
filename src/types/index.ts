@@ -300,7 +300,7 @@ export function getCSMCalendarBookingProfile(csmName?: string | null): CSMCalend
   return found || CSM_CALENDAR_BOOKING_DIRECTORY[0];
 }
 
-export type FieldTechName = 'Hector Lopez' | 'Sean Gates';
+export type FieldTechName = string;
 
 export const AVAILABLE_FIELD_TECHS: FieldTechName[] = [
   'Hector Lopez',

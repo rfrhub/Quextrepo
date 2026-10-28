@@ -458,22 +458,18 @@ export default function App() {
       // Check if Field Tech direct login hash is accessed
       if (hash.includes('/field-tech')) {
         const lower = hash.toLowerCase();
-        if (lower.includes('hector')) {
-          setLoggedInPartnerAcademy(null);
-          setLoggedInFieldTech('Hector Lopez');
-          return;
-        } else if (lower.includes('sean')) {
-          setLoggedInPartnerAcademy(null);
-          setLoggedInFieldTech('Sean Gates');
-          return;
-        } else {
-          const fallbackTech: FieldTechName =
-            signedInUserRef.current?.fieldTechDefault ||
-            (signedInUserRef.current?.name.toLowerCase().includes('hector') ? 'Hector Lopez' : 'Sean Gates');
-          setLoggedInPartnerAcademy(null);
-          setLoggedInFieldTech(fallbackTech);
-          return;
-        }
+        let matchedUser = AVAILABLE_PMS.find((pm) =>
+          lower.includes(pm.name.toLowerCase().replace(/\s+/g, '-')) ||
+          lower.includes(pm.name.toLowerCase().split(' ')[0])
+        );
+
+        const techName = matchedUser
+          ? matchedUser.name
+          : (signedInUserRef.current?.name || 'Raul Recalde');
+
+        setLoggedInPartnerAcademy(null);
+        setLoggedInFieldTech(techName);
+        return;
       }
 
       // Check if standalone customer kickoff link is accessed
@@ -1898,11 +1894,9 @@ export default function App() {
             window.location.hash = '#/login';
           }}
           onOpenFieldTechPortal={() => {
-            const targetTech: FieldTechName =
-              signedInUser.fieldTechDefault ||
-              (signedInUser.name.toLowerCase().includes('hector') ? 'Hector Lopez' : 'Sean Gates');
+            const targetTech = signedInUser?.name || 'Raul Recalde';
             setLoggedInFieldTech(targetTech);
-            window.location.hash = `#/field-tech/${targetTech.toLowerCase().replace(' ', '-')}`;
+            window.location.hash = `#/field-tech/${targetTech.toLowerCase().replace(/\s+/g, '-')}`;
           }}
           onOpenLoginModal={() => {
             setLoggedInFieldTech(null);
