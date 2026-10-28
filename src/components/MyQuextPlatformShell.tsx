@@ -48,11 +48,13 @@ import {
   GitMerge,
   KeyRound,
   ChevronDown,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
 import { SearchablePropertyPicker } from './SearchablePropertyPicker';
 import { CreateManualProjectModal } from './CreateManualProjectModal';
+import { ImportProjectsModal } from './ImportProjectsModal';
 
 export type MyQuextTopTab =
   | 'salesHub'
@@ -120,6 +122,7 @@ interface MyQuextPlatformShellProps {
   onOpenPMTutorial?: () => void;
   onOpenCloneWars?: () => void;
   onCreateProject?: (newProject: OperationProject) => void;
+  onImportProjects?: (newProjects: OperationProject[]) => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
   children: React.ReactNode;
@@ -168,12 +171,14 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onOpenPMTutorial,
   onOpenCloneWars,
   onCreateProject,
+  onImportProjects,
   onResetData,
   onToggleStandaloneMode,
   children,
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [isImportProjectsModalOpen, setIsImportProjectsModalOpen] = useState(false);
   const [salesSubTab, setSalesSubTab] = useState<SalesHubSidebarTab>('dashboard');
   const [whatsHappeningFilter, setWhatsHappeningFilter] = useState<'all' | 'mentions' | 'Leading' | 'Contributing'>('all');
   const [globalSearch, setGlobalSearch] = useState('');
@@ -751,6 +756,26 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       </div>
                       <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-amber-200 text-amber-900 rounded-md">
                         Merge
+                      </span>
+                    </button>
+
+                    {/* Import Projects from Spreadsheet (CSV / Excel) */}
+                    <button
+                      type="button"
+                      data-tutorial-id="profile-dropdown-import-projects-btn"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        setIsImportProjectsModalOpen(true);
+                      }}
+                      className="w-full px-4 py-2 text-sm font-semibold text-emerald-950 bg-emerald-50/80 hover:bg-emerald-100 flex items-center justify-between cursor-pointer transition-colors border-b border-emerald-200/70"
+                      title="Import projects from CSV or Excel (.xlsx / .xls) spreadsheet with downloadable templates"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="font-bold text-emerald-950">Import Projects</span>
+                      </div>
+                      <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-emerald-200 text-emerald-900 rounded-md">
+                        CSV / Excel
                       </span>
                     </button>
 
@@ -1927,6 +1952,17 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 />
               </div>
 
+              <button
+                type="button"
+                onClick={() => setIsImportProjectsModalOpen(true)}
+                className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-850 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs transition-colors cursor-pointer shrink-0"
+                title="Import projects from CSV or Excel (.xlsx / .xls) spreadsheet"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">Import CSV / Excel</span>
+                <span className="sm:hidden">Import</span>
+              </button>
+
               {onCreateProject && (
                 <button
                   type="button"
@@ -2057,6 +2093,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             isOpen={isCreateProjectModalOpen}
             onClose={() => setIsCreateProjectModalOpen(false)}
             onCreateProject={handleCreatedManualProject}
+            onOpenImportModal={() => setIsImportProjectsModalOpen(true)}
           />
         </div>
       )}
@@ -2338,6 +2375,23 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
           </div>
         </div>
       )}
+
+      {/* Global Modal: Import Projects from Spreadsheet (CSV / Excel) */}
+      <ImportProjectsModal
+        isOpen={isImportProjectsModalOpen}
+        onClose={() => setIsImportProjectsModalOpen(false)}
+        onImportProjects={(imported) => {
+          if (onImportProjects) {
+            onImportProjects(imported);
+          } else if (onCreateProject) {
+            imported.forEach((p) => onCreateProject(p));
+          }
+        }}
+        onGoToDashboard={() => {
+          onSelectTopTab('operations');
+          onGoToOperationsDashboard();
+        }}
+      />
     </div>
   );
 };

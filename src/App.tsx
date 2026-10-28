@@ -956,6 +956,39 @@ export default function App() {
     );
   };
 
+  // Batch import projects from CSV or Excel spreadsheet
+  const handleImportProjects = (newProjects: OperationProject[]) => {
+    const enrichedList: OperationProject[] = newProjects.map((p) => ({
+      ...p,
+      partnerCourseBundle: p.partnerCourseBundle || buildProjectPrePackagedBundle(p, 'Spreadsheet Import'),
+    }));
+    const updatedProjects = [...enrichedList, ...projects];
+    setProjects(updatedProjects);
+    saveStoredProjects(updatedProjects);
+    enrichedList.forEach((p) => {
+      saveLiveProject(p).catch((e) =>
+        console.warn('[Cloud Sync] Background imported project save failed:', e)
+      );
+    });
+
+    const propNames = enrichedList.map((p) => p.propertyName);
+    const summaryText =
+      propNames.length <= 2
+        ? propNames.join(' and ')
+        : `${propNames.slice(0, 2).join(', ')}, and ${propNames.length - 2} more`;
+
+    const importNotif: ProjectActivityNotification = {
+      id: `import_notif_${Date.now()}`,
+      timestamp: 'Just now',
+      title: `${enrichedList.length} Project${enrichedList.length === 1 ? '' : 's'} Imported`,
+      details: `Successfully imported ${enrichedList.length} project${enrichedList.length === 1 ? '' : 's'} (${summaryText}) via spreadsheet upload. Baseline BOM, milestones, and partner course bundles initialized.`,
+      actorName: signedInUserRef.current?.name || 'Quext Project Manager',
+      badgeLabel: 'Spreadsheet Import',
+    };
+    setLatestNotification(importNotif);
+    setAutoPopTriggerKey((k) => k + 1);
+  };
+
   // Merge duplicate projects into a single consolidated project ("The Clone Wars")
   const handleMergeProjects = (survivorProject: OperationProject, obsoleteProjectId: string) => {
     setProjects((prev) => {
@@ -1767,6 +1800,7 @@ export default function App() {
           quotes={quotes as any}
           projects={projects}
           onCreateProject={handleCreateManualProject}
+          onImportProjects={handleImportProjects}
           onUpdateQuoteStage={handleUpdateQuoteStage}
           onCreateNewOpportunity={handleCreateNewOpportunity}
           onSyncLiveMyQuext={handleSyncLiveMyQuext}
