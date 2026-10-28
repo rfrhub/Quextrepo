@@ -104,7 +104,6 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [activeRoadblockCategory, setActiveRoadblockCategory] = useState<'all' | 'municipal' | 'supply_chain' | 'internal_assist'>('all');
   const [financialSortBy, setFinancialSortBy] = useState<'profit' | 'revenue' | 'margin' | 'collection'>('profit');
   const [isFinancialProjectsMinimized, setIsFinancialProjectsMinimized] = useState<boolean>(true);
-  const [isActiveProjectsTableMinimized, setIsActiveProjectsTableMinimized] = useState<boolean>(true);
 
   // Pop-up modal state for "Assistance Provided"
   const [assistModalProject, setAssistModalProject] = useState<OperationProject | null>(null);
@@ -1003,10 +1002,406 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Small Overview Card: Toggleable between Upcoming Go Lives (CSM Handoff) & Upcoming Installs (Implementation) + Executive Timeline vs Project Cards */}
-        <div className="mt-4 pt-4 border-t border-slate-200/80">
-          <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-4">
+      {/* Main Table: Active Projects Installation Status with PM Filter */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+        <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900">Active Implementation Projects</h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                {filteredProjects.length} Projects
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Each quote automatically populates a dedicated project workspace with fillable BOM tracking and customer comms.
+            </p>
+          </div>
+        </div>
+
+        {/* Table Filters: Search, PM Filter, and Kickoff Filter */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 w-36 sm:w-48 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            {/* Platform Filter */}
+            <div className="flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-purple-600 shrink-0" />
+              <select
+                value={platformFilter}
+                onChange={(e) => setPlatformFilter(e.target.value)}
+                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-purple-500"
+              >
+                <option value="all">All Platforms</option>
+                {AVAILABLE_PLATFORMS.map((plat) => (
+                  <option key={plat} value={plat}>
+                    Platform: {plat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Requirement: "On the installation Overview Dashboard page and the all Won Projects directory page lets add a filter by Project Manager." */}
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-slate-400 shrink-0" />
+              <select
+                value={pmFilter}
+                onChange={(e) => setPmFilter(e.target.value)}
+                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
+              >
+                <option value="all">All Project Managers</option>
+                {AVAILABLE_PMS.map((pm) => (
+                  <option key={pm.name} value={pm.name}>
+                    {pm.name} ({pm.role.split(' ')[0]})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Field Tech Filter */}
+            <div className="flex items-center gap-1.5">
+              <Wrench className="w-4 h-4 text-amber-500 shrink-0" />
+              <select
+                value={fieldTechFilter}
+                onChange={(e) => setFieldTechFilter(e.target.value)}
+                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
+              >
+                <option value="all">All Field Techs</option>
+                {AVAILABLE_FIELD_TECHS.map((tech) => (
+                  <option key={tech} value={tech}>
+                    Tech: {tech}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Integrator Partner Filter */}
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-indigo-500 shrink-0" />
+              <select
+                value={integratorFilter}
+                onChange={(e) => setIntegratorFilter(e.target.value)}
+                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-indigo-500"
+              >
+                <option value="all">All Integrators / Installers</option>
+                {allAvailableIntegrators.map((partner) => (
+                  <option key={partner} value={partner}>
+                    Installer: {partner}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Kickoff Filter */}
+            <select
+              value={kickoffFilter}
+              onChange={(e) => setKickoffFilter(e.target.value as any)}
+              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
+            >
+              <option value="all">All Kickoff Statuses</option>
+              <option value="needs_attention">⚠ Kickoff Needs Follow-Up ({projectsNeedingKickoffAttention.length})</option>
+              <option value="completed">✓ Kickoff Submitted</option>
+            </select>
+
+            {/* Lifecycle Stage Filter */}
+            <select
+              value={lifecycleFilter}
+              onChange={(e) => setLifecycleFilter(e.target.value as any)}
+              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
+            >
+              <option value="all">All Lifecycle Stages ({projects.length})</option>
+              <option value="active">Active In-Flight ({activeImplementationProjects.length})</option>
+              <option value="completed">Completed Projects ({completedProjects.length})</option>
+              <option value="not_started">New (Not Started) ({unstartedProjects.length})</option>
+            </select>
+
+            {lifecycleFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setLifecycleFilter('all')}
+                className="px-2 py-1 text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                title="Clear lifecycle stage filter"
+              >
+                <span>Reset Stage</span>
+                <X className="w-3 h-3 text-sky-600" />
+              </button>
+            )}
+          </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="py-3 px-4">Project & Property</th>
+                <th className="py-3 px-3">Client / Owner</th>
+                <th className="py-3 px-3">Quote #</th>
+                <th className="py-3 px-3">Platform</th>
+                <th className="py-3 px-3">Assigned PM &amp; Tech</th>
+                <th className="py-3 px-3">Integrators / Installers</th>
+                <th className="py-3 px-4 min-w-[170px]">PM Status Tag</th>
+                <th className="py-3 px-3">Kickoff Intake</th>
+                <th className="py-3 px-4 min-w-[150px]">BOM Progress</th>
+                <th className="py-3 px-3">Target Handover</th>
+                <th className="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {filteredProjects.map((project) => {
+                const health = calculateProjectScheduleHealth(
+                  project.targetCompletionDate,
+                  project.statusTag,
+                  project.notes,
+                  project.milestones
+                );
+                const quotedBOM = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
+                const installedBOM = project.bomItems.reduce((acc, i) => acc + i.installedCount, 0);
+                const pct = quotedBOM > 0 ? Math.min(100, Math.round((installedBOM / quotedBOM) * 100)) : 0;
+                const isKickoffDone = project.customerIntake?.walkthroughCompleted;
+
+                return (
+                  <tr key={project.id} className="hover:bg-slate-50/80 transition-colors">
+                    {/* Project & Property */}
+                    <td className="py-3.5 px-4">
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => onSelectProjectTab(project.id)}
+                          className="font-bold text-slate-900 hover:text-sky-700 text-sm text-left transition-colors cursor-pointer"
+                        >
+                          {project.propertyName}
+                        </button>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                          <MapPin className="w-3 h-3 text-slate-400" />
+                          <span>{project.city}, {project.state}</span>
+                          <span>·</span>
+                          <span className="font-mono">{project.unitsCount} units</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Client */}
+                    <td className="py-3.5 px-3 text-slate-800 font-semibold">
+                      {project.clientName}
+                    </td>
+
+                    {/* Quote Ref */}
+                    <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
+                      #{project.quoteNumber}
+                    </td>
+
+                    {/* Platform Tag */}
+                    <td className="py-3.5 px-3">
+                      <select
+                        value={getProjectPlatform(project)}
+                        onChange={(e) => {
+                          const newPlat = e.target.value as ProjectPlatform;
+                          onUpdateProject({
+                            ...project,
+                            platform: newPlat,
+                            lastUpdated: new Date().toISOString(),
+                          });
+                        }}
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-md border focus:outline-none cursor-pointer ${
+                          getPlatformBadgeStyle(getProjectPlatform(project)).badgeClass
+                        }`}
+                        title="Change Project Platform (Quext, Geokey, or Homebase)"
+                      >
+                        {AVAILABLE_PLATFORMS.map((plat) => (
+                          <option key={plat} value={plat}>
+                            {plat}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    {/* Assigned PM & Tech */}
+                    <td className="py-3.5 px-3">
+                      <div className="text-slate-900 font-medium">{project.assignedPM.name}</div>
+                      <div className="flex items-center gap-1 text-[11px] text-amber-800 font-semibold mt-0.5">
+                        <span className="text-[10px] text-slate-400 font-normal">Tech:</span>
+                        <span className="bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                          {normalizeFieldTech(project.assignedFieldTech)}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Integrators / Installers */}
+                    <td className="py-3.5 px-3">
+                      <div className="flex flex-wrap items-center gap-1 max-w-[160px]">
+                        {getProjectIntegratorPartners(project).map((partner) => (
+                          <span
+                            key={partner}
+                            className="px-1.5 py-0.5 rounded font-bold text-[10px] bg-indigo-50 text-indigo-800 border border-indigo-200"
+                          >
+                            {partner}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+
+                    {/* Requirement: PM Status Tag dynamically reflects date calculation! */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={health.effectiveTag}
+                            onChange={(e) =>
+                              onUpdateProjectStatusTag(project.id, e.target.value as ProjectStatusTag)
+                            }
+                            className={`text-xs font-bold px-2 py-0.5 rounded-lg border focus:outline-none transition-colors cursor-pointer ${getStatusBadgeStyle(
+                              health.effectiveTag
+                            )}`}
+                          >
+                            <option value="On Track">✓ On Track</option>
+                            <option value="Behind Schedule">⏳ Behind Schedule</option>
+                            <option value="High Risk">⚠ High Risk</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`text-[10px] font-mono px-1.5 py-0.2 rounded border font-semibold ${
+                              health.isOverdue
+                                ? health.weeksBehind > 2
+                                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}
+                          >
+                            {health.weeksBehindLabel}
+                          </span>
+                        </div>
+                        {health.effectiveTag === 'High Risk' ? (
+                          <div className="p-1.5 bg-rose-50/90 border border-rose-300 rounded text-[10px] text-rose-950 mt-1 max-w-[220px]">
+                            <div className="font-bold flex items-center gap-1 text-rose-800">
+                              <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                              <span>High Risk Factor:</span>
+                            </div>
+                            <div className="text-[10px] text-rose-900 font-semibold mt-0.5">
+                              Egregiously behind schedule ({health.weeksBehindLabel})
+                            </div>
+                            {project.statusReason && (
+                              <div className="text-[10px] text-slate-600 italic truncate mt-0.5" title={project.statusReason}>
+                                Blocker: {project.statusReason}
+                              </div>
+                            )}
+                          </div>
+                        ) : project.statusReason ? (
+                          <div className="text-[10px] text-slate-500 truncate max-w-[180px]" title={project.statusReason}>
+                            {project.statusReason}
+                          </div>
+                        ) : null}
+
+                        {(health.effectiveTag === 'Behind Schedule' ||
+                          health.effectiveTag === 'High Risk') && (
+                          <button
+                            type="button"
+                            onClick={() => setPmpModalProjectId(project.id)}
+                            className={`mt-1 px-2 py-1 rounded-lg text-[10px] font-bold border inline-flex items-center gap-1 transition-all cursor-pointer w-fit ${
+                              health.effectiveTag === 'High Risk'
+                                ? 'bg-rose-100 hover:bg-rose-200 text-rose-900 border-rose-300'
+                                : 'bg-amber-100 hover:bg-amber-200 text-amber-950 border-amber-300'
+                            }`}
+                          >
+                            <ShieldAlert className="w-3 h-3 shrink-0" />
+                            <span>View / Edit Mitigation Plan</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Kickoff Intake Status Column */}
+                    <td className="py-3.5 px-3">
+                      {isKickoffDone ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Complete</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200" title="Missing kickoff intake responses">
+                          <AlertTriangle className="w-3 h-3 text-amber-600" />
+                          <span>Follow-Up</span>
+                        </span>
+                      )}
+                    </td>
+
+                    {/* BOM Units Progress */}
+                    <td className="py-3.5 px-4">
+                      <div className="w-full">
+                        <div className="flex items-center justify-between text-[11px] mb-1 font-mono">
+                          <span className="text-slate-600 tabular-nums">
+                            {installedBOM.toLocaleString()} / {quotedBOM.toLocaleString()}
+                          </span>
+                          <span
+                            className={`font-bold tabular-nums ${
+                              pct === 100
+                                ? 'text-emerald-700'
+                                : pct > 50
+                                ? 'text-sky-700'
+                                : 'text-amber-700'
+                            }`}
+                          >
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              pct === 100
+                                ? 'bg-emerald-500'
+                                : pct > 50
+                                ? 'bg-gradient-to-r from-sky-500 to-blue-600'
+                                : 'bg-gradient-to-r from-amber-400 to-orange-500'
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Target Date */}
+                    <td className="py-3.5 px-3 font-mono text-[11px] text-slate-700 whitespace-nowrap font-medium">
+                      {project.targetCompletionDate}
+                    </td>
+
+                    {/* Action */}
+                    <td className="py-3.5 px-4 text-center">
+                      <button
+                        type="button"
+                        onClick={() => onSelectProjectTab(project.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-sky-600 hover:text-white border border-slate-300 hover:border-sky-600 rounded-lg transition-all shadow-xs cursor-pointer"
+                        title="Open individual project focus tab under Operations"
+                      >
+                        <span>Focus Project</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Minimize Footer */}
+        <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+          <span className="font-mono text-[11px]">
+            Showing all {filteredProjects.length} active implementation projects
+          </span>
+        </div>
+      </div>
+
+      {/* Upcoming Go Lives & Installs Section */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-xs">
+        <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-sky-100 text-sky-700 rounded-lg border border-sky-200">
@@ -2219,7 +2614,6 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             })()}
           </div>
         </div>
-      </div>
 
       {/* Mitigation Plans Summary Node (Toggled by 'Mitigation Plans' button on Projects Health Status tile) */}
       {atRiskAndBehindProjects.length > 0 && showMitigationPlans && (() => {
@@ -2868,478 +3262,6 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
         </div>
       )}
 
-      {/* Main Table: Active Projects Installation Status with PM Filter */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-        <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-1">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900">Active Implementation Projects</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-100 text-sky-800 border border-sky-200">
-                  {filteredProjects.length} Projects
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Each quote automatically populates a dedicated project workspace with fillable BOM tracking and customer comms.
-              </p>
-            </div>
-
-            {/* Minimize / Expand Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsActiveProjectsTableMinimized((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 transition-colors cursor-pointer border border-slate-300 shadow-2xs shrink-0 self-start sm:self-auto"
-              title={isActiveProjectsTableMinimized ? 'Expand active projects table' : 'Minimize active projects table'}
-            >
-              {isActiveProjectsTableMinimized ? (
-                <>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Expand Projects ({filteredProjects.length})</span>
-                </>
-              ) : (
-                <>
-                  <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Minimize Table</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {!isActiveProjectsTableMinimized ? (
-          <>
-            {/* Table Filters: Search, PM Filter, and Kickoff Filter */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={tableSearch}
-                onChange={(e) => setTableSearch(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 w-36 sm:w-48 focus:outline-none focus:border-sky-500"
-              />
-            </div>
-
-            {/* Platform Filter */}
-            <div className="flex items-center gap-1.5">
-              <Tag className="w-4 h-4 text-purple-600 shrink-0" />
-              <select
-                value={platformFilter}
-                onChange={(e) => setPlatformFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-purple-500"
-              >
-                <option value="all">All Platforms</option>
-                {AVAILABLE_PLATFORMS.map((plat) => (
-                  <option key={plat} value={plat}>
-                    Platform: {plat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Requirement: "On the installation Overview Dashboard page and the all Won Projects directory page lets add a filter by Project Manager." */}
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-slate-400 shrink-0" />
-              <select
-                value={pmFilter}
-                onChange={(e) => setPmFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
-              >
-                <option value="all">All Project Managers</option>
-                {AVAILABLE_PMS.map((pm) => (
-                  <option key={pm.name} value={pm.name}>
-                    {pm.name} ({pm.role.split(' ')[0]})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Field Tech Filter */}
-            <div className="flex items-center gap-1.5">
-              <Wrench className="w-4 h-4 text-amber-500 shrink-0" />
-              <select
-                value={fieldTechFilter}
-                onChange={(e) => setFieldTechFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
-              >
-                <option value="all">All Field Techs</option>
-                {AVAILABLE_FIELD_TECHS.map((tech) => (
-                  <option key={tech} value={tech}>
-                    Tech: {tech}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Integrator Partner Filter */}
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-indigo-500 shrink-0" />
-              <select
-                value={integratorFilter}
-                onChange={(e) => setIntegratorFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-indigo-500"
-              >
-                <option value="all">All Integrators / Installers</option>
-                {allAvailableIntegrators.map((partner) => (
-                  <option key={partner} value={partner}>
-                    Installer: {partner}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Kickoff Filter */}
-            <select
-              value={kickoffFilter}
-              onChange={(e) => setKickoffFilter(e.target.value as any)}
-              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
-            >
-              <option value="all">All Kickoff Statuses</option>
-              <option value="needs_attention">⚠ Kickoff Needs Follow-Up ({projectsNeedingKickoffAttention.length})</option>
-              <option value="completed">✓ Kickoff Submitted</option>
-            </select>
-
-            {/* Lifecycle Stage Filter */}
-            <select
-              value={lifecycleFilter}
-              onChange={(e) => setLifecycleFilter(e.target.value as any)}
-              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-sky-500"
-            >
-              <option value="all">All Lifecycle Stages ({projects.length})</option>
-              <option value="active">Active In-Flight ({activeImplementationProjects.length})</option>
-              <option value="completed">Completed Projects ({completedProjects.length})</option>
-              <option value="not_started">New (Not Started) ({unstartedProjects.length})</option>
-            </select>
-
-            {lifecycleFilter !== 'all' && (
-              <button
-                type="button"
-                onClick={() => setLifecycleFilter('all')}
-                className="px-2 py-1 text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                title="Clear lifecycle stage filter"
-              >
-                <span>Reset Stage</span>
-                <X className="w-3 h-3 text-sky-600" />
-              </button>
-            )}
-          </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                <th className="py-3 px-4">Project & Property</th>
-                <th className="py-3 px-3">Client / Owner</th>
-                <th className="py-3 px-3">Quote #</th>
-                <th className="py-3 px-3">Platform</th>
-                <th className="py-3 px-3">Assigned PM &amp; Tech</th>
-                <th className="py-3 px-3">Integrators / Installers</th>
-                <th className="py-3 px-4 min-w-[170px]">PM Status Tag</th>
-                <th className="py-3 px-3">Kickoff Intake</th>
-                <th className="py-3 px-4 min-w-[150px]">BOM Progress</th>
-                <th className="py-3 px-3">Target Handover</th>
-                <th className="py-3 px-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {filteredProjects.map((project) => {
-                const health = calculateProjectScheduleHealth(
-                  project.targetCompletionDate,
-                  project.statusTag,
-                  project.notes,
-                  project.milestones
-                );
-                const quotedBOM = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
-                const installedBOM = project.bomItems.reduce((acc, i) => acc + i.installedCount, 0);
-                const pct = quotedBOM > 0 ? Math.min(100, Math.round((installedBOM / quotedBOM) * 100)) : 0;
-                const isKickoffDone = project.customerIntake?.walkthroughCompleted;
-
-                return (
-                  <tr key={project.id} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Project & Property */}
-                    <td className="py-3.5 px-4">
-                      <div>
-                        <button
-                          type="button"
-                          onClick={() => onSelectProjectTab(project.id)}
-                          className="font-bold text-slate-900 hover:text-sky-700 text-sm text-left transition-colors cursor-pointer"
-                        >
-                          {project.propertyName}
-                        </button>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
-                          <MapPin className="w-3 h-3 text-slate-400" />
-                          <span>{project.city}, {project.state}</span>
-                          <span>·</span>
-                          <span className="font-mono">{project.unitsCount} units</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Client */}
-                    <td className="py-3.5 px-3 text-slate-800 font-semibold">
-                      {project.clientName}
-                    </td>
-
-                    {/* Quote Ref */}
-                    <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
-                      #{project.quoteNumber}
-                    </td>
-
-                    {/* Platform Tag */}
-                    <td className="py-3.5 px-3">
-                      <select
-                        value={getProjectPlatform(project)}
-                        onChange={(e) => {
-                          const newPlat = e.target.value as ProjectPlatform;
-                          onUpdateProject({
-                            ...project,
-                            platform: newPlat,
-                            lastUpdated: new Date().toISOString(),
-                          });
-                        }}
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded-md border focus:outline-none cursor-pointer ${
-                          getPlatformBadgeStyle(getProjectPlatform(project)).badgeClass
-                        }`}
-                        title="Change Project Platform (Quext, Geokey, or Homebase)"
-                      >
-                        {AVAILABLE_PLATFORMS.map((plat) => (
-                          <option key={plat} value={plat}>
-                            {plat}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-
-                    {/* Assigned PM & Tech */}
-                    <td className="py-3.5 px-3">
-                      <div className="text-slate-900 font-medium">{project.assignedPM.name}</div>
-                      <div className="flex items-center gap-1 text-[11px] text-amber-800 font-semibold mt-0.5">
-                        <span className="text-[10px] text-slate-400 font-normal">Tech:</span>
-                        <span className="bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-                          {normalizeFieldTech(project.assignedFieldTech)}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Integrators / Installers */}
-                    <td className="py-3.5 px-3">
-                      <div className="flex flex-wrap items-center gap-1 max-w-[160px]">
-                        {getProjectIntegratorPartners(project).map((partner) => (
-                          <span
-                            key={partner}
-                            className="px-1.5 py-0.5 rounded font-bold text-[10px] bg-indigo-50 text-indigo-800 border border-indigo-200"
-                          >
-                            {partner}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-
-                    {/* Requirement: PM Status Tag dynamically reflects date calculation! */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5">
-                          <select
-                            value={health.effectiveTag}
-                            onChange={(e) =>
-                              onUpdateProjectStatusTag(project.id, e.target.value as ProjectStatusTag)
-                            }
-                            className={`text-xs font-bold px-2 py-0.5 rounded-lg border focus:outline-none transition-colors cursor-pointer ${getStatusBadgeStyle(
-                              health.effectiveTag
-                            )}`}
-                          >
-                            <option value="On Track">✓ On Track</option>
-                            <option value="Behind Schedule">⏳ Behind Schedule</option>
-                            <option value="High Risk">⚠ High Risk</option>
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span
-                            className={`text-[10px] font-mono px-1.5 py-0.2 rounded border font-semibold ${
-                              health.isOverdue
-                                ? health.weeksBehind > 2
-                                  ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                  : 'bg-amber-50 text-amber-800 border-amber-200'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            }`}
-                          >
-                            {health.weeksBehindLabel}
-                          </span>
-                        </div>
-                        {health.effectiveTag === 'High Risk' ? (
-                          <div className="p-1.5 bg-rose-50/90 border border-rose-300 rounded text-[10px] text-rose-950 mt-1 max-w-[220px]">
-                            <div className="font-bold flex items-center gap-1 text-rose-800">
-                              <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
-                              <span>High Risk Factor:</span>
-                            </div>
-                            <div className="text-[10px] text-rose-900 font-semibold mt-0.5">
-                              Egregiously behind schedule ({health.weeksBehindLabel})
-                            </div>
-                            {project.statusReason && (
-                              <div className="text-[10px] text-slate-600 italic truncate mt-0.5" title={project.statusReason}>
-                                Blocker: {project.statusReason}
-                              </div>
-                            )}
-                          </div>
-                        ) : project.statusReason ? (
-                          <div className="text-[10px] text-slate-500 truncate max-w-[180px]" title={project.statusReason}>
-                            {project.statusReason}
-                          </div>
-                        ) : null}
-
-                        {(health.effectiveTag === 'Behind Schedule' ||
-                          health.effectiveTag === 'High Risk') && (
-                          <button
-                            type="button"
-                            onClick={() => setPmpModalProjectId(project.id)}
-                            className={`mt-1 px-2 py-1 rounded-lg text-[10px] font-bold border inline-flex items-center gap-1 transition-all cursor-pointer w-fit ${
-                              health.effectiveTag === 'High Risk'
-                                ? 'bg-rose-100 hover:bg-rose-200 text-rose-900 border-rose-300'
-                                : 'bg-amber-100 hover:bg-amber-200 text-amber-950 border-amber-300'
-                            }`}
-                          >
-                            <ShieldAlert className="w-3 h-3 shrink-0" />
-                            <span>View / Edit Mitigation Plan</span>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Kickoff Intake Status Column */}
-                    <td className="py-3.5 px-3">
-                      {isKickoffDone ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>Complete</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200" title="Missing kickoff intake responses">
-                          <AlertTriangle className="w-3 h-3 text-amber-600" />
-                          <span>Follow-Up</span>
-                        </span>
-                      )}
-                    </td>
-
-                    {/* BOM Units Progress */}
-                    <td className="py-3.5 px-4">
-                      <div className="w-full">
-                        <div className="flex items-center justify-between text-[11px] mb-1 font-mono">
-                          <span className="text-slate-600 tabular-nums">
-                            {installedBOM.toLocaleString()} / {quotedBOM.toLocaleString()}
-                          </span>
-                          <span
-                            className={`font-bold tabular-nums ${
-                              pct === 100
-                                ? 'text-emerald-700'
-                                : pct > 50
-                                ? 'text-sky-700'
-                                : 'text-amber-700'
-                            }`}
-                          >
-                            {pct}%
-                          </span>
-                        </div>
-                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ${
-                              pct === 100
-                                ? 'bg-emerald-500'
-                                : pct > 50
-                                ? 'bg-gradient-to-r from-sky-500 to-blue-600'
-                                : 'bg-gradient-to-r from-amber-400 to-orange-500'
-                            }`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Target Date */}
-                    <td className="py-3.5 px-3 font-mono text-[11px] text-slate-700 whitespace-nowrap font-medium">
-                      {project.targetCompletionDate}
-                    </td>
-
-                    {/* Action */}
-                    <td className="py-3.5 px-4 text-center">
-                      <button
-                        type="button"
-                        onClick={() => onSelectProjectTab(project.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-sky-600 hover:text-white border border-slate-300 hover:border-sky-600 rounded-lg transition-all shadow-xs cursor-pointer"
-                        title="Open individual project focus tab under Operations"
-                      >
-                        <span>Focus Project</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Minimize Footer */}
-        <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
-          <span className="font-mono text-[11px]">
-            Showing all {filteredProjects.length} active implementation projects
-          </span>
-          <button
-            type="button"
-            onClick={() => setIsActiveProjectsTableMinimized(true)}
-            className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
-          >
-            <ChevronUp className="w-3.5 h-3.5" />
-            <span>Minimize Table</span>
-          </button>
-        </div>
-      </>
-    ) : (
-      <div className="p-4 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-extrabold text-slate-900 font-mono text-[10px] uppercase tracking-wider bg-slate-200/90 px-2 py-0.5 rounded border border-slate-300">
-            {filteredProjects.length} Projects Minimized
-          </span>
-          <span className="text-slate-300">•</span>
-          <span>
-            Active: <strong className="font-mono text-sky-700">{activeImplementationProjects.length}</strong>
-          </span>
-          <span className="text-slate-300">•</span>
-          <span>
-            Completed: <strong className="font-mono text-emerald-700">{completedProjects.length}</strong>
-          </span>
-          <span className="text-slate-300">•</span>
-          <span>
-            New (Unstarted): <strong className="font-mono text-purple-700">{unstartedProjects.length}</strong>
-          </span>
-          <span className="text-slate-300">•</span>
-          <span>
-            Total Units:{' '}
-            <strong className="font-mono text-slate-800">
-              {filteredProjects.reduce((s, p) => s + p.unitsCount, 0).toLocaleString()}
-            </strong>
-          </span>
-          <span className="text-slate-300">•</span>
-          <span>
-            Health:{' '}
-            <strong className="text-emerald-700 font-semibold">{onTrackProjects.length} Track</strong> /{' '}
-            <strong className="text-amber-700 font-semibold">{behindScheduleProjects.length} Behind</strong> /{' '}
-            <strong className="text-rose-700 font-semibold">{highRiskProjects.length} Risk</strong>
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsActiveProjectsTableMinimized(false)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
-        >
-          <ChevronDown className="w-3.5 h-3.5" />
-          <span>Expand Projects Table</span>
-        </button>
-      </div>
-    )}
-  </div>
-
       {/* REQUIREMENT: "Let's provide a cost breakdown on the installation Overview Dashboard as well so that leadership can see on, a high-level, the overall profits of the total projects, as well as how on track we are to collect that money." */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-200">
@@ -3381,12 +3303,12 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               {isFinancialProjectsMinimized ? (
                 <>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Expand Projects ({projectFinancials.length})</span>
+                  <span>Expand Financial Breakdown ({projectFinancials.length})</span>
                 </>
               ) : (
                 <>
                   <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Minimize Projects</span>
+                  <span>Minimize Financial Breakdown</span>
                 </>
               )}
             </button>
@@ -3605,7 +3527,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer shrink-0 self-start sm:self-auto"
             >
               <ChevronDown className="w-3.5 h-3.5" />
-              <span>Expand Projects Table</span>
+              <span>Expand Financial Breakdown</span>
             </button>
           </div>
         )}
