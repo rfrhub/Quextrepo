@@ -9,6 +9,9 @@ import {
   AVAILABLE_FIELD_TECHS,
   FieldTechName,
   ProjectStatusTag,
+  ProjectPlatform,
+  AVAILABLE_PLATFORMS,
+  getPlatformBadgeStyle,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { QUEUXT_HARDWARE_CATALOG, QUEUXT_SOFTWARE_CATALOG } from '../data/catalogData';
@@ -55,6 +58,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
   const [csmName, setCsmName] = useState<CSMName>('Nicole Franklin');
   const [fieldTechName, setFieldTechName] = useState<FieldTechName>('Hector Lopez');
   const [statusTag, setStatusTag] = useState<ProjectStatusTag>('On Track');
+  const [platform, setPlatform] = useState<ProjectPlatform>('Quext');
   const [integratorPartners, setIntegratorPartners] = useState<string[]>(['SKBM']);
 
   // Active Catalog Tab for Browsing
@@ -277,6 +281,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
       assignedFieldTech: fieldTechName,
       integratorPartners,
       statusTag,
+      platform,
       statusReason: 'Manually initialized project with locked implementation BOM and selected software catalog.',
       startDate: new Date().toISOString().split('T')[0],
       targetCompletionDate: targetDate,
@@ -472,6 +477,36 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
                   onChange={(e) => setTargetDate(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-mono mt-1 focus:outline-none focus:border-sky-500"
                 />
+              </div>
+
+              {/* Platform Tag Selector */}
+              <div className="sm:col-span-2 pt-1">
+                <label className="font-semibold text-slate-700 block mb-1.5 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Platform Tag *</span>
+                  <span className="text-slate-400 font-normal text-[11px]">(Platform utilized for IoT and Access Control)</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {AVAILABLE_PLATFORMS.map((plat) => {
+                    const isSelected = platform === plat;
+                    const badgeStyle = getPlatformBadgeStyle(plat);
+                    return (
+                      <button
+                        key={plat}
+                        type="button"
+                        onClick={() => setPlatform(plat)}
+                        className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? `${badgeStyle.badgeClass} ring-2 ring-purple-400/40 shadow-xs`
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isSelected ? badgeStyle.dotColor : 'bg-slate-300'}`} />
+                        <span>{plat}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

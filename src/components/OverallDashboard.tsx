@@ -12,6 +12,10 @@ import {
   normalizeFieldTech,
   getProjectIntegratorPartners,
   getAllIntegratorPartners,
+  ProjectPlatform,
+  AVAILABLE_PLATFORMS,
+  getProjectPlatform,
+  getPlatformBadgeStyle,
 } from '../types';
 import { QUEUXT_HARDWARE_CATALOG } from '../data/catalogData';
 import { PMPMitigationPlanPanel } from './PMPMitigationPlanPanel';
@@ -70,6 +74,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
 }) => {
   const [selectedThermostatBrandFilter, setSelectedThermostatBrandFilter] = useState<'All' | 'Quext' | 'Honeywell'>('All');
   const [pmFilter, setPmFilter] = useState<string>('all');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [fieldTechFilter, setFieldTechFilter] = useState<string>('all');
   const [integratorFilter, setIntegratorFilter] = useState<string>('all');
   const [kickoffFilter, setKickoffFilter] = useState<'all' | 'needs_attention' | 'completed'>('all');
@@ -131,13 +136,16 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
       kickoffFilter === 'all' ||
       (kickoffFilter === 'needs_attention' && isAttention) ||
       (kickoffFilter === 'completed' && !isAttention);
+    const projectPlatform = getProjectPlatform(project);
+    const matchesPlatform = platformFilter === 'all' || projectPlatform === platformFilter;
     const matchesSearch =
       project.propertyName.toLowerCase().includes(tableSearch.toLowerCase()) ||
       project.clientName.toLowerCase().includes(tableSearch.toLowerCase()) ||
       project.city.toLowerCase().includes(tableSearch.toLowerCase()) ||
       project.quoteNumber.toLowerCase().includes(tableSearch.toLowerCase()) ||
+      projectPlatform.toLowerCase().includes(tableSearch.toLowerCase()) ||
       partners.some((p) => p.toLowerCase().includes(tableSearch.toLowerCase()));
-    return matchesPM && matchesFieldTech && matchesIntegrator && matchesKickoff && matchesSearch;
+    return matchesPM && matchesFieldTech && matchesIntegrator && matchesKickoff && matchesPlatform && matchesSearch;
   });
 
   const onTrackProjects = projects.filter(
@@ -2798,6 +2806,23 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               />
             </div>
 
+            {/* Platform Filter */}
+            <div className="flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-purple-600 shrink-0" />
+              <select
+                value={platformFilter}
+                onChange={(e) => setPlatformFilter(e.target.value)}
+                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:border-purple-500"
+              >
+                <option value="all">All Platforms</option>
+                {AVAILABLE_PLATFORMS.map((plat) => (
+                  <option key={plat} value={plat}>
+                    Platform: {plat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Requirement: "On the installation Overview Dashboard page and the all Won Projects directory page lets add a filter by Project Manager." */}
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-slate-400 shrink-0" />
@@ -2869,6 +2894,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                 <th className="py-3 px-4">Project & Property</th>
                 <th className="py-3 px-3">Client / Owner</th>
                 <th className="py-3 px-3">Quote #</th>
+                <th className="py-3 px-3">Platform</th>
                 <th className="py-3 px-3">Assigned PM &amp; Tech</th>
                 <th className="py-3 px-3">Integrators / Installers</th>
                 <th className="py-3 px-4 min-w-[170px]">PM Status Tag</th>
@@ -2920,6 +2946,31 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                     {/* Quote Ref */}
                     <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
                       #{project.quoteNumber}
+                    </td>
+
+                    {/* Platform Tag */}
+                    <td className="py-3.5 px-3">
+                      <select
+                        value={getProjectPlatform(project)}
+                        onChange={(e) => {
+                          const newPlat = e.target.value as ProjectPlatform;
+                          onUpdateProject({
+                            ...project,
+                            platform: newPlat,
+                            lastUpdated: new Date().toISOString(),
+                          });
+                        }}
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-md border focus:outline-none cursor-pointer ${
+                          getPlatformBadgeStyle(getProjectPlatform(project)).badgeClass
+                        }`}
+                        title="Change Project Platform (Quext, Geokey, or Homebase)"
+                      >
+                        {AVAILABLE_PLATFORMS.map((plat) => (
+                          <option key={plat} value={plat}>
+                            {plat}
+                          </option>
+                        ))}
+                      </select>
                     </td>
 
                     {/* Assigned PM & Tech */}

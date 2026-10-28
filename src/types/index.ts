@@ -10,6 +10,54 @@ export type DealStage =
 
 export type ProjectStatusTag = 'On Track' | 'Behind Schedule' | 'High Risk';
 
+export type ProjectPlatform = 'Quext' | 'Geokey' | 'Homebase';
+export const AVAILABLE_PLATFORMS: ProjectPlatform[] = ['Quext', 'Geokey', 'Homebase'];
+
+export function getProjectPlatform(project?: Partial<OperationProject> | null): ProjectPlatform {
+  if (!project) return 'Quext';
+  if (project.platform) return project.platform;
+  const name = (project.propertyName || '').toLowerCase();
+  if (name.includes('geokey')) return 'Geokey';
+  if (name.includes('homebase')) return 'Homebase';
+  return 'Quext';
+}
+
+export function getPlatformBadgeStyle(platform: ProjectPlatform): {
+  badgeClass: string;
+  dotColor: string;
+  textColor: string;
+  borderColor: string;
+  bgLight: string;
+} {
+  switch (platform) {
+    case 'Geokey':
+      return {
+        badgeClass: 'bg-sky-50 text-sky-800 border-sky-300',
+        dotColor: 'bg-sky-500',
+        textColor: 'text-sky-700',
+        borderColor: 'border-sky-300',
+        bgLight: 'bg-sky-50',
+      };
+    case 'Homebase':
+      return {
+        badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+        dotColor: 'bg-emerald-500',
+        textColor: 'text-emerald-700',
+        borderColor: 'border-emerald-300',
+        bgLight: 'bg-emerald-50',
+      };
+    case 'Quext':
+    default:
+      return {
+        badgeClass: 'bg-purple-50 text-purple-800 border-purple-300',
+        dotColor: 'bg-purple-600',
+        textColor: 'text-purple-700',
+        borderColor: 'border-purple-300',
+        bgLight: 'bg-purple-50',
+      };
+  }
+}
+
 export type ThermostatBrand = 'Quext' | 'Honeywell';
 
 export type BOMCategory = 
@@ -759,6 +807,7 @@ export interface Quote {
   monthlyServiceFee: number;
   assignedSalesLead: string;
   notes: string;
+  platform?: ProjectPlatform;
   bomItems: BOMItem[];
 }
 
@@ -819,6 +868,7 @@ export interface OperationProject {
   assignedFieldTech?: FieldTechName;
   integratorPartners?: string[]; // Assigned integrator partners & installers (SKBM, ATB, SBH, Everbase, JTS, or custom entries)
   statusTag: ProjectStatusTag;
+  platform?: ProjectPlatform; // Platform tag: Quext, Geokey, or Homebase
   statusReason?: string;
   startDate: string;
   targetCompletionDate: string;

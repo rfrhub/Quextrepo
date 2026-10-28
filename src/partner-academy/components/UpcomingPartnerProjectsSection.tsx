@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { OperationProject, getProjectIntegratorPartners } from '../../types';
+import { OperationProject, getProjectIntegratorPartners, getProjectPlatform } from '../../types';
 import { useAuth, isQuextEmployeeUser } from '../context/AuthContext';
 import { COURSE_MODULES } from '../data/mockData';
 import {
@@ -242,10 +242,13 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
                   {/* Top Badges Row */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[11px] font-mono font-bold">
+                        {getProjectPlatform(project)}
+                      </span>
                       {partners.map((p) => (
                         <span
                           key={p}
-                          className="px-2.5 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[11px] font-mono font-bold"
+                          className="px-2.5 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 text-[11px] font-mono font-bold"
                         >
                           Partner: {p}
                         </span>

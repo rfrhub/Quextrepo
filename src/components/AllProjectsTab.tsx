@@ -8,8 +8,12 @@ import {
   normalizeFieldTech,
   getProjectIntegratorPartners,
   getAllIntegratorPartners,
+  ProjectPlatform,
+  AVAILABLE_PLATFORMS,
+  getProjectPlatform,
+  getPlatformBadgeStyle,
 } from '../types';
-import { MapPin, ArrowRight, Search, Filter, Users, AlertTriangle, CheckCircle2, Wrench, ShieldCheck, GraduationCap, Clock } from 'lucide-react';
+import { MapPin, ArrowRight, Search, Filter, Users, AlertTriangle, CheckCircle2, Wrench, ShieldCheck, GraduationCap, Clock, Tag } from 'lucide-react';
 import {
   getProjectPartnerCourseCompletion,
   loadPartnerAcademyUsers,
@@ -34,6 +38,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter);
   const [pmFilter, setPmFilter] = useState<string>('all');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [fieldTechFilter, setFieldTechFilter] = useState<string>('all');
   const [integratorFilter, setIntegratorFilter] = useState<string>('all');
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
@@ -74,14 +79,17 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
     const matchesFieldTech = fieldTechFilter === 'all' || currentTech === fieldTechFilter;
     const partners = getProjectIntegratorPartners(project);
     const matchesIntegrator = integratorFilter === 'all' || partners.includes(integratorFilter);
+    const projectPlatform = getProjectPlatform(project);
+    const matchesPlatform = platformFilter === 'all' || projectPlatform === platformFilter;
     const matchesSearch =
       project.propertyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      projectPlatform.toLowerCase().includes(searchTerm.toLowerCase()) ||
       partners.some((p) => p.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesStatus && matchesPM && matchesFieldTech && matchesIntegrator && matchesSearch;
+    return matchesStatus && matchesPM && matchesFieldTech && matchesIntegrator && matchesPlatform && matchesSearch;
   });
 
   const getStatusBadgeStyle = (tag: ProjectStatusTag) => {
@@ -124,21 +132,38 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
           </div>
         </div>
 
-        {/* Filter & Search Bar with PM, Field Tech, and Integrator Partner Filter */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 mt-6 pt-5 border-t border-slate-200">
-          <div className="lg:col-span-3 relative">
+        {/* Filter & Search Bar with PM, Field Tech, Integrator Partner, and Platform Filter */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-6 pt-5 border-t border-slate-200">
+          <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search property, client, installer..."
+              placeholder="Search property, client, platform..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white"
             />
           </div>
 
+          {/* Platform Filter */}
+          <div className="flex items-center gap-1.5">
+            <Tag className="w-4 h-4 text-purple-600 shrink-0" />
+            <select
+              value={platformFilter}
+              onChange={(e) => setPlatformFilter(e.target.value)}
+              className="w-full px-2.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:border-purple-500 focus:bg-white font-medium"
+            >
+              <option value="all">All Platforms</option>
+              {AVAILABLE_PLATFORMS.map((plat) => (
+                <option key={plat} value={plat}>
+                  Platform: {plat}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* PM Filter */}
-          <div className="lg:col-span-2.5 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-400 shrink-0" />
             <select
               value={pmFilter}
@@ -155,7 +180,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
           </div>
 
           {/* Integrator Partner & Installer Filter */}
-          <div className="lg:col-span-2.5 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-indigo-500 shrink-0" />
             <select
               value={integratorFilter}
@@ -172,7 +197,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
           </div>
 
           {/* Field Tech Filter */}
-          <div className="lg:col-span-2 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Wrench className="w-4 h-4 text-amber-500 shrink-0" />
             <select
               value={fieldTechFilter}
@@ -189,7 +214,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
           </div>
 
           {/* Health Status Filter */}
-          <div className="lg:col-span-2 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400 shrink-0" />
             <select
               value={statusFilter}
@@ -223,6 +248,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
             const totalInstalledBOM = project.bomItems.reduce((acc, i) => acc + i.installedCount, 0);
             const pct = totalQuotedBOM > 0 ? Math.min(100, Math.round((totalInstalledBOM / totalQuotedBOM) * 100)) : 0;
             const isKickoffDone = project.customerIntake?.walkthroughCompleted;
+            const projectPlatform = getProjectPlatform(project);
 
             return (
               <div
@@ -239,10 +265,39 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-black/30" />
                     
-                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                      <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-black/70 backdrop-blur-md text-white border border-white/20 rounded">
-                        #{project.quoteNumber}
-                      </span>
+                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-black/70 backdrop-blur-md text-white border border-white/20 rounded">
+                          #{project.quoteNumber}
+                        </span>
+                        {/* Interactive Platform Tag Selector */}
+                        <select
+                          value={projectPlatform}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            const newPlat = e.target.value as ProjectPlatform;
+                            if (onUpdateProject) {
+                              onUpdateProject({
+                                ...project,
+                                platform: newPlat,
+                                lastUpdated: new Date().toISOString(),
+                              });
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded border focus:outline-none cursor-pointer backdrop-blur-md shadow-xs ${
+                            getPlatformBadgeStyle(projectPlatform).badgeClass
+                          }`}
+                          title="Tag Platform (Quext, Geokey, or Homebase)"
+                        >
+                          {AVAILABLE_PLATFORMS.map((plat) => (
+                            <option key={plat} value={plat}>
+                              {plat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
                       {/* Effective Health Tag with Auto Date-Calculation */}
                       <select
                         value={health.effectiveTag}
@@ -277,6 +332,13 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
                     <div className="flex items-center justify-between text-slate-500">
                       <span>Client / Operator:</span>
                       <strong className="text-slate-900">{project.clientName}</strong>
+                    </div>
+
+                    <div className="flex items-center justify-between text-slate-500">
+                      <span>Platform:</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getPlatformBadgeStyle(projectPlatform).badgeClass}`}>
+                        {projectPlatform}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between text-slate-500">

@@ -12,6 +12,8 @@ import {
   detectLockFamily,
   sanitizeLockSplits,
   isDiyPartner,
+  getProjectPlatform,
+  ProjectPlatform,
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
@@ -1981,8 +1983,11 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
     /intercom|reader|perimeter/i.test(b.name + ' ' + b.model)
   );
 
+  const platform = p.platform || getProjectPlatform(p);
+
   const enriched: OperationProject = {
     ...p,
+    platform,
     assignedFieldTech: normalizeFieldTech(p.assignedFieldTech),
     integratorPartners: partners,
     bomItems: (p.bomItems || []).map((b) => {
@@ -2142,6 +2147,7 @@ export function createProjectFromQuote(quote: Quote): OperationProject {
     quoteId: quote.id,
     quoteNumber: quote.quoteNumber,
     propertyName: quote.propertyName,
+    platform: quote.platform || getProjectPlatform({ propertyName: quote.propertyName }),
     clientName: quote.clientName,
     address: quote.address,
     city: quote.city,

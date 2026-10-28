@@ -31,6 +31,10 @@ import {
   getLockFinishSummaryTag,
   isLockBOMItem,
   isDiyPartner,
+  ProjectPlatform,
+  AVAILABLE_PLATFORMS,
+  getProjectPlatform,
+  getPlatformBadgeStyle,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
@@ -83,6 +87,7 @@ import {
   FileSignature,
   DollarSign,
   ChevronDown,
+  Tag,
   ChevronRight,
   CheckSquare,
   Square,
@@ -1648,6 +1653,20 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               <span className="text-xs px-2.5 py-0.5 rounded font-bold bg-sky-100 text-sky-800 border border-sky-300">
                 Operations Focus Tab
               </span>
+              {/* Platform Tag Badge */}
+              <span
+                className={`text-xs px-2.5 py-0.5 rounded-full font-bold border flex items-center gap-1.5 shadow-2xs ${
+                  getPlatformBadgeStyle(getProjectPlatform(project)).badgeClass
+                }`}
+                title={`Project Platform: ${getProjectPlatform(project)}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    getPlatformBadgeStyle(getProjectPlatform(project)).dotColor
+                  }`}
+                />
+                Platform: {getProjectPlatform(project)}
+              </span>
               {project.isBomLocked && (
                 <span className="text-xs px-2.5 py-0.5 rounded font-bold bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1">
                   <Lock className="w-3 h-3 text-slate-500" />
@@ -1782,6 +1801,33 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     onUpdateProject(updatedProj);
                   }}
                 />
+              </div>
+
+              {/* Platform Tag Selector */}
+              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                <Tag className="w-3.5 h-3.5 text-purple-600" />
+                <span className="text-slate-500 text-xs">Platform:</span>
+                <select
+                  value={getProjectPlatform(project)}
+                  onChange={(e) => {
+                    const newPlat = e.target.value as ProjectPlatform;
+                    onUpdateProject({
+                      ...project,
+                      platform: newPlat,
+                      lastUpdated: new Date().toISOString(),
+                    });
+                  }}
+                  className={`font-bold bg-transparent focus:outline-none cursor-pointer text-xs ${
+                    getPlatformBadgeStyle(getProjectPlatform(project)).textColor
+                  }`}
+                  title="Tag the project platform (Quext, Geokey, or Homebase)"
+                >
+                  {AVAILABLE_PLATFORMS.map((plat) => (
+                    <option key={plat} value={plat}>
+                      {plat}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* DIY Tag Toggle Button (Customer Self-Install) */}

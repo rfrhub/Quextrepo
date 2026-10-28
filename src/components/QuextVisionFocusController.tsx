@@ -14,6 +14,8 @@ import {
   getProjectIntegratorPartners,
   buildCustomerKickoffPortalUrl,
   projectHasGatewayOrHubOnBOM,
+  getProjectPlatform,
+  getPlatformBadgeStyle,
 } from '../types';
 import { ProjectDetailView } from './ProjectDetailView';
 import { ShippingDockSection } from './ShippingDockSection';
@@ -612,10 +614,19 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
             </select>
 
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 pt-1">
-              <span>
-                Active Milestone:{' '}
-                <strong className="text-emerald-900 font-bold">{activeMilestoneTitle}</strong>
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span>
+                  Active Milestone:{' '}
+                  <strong className="text-emerald-900 font-bold">{activeMilestoneTitle}</strong>
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                    getPlatformBadgeStyle(getProjectPlatform(project)).badgeClass
+                  }`}
+                >
+                  Platform: {getProjectPlatform(project)}
+                </span>
+              </div>
               {hasSavedProgress && (
                 <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded font-semibold text-[11px]">
                   Saved session found — will resume where you left off!

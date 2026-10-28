@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { OperationProject, calculateProjectScheduleHealth } from '../types';
+import { OperationProject, calculateProjectScheduleHealth, getProjectPlatform, getPlatformBadgeStyle } from '../types';
 import {
   Search,
   Building2,
@@ -47,12 +47,14 @@ export const SearchablePropertyPicker: React.FC<SearchablePropertyPickerProps> =
       const city = (p.city || '').toLowerCase();
       const state = (p.state || '').toLowerCase();
       const pm = (p.assignedPM?.name || '').toLowerCase();
+      const plat = getProjectPlatform(p).toLowerCase();
       const id = (p.id || '').toLowerCase();
       return (
         propName.includes(q) ||
         city.includes(q) ||
         state.includes(q) ||
         pm.includes(q) ||
+        plat.includes(q) ||
         id.includes(q)
       );
     });
@@ -328,6 +330,13 @@ export const SearchablePropertyPicker: React.FC<SearchablePropertyPickerProps> =
                             className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${statusColor}`}
                           >
                             {health.effectiveTag}
+                          </span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                              getPlatformBadgeStyle(getProjectPlatform(project)).badgeClass
+                            }`}
+                          >
+                            {getProjectPlatform(project)}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
