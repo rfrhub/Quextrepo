@@ -7,6 +7,7 @@ import {
   ProjectNote,
   CustomerCommsLog,
   getProjectIntegratorPartners,
+  DEFAULT_OPERATION_MILESTONES,
 } from '../types';
 import { loadArchivedProjectIds } from '../data/initialData';
 import {
@@ -273,6 +274,65 @@ export function detectCloneClusters(
   return clusters.sort((a, b) => score(b) - score(a));
 }
 
+export function getProjectMilestoneStage(project?: OperationProject | null): {
+  activeTitle: string;
+  activeStatus: 'Completed' | 'In Progress' | 'Upcoming';
+  activeMilestone?: ProjectMilestone;
+  completedCount: number;
+  totalCount: number;
+  allMilestones: ProjectMilestone[];
+  isAllCompleted: boolean;
+} {
+  const milestones = project?.milestones || [];
+  const totalCount = milestones.length;
+  const completedCount = milestones.filter((m) => m.status === 'Completed').length;
+  const inProgress = milestones.find((m) => m.status === 'In Progress');
+  if (inProgress) {
+    return {
+      activeTitle: inProgress.title,
+      activeStatus: inProgress.status,
+      activeMilestone: inProgress,
+      completedCount,
+      totalCount,
+      allMilestones: milestones,
+      isAllCompleted: false,
+    };
+  }
+  const upcoming = milestones.find((m) => m.status === 'Upcoming');
+  if (upcoming) {
+    return {
+      activeTitle: upcoming.title,
+      activeStatus: upcoming.status,
+      activeMilestone: upcoming,
+      completedCount,
+      totalCount,
+      allMilestones: milestones,
+      isAllCompleted: false,
+    };
+  }
+  if (totalCount > 0 && completedCount === totalCount) {
+    const last = milestones[totalCount - 1];
+    return {
+      activeTitle: last.title,
+      activeStatus: 'Completed',
+      activeMilestone: last,
+      completedCount,
+      totalCount,
+      allMilestones: milestones,
+      isAllCompleted: true,
+    };
+  }
+  return {
+    activeTitle: milestones[0]?.title || 'Project kickoff',
+    activeStatus: milestones[0]?.status || 'Upcoming',
+    activeMilestone: milestones[0],
+    completedCount,
+    totalCount,
+    allMilestones: milestones,
+    isAllCompleted: false,
+  };
+}
+
 interface CloneWarsWorkspaceProps {
   projects: OperationProject[];
   onMergeProjects: (
@@ -339,7 +399,8 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   const [bomFilterTab, setBomFilterTab] = useState<'all' | 'diff' | 'a_only' | 'b_only'>('all');
   const [bomExpanded, setBomExpanded] = useState<boolean>(true);
   const [chosenPartnersMode, setChosenPartnersMode] = useState<'A' | 'B' | 'combine'>('combine');
-  const [chosenMilestonesMode, setChosenMilestonesMode] = useState<'A' | 'B' | 'combine'>('combine');
+  const [chosenMilestonesMode, setChosenMilestonesMode] = useState<'A' | 'B' | 'combine' | 'custom'>('combine');
+  const [chosenCustomMilestoneTitle, setChosenCustomMilestoneTitle] = useState<string>('Project kickoff');
   const [combineLogs, setCombineLogs] = useState(true);
   const [combineComms, setCombineComms] = useState(true);
   const [combineNotes, setCombineNotes] = useState(true);
@@ -649,6 +710,11 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     setBomFilterTab('all');
     setBomExpanded(true);
     setChosenPartnersMode('combine');
+    const pAStage = getProjectMilestoneStage(pA);
+    const pBStage = getProjectMilestoneStage(pB);
+    const initialCustom =
+      pAStage.completedCount >= pBStage.completedCount ? pAStage.activeTitle : pBStage.activeTitle;
+    setChosenCustomMilestoneTitle(initialCustom);
     setChosenMilestonesMode('combine');
     setCombineLogs(true);
     setCombineComms(true);
@@ -831,11 +897,86 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
         milestones = [...(projectA.milestones || [])];
       } else if (chosenMilestonesMode === 'B') {
         milestones = [...(projectB.milestones || [])];
+      } else if (chosenMilestonesMode === 'custom') {
+        const baseList =
+          baseSurvivor.milestones && baseSurvivor.milestones.length > 0
+            ? baseSurvivor.milestones
+            : (projectA.milestones && projectA.milestones.length > 0)
+            ? projectA.milestones
+            : (projectB.milestones && projectB.milestones.length > 0)
+            ? projectB.milestones
+            : [];
+
+        const allTitles = Array.from(
+          new Set([
+            ...DEFAULT_OPERATION_MILESTONES,
+            ...((projectA.milestones || []).map((m) => m.title)),
+            ...((projectB.milestones || []).map((m) => m.title)),
+          ])
+        );
+
+        const targetIdx = Math.max(
+          0,
+          allTitles.findIndex(
+            (t) => t.toLowerCase() === chosenCustomMilestoneTitle.toLowerCase()
+          )
+        );
+
+        milestones = allTitles.map((title, idx) => {
+          const existing =
+            baseList.find((m) => m.title.toLowerCase() === title.toLowerCase()) ||
+            projectA.milestones?.find((m) => m.title.toLowerCase() === title.toLowerCase()) ||
+            projectB.milestones?.find((m) => m.title.toLowerCase() === title.toLowerCase());
+
+          let status: ProjectMilestone['status'] = 'Upcoming';
+          let completedDate = existing?.completedDate;
+          let startedAt = existing?.startedAt;
+
+          if (title.toLowerCase().includes('closed') && targetIdx === idx) {
+            status = 'Completed';
+            completedDate = completedDate || new Date().toISOString().split('T')[0];
+          } else if (idx < targetIdx) {
+            status = 'Completed';
+            completedDate = completedDate || new Date().toISOString().split('T')[0];
+          } else if (idx === targetIdx) {
+            status = 'In Progress';
+            startedAt = startedAt || new Date().toISOString().split('T')[0];
+            completedDate = undefined;
+          } else {
+            status = 'Upcoming';
+            completedDate = undefined;
+            startedAt = undefined;
+          }
+
+          return {
+            id: existing?.id || `${baseSurvivor.id}-m${idx + 1}`,
+            title,
+            status,
+            targetDate: existing?.targetDate || datesSource.targetCompletionDate,
+            completedDate,
+            startedAt,
+            notes: existing?.notes,
+          };
+        });
       } else {
+        // combine: Keep most advanced status for each milestone
         const milestoneMap = new Map<string, ProjectMilestone>();
         [...(projectA.milestones || []), ...(projectB.milestones || [])].forEach((m) => {
-          if (!milestoneMap.has(m.title) || m.status === 'Completed' || m.status === 'In Progress') {
+          const current = milestoneMap.get(m.title);
+          if (!current) {
             milestoneMap.set(m.title, { ...m });
+          } else if (m.status === 'Completed') {
+            milestoneMap.set(m.title, {
+              ...current,
+              status: 'Completed',
+              completedDate: m.completedDate || current.completedDate,
+            });
+          } else if (m.status === 'In Progress' && current.status !== 'Completed') {
+            milestoneMap.set(m.title, {
+              ...current,
+              status: 'In Progress',
+              startedAt: m.startedAt || current.startedAt,
+            });
           }
         });
         milestones = Array.from(milestoneMap.values());
@@ -911,6 +1052,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     bomCustomChoices,
     chosenPartnersMode,
     chosenMilestonesMode,
+    chosenCustomMilestoneTitle,
     combineLogs,
     combineComms,
     combineNotes,
@@ -946,6 +1088,36 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
 
     setActivePair(null);
   };
+
+  // Milestone Stages for Active Pair & Preview
+  const stageA = useMemo(
+    () => getProjectMilestoneStage(activePair?.projectA),
+    [activePair?.projectA]
+  );
+  const stageB = useMemo(
+    () => getProjectMilestoneStage(activePair?.projectB),
+    [activePair?.projectB]
+  );
+  const previewFinalStage = useMemo(
+    () => getProjectMilestoneStage(previewFinalProject),
+    [previewFinalProject]
+  );
+
+  const allMilestoneOptions = useMemo(() => {
+    const list = [...DEFAULT_OPERATION_MILESTONES];
+    if (!activePair) return list;
+    const customFromA = (activePair.projectA.milestones || [])
+      .map((m) => m.title)
+      .filter((t) => !list.some((existing) => existing.toLowerCase() === t.toLowerCase()));
+    const customFromB = (activePair.projectB.milestones || [])
+      .map((m) => m.title)
+      .filter(
+        (t) =>
+          !list.some((existing) => existing.toLowerCase() === t.toLowerCase()) &&
+          !customFromA.some((existing) => existing.toLowerCase() === t.toLowerCase())
+      );
+    return [...list, ...customFromA, ...customFromB];
+  }, [activePair]);
 
   // Detailed BOM Comparison Computations
   const bomComparisonRows = useMemo(() => {
@@ -2873,70 +3045,353 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                   </div>
 
                   {/* 6. PM & Milestones */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Assigned PM */}
-                    <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                        Assigned Project Manager
-                      </span>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                      Assigned Project Manager
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setChosenPMSource('A')}
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          chosenPMSource === 'A'
+                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="text-[10px] font-bold text-slate-500 block">Alpha PM</span>
+                        <span>{activePair.projectA.assignedPM?.name || 'Quext PM'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChosenPMSource('B')}
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          chosenPMSource === 'B'
+                            ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="text-[10px] font-bold text-slate-500 block">Beta PM</span>
+                        <span>{activePair.projectB.assignedPM?.name || 'Quext PM'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 7. Milestone Pipeline Status */}
+                  <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                            Milestone Pipeline Status
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                            Single Truth Milestone
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Compare what milestone Version A and Version B are currently on, or select from all milestone options to define the master milestone stage.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setChosenPMSource('A')}
-                          className={`p-2.5 rounded-xl border text-left cursor-pointer ${
-                            chosenPMSource === 'A'
-                              ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                              : 'bg-slate-900 border-slate-800 text-slate-400'
+                          onClick={() => setChosenMilestonesMode('combine')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer border transition-all ${
+                            chosenMilestonesMode === 'combine'
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold shadow-xs'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                           }`}
                         >
-                          <span className="text-[10px] font-bold text-slate-500 block">Alpha PM</span>
-                          <span>{activePair.projectA.assignedPM?.name || 'Quext PM'}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setChosenPMSource('B')}
-                          className={`p-2.5 rounded-xl border text-left cursor-pointer ${
-                            chosenPMSource === 'B'
-                              ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                              : 'bg-slate-900 border-slate-800 text-slate-400'
-                          }`}
-                        >
-                          <span className="text-[10px] font-bold text-slate-500 block">Beta PM</span>
-                          <span>{activePair.projectB.assignedPM?.name || 'Quext PM'}</span>
+                          Combine (Keep Most Advanced)
                         </button>
                       </div>
                     </div>
 
-                    {/* Milestones */}
-                    <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                        Milestone Pipeline Status
-                      </span>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setChosenMilestonesMode('combine')}
-                          className={`p-2.5 rounded-xl border text-left cursor-pointer ${
-                            chosenMilestonesMode === 'combine'
-                              ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                              : 'bg-slate-900 border-slate-800 text-slate-400'
-                          }`}
+                    {/* Side-by-side Current Milestone Comparison for A and B */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Alpha Milestone Card */}
+                      <div
+                        className={`p-3.5 rounded-xl border transition-all ${
+                          chosenMilestonesMode === 'A'
+                            ? 'bg-amber-500/15 border-amber-500 shadow-sm shadow-amber-500/10'
+                            : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                              Version A (Alpha)
+                            </span>
+                            {isSalesHubQuoteProject(activePair.projectA) && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                                Sales Quote
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setChosenMilestonesMode('A');
+                              setChosenCustomMilestoneTitle(stageA.activeTitle);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
+                              chosenMilestonesMode === 'A'
+                                ? 'bg-amber-500 text-slate-950 font-extrabold shadow-xs'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                            }`}
+                          >
+                            {chosenMilestonesMode === 'A' ? '✓ Using Alpha Pipeline' : 'Use Alpha Pipeline'}
+                          </button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-slate-400">Current Milestone:</span>
+                            <span className="text-xs font-bold text-white px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700">
+                              {stageA.activeTitle}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="text-slate-400">Status:</span>
+                            <span
+                              className={`font-semibold px-2 py-0.5 rounded-full text-[10px] ${
+                                stageA.activeStatus === 'Completed'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                  : stageA.activeStatus === 'In Progress'
+                                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              }`}
+                            >
+                              {stageA.activeStatus}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="text-slate-400">Lifecycle Progress:</span>
+                            <span className="text-slate-300 font-mono text-[11px]">
+                              {stageA.completedCount} of {stageA.totalCount} completed (
+                              {stageA.totalCount > 0
+                                ? Math.round((stageA.completedCount / stageA.totalCount) * 100)
+                                : 0}
+                              %)
+                            </span>
+                          </div>
+                          {stageA.activeMilestone?.targetDate && (
+                            <div className="flex items-center justify-between gap-2 text-[11px]">
+                              <span className="text-slate-400">Milestone Target Date:</span>
+                              <span className="text-slate-300 font-mono text-[11px]">
+                                {stageA.activeMilestone.targetDate}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Beta Milestone Card */}
+                      <div
+                        className={`p-3.5 rounded-xl border transition-all ${
+                          chosenMilestonesMode === 'B'
+                            ? 'bg-amber-500/15 border-amber-500 shadow-sm shadow-amber-500/10'
+                            : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                              Version B (Beta)
+                            </span>
+                            {isSalesHubQuoteProject(activePair.projectB) && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                                Sales Quote
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setChosenMilestonesMode('B');
+                              setChosenCustomMilestoneTitle(stageB.activeTitle);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
+                              chosenMilestonesMode === 'B'
+                                ? 'bg-amber-500 text-slate-950 font-extrabold shadow-xs'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                            }`}
+                          >
+                            {chosenMilestonesMode === 'B' ? '✓ Using Beta Pipeline' : 'Use Beta Pipeline'}
+                          </button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-slate-400">Current Milestone:</span>
+                            <span className="text-xs font-bold text-white px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700">
+                              {stageB.activeTitle}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="text-slate-400">Status:</span>
+                            <span
+                              className={`font-semibold px-2 py-0.5 rounded-full text-[10px] ${
+                                stageB.activeStatus === 'Completed'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                  : stageB.activeStatus === 'In Progress'
+                                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              }`}
+                            >
+                              {stageB.activeStatus}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="text-slate-400">Lifecycle Progress:</span>
+                            <span className="text-slate-300 font-mono text-[11px]">
+                              {stageB.completedCount} of {stageB.totalCount} completed (
+                              {stageB.totalCount > 0
+                                ? Math.round((stageB.completedCount / stageB.totalCount) * 100)
+                                : 0}
+                              %)
+                            </span>
+                          </div>
+                          {stageB.activeMilestone?.targetDate && (
+                            <div className="flex items-center justify-between gap-2 text-[11px]">
+                              <span className="text-slate-400">Milestone Target Date:</span>
+                              <span className="text-slate-300 font-mono text-[11px]">
+                                {stageB.activeMilestone.targetDate}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pick Milestone from All Milestone Options */}
+                    <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/80 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-200">
+                          Pick Milestone from All Milestone Options:
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {allMilestoneOptions.length} total milestones available in lifecycle
+                        </span>
+                      </div>
+
+                      {/* Dropdown Selector */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                        <label
+                          htmlFor="master-milestone-select"
+                          className="text-xs text-slate-400 font-medium shrink-0"
                         >
-                          <span className="text-[10px] font-bold text-amber-400 block">Combine Pipelines</span>
-                          <span>Keep Most Advanced</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setChosenMilestonesMode('A')}
-                          className={`p-2.5 rounded-xl border text-left cursor-pointer ${
-                            chosenMilestonesMode === 'A'
-                              ? 'bg-amber-500/20 border-amber-500 text-white font-bold'
-                              : 'bg-slate-900 border-slate-800 text-slate-400'
-                          }`}
+                          Select Milestone Option:
+                        </label>
+                        <select
+                          id="master-milestone-select"
+                          value={
+                            chosenMilestonesMode === 'custom'
+                              ? chosenCustomMilestoneTitle
+                              : chosenMilestonesMode === 'A'
+                              ? stageA.activeTitle
+                              : chosenMilestonesMode === 'B'
+                              ? stageB.activeTitle
+                              : previewFinalStage.activeTitle
+                          }
+                          onChange={(e) => {
+                            setChosenMilestonesMode('custom');
+                            setChosenCustomMilestoneTitle(e.target.value);
+                          }}
+                          className="flex-1 bg-slate-900 border border-slate-700 hover:border-amber-500/50 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white font-medium focus:outline-none cursor-pointer"
                         >
-                          <span className="text-[10px] font-bold text-slate-500 block">Alpha Pipeline</span>
-                          <span>{activePair.projectA.milestones?.length || 0} Milestones</span>
-                        </button>
+                          {allMilestoneOptions.map((title, idx) => {
+                            const isA = stageA.activeTitle.toLowerCase() === title.toLowerCase();
+                            const isB = stageB.activeTitle.toLowerCase() === title.toLowerCase();
+                            let suffix = '';
+                            if (isA && isB) suffix = ' — (Currently on both A & B)';
+                            else if (isA) suffix = ' — (Currently on Version A)';
+                            else if (isB) suffix = ' — (Currently on Version B)';
+                            return (
+                              <option key={title} value={title}>
+                                {idx + 1}. {title} {suffix}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      {/* Visual Interactive Milestone Step Rail */}
+                      <div className="pt-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                          Quick Step Picker: Click any milestone to set as active stage
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
+                          {allMilestoneOptions.map((title, idx) => {
+                            const isCurrentActive =
+                              (chosenMilestonesMode === 'custom' && chosenCustomMilestoneTitle.toLowerCase() === title.toLowerCase()) ||
+                              (chosenMilestonesMode === 'A' && stageA.activeTitle.toLowerCase() === title.toLowerCase()) ||
+                              (chosenMilestonesMode === 'B' && stageB.activeTitle.toLowerCase() === title.toLowerCase()) ||
+                              (chosenMilestonesMode === 'combine' && previewFinalStage.activeTitle.toLowerCase() === title.toLowerCase());
+
+                            const isA = stageA.activeTitle.toLowerCase() === title.toLowerCase();
+                            const isB = stageB.activeTitle.toLowerCase() === title.toLowerCase();
+
+                            return (
+                              <button
+                                key={title}
+                                type="button"
+                                onClick={() => {
+                                  setChosenMilestonesMode('custom');
+                                  setChosenCustomMilestoneTitle(title);
+                                }}
+                                className={`p-2 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between gap-1 min-h-[72px] ${
+                                  isCurrentActive
+                                    ? 'bg-amber-500/25 border-amber-500 text-white shadow-sm ring-1 ring-amber-500/50'
+                                    : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                                }`}
+                              >
+                                <div>
+                                  <span className="text-[9px] font-bold block opacity-60">Step {idx + 1}</span>
+                                  <span className="text-[11px] font-bold leading-tight block truncate" title={title}>
+                                    {title}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1 mt-auto">
+                                  {isCurrentActive && (
+                                    <span className="px-1 py-0.2 rounded text-[8px] font-extrabold bg-amber-400 text-slate-950">
+                                      Active
+                                    </span>
+                                  )}
+                                  {isA && (
+                                    <span
+                                      className="px-1 py-0.2 rounded text-[8px] font-bold bg-blue-500/30 text-blue-300 border border-blue-500/40"
+                                      title="Version A is on this milestone"
+                                    >
+                                      A
+                                    </span>
+                                  )}
+                                  {isB && (
+                                    <span
+                                      className="px-1 py-0.2 rounded text-[8px] font-bold bg-purple-500/30 text-purple-300 border border-purple-500/40"
+                                      title="Version B is on this milestone"
+                                    >
+                                      B
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Result preview summary */}
+                      <div className="pt-2 border-t border-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-400">
+                        <span>
+                          Active Survivor Milestone: <strong className="text-amber-300 font-bold">{previewFinalStage.activeTitle}</strong>{' '}
+                          <span className="text-slate-500">({previewFinalStage.activeStatus})</span>
+                        </span>
+                        <span className="text-slate-400 font-mono">
+                          {previewFinalStage.completedCount} of {previewFinalStage.totalCount} milestones completed
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -2980,7 +3435,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                   <div className="text-xs text-slate-400">
                     <span className="font-bold text-white block">Ready to finalize master project:</span>
                     <span>
-                      &quot;{previewFinalProject?.propertyName}&quot; · {previewFinalProject?.unitsCount} units · {previewFinalProject?.bomItems?.length} BOM items.
+                      &quot;{previewFinalProject?.propertyName}&quot; · {previewFinalProject?.unitsCount} units · {previewFinalProject?.bomItems?.length} BOM items · Milestone: {previewFinalStage.activeTitle} ({previewFinalStage.activeStatus}).
                     </span>
                   </div>
 
