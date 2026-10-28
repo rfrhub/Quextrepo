@@ -46,6 +46,7 @@ import {
   ChevronUp,
   DollarSign,
   CheckSquare,
+  Info,
 } from 'lucide-react';
 
 const COMMON_STOPWORDS = new Set([
@@ -166,6 +167,20 @@ export function getBOMItemKey(item: BOMItem): string {
   const modelPart = (item.model || '').trim().toLowerCase();
   const namePart = (item.name || '').trim().toLowerCase();
   return modelPart ? `${modelPart}__${namePart}` : namePart || item.id;
+}
+
+/**
+ * Determines whether a project was directly generated from a Sales Hub quote.
+ * Direct Sales Hub quotes contain official quote numbers (e.g. QXT-2026-xxxx)
+ * or originalQuoteBOM references and represent the most accurate single source of truth.
+ */
+export function isSalesHubQuoteProject(p?: OperationProject | null): boolean {
+  if (!p) return false;
+  if (p.isManuallyCreated) return false;
+  if (p.quoteNumber && p.quoteNumber.trim().length > 0) return true;
+  if (p.quoteId && p.quoteId.trim().length > 0 && !p.quoteId.startsWith('manual-')) return true;
+  if (p.originalQuoteBOM && p.originalQuoteBOM.length > 0) return true;
+  return false;
 }
 
 export function extractSignificantWords(title: string): string[] {
@@ -313,7 +328,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   const [chosenStatusSource, setChosenStatusSource] = useState<'A' | 'B'>('A');
   const [chosenDatesSource, setChosenDatesSource] = useState<'A' | 'B'>('A');
   const [chosenBOMMode, setChosenBOMMode] = useState<'A' | 'B' | 'combine' | 'custom'>('combine');
-  const [bomCustomChoices, setBomCustomChoices] = useState<Record<string, 'combine' | 'A' | 'B' | 'sum' | 'exclude'>>({});
+  const [bomCustomChoices, setBomCustomChoices] = useState<Record<string, 'combine' | 'A' | 'B' | 'exclude'>>({});
   const [bomViewMode, setBomViewMode] = useState<'matrix' | 'side-by-side'>('matrix');
   const [bomSearchTerm, setBomSearchTerm] = useState<string>('');
   const [bomFilterTab, setBomFilterTab] = useState<'all' | 'diff' | 'a_only' | 'b_only'>('all');
@@ -692,8 +707,11 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
       // 7. Dates
       const datesSource = chosenDatesSource === 'A' ? projectA : projectB;
 
-      // 8. BOM Items
+      // 8. BOM Items (Single Source of Truth - Quantities are Never Summed)
       let bomItems: BOMItem[] = [];
+      const isSalesHubA = isSalesHubQuoteProject(projectA);
+      const isSalesHubB = isSalesHubQuoteProject(projectB);
+
       if (chosenBOMMode === 'A') {
         bomItems = [...(projectA.bomItems || [])];
       } else if (chosenBOMMode === 'B') {
@@ -726,19 +744,17 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
             customItems.push({ ...itA });
           } else if (choice === 'B' && itB) {
             customItems.push({ ...itB });
-          } else if (choice === 'sum' && itA && itB) {
-            customItems.push({
-              ...itA,
-              quantity: (itA.quantity || 0) + (itB.quantity || 0),
-              installedCount: (itA.installedCount || 0) + (itB.installedCount || 0),
-            });
           } else {
-            // Default combine / deduplicate
+            // Default single source of truth for matching items
             if (itA && itB) {
+              const preferred = (isSalesHubA && !isSalesHubB)
+                ? itA
+                : (isSalesHubB && !isSalesHubA)
+                ? itB
+                : (chosenSurvivorId === 'B' ? itB : itA);
               customItems.push({
-                ...itA,
-                quantity: Math.max(itA.quantity || 0, itB.quantity || 0),
-                installedCount: Math.max(itA.installedCount || 0, itB.installedCount || 0),
+                ...preferred,
+                installedCount: Math.min(preferred.quantity, Math.max(itA.installedCount || 0, itB.installedCount || 0)),
               });
             } else if (itA) {
               customItems.push({ ...itA });
@@ -749,22 +765,45 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
         });
         bomItems = customItems;
       } else {
-        // Combine & Deduplicate
-        const itemMap = new Map<string, BOMItem>();
-        [...(projectA.bomItems || []), ...(projectB.bomItems || [])].forEach((item) => {
-          const key = getBOMItemKey(item);
-          if (itemMap.has(key)) {
-            const existing = itemMap.get(key)!;
-            itemMap.set(key, {
-              ...existing,
-              quantity: Math.max(existing.quantity || 0, item.quantity || 0),
-              installedCount: Math.max(existing.installedCount || 0, item.installedCount || 0),
+        // Single Source of Truth Deduplication (Quantities are NEVER summed)
+        const allKeys = new Set<string>();
+        const mapA = new Map<string, BOMItem>();
+        const mapB = new Map<string, BOMItem>();
+
+        (projectA.bomItems || []).forEach((item) => {
+          const k = getBOMItemKey(item);
+          mapA.set(k, item);
+          allKeys.add(k);
+        });
+        (projectB.bomItems || []).forEach((item) => {
+          const k = getBOMItemKey(item);
+          mapB.set(k, item);
+          allKeys.add(k);
+        });
+
+        const singleTruthItems: BOMItem[] = [];
+        allKeys.forEach((key) => {
+          const itA = mapA.get(key);
+          const itB = mapB.get(key);
+
+          if (itA && itB) {
+            // Pick single source of truth: favor direct Sales Hub quote, else survivor
+            const preferred = (isSalesHubA && !isSalesHubB)
+              ? itA
+              : (isSalesHubB && !isSalesHubA)
+              ? itB
+              : (chosenSurvivorId === 'B' ? itB : itA);
+            singleTruthItems.push({
+              ...preferred,
+              installedCount: Math.min(preferred.quantity, Math.max(itA.installedCount || 0, itB.installedCount || 0)),
             });
-          } else {
-            itemMap.set(key, { ...item });
+          } else if (itA) {
+            singleTruthItems.push({ ...itA });
+          } else if (itB) {
+            singleTruthItems.push({ ...itB });
           }
         });
-        bomItems = Array.from(itemMap.values());
+        bomItems = singleTruthItems;
       }
 
       // 9. Integrator Partners
@@ -1004,7 +1043,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     return { count: items.length, totalQty, totalInstalled, totalValue };
   }, [previewFinalProject]);
 
-  const handleSetItemDecision = (key: string, choice: 'combine' | 'A' | 'B' | 'sum' | 'exclude') => {
+  const handleSetItemDecision = (key: string, choice: 'combine' | 'A' | 'B' | 'exclude') => {
     setChosenBOMMode('custom');
     setBomCustomChoices((prev) => ({
       ...prev,
@@ -1012,7 +1051,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     }));
   };
 
-  const getEffectiveItemChoice = (row: (typeof bomComparisonRows)[0]): 'combine' | 'A' | 'B' | 'sum' | 'exclude' => {
+  const getEffectiveItemChoice = (row: (typeof bomComparisonRows)[0]): 'combine' | 'A' | 'B' | 'exclude' => {
     if (chosenBOMMode === 'custom') {
       return bomCustomChoices[row.key] || 'combine';
     }
@@ -1792,7 +1831,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                           }`}
                         >
                           <span className="text-[10px] font-bold text-slate-500 block">Alpha</span>
-                          <span className="truncate block">{activePair.projectA.address}, {activePair.projectA.state}</span>
+                          <span className="break-words block" title={`${activePair.projectA.address}, ${activePair.projectA.state}`}>{activePair.projectA.address}, {activePair.projectA.state}</span>
                         </button>
                         <button
                           type="button"
@@ -1804,7 +1843,7 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                           }`}
                         >
                           <span className="text-[10px] font-bold text-slate-500 block">Beta</span>
-                          <span className="truncate block">{activePair.projectB.address}, {activePair.projectB.state}</span>
+                          <span className="break-words block" title={`${activePair.projectB.address}, ${activePair.projectB.state}`}>{activePair.projectB.address}, {activePair.projectB.state}</span>
                         </button>
                       </div>
                     </div>
@@ -1890,13 +1929,13 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                             {finalBomStats.count} Selected ({finalBomStats.totalQty} Units · ${finalBomStats.totalValue.toLocaleString()})
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Inspect line-by-line hardware differences between Version A and Version B and choose how each item consolidates.
+                        <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                          Inspect line-by-line hardware differences between Version A and Version B. Single source of truth is enforced—quantities are never combined.
                         </p>
                       </div>
 
                       {/* View & Expand Toggles */}
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                         <div className="inline-flex rounded-xl bg-slate-950 p-0.5 border border-slate-800 text-xs">
                           <button
                             type="button"
@@ -1946,113 +1985,175 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                       </div>
                     </div>
 
+                    {/* Single Source of Truth / Sales Hub Quote Guidance Banner */}
+                    <div className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900 border border-blue-500/30 text-xs">
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-1 rounded-lg bg-blue-500/20 text-blue-400 shrink-0 mt-0.5">
+                          <Info className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-white text-xs">
+                              Single Source of Truth Rule: Hardware quantities are never combined
+                            </span>
+                            <span className="px-2 py-0.2 rounded-full text-[9px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              One Source of Truth
+                            </span>
+                          </div>
+                          <p className="text-slate-300 text-[11px] leading-relaxed">
+                            Duplicate project records belong to the same property. To prevent duplicate ordering, hardware quantities are never summed together. Only one set of numbers can be true; projects directly generated from a <strong>Sales Hub Quote</strong> are the recommended primary source of truth.
+                          </p>
+                          {(isSalesHubQuoteProject(activePair.projectA) || isSalesHubQuoteProject(activePair.projectB)) && (
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              {isSalesHubQuoteProject(activePair.projectA) && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold">
+                                  ★ Alpha is an official Sales Hub Quote ({activePair.projectA.quoteNumber || 'Linked'}) — Recommended Master Truth
+                                </span>
+                              )}
+                              {isSalesHubQuoteProject(activePair.projectB) && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono text-[10px] font-bold">
+                                  ★ Beta is an official Sales Hub Quote ({activePair.projectB.quoteNumber || 'Linked'}) — Recommended Master Truth
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Scope Strategy Presets */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 text-xs">
+                      {/* Preset 1: Single Source of Truth */}
                       <button
                         type="button"
                         onClick={() => {
                           setChosenBOMMode('combine');
                           setBomCustomChoices({});
                         }}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
                           chosenBOMMode === 'combine'
                             ? 'bg-emerald-950/40 border-emerald-500 text-white font-bold ring-1 ring-emerald-500/50'
                             : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
+                        title="Keeps unique SKUs without ever summing quantities. When an item exists in both versions, prioritizes the Sales Hub quote source of truth (or chosen survivor)."
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-bold text-emerald-400">
-                            Combine &amp; Deduplicate
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono font-bold">
-                            Smart Merge
-                          </span>
+                        <div>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] uppercase font-bold text-emerald-400">
+                              Single Source of Truth
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-mono font-bold shrink-0">
+                              Recommended
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-1.5 leading-relaxed break-words">
+                            Deduplicates unique SKUs without ever summing quantities. Prioritizes the Sales Hub quote source of truth.
+                          </p>
                         </div>
-                        <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">
-                          Merges identical SKUs from both projects and chooses max/combined quantities.
-                        </p>
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold block mt-1.5">
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold block mt-2">
                           {finalBomStats.count} items · {finalBomStats.totalQty} devices
                         </span>
                       </button>
 
+                      {/* Preset 2: Alpha Scope Only */}
                       <button
                         type="button"
                         onClick={() => {
                           setChosenBOMMode('A');
                           setBomCustomChoices({});
                         }}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
                           chosenBOMMode === 'A'
                             ? 'bg-amber-500/20 border-amber-500 text-white font-bold ring-1 ring-amber-500/50'
                             : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
+                        title={`Strictly keep line items from "${activePair.projectA.propertyName}".`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-bold text-amber-400">
-                            Alpha Scope Only (A)
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold">
-                            Version A
-                          </span>
+                        <div>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] uppercase font-bold text-amber-400">
+                              Alpha Scope Only (A)
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono font-bold shrink-0">
+                              {isSalesHubQuoteProject(activePair.projectA) ? 'Sales Quote (A)' : 'Version A'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-1.5 leading-relaxed break-words">
+                            Strictly keep line items from <strong className="text-white font-medium">&quot;{activePair.projectA.propertyName}&quot;</strong>.
+                          </p>
+                          {isSalesHubQuoteProject(activePair.projectA) && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded mt-1.5">
+                              ★ Sales Hub Quote (Most Accurate)
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-slate-300 mt-1 truncate">
-                          Strictly keep line items from &quot;{activePair.projectA.propertyName}&quot;.
-                        </p>
-                        <span className="text-[10px] font-mono text-amber-300 font-bold block mt-1.5">
+                        <span className="text-[10px] font-mono text-amber-300 font-bold block mt-2">
                           {bomStatsA.count} items · {bomStatsA.totalQty} units · ${bomStatsA.totalValue.toLocaleString()}
                         </span>
                       </button>
 
+                      {/* Preset 3: Beta Scope Only */}
                       <button
                         type="button"
                         onClick={() => {
                           setChosenBOMMode('B');
                           setBomCustomChoices({});
                         }}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
                           chosenBOMMode === 'B'
                             ? 'bg-amber-500/20 border-amber-500 text-white font-bold ring-1 ring-amber-500/50'
                             : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
+                        title={`Strictly keep line items from "${activePair.projectB.propertyName}".`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-bold text-amber-400">
-                            Beta Scope Only (B)
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold">
-                            Version B
-                          </span>
+                        <div>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] uppercase font-bold text-amber-400">
+                              Beta Scope Only (B)
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono font-bold shrink-0">
+                              {isSalesHubQuoteProject(activePair.projectB) ? 'Sales Quote (B)' : 'Version B'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-1.5 leading-relaxed break-words">
+                            Strictly keep line items from <strong className="text-white font-medium">&quot;{activePair.projectB.propertyName}&quot;</strong>.
+                          </p>
+                          {isSalesHubQuoteProject(activePair.projectB) && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-cyan-300 bg-cyan-500/20 border border-cyan-500/30 px-1.5 py-0.5 rounded mt-1.5">
+                              ★ Sales Hub Quote (Most Accurate)
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-slate-300 mt-1 truncate">
-                          Strictly keep line items from &quot;{activePair.projectB.propertyName}&quot;.
-                        </p>
-                        <span className="text-[10px] font-mono text-amber-300 font-bold block mt-1.5">
+                        <span className="text-[10px] font-mono text-amber-300 font-bold block mt-2">
                           {bomStatsB.count} items · {bomStatsB.totalQty} units · ${bomStatsB.totalValue.toLocaleString()}
                         </span>
                       </button>
 
+                      {/* Preset 4: Custom Item Picker */}
                       <button
                         type="button"
                         onClick={() => setChosenBOMMode('custom')}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
                           chosenBOMMode === 'custom'
                             ? 'bg-cyan-950/40 border-cyan-500 text-white font-bold ring-1 ring-cyan-500/50'
                             : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
+                        title="Fine-tune individual hardware rows below choosing between Version A, Version B, or exclude. Quantities are never combined."
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-bold text-cyan-400">
-                            Custom Item Picker
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 rounded font-mono font-bold">
-                            Per-Item
-                          </span>
+                        <div>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] uppercase font-bold text-cyan-400">
+                              Custom Item Picker
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded font-mono font-bold shrink-0">
+                              Per-Item
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-1.5 leading-relaxed break-words">
+                            Fine-tune individual hardware rows below choosing between Version A, Version B, or exclude. Quantities are never combined.
+                          </p>
                         </div>
-                        <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">
-                          Fine-tune individual hardware rows below choosing between A, B, combine, or exclude.
-                        </p>
-                        <span className="text-[10px] font-mono text-cyan-300 font-bold block mt-1.5">
+                        <span className="text-[10px] font-mono text-cyan-300 font-bold block mt-2">
                           {Object.keys(bomCustomChoices).length > 0
                             ? `${Object.keys(bomCustomChoices).length} Custom Overrides`
                             : 'Pick any row below'}
@@ -2072,9 +2173,14 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                             {bomStatsA.count} Line Items
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-slate-100 truncate" title={activePair.projectA.propertyName}>
+                        <p className="text-xs font-bold text-slate-100 break-words" title={activePair.projectA.propertyName}>
                           {activePair.projectA.propertyName}
                         </p>
+                        {isSalesHubQuoteProject(activePair.projectA) && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            ★ Sales Hub Quote ({activePair.projectA.quoteNumber || 'Linked'})
+                          </span>
+                        )}
                         <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-900">
                           <span className="text-slate-400">
                             Units: <strong className="text-white">{bomStatsA.totalQty}</strong> ({bomStatsA.totalInstalled} inst.)
@@ -2095,9 +2201,14 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                             {bomStatsB.count} Line Items
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-slate-100 truncate" title={activePair.projectB.propertyName}>
+                        <p className="text-xs font-bold text-slate-100 break-words" title={activePair.projectB.propertyName}>
                           {activePair.projectB.propertyName}
                         </p>
+                        {isSalesHubQuoteProject(activePair.projectB) && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                            ★ Sales Hub Quote ({activePair.projectB.quoteNumber || 'Linked'})
+                          </span>
+                        )}
                         <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-900">
                           <span className="text-slate-400">
                             Units: <strong className="text-white">{bomStatsB.totalQty}</strong> ({bomStatsB.totalInstalled} inst.)
@@ -2119,8 +2230,8 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                             {finalBomStats.count} Line Items
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-white truncate">
-                          Final Master Project BOM
+                        <p className="text-xs font-bold text-white break-words">
+                          Final Master Project BOM (Single Source of Truth)
                         </p>
                         <div className="flex items-center justify-between text-xs pt-1 border-t border-emerald-900/40">
                           <span className="text-slate-300">
@@ -2262,17 +2373,17 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                                                 {row.category}
                                               </span>
                                             </div>
-                                            <span className="text-[10px] text-slate-500 block truncate">
+                                            <span className="text-[10px] text-slate-500 block break-words" title={row.location}>
                                               📍 {row.location}
                                             </span>
                                             {/* Hardware details if lock or thermostat */}
                                             {row.itemA?.lockFinishConfig && (
-                                              <span className="text-[9px] font-mono text-slate-400 block truncate">
+                                              <span className="text-[9px] font-mono text-slate-400 block break-words" title={`Trim: ${row.itemA.lockFinishConfig.befeTrimStyle || 'Std'} · Finish: ${row.itemA.lockFinishConfig.befeColorFinish || 'Std'}`}>
                                                 Trim: {row.itemA.lockFinishConfig.befeTrimStyle || 'Std'} · Finish: {row.itemA.lockFinishConfig.befeColorFinish || 'Std'}
                                               </span>
                                             )}
                                             {row.itemA?.thermostatBrand && (
-                                              <span className="text-[9px] font-mono text-cyan-300 block truncate">
+                                              <span className="text-[9px] font-mono text-cyan-300 block break-words" title={`Brand: ${row.itemA.thermostatBrand}`}>
                                                 Brand: {row.itemA.thermostatBrand}
                                               </span>
                                             )}
@@ -2348,62 +2459,62 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                                           )}
                                         </td>
 
-                                        {/* 5. Master Choice Decision Pills */}
+                                        {/* 5. Master Choice Decision Pills (Single Source of Truth - Never Combined / Summed) */}
                                         <td className="py-3 px-3 align-top text-right min-w-[210px]">
                                           <div className="flex flex-wrap items-center justify-end gap-1">
                                             {row.itemA && row.itemB ? (
                                               <>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleSetItemDecision(row.key, 'combine')}
-                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                                                    effectiveChoice === 'combine'
-                                                      ? 'bg-emerald-500 text-slate-950 shadow-xs'
-                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-                                                  }`}
-                                                  title={`Take max quantity: ${Math.max(row.itemA.quantity, row.itemB.quantity)} units`}
-                                                >
-                                                  Max ({Math.max(row.itemA.quantity, row.itemB.quantity)}u)
-                                                </button>
+                                                {row.itemA.quantity === row.itemB.quantity ? (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleSetItemDecision(row.key, 'combine')}
+                                                    className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                      effectiveChoice !== 'exclude'
+                                                        ? 'bg-emerald-500 text-slate-950 shadow-xs ring-1 ring-emerald-400 font-extrabold'
+                                                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                    }`}
+                                                    title={`Both Alpha & Beta agree on ${row.itemA.quantity} units (Single Source of Truth)`}
+                                                  >
+                                                    Verified ({row.itemA.quantity}u)
+                                                  </button>
+                                                ) : (
+                                                  <>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleSetItemDecision(row.key, 'A')}
+                                                      className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                        effectiveChoice === 'A' ||
+                                                        (effectiveChoice === 'combine' &&
+                                                          (isSalesHubQuoteProject(activePair.projectA) ||
+                                                            (!isSalesHubQuoteProject(activePair.projectB) && chosenSurvivorId === 'A')))
+                                                          ? 'bg-amber-500 text-slate-950 shadow-xs ring-1 ring-amber-400 font-extrabold'
+                                                          : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                      }`}
+                                                      title={`Keep Alpha quantity: ${row.itemA.quantity} units${
+                                                        isSalesHubQuoteProject(activePair.projectA) ? ' (Direct Sales Hub Quote · Recommended Source)' : ''
+                                                      }`}
+                                                    >
+                                                      {isSalesHubQuoteProject(activePair.projectA) ? '★ ' : ''}Alpha ({row.itemA.quantity}u)
+                                                    </button>
 
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleSetItemDecision(row.key, 'A')}
-                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                                                    effectiveChoice === 'A'
-                                                      ? 'bg-amber-500 text-slate-950 shadow-xs'
-                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-                                                  }`}
-                                                  title={`Keep Alpha quantity: ${row.itemA.quantity} units`}
-                                                >
-                                                  Alpha ({row.itemA.quantity}u)
-                                                </button>
-
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleSetItemDecision(row.key, 'B')}
-                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                                                    effectiveChoice === 'B'
-                                                      ? 'bg-amber-500 text-slate-950 shadow-xs'
-                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-                                                  }`}
-                                                  title={`Keep Beta quantity: ${row.itemB.quantity} units`}
-                                                >
-                                                  Beta ({row.itemB.quantity}u)
-                                                </button>
-
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleSetItemDecision(row.key, 'sum')}
-                                                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                                                    effectiveChoice === 'sum'
-                                                      ? 'bg-cyan-500 text-slate-950 shadow-xs'
-                                                      : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-                                                  }`}
-                                                  title={`Sum quantities: ${row.itemA.quantity + row.itemB.quantity} units`}
-                                                >
-                                                  Sum ({row.itemA.quantity + row.itemB.quantity}u)
-                                                </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleSetItemDecision(row.key, 'B')}
+                                                      className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                                        effectiveChoice === 'B' ||
+                                                        (effectiveChoice === 'combine' &&
+                                                          (isSalesHubQuoteProject(activePair.projectB) && !isSalesHubQuoteProject(activePair.projectA)))
+                                                          ? 'bg-amber-500 text-slate-950 shadow-xs ring-1 ring-amber-400 font-extrabold'
+                                                          : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                                                      }`}
+                                                      title={`Keep Beta quantity: ${row.itemB.quantity} units${
+                                                        isSalesHubQuoteProject(activePair.projectB) ? ' (Direct Sales Hub Quote · Recommended Source)' : ''
+                                                      }`}
+                                                    >
+                                                      {isSalesHubQuoteProject(activePair.projectB) ? '★ ' : ''}Beta ({row.itemB.quantity}u)
+                                                    </button>
+                                                  </>
+                                                )}
 
                                                 <button
                                                   type="button"
@@ -2510,7 +2621,12 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                                     (b) => getBOMItemKey(b) === key
                                   );
                                   const decision = bomCustomChoices[key] || (chosenBOMMode === 'A' ? 'A' : chosenBOMMode === 'B' ? 'exclude' : 'combine');
-                                  const isSelected = decision === 'A' || decision === 'combine' || decision === 'sum';
+                                  const isSelected =
+                                    decision === 'A' ||
+                                    (decision === 'combine' &&
+                                      (!matchingInB ||
+                                        isSalesHubQuoteProject(activePair.projectA) ||
+                                        (!isSalesHubQuoteProject(activePair.projectB) && chosenSurvivorId === 'A')));
 
                                   return (
                                     <div
@@ -2605,7 +2721,14 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                                     (a) => getBOMItemKey(a) === key
                                   );
                                   const decision = bomCustomChoices[key] || (chosenBOMMode === 'B' ? 'B' : chosenBOMMode === 'A' ? 'exclude' : 'combine');
-                                  const isSelected = decision === 'B' || decision === 'combine' || decision === 'sum';
+                                  const isSelected =
+                                    decision === 'B' ||
+                                    (decision === 'combine' &&
+                                      (!matchingInA ||
+                                        (isSalesHubQuoteProject(activePair.projectB) && !isSalesHubQuoteProject(activePair.projectA)) ||
+                                        (!isSalesHubQuoteProject(activePair.projectA) &&
+                                          !isSalesHubQuoteProject(activePair.projectB) &&
+                                          chosenSurvivorId === 'B')));
 
                                   return (
                                     <div
