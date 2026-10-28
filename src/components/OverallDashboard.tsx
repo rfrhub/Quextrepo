@@ -2868,414 +2868,6 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
         </div>
       )}
 
-      {/* REQUIREMENT: "Let's provide a cost breakdown on the installation Overview Dashboard as well so that leadership can see on, a high-level, the overall profits of the total projects, as well as how on track we are to collect that money." */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-200">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 rounded uppercase tracking-wider">
-                Finance
-              </span>
-              <span className="text-xs text-slate-500 font-mono">· Portfolio Revenue & Profitability Engine</span>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-['Plus_Jakarta_Sans'] flex items-center gap-2">
-              <DollarSign className="w-6 h-6 text-emerald-600 shrink-0" />
-              <span>Financial &amp; Profitability Overview</span>
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
-              Consolidated financial health evaluating gross profit margins across active hardware deployments, turnkey labor expenditures, and milestone cash collection progress.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-            <span className="text-xs text-slate-500 font-semibold">Sort Breakdown:</span>
-            <select
-              value={financialSortBy}
-              onChange={(e) => setFinancialSortBy(e.target.value as any)}
-              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-bold focus:outline-none focus:border-sky-500"
-            >
-              <option value="profit">Highest Gross Profit ($)</option>
-              <option value="revenue">Total Quoted Value ($)</option>
-              <option value="margin">Highest Margin (%)</option>
-              <option value="collection">Cash Collection %</option>
-            </select>
-
-            <button
-              type="button"
-              onClick={() => setIsFinancialProjectsMinimized((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
-              title={isFinancialProjectsMinimized ? 'Expand project breakdown table' : 'Minimize project breakdown table to save space'}
-            >
-              {isFinancialProjectsMinimized ? (
-                <>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Expand Projects ({projectFinancials.length})</span>
-                </>
-              ) : (
-                <>
-                  <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Minimize Projects</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* 4 Financial KPI Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mt-5">
-          {/* Total Quoted Portfolio Value */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden min-w-0">
-            <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
-              <span className="truncate">Total Quoted Contract Revenue</span>
-              <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
-            </div>
-            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono mt-1 tabular-nums break-words">
-              ${totalPortfolioRevenue.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
-              Across <span className="font-bold text-slate-800 font-mono">{totalProjects}</span> active projects
-            </div>
-          </div>
-
-          {/* Wholesale Equipment & Labor Cost */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden min-w-0">
-            <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
-              <span className="truncate">Estimated Equipment &amp; Labor Cost</span>
-              <Layers className="w-4 h-4 text-slate-500 shrink-0" />
-            </div>
-            <div className="text-xl sm:text-2xl font-extrabold text-slate-800 font-mono mt-1 tabular-nums break-words">
-              ${totalPortfolioCost.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
-              Wholesale catalog costs + 65% labor
-            </div>
-          </div>
-
-          {/* Projected Gross Profit & Margin */}
-          <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-300 overflow-hidden min-w-0">
-            <div className="text-xs text-emerald-900 font-bold flex items-center justify-between gap-2">
-              <span className="truncate">Projected Portfolio Gross Profit</span>
-              <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
-            </div>
-            <div className="text-xl sm:text-2xl font-extrabold text-emerald-900 font-mono mt-1 tabular-nums flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span>${totalPortfolioProfit.toLocaleString()}</span>
-              <span className="text-xs sm:text-sm font-bold text-emerald-700 font-sans">({portfolioBlendedMargin}%)</span>
-            </div>
-            <div className="text-[11px] text-emerald-800/90 mt-0.5 truncate">
-              Blended gross margin across active portfolio
-            </div>
-          </div>
-
-          {/* Cash Collection Track */}
-          <div className="p-4 bg-sky-50/70 rounded-xl border border-sky-300 overflow-hidden min-w-0">
-            <div className="text-xs text-sky-900 font-bold flex items-center justify-between gap-2">
-              <span className="truncate">Milestone Cash Collection Progress</span>
-              <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />
-            </div>
-            <div className="text-xl sm:text-2xl font-extrabold text-sky-950 font-mono mt-1 tabular-nums flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span>${totalCashCollected.toLocaleString()}</span>
-              <span className="text-xs font-normal text-sky-700">({portfolioCollectionPct}%)</span>
-            </div>
-            <div className="text-[11px] text-sky-900/80 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <span>
-                <span className="font-mono font-bold text-slate-800">${totalCashOnTrack.toLocaleString()}</span> on-track
-              </span>
-              <span>·</span>
-              <span>
-                <span className="font-mono font-bold text-rose-700">${totalCashAtRisk.toLocaleString()}</span> delayed
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Cash Collection Track Progress Bar */}
-        <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2 mb-2">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <span className="font-bold text-slate-900">Portfolio Cash Collection Track:</span>
-              <span className="font-mono text-slate-600">
-                ${totalCashCollected.toLocaleString()} of ${totalPortfolioRevenue.toLocaleString()} collectable
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono">
-              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 shrink-0" />
-                Collectable ({portfolioCollectionPct}%)
-              </span>
-              <span className="inline-flex items-center gap-1 text-sky-700 font-bold">
-                <span className="w-2.5 h-2.5 rounded-sm bg-sky-500 shrink-0" />
-                On-Track Billings (${Math.round(totalCashOnTrack / 1000)}k)
-              </span>
-              <span className="inline-flex items-center gap-1 text-rose-700 font-bold">
-                <span className="w-2.5 h-2.5 rounded-sm bg-rose-500 shrink-0" />
-                Delayed at Risk (${Math.round(totalCashAtRisk / 1000)}k)
-              </span>
-            </div>
-          </div>
-
-          <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden flex">
-            <div
-              className="h-full bg-emerald-500 transition-all duration-500"
-              style={{ width: `${(totalCashCollected / totalPortfolioRevenue) * 100}%` }}
-              title={`Collected: $${totalCashCollected.toLocaleString()}`}
-            />
-            <div
-              className="h-full bg-sky-500 transition-all duration-500"
-              style={{ width: `${(totalCashOnTrack / totalPortfolioRevenue) * 100}%` }}
-              title={`On Track: $${totalCashOnTrack.toLocaleString()}`}
-            />
-            <div
-              className="h-full bg-rose-500 transition-all duration-500"
-              style={{ width: `${(totalCashAtRisk / totalPortfolioRevenue) * 100}%` }}
-              title={`Delayed at Risk: $${totalCashAtRisk.toLocaleString()}`}
-            />
-          </div>
-        </div>
-
-        {/* Project Financial Breakdown Table with Minimize / Expand Toggle */}
-        {!isFinancialProjectsMinimized ? (
-          <div className="overflow-x-auto mt-4 border border-slate-200 rounded-xl">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                  <th className="py-2.5 px-3">Project & Client</th>
-                  <th className="py-2.5 px-3 text-right">Quoted Hardware</th>
-                  <th className="py-2.5 px-3 text-right">Turnkey Install</th>
-                  <th className="py-2.5 px-3 text-right">Total Revenue</th>
-                  <th className="py-2.5 px-3 text-right">Estimated Cost</th>
-                  <th className="py-2.5 px-3 text-right font-bold text-emerald-800">Gross Profit ($)</th>
-                  <th className="py-2.5 px-3 text-right">Margin %</th>
-                  <th className="py-2.5 px-3 text-center">Billed / Invoiced</th>
-                  <th className="py-2.5 px-3 text-center">Collection Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {projectFinancials
-                  .sort((a, b) => {
-                    if (financialSortBy === 'profit') return b.grossProfit - a.grossProfit;
-                    if (financialSortBy === 'revenue') return b.totalQuotedRevenue - a.totalQuotedRevenue;
-                    if (financialSortBy === 'margin') return b.grossMarginPct - a.grossMarginPct;
-                    return b.billedPercentage - a.billedPercentage;
-                  })
-                  .map((f) => (
-                    <tr key={`fin-${f.project.id}`} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-2.5 px-3">
-                        <button
-                          type="button"
-                          onClick={() => onSelectProjectTab(f.project.id)}
-                          className="font-bold text-slate-900 hover:text-sky-700 text-left transition-colors cursor-pointer"
-                        >
-                          {f.project.propertyName}
-                        </button>
-                        <div className="text-[10px] text-slate-500 font-mono">
-                          {f.project.clientName} · #{f.project.quoteNumber}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                        ${f.quotedHardwareRevenue.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                        ${f.quotedInstallRevenue.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                        ${f.totalQuotedRevenue.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-600">
-                        ${f.totalEstimatedCost.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-extrabold text-emerald-700">
-                        +${f.grossProfit.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
-                        {f.grossMarginPct}%
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <div className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-slate-800">
-                          <span>{f.billedPercentage}%</span>
-                          <span className="text-[10px] text-slate-400">(${Math.round(f.cashCollected / 1000)}k)</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        {f.isAtRisk ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                            <AlertTriangle className="w-3 h-3 text-amber-600" />
-                            <span>Delayed (${Math.round(f.unbilledAmount / 1000)}k)</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>On Track</span>
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-extrabold text-slate-900 font-mono">
-                {projectFinancials.length} Projects Minimized
-              </span>
-              <span className="text-slate-400">•</span>
-              <span>Total Revenue: <strong className="font-mono text-slate-900">${totalPortfolioRevenue.toLocaleString()}</strong></span>
-              <span className="text-slate-400">•</span>
-              <span>Gross Profit: <strong className="font-mono text-emerald-700">${totalPortfolioProfit.toLocaleString()}</strong> ({portfolioBlendedMargin}%)</span>
-              <span className="text-slate-400">•</span>
-              <span>Collected: <strong className="font-mono text-sky-800">${totalCashCollected.toLocaleString()}</strong> ({portfolioCollectionPct}%)</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsFinancialProjectsMinimized(false)}
-              className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer shrink-0 self-start sm:self-auto"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-              <span>Expand Projects Table</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Visual Comparative Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Hardware Categories Progress Breakdown with TWO Selectable Thermostat Tags */}
-        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-sky-600" />
-              <h3 className="text-sm font-bold text-slate-900">Hardware Categories Progress Breakdown</h3>
-            </div>
-
-            {/* Requirement: "for the smart thermostats tag ensure that it is two different tags that are selectable between 'Quext' and 'Honeywell'." */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
-              <Tag className="w-3.5 h-3.5 text-amber-600" />
-              <span className="font-semibold text-slate-700 text-[11px]">Thermostats:</span>
-              <button
-                type="button"
-                onClick={() =>
-                  setSelectedThermostatBrandFilter(selectedThermostatBrandFilter === 'Quext' ? 'All' : 'Quext')
-                }
-                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                  selectedThermostatBrandFilter === 'Quext'
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                }`}
-                title="Filter / focus Quext brand thermostats"
-              >
-                Quext ({categories.find((c) => c.name === 'Smart Thermostats')?.quextStats || 0})
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setSelectedThermostatBrandFilter(selectedThermostatBrandFilter === 'Honeywell' ? 'All' : 'Honeywell')
-                }
-                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                  selectedThermostatBrandFilter === 'Honeywell'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                }`}
-                title="Filter / focus Honeywell brand thermostats"
-              >
-                Honeywell ({categories.find((c) => c.name === 'Smart Thermostats')?.honeywellStats || 0})
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4 mt-4">
-            {categories.map((cat) => (
-              <div key={cat.name} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-900 font-bold">{cat.name}</span>
-                    {cat.name === 'Smart Thermostats' && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-300">
-                        Selectable: Quext & Honeywell
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 font-mono">
-                    <span className="text-slate-600 font-medium tabular-nums">
-                      {cat.installed.toLocaleString()} / {cat.quoted.toLocaleString()} {cat.unitLabel}
-                    </span>
-                    <span
-                      className={`font-bold tabular-nums ${
-                        cat.pct === 100
-                          ? 'text-emerald-700'
-                          : cat.pct > 50
-                          ? 'text-sky-700'
-                          : 'text-amber-700'
-                      }`}
-                    >
-                      {cat.pct}%
-                    </span>
-                  </div>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      cat.pct === 100
-                        ? 'bg-emerald-500'
-                        : cat.pct > 50
-                        ? 'bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600'
-                        : 'bg-gradient-to-r from-amber-400 to-orange-500'
-                    }`}
-                    style={{ width: `${cat.pct}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Field Activity Feed */}
-        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-sky-600" />
-                <h3 className="text-sm font-bold text-slate-900">Recent Field Installer Activity</h3>
-              </div>
-              <span className="text-xs text-slate-500 font-mono">Live Telemetry</span>
-            </div>
-            <div className="mt-3 space-y-2.5">
-              {allLogs.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs">
-                  No installation logs recorded yet.
-                </div>
-              ) : (
-                allLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs hover:border-slate-300 transition-colors"
-                  >
-                    <div className="flex items-center justify-between font-mono text-[11px] mb-1">
-                      <span className="text-sky-700 font-bold truncate max-w-[180px]">
-                        {log.propertyName}
-                      </span>
-                      <span className="text-slate-500">{log.timestamp}</span>
-                    </div>
-                    <div className="text-slate-900 font-medium">
-                      <strong>+{log.quantityCompleted}</strong> {log.itemName}
-                    </div>
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                      {log.locationCompleted} · {log.installerName}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3 mt-3 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>Real-time installer logs & post-it sync</span>
-            <span className="text-sky-700 font-mono font-bold">Quext Ops Fleet</span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Table: Active Projects Installation Status with PM Filter */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
         <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -3747,6 +3339,414 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
       </div>
     )}
   </div>
+
+      {/* REQUIREMENT: "Let's provide a cost breakdown on the installation Overview Dashboard as well so that leadership can see on, a high-level, the overall profits of the total projects, as well as how on track we are to collect that money." */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 rounded uppercase tracking-wider">
+                Finance
+              </span>
+              <span className="text-xs text-slate-500 font-mono">· Portfolio Revenue & Profitability Engine</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-['Plus_Jakarta_Sans'] flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-emerald-600 shrink-0" />
+              <span>Financial &amp; Profitability Overview</span>
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+              Consolidated financial health evaluating gross profit margins across active hardware deployments, turnkey labor expenditures, and milestone cash collection progress.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            <span className="text-xs text-slate-500 font-semibold">Sort Breakdown:</span>
+            <select
+              value={financialSortBy}
+              onChange={(e) => setFinancialSortBy(e.target.value as any)}
+              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-bold focus:outline-none focus:border-sky-500"
+            >
+              <option value="profit">Highest Gross Profit ($)</option>
+              <option value="revenue">Total Quoted Value ($)</option>
+              <option value="margin">Highest Margin (%)</option>
+              <option value="collection">Cash Collection %</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setIsFinancialProjectsMinimized((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
+              title={isFinancialProjectsMinimized ? 'Expand project breakdown table' : 'Minimize project breakdown table to save space'}
+            >
+              {isFinancialProjectsMinimized ? (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Expand Projects ({projectFinancials.length})</span>
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Minimize Projects</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Financial KPI Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mt-5">
+          {/* Total Quoted Portfolio Value */}
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden min-w-0">
+            <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
+              <span className="truncate">Total Quoted Contract Revenue</span>
+              <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
+            </div>
+            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono mt-1 tabular-nums break-words">
+              ${totalPortfolioRevenue.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+              Across <span className="font-bold text-slate-800 font-mono">{totalProjects}</span> active projects
+            </div>
+          </div>
+
+          {/* Wholesale Equipment & Labor Cost */}
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden min-w-0">
+            <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
+              <span className="truncate">Estimated Equipment &amp; Labor Cost</span>
+              <Layers className="w-4 h-4 text-slate-500 shrink-0" />
+            </div>
+            <div className="text-xl sm:text-2xl font-extrabold text-slate-800 font-mono mt-1 tabular-nums break-words">
+              ${totalPortfolioCost.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+              Wholesale catalog costs + 65% labor
+            </div>
+          </div>
+
+          {/* Projected Gross Profit & Margin */}
+          <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-300 overflow-hidden min-w-0">
+            <div className="text-xs text-emerald-900 font-bold flex items-center justify-between gap-2">
+              <span className="truncate">Projected Portfolio Gross Profit</span>
+              <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
+            </div>
+            <div className="text-xl sm:text-2xl font-extrabold text-emerald-900 font-mono mt-1 tabular-nums flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span>${totalPortfolioProfit.toLocaleString()}</span>
+              <span className="text-xs sm:text-sm font-bold text-emerald-700 font-sans">({portfolioBlendedMargin}%)</span>
+            </div>
+            <div className="text-[11px] text-emerald-800/90 mt-0.5 truncate">
+              Blended gross margin across active portfolio
+            </div>
+          </div>
+
+          {/* Cash Collection Track */}
+          <div className="p-4 bg-sky-50/70 rounded-xl border border-sky-300 overflow-hidden min-w-0">
+            <div className="text-xs text-sky-900 font-bold flex items-center justify-between gap-2">
+              <span className="truncate">Milestone Cash Collection Progress</span>
+              <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />
+            </div>
+            <div className="text-xl sm:text-2xl font-extrabold text-sky-950 font-mono mt-1 tabular-nums flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span>${totalCashCollected.toLocaleString()}</span>
+              <span className="text-xs font-normal text-sky-700">({portfolioCollectionPct}%)</span>
+            </div>
+            <div className="text-[11px] text-sky-900/80 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <span>
+                <span className="font-mono font-bold text-slate-800">${totalCashOnTrack.toLocaleString()}</span> on-track
+              </span>
+              <span>·</span>
+              <span>
+                <span className="font-mono font-bold text-rose-700">${totalCashAtRisk.toLocaleString()}</span> delayed
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Cash Collection Track Progress Bar */}
+        <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="font-bold text-slate-900">Portfolio Cash Collection Track:</span>
+              <span className="font-mono text-slate-600">
+                ${totalCashCollected.toLocaleString()} of ${totalPortfolioRevenue.toLocaleString()} collectable
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono">
+              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 shrink-0" />
+                Collectable ({portfolioCollectionPct}%)
+              </span>
+              <span className="inline-flex items-center gap-1 text-sky-700 font-bold">
+                <span className="w-2.5 h-2.5 rounded-sm bg-sky-500 shrink-0" />
+                On-Track Billings (${Math.round(totalCashOnTrack / 1000)}k)
+              </span>
+              <span className="inline-flex items-center gap-1 text-rose-700 font-bold">
+                <span className="w-2.5 h-2.5 rounded-sm bg-rose-500 shrink-0" />
+                Delayed at Risk (${Math.round(totalCashAtRisk / 1000)}k)
+              </span>
+            </div>
+          </div>
+
+          <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden flex">
+            <div
+              className="h-full bg-emerald-500 transition-all duration-500"
+              style={{ width: `${(totalCashCollected / totalPortfolioRevenue) * 100}%` }}
+              title={`Collected: $${totalCashCollected.toLocaleString()}`}
+            />
+            <div
+              className="h-full bg-sky-500 transition-all duration-500"
+              style={{ width: `${(totalCashOnTrack / totalPortfolioRevenue) * 100}%` }}
+              title={`On Track: $${totalCashOnTrack.toLocaleString()}`}
+            />
+            <div
+              className="h-full bg-rose-500 transition-all duration-500"
+              style={{ width: `${(totalCashAtRisk / totalPortfolioRevenue) * 100}%` }}
+              title={`Delayed at Risk: $${totalCashAtRisk.toLocaleString()}`}
+            />
+          </div>
+        </div>
+
+        {/* Project Financial Breakdown Table with Minimize / Expand Toggle */}
+        {!isFinancialProjectsMinimized ? (
+          <div className="overflow-x-auto mt-4 border border-slate-200 rounded-xl">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Project & Client</th>
+                  <th className="py-2.5 px-3 text-right">Quoted Hardware</th>
+                  <th className="py-2.5 px-3 text-right">Turnkey Install</th>
+                  <th className="py-2.5 px-3 text-right">Total Revenue</th>
+                  <th className="py-2.5 px-3 text-right">Estimated Cost</th>
+                  <th className="py-2.5 px-3 text-right font-bold text-emerald-800">Gross Profit ($)</th>
+                  <th className="py-2.5 px-3 text-right">Margin %</th>
+                  <th className="py-2.5 px-3 text-center">Billed / Invoiced</th>
+                  <th className="py-2.5 px-3 text-center">Collection Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {projectFinancials
+                  .sort((a, b) => {
+                    if (financialSortBy === 'profit') return b.grossProfit - a.grossProfit;
+                    if (financialSortBy === 'revenue') return b.totalQuotedRevenue - a.totalQuotedRevenue;
+                    if (financialSortBy === 'margin') return b.grossMarginPct - a.grossMarginPct;
+                    return b.billedPercentage - a.billedPercentage;
+                  })
+                  .map((f) => (
+                    <tr key={`fin-${f.project.id}`} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-2.5 px-3">
+                        <button
+                          type="button"
+                          onClick={() => onSelectProjectTab(f.project.id)}
+                          className="font-bold text-slate-900 hover:text-sky-700 text-left transition-colors cursor-pointer"
+                        >
+                          {f.project.propertyName}
+                        </button>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {f.project.clientName} · #{f.project.quoteNumber}
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                        ${f.quotedHardwareRevenue.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                        ${f.quotedInstallRevenue.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                        ${f.totalQuotedRevenue.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-600">
+                        ${f.totalEstimatedCost.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-extrabold text-emerald-700">
+                        +${f.grossProfit.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
+                        {f.grossMarginPct}%
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-slate-800">
+                          <span>{f.billedPercentage}%</span>
+                          <span className="text-[10px] text-slate-400">(${Math.round(f.cashCollected / 1000)}k)</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        {f.isAtRisk ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <AlertTriangle className="w-3 h-3 text-amber-600" />
+                            <span>Delayed (${Math.round(f.unbilledAmount / 1000)}k)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>On Track</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-extrabold text-slate-900 font-mono">
+                {projectFinancials.length} Projects Minimized
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>Total Revenue: <strong className="font-mono text-slate-900">${totalPortfolioRevenue.toLocaleString()}</strong></span>
+              <span className="text-slate-400">•</span>
+              <span>Gross Profit: <strong className="font-mono text-emerald-700">${totalPortfolioProfit.toLocaleString()}</strong> ({portfolioBlendedMargin}%)</span>
+              <span className="text-slate-400">•</span>
+              <span>Collected: <strong className="font-mono text-sky-800">${totalCashCollected.toLocaleString()}</strong> ({portfolioCollectionPct}%)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFinancialProjectsMinimized(false)}
+              className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer shrink-0 self-start sm:self-auto"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+              <span>Expand Projects Table</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Visual Comparative Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Hardware Categories Progress Breakdown with TWO Selectable Thermostat Tags */}
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-sky-600" />
+              <h3 className="text-sm font-bold text-slate-900">Hardware Categories Progress Breakdown</h3>
+            </div>
+
+            {/* Requirement: "for the smart thermostats tag ensure that it is two different tags that are selectable between 'Quext' and 'Honeywell'." */}
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+              <Tag className="w-3.5 h-3.5 text-amber-600" />
+              <span className="font-semibold text-slate-700 text-[11px]">Thermostats:</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedThermostatBrandFilter(selectedThermostatBrandFilter === 'Quext' ? 'All' : 'Quext')
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  selectedThermostatBrandFilter === 'Quext'
+                    ? 'bg-sky-600 text-white shadow-xs'
+                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Filter / focus Quext brand thermostats"
+              >
+                Quext ({categories.find((c) => c.name === 'Smart Thermostats')?.quextStats || 0})
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedThermostatBrandFilter(selectedThermostatBrandFilter === 'Honeywell' ? 'All' : 'Honeywell')
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  selectedThermostatBrandFilter === 'Honeywell'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Filter / focus Honeywell brand thermostats"
+              >
+                Honeywell ({categories.find((c) => c.name === 'Smart Thermostats')?.honeywellStats || 0})
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4 mt-4">
+            {categories.map((cat) => (
+              <div key={cat.name} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900 font-bold">{cat.name}</span>
+                    {cat.name === 'Smart Thermostats' && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-300">
+                        Selectable: Quext & Honeywell
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 font-mono">
+                    <span className="text-slate-600 font-medium tabular-nums">
+                      {cat.installed.toLocaleString()} / {cat.quoted.toLocaleString()} {cat.unitLabel}
+                    </span>
+                    <span
+                      className={`font-bold tabular-nums ${
+                        cat.pct === 100
+                          ? 'text-emerald-700'
+                          : cat.pct > 50
+                          ? 'text-sky-700'
+                          : 'text-amber-700'
+                      }`}
+                    >
+                      {cat.pct}%
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      cat.pct === 100
+                        ? 'bg-emerald-500'
+                        : cat.pct > 50
+                        ? 'bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600'
+                        : 'bg-gradient-to-r from-amber-400 to-orange-500'
+                    }`}
+                    style={{ width: `${cat.pct}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Field Activity Feed */}
+        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-sky-600" />
+                <h3 className="text-sm font-bold text-slate-900">Recent Field Installer Activity</h3>
+              </div>
+              <span className="text-xs text-slate-500 font-mono">Live Telemetry</span>
+            </div>
+            <div className="mt-3 space-y-2.5">
+              {allLogs.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-xs">
+                  No installation logs recorded yet.
+                </div>
+              ) : (
+                allLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs hover:border-slate-300 transition-colors"
+                  >
+                    <div className="flex items-center justify-between font-mono text-[11px] mb-1">
+                      <span className="text-sky-700 font-bold truncate max-w-[180px]">
+                        {log.propertyName}
+                      </span>
+                      <span className="text-slate-500">{log.timestamp}</span>
+                    </div>
+                    <div className="text-slate-900 font-medium">
+                      <strong>+{log.quantityCompleted}</strong> {log.itemName}
+                    </div>
+                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                      {log.locationCompleted} · {log.installerName}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="pt-3 mt-3 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
+            <span>Real-time installer logs & post-it sync</span>
+            <span className="text-sky-700 font-mono font-bold">Quext Ops Fleet</span>
+          </div>
+        </div>
+      </div>
 
       {/* Assistance Provided Pop-Up Modal */}
       {assistModalProject && (
