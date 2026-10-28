@@ -995,29 +995,6 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
               <Zap className="w-3 h-3 text-amber-300 fill-amber-300 shrink-0" />
               <span>Clip</span>
             </button>
-            {/* Quick Switcher between Sean Gates & Hector Lopez (Desktop) */}
-            <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
-              {AVAILABLE_FIELD_TECHS.map((tName) => (
-                <button
-                  key={tName}
-                  type="button"
-                  onClick={() => {
-                    onSwitchFieldTech(tName);
-                    setActiveTab('hub');
-                    setSelectedProjectFilter('all');
-                  }}
-                  className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    fieldTech === tName
-                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title={`Switch to ${tName}'s Field Tech Login`}
-                >
-                  {tName}
-                </button>
-              ))}
-            </div>
-
             <button
               type="button"
               onClick={onLogoutToMainSite}
@@ -1035,7 +1012,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
               <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                 {techProfile.initials}
               </div>
-              <div className="hidden xl:block text-left leading-tight">
+              <div className="hidden sm:block text-left leading-tight">
                 <div className="text-xs font-semibold text-slate-900 flex items-center gap-1">
                   <span>{techProfile.name}</span>
                 </div>
@@ -1045,7 +1022,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
           </div>
         </div>
 
-        {/* Mobile Second Row: Live Activity Hub + Tech Switcher (md:hidden) */}
+        {/* Mobile Second Row: Live Activity Hub (md:hidden) */}
         <div className="md:hidden border-t border-slate-100 bg-slate-50/90 px-3 py-1.5 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
           <button
             type="button"
@@ -1059,27 +1036,6 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
             <Activity className="w-3.5 h-3.5" />
             <span>Live Activity Hub ({assignedProjects.length})</span>
           </button>
-
-          <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-200 text-[11px] shrink-0">
-            {AVAILABLE_FIELD_TECHS.map((tName) => (
-              <button
-                key={tName}
-                type="button"
-                onClick={() => {
-                  onSwitchFieldTech(tName);
-                  setActiveTab('hub');
-                  setSelectedProjectFilter('all');
-                }}
-                className={`px-2 py-1 rounded-md font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  fieldTech === tName
-                    ? 'bg-sky-100 text-sky-900'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {tName.split(' ')[0]}
-              </button>
-            ))}
-          </div>
         </div>
       </header>
 

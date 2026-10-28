@@ -26,7 +26,7 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     return {
       name: 'Sean Gates',
       email: email.includes('@') ? email : 'sean.gates@onequext.com',
-      roleLabel: 'TEAM MEMBER',
+      roleLabel: 'FIELD OPERATIONS LEAD',
       avatarInitial: 'S',
       accountType: 'team_member',
       fieldTechDefault: 'Sean Gates',
@@ -37,7 +37,7 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     return {
       name: 'Hector Lopez',
       email: email.includes('@') ? email : 'hector.lopez@onequext.com',
-      roleLabel: 'TEAM MEMBER',
+      roleLabel: 'SENIOR FIELD TECHNICIAN',
       avatarInitial: 'H',
       accountType: 'team_member',
       fieldTechDefault: 'Hector Lopez',

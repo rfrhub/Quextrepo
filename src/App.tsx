@@ -456,16 +456,22 @@ export default function App() {
       }
 
       // Check if Field Tech direct login hash is accessed
-      if (hash.includes('/field-tech/')) {
+      if (hash.includes('/field-tech')) {
         const lower = hash.toLowerCase();
-        if (lower.includes('sean')) {
-          setLoggedInPartnerAcademy(null);
-          setLoggedInFieldTech('Sean Gates');
-          return;
-        }
         if (lower.includes('hector')) {
           setLoggedInPartnerAcademy(null);
           setLoggedInFieldTech('Hector Lopez');
+          return;
+        } else if (lower.includes('sean')) {
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech('Sean Gates');
+          return;
+        } else {
+          const fallbackTech: FieldTechName =
+            signedInUserRef.current?.fieldTechDefault ||
+            (signedInUserRef.current?.name.toLowerCase().includes('hector') ? 'Hector Lopez' : 'Sean Gates');
+          setLoggedInPartnerAcademy(null);
+          setLoggedInFieldTech(fallbackTech);
           return;
         }
       }
@@ -1892,7 +1898,9 @@ export default function App() {
             window.location.hash = '#/login';
           }}
           onOpenFieldTechPortal={() => {
-            const targetTech = signedInUser.fieldTechDefault || 'Sean Gates';
+            const targetTech: FieldTechName =
+              signedInUser.fieldTechDefault ||
+              (signedInUser.name.toLowerCase().includes('hector') ? 'Hector Lopez' : 'Sean Gates');
             setLoggedInFieldTech(targetTech);
             window.location.hash = `#/field-tech/${targetTech.toLowerCase().replace(' ', '-')}`;
           }}
