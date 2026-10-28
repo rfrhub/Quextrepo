@@ -49,6 +49,7 @@ import {
   KeyRound,
   ChevronDown,
   FileSpreadsheet,
+  LogOut,
 } from 'lucide-react';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
@@ -632,316 +633,347 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                   className="fixed inset-0 z-40"
                   onClick={() => setIsProfileMenuOpen(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-[260px] bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 text-left">
-                  {/* Header: Raul Recalde / raul.recalde@onequext.com */}
-                  <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-bold text-slate-900 leading-snug">
-                      {currentUserName}
-                    </p>
+                <div className="absolute right-0 top-full mt-2 w-[320px] sm:w-[340px] bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-50 text-left max-h-[min(82vh,680px)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                  {/* Sticky Header: Raul Recalde / raul.recalde@onequext.com */}
+                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/80 shrink-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-slate-900 leading-snug truncate">
+                        {currentUserName}
+                      </p>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full shrink-0">
+                        {currentUserRoleLabel || 'Quext PM'}
+                      </span>
+                    </div>
                     <p className="text-xs font-normal text-slate-500 truncate mt-0.5">
                       {currentUserEmail}
                     </p>
                   </div>
 
-                  {/* Section 1 */}
-                  <div className="py-1.5">
-                    {/* Field Tech Portal */}
-                    <button
-                      type="button"
-                      data-tutorial-id="profile-dropdown-field-tech-btn"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        if (onOpenFieldTechPortal) {
-                          onOpenFieldTechPortal();
-                        } else if (onOpenLoginModal) {
-                          onOpenLoginModal();
-                        }
-                      }}
-                      className="w-full px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50 flex items-center justify-between cursor-pointer transition-colors"
-                      title="Open Field Tech Portal"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Wrench className="w-4 h-4 text-sky-600 shrink-0" />
-                        <span>Field Tech Portal</span>
-                      </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </button>
+                  {/* Scrollable Body containing all sections and buttons */}
+                  <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-slate-100 p-1.5 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300 space-y-1">
+                    {/* Section 1: Core Portals & Workspaces */}
+                    <div className="space-y-1">
+                      {/* Field Tech Portal */}
+                      <button
+                        type="button"
+                        data-tutorial-id="profile-dropdown-field-tech-btn"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          if (onOpenFieldTechPortal) {
+                            onOpenFieldTechPortal();
+                          } else if (onOpenLoginModal) {
+                            onOpenLoginModal();
+                          }
+                        }}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-sky-900 bg-sky-50/70 hover:bg-sky-100/90 border border-sky-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                        title="Open Field Tech Portal"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Wrench className="w-4 h-4 text-sky-600 shrink-0" />
+                          <span>Field Tech Portal</span>
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                      </button>
 
-                    {/* Partner Academy Portal */}
-                    {onOpenPartnerAcademy && (
-                      <div className="w-full px-4 py-1.5 flex items-center justify-between hover:bg-purple-50/70 transition-colors">
+                      {/* Partner Academy Portal */}
+                      {onOpenPartnerAcademy && (
+                        <div className="w-full px-3 py-2 rounded-lg bg-purple-50/60 border border-purple-200/70 flex items-center justify-between transition-colors">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsProfileMenuOpen(false);
+                              onOpenPartnerAcademy();
+                            }}
+                            className="flex items-center gap-2.5 text-xs font-semibold text-purple-950 cursor-pointer flex-1 text-left hover:text-purple-700 transition-colors"
+                            title="Open Quext Partner Training & Certification Academy Portal"
+                          >
+                            <BookOpen className="w-4 h-4 text-purple-600 shrink-0" />
+                            <span>Partner Academy Portal</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const url = buildPartnerAcademyPortalUrl();
+                              navigator.clipboard.writeText(url);
+                              setCopiedPartnerAcademyLink(true);
+                              setTimeout(() => setCopiedPartnerAcademyLink(false), 2500);
+                            }}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold text-purple-700 bg-white hover:bg-purple-100 border border-purple-300/80 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                            title="Copy shareable link to send to Integrator Partners"
+                          >
+                            {copiedPartnerAcademyLink ? 'Copied!' : 'Copy Link'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Integrator Partner Access Codes for PMs */}
+                      {onOpenPartnerAccessCodes && (
                         <button
                           type="button"
                           onClick={() => {
                             setIsProfileMenuOpen(false);
-                            onOpenPartnerAcademy();
+                            onOpenPartnerAccessCodes();
                           }}
-                          className="flex items-center gap-2 text-sm font-semibold text-purple-900 cursor-pointer flex-1 text-left"
-                          title="Open Quext Partner Training &amp; Certification Academy Portal"
+                          className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-cyan-950 bg-cyan-50/70 hover:bg-cyan-100/90 border border-cyan-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                          title="View and share encrypted Secure Access Codes and direct login links for Integrator Partners"
                         >
-                          <BookOpen className="w-4 h-4 text-purple-600 shrink-0" />
-                          <span>Partner Academy Portal</span>
+                          <div className="flex items-center gap-2.5">
+                            <KeyRound className="w-4 h-4 text-cyan-600 shrink-0" />
+                            <span className="font-bold text-cyan-950">Partner Access Codes</span>
+                          </div>
+                          <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-cyan-200 text-cyan-900 rounded-md">
+                            Codes &amp; Links
+                          </span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const url = buildPartnerAcademyPortalUrl();
-                            navigator.clipboard.writeText(url);
-                            setCopiedPartnerAcademyLink(true);
-                            setTimeout(() => setCopiedPartnerAcademyLink(false), 2500);
-                          }}
-                          className="p-1 px-1.5 rounded text-[10px] font-bold text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer shrink-0"
-                          title="Copy shareable link to send to Integrator Partners"
-                        >
-                          {copiedPartnerAcademyLink ? 'Copied!' : 'Copy Link'}
-                        </button>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Integrator Partner Access Codes for PMs */}
-                    {onOpenPartnerAccessCodes && (
+                      {/* The Clone Wars: In between Team Management and Workspace */}
+                      <button
+                        type="button"
+                        data-tutorial-id="profile-dropdown-clone-wars-btn"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          if (onOpenCloneWars) {
+                            onOpenCloneWars();
+                          }
+                        }}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-amber-950 bg-amber-50/70 hover:bg-amber-100/90 border border-amber-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                        title="The Clone Wars — Detect and merge duplicate projects sharing title words into a single project"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <GitMerge className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span className="font-bold text-amber-950">The Clone Wars</span>
+                        </div>
+                        <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-amber-200 text-amber-900 rounded-md">
+                          Merge
+                        </span>
+                      </button>
+
+                      {/* Import Projects from Spreadsheet (CSV / Excel) */}
+                      <button
+                        type="button"
+                        data-tutorial-id="profile-dropdown-import-projects-btn"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          setIsImportProjectsModalOpen(true);
+                        }}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-emerald-950 bg-emerald-50/70 hover:bg-emerald-100/90 border border-emerald-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                        title="Import projects from CSV or Excel (.xlsx / .xls) spreadsheet with downloadable templates"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-bold text-emerald-950">Import Projects</span>
+                        </div>
+                        <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-emerald-200 text-emerald-900 rounded-md">
+                          CSV / Excel
+                        </span>
+                      </button>
+
+                      {/* PM Onboarding Tutorial */}
                       <button
                         type="button"
                         onClick={() => {
                           setIsProfileMenuOpen(false);
-                          onOpenPartnerAccessCodes();
+                          onOpenPMTutorial?.();
                         }}
-                        className="w-full px-4 py-2 text-sm font-semibold text-cyan-900 bg-cyan-50/60 hover:bg-cyan-100/80 flex items-center justify-between cursor-pointer transition-colors border-y border-cyan-200/50"
-                        title="View and share encrypted Secure Access Codes and direct login links for Integrator Partners"
+                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-blue-900 bg-blue-50/60 hover:bg-blue-100/80 border border-blue-200/60 flex items-center justify-between cursor-pointer transition-colors group"
+                        title="Interactive guidance tutorial for training Project Managers"
                       >
-                        <div className="flex items-center gap-2">
-                          <KeyRound className="w-4 h-4 text-cyan-600 shrink-0" />
-                          <span className="font-bold text-cyan-950">Partner Access Codes</span>
+                        <div className="flex items-center gap-2.5">
+                          <GraduationCap className="w-4 h-4 text-blue-600 group-hover:scale-105 transition-transform shrink-0" />
+                          <span className="font-semibold text-blue-950">PM Onboarding Tutorial</span>
                         </div>
-                        <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-cyan-200 text-cyan-900 rounded-md">
-                          Codes &amp; Links
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 rounded-full shrink-0">
+                          Training
                         </span>
                       </button>
-                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="w-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span>My Profile &amp; Notifications</span>
-                      <UserCheck className="w-4 h-4 text-[#635bff] shrink-0" />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <UserCheck className="w-4 h-4 text-[#635bff] shrink-0" />
+                          <span>My Profile &amp; Notifications</span>
+                        </div>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span>Team Management</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ShieldCheck className="w-4 h-4 text-slate-500 shrink-0" />
+                          <span>Team Management</span>
+                        </div>
+                      </button>
 
-                    {/* The Clone Wars: In between Team Management and Workspace */}
-                    <button
-                      type="button"
-                      data-tutorial-id="profile-dropdown-clone-wars-btn"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        if (onOpenCloneWars) {
-                          onOpenCloneWars();
-                        }
-                      }}
-                      className="w-full px-4 py-2 text-sm font-semibold text-amber-900 bg-amber-50/70 hover:bg-amber-100 flex items-center justify-between cursor-pointer transition-colors border-y border-amber-200/60"
-                      title="The Clone Wars — Detect and merge duplicate projects sharing title words into a single project"
-                    >
-                      <div className="flex items-center gap-2">
-                        <GitMerge className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span className="font-bold text-amber-950">The Clone Wars</span>
-                      </div>
-                      <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-amber-200 text-amber-900 rounded-md">
-                        Merge
-                      </span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onSelectTopTab('operations');
+                          onGoToOperationsDashboard();
+                        }}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <FolderKanban className="w-4 h-4 text-slate-500 shrink-0" />
+                          <span>Workspace</span>
+                        </div>
+                      </button>
 
-                    {/* Import Projects from Spreadsheet (CSV / Excel) */}
-                    <button
-                      type="button"
-                      data-tutorial-id="profile-dropdown-import-projects-btn"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        setIsImportProjectsModalOpen(true);
-                      }}
-                      className="w-full px-4 py-2 text-sm font-semibold text-emerald-950 bg-emerald-50/80 hover:bg-emerald-100 flex items-center justify-between cursor-pointer transition-colors border-b border-emerald-200/70"
-                      title="Import projects from CSV or Excel (.xlsx / .xls) spreadsheet with downloadable templates"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span className="font-bold text-emerald-950">Import Projects</span>
-                      </div>
-                      <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-emerald-200 text-emerald-900 rounded-md">
-                        CSV / Excel
-                      </span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onSelectTopTab('operations');
+                          onSelectOperationsMainTab('home');
+                          window.location.hash = '#/home';
+                        }}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                        title="Open Live Activity Hub — Real-time telemetry & activity feed"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Activity className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Live Activity Hub</span>
+                        </div>
+                        <span className="flex h-2 w-2 relative shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      </button>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onSelectTopTab('operations');
-                        onGoToOperationsDashboard();
-                      }}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span>Workspace</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onSelectTopTab('operations');
-                        onSelectOperationsMainTab('home');
-                        window.location.hash = '#/home';
-                      }}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
-                      title="Open Live Activity Hub — Real-time telemetry & activity feed"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Live Activity Hub</span>
-                      </div>
-                      <span className="flex h-2 w-2 relative shrink-0">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onOpenPMTutorial?.();
-                      }}
-                      className="w-full px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50/80 flex items-center justify-between cursor-pointer transition-colors group"
-                      title="Interactive guidance tutorial for training Project Managers"
-                    >
-                      <span className="flex items-center gap-2">
-                        <GraduationCap className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform shrink-0" />
-                        <span className="font-semibold text-blue-800">PM Onboarding Tutorial</span>
-                      </span>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 rounded-full shrink-0">
-                        Training
-                      </span>
-                    </button>
-                  </div>
-
-                  <div className="border-t border-slate-100" />
-
-                  {/* Section 2 */}
-                  <div className="py-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                    >
-                      <span className="leading-snug text-left">
-                        Bug Tracker &amp; What&apos;s
-                        <br />
-                        New
-                      </span>
-                      <span className="px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-[#635bff] border border-indigo-200/80 rounded-full shrink-0">
-                        New
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span>Report a Bug</span>
-                      <Bug className="w-4 h-4 text-rose-600 shrink-0" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span>Request a Feature</span>
-                      <Lightbulb className="w-4 h-4 text-[#635bff] shrink-0" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span>Developer Hub</span>
-                    </button>
-                  </div>
-
-                  {/* Section 2.5: Switch Active PM / User */}
-                  {onSwitchUser && (
-                    <>
-                      <div className="border-t border-slate-100" />
-                      <div className="px-4 pt-2.5 pb-1">
+                    {/* Section 2: Developer & Feedback */}
+                    <div className="pt-1.5 space-y-1">
+                      <div className="px-3 pt-1 pb-0.5">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Switch Active PM / User
+                          Support &amp; Feedback
                         </span>
                       </div>
-                      <div className="px-2 pb-1 space-y-0.5">
-                        {AVAILABLE_PMS.map((pm) => {
-                          const isActive = currentUserEmail.toLowerCase() === pm.email.toLowerCase();
-                          return (
-                            <button
-                              key={pm.email}
-                              type="button"
-                              onClick={() => {
-                                setIsProfileMenuOpen(false);
-                                onSwitchUser(resolveEmailToMyQuextUser(pm.email));
-                              }}
-                              className={`w-full px-2.5 py-1.5 text-xs rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
-                                isActive
-                                  ? 'bg-blue-50 text-blue-800 font-bold'
-                                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                    isActive
-                                      ? 'bg-blue-600 text-white'
-                                      : 'bg-slate-200 text-slate-700'
-                                  }`}
-                                >
-                                  {pm.name.charAt(0)}
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
+                          <span>Bug Tracker &amp; What&apos;s New</span>
+                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-[#635bff] border border-indigo-200/80 rounded-full shrink-0">
+                          New
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Bug className="w-4 h-4 text-rose-500 shrink-0" />
+                          <span>Report a Bug</span>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span>Request a Feature</span>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100/80 flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Layers className="w-4 h-4 text-slate-500 shrink-0" />
+                          <span>Developer Hub</span>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Section 2.5: Switch Active PM / User */}
+                    {onSwitchUser && (
+                      <div className="pt-1.5 space-y-1">
+                        <div className="px-3 pt-1 pb-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Switch Active PM / User
+                          </span>
+                        </div>
+                        <div className="space-y-0.5">
+                          {AVAILABLE_PMS.map((pm) => {
+                            const isActive = currentUserEmail.toLowerCase() === pm.email.toLowerCase();
+                            return (
+                              <button
+                                key={pm.email}
+                                type="button"
+                                onClick={() => {
+                                  setIsProfileMenuOpen(false);
+                                  onSwitchUser(resolveEmailToMyQuextUser(pm.email));
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                                  isActive
+                                    ? 'bg-blue-50 text-blue-900 font-bold border border-blue-200/80 shadow-2xs'
+                                    : 'text-slate-700 hover:bg-slate-100 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                      isActive
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    {pm.name.charAt(0)}
+                                  </div>
+                                  <div className="text-left leading-tight min-w-0">
+                                    <div className="text-xs truncate">{pm.name}</div>
+                                    <div className="text-[10px] text-slate-400 font-normal truncate max-w-[170px]">
+                                      {pm.role}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="text-left leading-tight">
-                                  <div>{pm.name}</div>
-                                  <div className="text-[9px] text-slate-400 font-normal">{pm.role}</div>
-                                </div>
-                              </div>
-                              {isActive && (
-                                <span className="text-[10px] font-bold text-blue-600">Active</span>
-                              )}
-                            </button>
-                          );
-                        })}
+                                {isActive && (
+                                  <span className="text-[10px] font-bold text-blue-600 px-1.5 py-0.5 rounded bg-blue-100/80 shrink-0">
+                                    Active
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </>
-                  )}
+                    )}
 
-                  <div className="border-t border-slate-100" />
-
-                  {/* Section 3: Logout */}
-                  <div className="pt-1.5 pb-0.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        onLogout();
-                      }}
-                      className="w-full px-4 py-2 text-sm font-medium text-slate-700 hover:text-rose-600 hover:bg-rose-50/60 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span>Logout</span>
-                    </button>
+                    {/* Section 3: Logout */}
+                    <div className="pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50/80 rounded-lg flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
+                          <span>Logout</span>
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </>
