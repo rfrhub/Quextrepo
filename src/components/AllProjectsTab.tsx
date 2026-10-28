@@ -13,7 +13,24 @@ import {
   getProjectPlatform,
   getPlatformBadgeStyle,
 } from '../types';
-import { MapPin, ArrowRight, Search, Filter, Users, AlertTriangle, CheckCircle2, Wrench, ShieldCheck, GraduationCap, Clock, Tag } from 'lucide-react';
+import {
+  MapPin,
+  ArrowRight,
+  Search,
+  Filter,
+  Users,
+  AlertTriangle,
+  CheckCircle2,
+  Wrench,
+  ShieldCheck,
+  GraduationCap,
+  Clock,
+  Tag,
+  ChevronDown,
+  ChevronUp,
+  LayoutGrid,
+  List,
+} from 'lucide-react';
 import {
   getProjectPartnerCourseCompletion,
   loadPartnerAcademyUsers,
@@ -41,6 +58,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [fieldTechFilter, setFieldTechFilter] = useState<string>('all');
   const [integratorFilter, setIntegratorFilter] = useState<string>('all');
+  const [areProjectCardsMinimized, setAreProjectCardsMinimized] = useState<boolean>(true);
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
 
   useEffect(() => {
@@ -227,11 +245,147 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
               <option value="High Risk">⚠ High Risk</option>
             </select>
           </div>
+
+          {/* Minimize / Expand Cards Toggle */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setAreProjectCardsMinimized((prev) => !prev)}
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+              title={areProjectCardsMinimized ? 'Expand full photo project cards' : 'Minimize cards to compact list to keep page clean'}
+            >
+              {areProjectCardsMinimized ? (
+                <>
+                  <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Expand Cards ({filteredProjects.length})</span>
+                </>
+              ) : (
+                <>
+                  <List className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Minimize Cards</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Projects Display: Minimized Compact Table (Default) or Expanded Card Grid */}
+      {areProjectCardsMinimized ? (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                <tr>
+                  <th className="p-3 whitespace-nowrap">Health Status</th>
+                  <th className="p-3 whitespace-nowrap">Property Community</th>
+                  <th className="p-3 whitespace-nowrap">Client</th>
+                  <th className="p-3 whitespace-nowrap">Units</th>
+                  <th className="p-3 whitespace-nowrap">Platform</th>
+                  <th className="p-3 whitespace-nowrap">Assigned PM &amp; Tech</th>
+                  <th className="p-3 whitespace-nowrap">Integrator</th>
+                  <th className="p-3 whitespace-nowrap">Progress</th>
+                  <th className="p-3 whitespace-nowrap">Target Date</th>
+                  <th className="p-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {filteredProjects.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="p-8 text-center text-slate-400">
+                      No projects match your filter and search criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProjects.map((project) => {
+                    const health = calculateProjectScheduleHealth(
+                      project.targetCompletionDate,
+                      project.statusTag,
+                      project.notes,
+                      project.milestones
+                    );
+                    const totalQuotedBOM = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
+                    const totalInstalledBOM = project.bomItems.reduce((acc, i) => acc + i.installedCount, 0);
+                    const pct = totalQuotedBOM > 0 ? Math.min(100, Math.round((totalInstalledBOM / totalQuotedBOM) * 100)) : 0;
+                    const projectPlatform = getProjectPlatform(project);
+                    const badgeStyle = getPlatformBadgeStyle(projectPlatform);
+
+                    return (
+                      <tr
+                        key={project.id}
+                        onClick={() => onSelectProjectTab(project.id)}
+                        className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                      >
+                        <td className="p-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={health.effectiveTag}
+                            onChange={(e) => onUpdateProjectStatusTag(project.id, e.target.value as ProjectStatusTag)}
+                            className={`text-[11px] font-bold px-2 py-0.5 rounded border focus:outline-none cursor-pointer ${getStatusBadgeStyle(health.effectiveTag)}`}
+                          >
+                            <option value="On Track">✓ On Track</option>
+                            <option value="Behind Schedule">⏳ Behind Schedule</option>
+                            <option value="High Risk">⚠ High Risk</option>
+                          </select>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
+                            {project.propertyName}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {project.city}, {project.state}
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap text-slate-600">
+                          {project.clientName}
+                        </td>
+                        <td className="p-3 whitespace-nowrap font-bold font-mono">
+                          {project.unitsCount}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badgeStyle.badgeClass}`}>
+                            {projectPlatform}
+                          </span>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="text-slate-800 font-semibold">{project.assignedPM.name}</div>
+                          <div className="text-[10px] text-amber-800">{normalizeFieldTech(project.assignedFieldTech)}</div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            {getProjectIntegratorPartners(project).map((partner) => (
+                              <span key={partner} className="px-1.5 py-0.5 rounded font-bold text-[10px] bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                {partner}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold font-mono text-[11px] text-slate-700">{pct}%</span>
+                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-sky-500 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap font-mono text-[11px] text-slate-600">
+                          {project.targetCompletionDate}
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 group-hover:translate-x-0.5 transition-transform">
+                            <span>Open</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.length === 0 ? (
           <div className="col-span-full bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-500">
             No projects match your filter and search criteria.
@@ -519,6 +673,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
           })
         )}
       </div>
+      )}
     </div>
   );
 };

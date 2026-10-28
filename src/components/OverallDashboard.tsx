@@ -119,6 +119,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [selectedMonth, setSelectedMonth] = useState<string>('2026-10');
   const [selectedQuarter, setSelectedQuarter] = useState<string>('2026-Q4');
   const [platformScope, setPlatformScope] = useState<'all' | ProjectPlatform>('all');
+  const [areMetricCardsMinimized, setAreMetricCardsMinimized] = useState<boolean>(true);
 
   // Filter entire dashboard scope by Time Horizon and Platform Tag reference
   const dashboardScopedProjects = useMemo(() => {
@@ -705,10 +706,97 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               <X className="w-3.5 h-3.5 text-slate-500" />
             </button>
           )}
+
+          {/* Minimize / Expand Cards Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setAreMetricCardsMinimized((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 transition-colors cursor-pointer border border-slate-300 shadow-2xs shrink-0"
+            title={areMetricCardsMinimized ? 'Expand all 8 KPI metric cards to full size' : 'Minimize KPI cards to keep page clean'}
+          >
+            {areMetricCardsMinimized ? (
+              <>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
+                <span>Expand Cards (8)</span>
+              </>
+            ) : (
+              <>
+                <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
+                <span>Minimize Cards</span>
+              </>
+            )}
+          </button>
         </div>
 
-        {/* 8-KPI Metric Strip: Active, Completed, Unstarted, Installed, Go-Lives, Kickoff, Health, Gauge */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-slate-200">
+        {/* 8-KPI Metric Strip: Either Minimized Compact Summary Bar (Default) or Expanded 8-Card Grid */}
+        {areMetricCardsMinimized ? (
+          <div className="mt-4 p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs text-slate-700 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-extrabold text-slate-900 font-mono text-[10px] uppercase tracking-wider bg-slate-200/90 px-2 py-0.5 rounded border border-slate-300">
+                8 Metric Cards Minimized
+              </span>
+              <span className="text-slate-300">•</span>
+              <button
+                type="button"
+                onClick={() => setLifecycleFilter(lifecycleFilter === 'active' ? 'all' : 'active')}
+                className={`font-semibold hover:underline cursor-pointer transition-colors ${
+                  lifecycleFilter === 'active' ? 'text-sky-700 font-bold underline' : 'text-slate-700'
+                }`}
+                title="Filter Active Projects"
+              >
+                Active: <strong className="font-mono text-sky-700">{activeImplementationProjects.length}</strong>
+              </button>
+              <span className="text-slate-300">•</span>
+              <button
+                type="button"
+                onClick={() => setLifecycleFilter(lifecycleFilter === 'completed' ? 'all' : 'completed')}
+                className={`font-semibold hover:underline cursor-pointer transition-colors ${
+                  lifecycleFilter === 'completed' ? 'text-emerald-700 font-bold underline' : 'text-slate-700'
+                }`}
+                title="Filter Completed Projects"
+              >
+                Completed: <strong className="font-mono text-emerald-700">{completedProjects.length}</strong>
+              </button>
+              <span className="text-slate-300">•</span>
+              <button
+                type="button"
+                onClick={() => setLifecycleFilter(lifecycleFilter === 'not_started' ? 'all' : 'not_started')}
+                className={`font-semibold hover:underline cursor-pointer transition-colors ${
+                  lifecycleFilter === 'not_started' ? 'text-purple-700 font-bold underline' : 'text-slate-700'
+                }`}
+                title="Filter New (Unstarted) Projects"
+              >
+                New (Unstarted): <strong className="font-mono text-purple-700">{unstartedProjects.length}</strong>
+              </button>
+              <span className="text-slate-300">•</span>
+              <span>
+                Hardware: <strong className="font-mono text-slate-800">{totalInstalledUnits.toLocaleString()}/{totalQuotedUnits.toLocaleString()}</strong> ({aggregatePct}%)
+              </span>
+              <span className="text-slate-300">•</span>
+              <span>
+                Go-Lives: <strong className="font-mono text-sky-700">{upcomingGoLives.length}</strong>
+              </span>
+              <span className="text-slate-300">•</span>
+              <span>
+                Kickoff Attention: <strong className="font-mono text-amber-700">{projectsNeedingKickoffAttention.length}</strong>
+              </span>
+              <span className="text-slate-300">•</span>
+              <span>
+                Health: <strong className="text-emerald-700 font-semibold">{onTrackProjects.length} Track</strong> / <strong className="text-amber-700 font-semibold">{behindScheduleProjects.length} Behind</strong> / <strong className="text-rose-700 font-semibold">{highRiskProjects.length} Risk</strong>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAreMetricCardsMinimized(false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer shrink-0 self-start xl:self-auto"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+              <span>Expand Cards</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-slate-200">
           {/* 1. Active Implementation Projects */}
           <div
             onClick={() => setLifecycleFilter(lifecycleFilter === 'active' ? 'all' : 'active')}
@@ -1001,6 +1089,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             </div>
           </div>
         </div>
+      )}
 
         {/* Small Overview Card: Toggleable between Upcoming Go Lives (CSM Handoff) & Upcoming Installs (Implementation) + Executive Timeline vs Project Cards */}
         <div className="mt-4 pt-4 border-t border-slate-200/80">

@@ -60,7 +60,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
   const [selectedPMFilter, setSelectedPMFilter] = useState<string>('all');
   const [partnerProgressFilter, setPartnerProgressFilter] = useState<'all' | 'completed' | 'in_progress'>('all');
-  const [areProjectCardsMinimized, setAreProjectCardsMinimized] = useState<boolean>(false);
+  const [areProjectCardsMinimized, setAreProjectCardsMinimized] = useState<boolean>(true);
+  const [areCommunitiesMinimized, setAreCommunitiesMinimized] = useState<boolean>(true);
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
   const [copiedPartnerKey, setCopiedPartnerKey] = useState<string | null>(null);
 
@@ -1165,95 +1166,131 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => onNavigateToAllProjects()}
-                className="text-xs font-bold text-sky-600 hover:underline cursor-pointer"
-              >
-                View All
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAreCommunitiesMinimized((prev) => !prev)}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer border border-slate-200"
+                  title={areCommunitiesMinimized ? 'Expand community cards' : 'Minimize community cards'}
+                >
+                  {areCommunitiesMinimized ? (
+                    <>
+                      <ChevronDown className="w-3 h-3 text-slate-500" />
+                      <span>Expand ({Math.min(6, filteredProjects.length)})</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="w-3 h-3 text-slate-500" />
+                      <span>Minimize</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => onNavigateToAllProjects()}
+                  className="text-xs font-bold text-sky-600 hover:underline cursor-pointer"
+                >
+                  View All
+                </button>
+              </div>
             </div>
 
-            <div className="mt-3 space-y-3">
-              {filteredProjects.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-xs">
-                  No active communities assigned to {selectedPMFilter}.
+            {areCommunitiesMinimized ? (
+              <div className="mt-3 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-800">
+                    {filteredProjects.length} Active Communities Minimized
+                  </span>
+                  <span className="font-mono text-[11px] text-sky-700 font-bold">
+                    {filteredProjects.reduce((acc, p) => acc + p.unitsCount, 0)} units
+                  </span>
                 </div>
-              ) : (
-                filteredProjects.slice(0, 6).map((project) => {
-                  const totalQuoted = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
-                  const totalInstalled = project.bomItems.reduce((acc, i) => acc + i.installedCount, 0);
-                  const pct = totalQuoted > 0 ? Math.min(100, Math.round((totalInstalled / totalQuoted) * 100)) : 0;
-                  const courseEval = projectCourseEvaluations.get(project.id);
+                <p className="text-[11px] text-slate-500">
+                  Cards minimized to keep the feed clean. Click expand above or &quot;View All&quot; to review community details.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {filteredProjects.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-xs">
+                    No active communities assigned to {selectedPMFilter}.
+                  </div>
+                ) : (
+                  filteredProjects.slice(0, 6).map((project) => {
+                    const totalQuoted = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
+                    const totalInstalled = project.bomItems.reduce((acc, i) => acc + i.installedCount, 0);
+                    const pct = totalQuoted > 0 ? Math.min(100, Math.round((totalInstalled / totalQuoted) * 100)) : 0;
+                    const courseEval = projectCourseEvaluations.get(project.id);
 
-                  return (
-                    <div
-                      key={project.id}
-                      onClick={() => onNavigateToProject(project.id)}
-                      className="p-3 rounded-lg border border-slate-200 hover:border-sky-300 hover:bg-slate-50 transition-all cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-bold text-slate-900 truncate max-w-[170px]">
-                          {project.propertyName}
-                        </span>
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                            project.statusTag === 'On Track'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                              : project.statusTag === 'Behind Schedule'
-                              ? 'bg-amber-50 text-amber-800 border-amber-300'
-                              : 'bg-rose-50 text-rose-800 border-rose-300'
-                          }`}
-                        >
-                          {project.statusTag}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-1">
-                        <span>
-                          {project.city}, {project.state} · <strong className="text-slate-700 font-sans">{project.assignedPM.name}</strong>
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {getProjectIntegratorPartners(project).map((partner) => (
-                            <span
-                              key={partner}
-                              className="px-1 py-0.2 rounded text-[9px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200"
-                            >
-                              {partner}
-                            </span>
-                          ))}
-                          <span className="font-bold text-slate-700 ml-1">{pct}%</span>
-                        </div>
-                      </div>
-
-                      {/* Partner Course Completion Status Pill on Community Card */}
-                      {courseEval && (
-                        <div className="mt-1.5 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-500">Integrator Courses:</span>
+                    return (
+                      <div
+                        key={project.id}
+                        onClick={() => onNavigateToProject(project.id)}
+                        className="p-3 rounded-lg border border-slate-200 hover:border-sky-300 hover:bg-slate-50 transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-bold text-slate-900 truncate max-w-[170px]">
+                            {project.propertyName}
+                          </span>
                           <span
-                            className={`px-1.5 py-0.2 rounded font-bold border ${
-                              courseEval.isCompleted
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                : 'bg-amber-50 text-amber-900 border-amber-200'
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                              project.statusTag === 'On Track'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : project.statusTag === 'Behind Schedule'
+                                ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                : 'bg-rose-50 text-rose-800 border-rose-300'
                             }`}
                           >
-                            {courseEval.isCompleted
-                              ? `✓ Completed (${courseEval.completedCoursesCount}/${courseEval.totalCoursesCount})`
-                              : `⏳ Incomplete (${courseEval.completedCoursesCount}/${courseEval.totalCoursesCount} · ${courseEval.overallProjectCoursePct}%)`}
+                            {project.statusTag}
                           </span>
                         </div>
-                      )}
 
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
-                        <div
-                          className="h-full bg-sky-500 rounded-full"
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-1">
+                          <span>
+                            {project.city}, {project.state} · <strong className="text-slate-700 font-sans">{project.assignedPM.name}</strong>
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {getProjectIntegratorPartners(project).map((partner) => (
+                              <span
+                                key={partner}
+                                className="px-1 py-0.2 rounded text-[9px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200"
+                              >
+                                {partner}
+                              </span>
+                            ))}
+                            <span className="font-bold text-slate-700 ml-1">{pct}%</span>
+                          </div>
+                        </div>
+
+                        {/* Partner Course Completion Status Pill on Community Card */}
+                        {courseEval && (
+                          <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-500">Integrator Courses:</span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded font-bold border ${
+                                courseEval.isCompleted
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-900 border-amber-200'
+                              }`}
+                            >
+                              {courseEval.isCompleted
+                                ? `✓ Completed (${courseEval.completedCoursesCount}/${courseEval.totalCoursesCount})`
+                                : `⏳ Incomplete (${courseEval.completedCoursesCount}/${courseEval.totalCoursesCount} · ${courseEval.overallProjectCoursePct}%)`}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
+                          <div
+                            className="h-full bg-sky-500 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
         </div>
 
