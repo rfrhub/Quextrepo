@@ -217,133 +217,149 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   // Compute finalized survivor project payload based on PM selections
   const previewFinalProject = useMemo<OperationProject | null>(() => {
     if (!activePair) return null;
-    const { projectA, projectB } = activePair;
 
-    const baseSurvivor = chosenSurvivorId === 'A' ? projectA : projectB;
-    const donor = chosenSurvivorId === 'A' ? projectB : projectA;
+    try {
+      const { projectA, projectB } = activePair;
 
-    // 1. Property Name
-    let propertyName = baseSurvivor.propertyName;
-    if (chosenNameSource === 'A') propertyName = projectA.propertyName;
-    else if (chosenNameSource === 'B') propertyName = projectB.propertyName;
-    else if (chosenNameSource === 'custom' && customName.trim()) propertyName = customName.trim();
+      const baseSurvivor = chosenSurvivorId === 'A' ? projectA : projectB;
+      const donor = chosenSurvivorId === 'A' ? projectB : projectA;
 
-    // 2. Client Name
-    const clientName = chosenClientSource === 'A' ? projectA.clientName : projectB.clientName;
+      // 1. Property Name
+      let propertyName = baseSurvivor.propertyName;
+      if (chosenNameSource === 'A') propertyName = projectA.propertyName;
+      else if (chosenNameSource === 'B') propertyName = projectB.propertyName;
+      else if (chosenNameSource === 'custom' && customName.trim()) propertyName = customName.trim();
 
-    // 3. Address
-    const addressSource = chosenAddressSource === 'A' ? projectA : projectB;
+      // 2. Client Name
+      const clientName = chosenClientSource === 'A' ? projectA.clientName : projectB.clientName;
 
-    // 4. Units
-    let unitsCount = baseSurvivor.unitsCount;
-    if (chosenUnitsMode === 'A') unitsCount = projectA.unitsCount;
-    else if (chosenUnitsMode === 'B') unitsCount = projectB.unitsCount;
-    else if (chosenUnitsMode === 'sum') unitsCount = (projectA.unitsCount || 0) + (projectB.unitsCount || 0);
-    else if (chosenUnitsMode === 'custom') unitsCount = customUnits;
+      // 3. Address
+      const addressSource = chosenAddressSource === 'A' ? projectA : projectB;
 
-    // 5. Assigned PM
-    const assignedPM = chosenPMSource === 'A' ? projectA.assignedPM : projectB.assignedPM;
+      // 4. Units
+      let unitsCount = baseSurvivor.unitsCount;
+      if (chosenUnitsMode === 'A') unitsCount = projectA.unitsCount;
+      else if (chosenUnitsMode === 'B') unitsCount = projectB.unitsCount;
+      else if (chosenUnitsMode === 'sum') unitsCount = (projectA.unitsCount || 0) + (projectB.unitsCount || 0);
+      else if (chosenUnitsMode === 'custom') unitsCount = customUnits;
 
-    // 6. Status
-    const statusSource = chosenStatusSource === 'A' ? projectA : projectB;
+      // 5. Assigned PM
+      const assignedPM = chosenPMSource === 'A' ? projectA.assignedPM : projectB.assignedPM;
 
-    // 7. Dates
-    const datesSource = chosenDatesSource === 'A' ? projectA : projectB;
+      // 6. Status
+      const statusSource = chosenStatusSource === 'A' ? projectA : projectB;
 
-    // 8. BOM Items
-    let bomItems: BOMItem[] = [];
-    if (chosenBOMMode === 'A') {
-      bomItems = [...(projectA.bomItems || [])];
-    } else if (chosenBOMMode === 'B') {
-      bomItems = [...(projectB.bomItems || [])];
-    } else {
-      // Combine & Deduplicate
-      const itemMap = new Map<string, BOMItem>();
-      [...(projectA.bomItems || []), ...(projectB.bomItems || [])].forEach((item) => {
-        const key = `${item.productName.toLowerCase()}__${(item.category || '').toLowerCase()}`;
-        if (itemMap.has(key)) {
-          const existing = itemMap.get(key)!;
-          itemMap.set(key, {
-            ...existing,
-            quantity: (existing.quantity || 0) + (item.quantity || 0),
-          });
-        } else {
-          itemMap.set(key, { ...item });
-        }
-      });
-      bomItems = Array.from(itemMap.values());
+      // 7. Dates
+      const datesSource = chosenDatesSource === 'A' ? projectA : projectB;
+
+      // 8. BOM Items
+      let bomItems: BOMItem[] = [];
+      if (chosenBOMMode === 'A') {
+        bomItems = [...(projectA.bomItems || [])];
+      } else if (chosenBOMMode === 'B') {
+        bomItems = [...(projectB.bomItems || [])];
+      } else {
+        // Combine & Deduplicate
+        const itemMap = new Map<string, BOMItem>();
+        [...(projectA.bomItems || []), ...(projectB.bomItems || [])].forEach((item) => {
+          const itemName = item.name || (item as any).productName || item.model || 'BOM Item';
+          const key = `${itemName.toLowerCase()}__${(item.model || '').toLowerCase()}__${(item.category || '').toLowerCase()}`;
+          if (itemMap.has(key)) {
+            const existing = itemMap.get(key)!;
+            itemMap.set(key, {
+              ...existing,
+              quantity: (existing.quantity || 0) + (item.quantity || 0),
+              installedCount: (existing.installedCount || 0) + (item.installedCount || 0),
+            });
+          } else {
+            itemMap.set(key, { ...item });
+          }
+        });
+        bomItems = Array.from(itemMap.values());
+      }
+
+      // 9. Integrator Partners
+      let integratorPartners: string[] = [];
+      if (chosenPartnersMode === 'A') {
+        integratorPartners = getProjectIntegratorPartners(projectA);
+      } else if (chosenPartnersMode === 'B') {
+        integratorPartners = getProjectIntegratorPartners(projectB);
+      } else {
+        integratorPartners = Array.from(
+          new Set([...getProjectIntegratorPartners(projectA), ...getProjectIntegratorPartners(projectB)])
+        );
+      }
+
+      // 10. Milestones
+      let milestones: ProjectMilestone[] = [];
+      if (chosenMilestonesMode === 'A') {
+        milestones = [...(projectA.milestones || [])];
+      } else if (chosenMilestonesMode === 'B') {
+        milestones = [...(projectB.milestones || [])];
+      } else {
+        const milestoneMap = new Map<string, ProjectMilestone>();
+        [...(projectA.milestones || []), ...(projectB.milestones || [])].forEach((m) => {
+          if (!milestoneMap.has(m.title) || m.status === 'Completed' || m.status === 'In Progress') {
+            milestoneMap.set(m.title, { ...m });
+          }
+        });
+        milestones = Array.from(milestoneMap.values());
+      }
+
+      // 11. Install Logs
+      const installLogs: InstallLogEntry[] = combineLogs
+        ? [...(projectA.installLogs || []), ...(projectB.installLogs || [])]
+        : [...(baseSurvivor.installLogs || [])];
+
+      // 12. Customer Comms
+      const customerCommsLogs: CustomerCommsLog[] = combineComms
+        ? [...(projectA.customerCommsLogs || []), ...(projectB.customerCommsLogs || [])]
+        : [...(baseSurvivor.customerCommsLogs || [])];
+
+      // 13. Project Notes
+      const auditNote: ProjectNote = {
+        id: `merge_${Date.now()}`,
+        projectId: baseSurvivor.id,
+        author: assignedPM?.name || 'Quext Project Manager',
+        timestamp: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+        category: 'General Context',
+        text: `[The Clone Wars Merge] Project successfully merged with duplicate "${donor.propertyName}" (${donor.id}) on ${new Date().toLocaleDateString()}. Hardware BOM deduplicated, timelines consolidated.`,
+        isPinned: true,
+      };
+
+      const notes: ProjectNote[] = combineNotes
+        ? [auditNote, ...(projectA.notes || []), ...(projectB.notes || [])]
+        : [auditNote, ...(baseSurvivor.notes || [])];
+
+      return {
+        ...baseSurvivor,
+        propertyName,
+        clientName,
+        address: addressSource.address,
+        city: addressSource.city,
+        state: addressSource.state,
+        unitsCount,
+        assignedPM,
+        platform: baseSurvivor.platform || donor.platform || 'Quext',
+        statusTag: statusSource.statusTag,
+        startDate: datesSource.startDate,
+        targetCompletionDate: datesSource.targetCompletionDate,
+        bomItems,
+        integratorPartners,
+        milestones,
+        installLogs,
+        customerCommsLogs,
+        notes,
+        lastUpdated: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.error('[The Clone Wars] Fail-safe caught error in previewFinalProject:', err);
+      return activePair.projectA || null;
     }
-
-    // 9. Integrator Partners
-    let integratorPartners: string[] = [];
-    if (chosenPartnersMode === 'A') {
-      integratorPartners = getProjectIntegratorPartners(projectA);
-    } else if (chosenPartnersMode === 'B') {
-      integratorPartners = getProjectIntegratorPartners(projectB);
-    } else {
-      integratorPartners = Array.from(
-        new Set([...getProjectIntegratorPartners(projectA), ...getProjectIntegratorPartners(projectB)])
-      );
-    }
-
-    // 10. Milestones
-    let milestones: ProjectMilestone[] = [];
-    if (chosenMilestonesMode === 'A') {
-      milestones = [...(projectA.milestones || [])];
-    } else if (chosenMilestonesMode === 'B') {
-      milestones = [...(projectB.milestones || [])];
-    } else {
-      const milestoneMap = new Map<string, ProjectMilestone>();
-      [...(projectA.milestones || []), ...(projectB.milestones || [])].forEach((m) => {
-        if (!milestoneMap.has(m.title) || m.status === 'Completed' || m.status === 'In Progress') {
-          milestoneMap.set(m.title, { ...m });
-        }
-      });
-      milestones = Array.from(milestoneMap.values());
-    }
-
-    // 11. Install Logs
-    const installLogs: InstallLogEntry[] = combineLogs
-      ? [...(projectA.installLogs || []), ...(projectB.installLogs || [])]
-      : [...(baseSurvivor.installLogs || [])];
-
-    // 12. Customer Comms
-    const customerCommsLogs: CustomerCommsLog[] = combineComms
-      ? [...(projectA.customerCommsLogs || []), ...(projectB.customerCommsLogs || [])]
-      : [...(baseSurvivor.customerCommsLogs || [])];
-
-    // 13. Project Notes
-    const auditNote: ProjectNote = {
-      id: `merge_${Date.now()}`,
-      content: `[The Clone Wars Merge] Project successfully merged with duplicate "${donor.propertyName}" (${donor.id}) on ${new Date().toLocaleDateString()}. Hardware BOM deduplicated, timelines consolidated.`,
-      createdAt: new Date().toISOString(),
-      author: assignedPM?.name || 'Quext Project Manager',
-    };
-
-    const notes: ProjectNote[] = combineNotes
-      ? [auditNote, ...(projectA.notes || []), ...(projectB.notes || [])]
-      : [auditNote, ...(baseSurvivor.notes || [])];
-
-    return {
-      ...baseSurvivor,
-      propertyName,
-      clientName,
-      address: addressSource.address,
-      city: addressSource.city,
-      state: addressSource.state,
-      unitsCount,
-      assignedPM,
-      statusTag: statusSource.statusTag,
-      startDate: datesSource.startDate,
-      targetCompletionDate: datesSource.targetCompletionDate,
-      bomItems,
-      integratorPartners,
-      milestones,
-      installLogs,
-      customerCommsLogs,
-      notes,
-      lastUpdated: new Date().toISOString(),
-    };
   }, [
     activePair,
     chosenSurvivorId,
