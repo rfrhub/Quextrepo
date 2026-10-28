@@ -1419,6 +1419,110 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               });
               const dateWaves = Array.from(dateWaveMap.values());
 
+              // Position date waves cleanly across the horizon timeline with zone-based alignment,
+              // collision resolution, and alternating top/bottom tiers to eliminate crowding.
+              const positionedWaves = (() => {
+                const sorted = [...dateWaves].sort((a, b) => a.daysUntil - b.daysUntil);
+                if (sorted.length === 0) return [];
+
+                const minGap = 1.6; // minimum % distance between adjacent nodes to prevent crowding
+
+                if (upcomingHorizonFilter === 'all') {
+                  const zoneConfig = {
+                    next_7: { start: 4, end: 22, minDays: 0, maxDays: 7 },
+                    days_8_14: { start: 27, end: 47, minDays: 8, maxDays: 14 },
+                    days_15_30: { start: 52, end: 72, minDays: 15, maxDays: 28 },
+                    days_30_plus: { start: 77, end: 97, minDays: 29, maxDays: 60 },
+                  };
+
+                  const results: Array<{
+                    wave: (typeof dateWaves)[0];
+                    pctLeft: number;
+                    tier: 'top' | 'bottom';
+                  }> = [];
+
+                  const zoneKeys: Array<keyof typeof zoneConfig> = [
+                    'next_7',
+                    'days_8_14',
+                    'days_15_30',
+                    'days_30_plus',
+                  ];
+
+                  zoneKeys.forEach((zoneKey) => {
+                    const cfg = zoneConfig[zoneKey];
+                    const zoneWaves = sorted.filter((w) => {
+                      if (zoneKey === 'next_7') return w.daysUntil <= 7;
+                      if (zoneKey === 'days_8_14') return w.daysUntil >= 8 && w.daysUntil <= 14;
+                      if (zoneKey === 'days_15_30') return w.daysUntil >= 15 && w.daysUntil <= 28;
+                      return w.daysUntil >= 29;
+                    });
+
+                    if (zoneWaves.length === 0) return;
+
+                    const zoneWidth = cfg.end - cfg.start;
+                    const positions = zoneWaves.map((w) => {
+                      let naturalRatio: number;
+                      if (zoneKey === 'days_30_plus') {
+                        const clampedDays = Math.min(60, w.daysUntil);
+                        naturalRatio = (clampedDays - 29) / 31;
+                      } else {
+                        const span = cfg.maxDays - cfg.minDays;
+                        naturalRatio = span > 0 ? (w.daysUntil - cfg.minDays) / span : 0.5;
+                      }
+                      return {
+                        wave: w,
+                        pct: cfg.start + naturalRatio * zoneWidth,
+                      };
+                    });
+
+                    // Relaxation / minimum gap pass
+                    for (let i = 1; i < positions.length; i++) {
+                      if (positions[i].pct - positions[i - 1].pct < minGap) {
+                        positions[i].pct = positions[i - 1].pct + minGap;
+                      }
+                    }
+                    // If shifted beyond zone end, shift back
+                    if (positions[positions.length - 1].pct > cfg.end) {
+                      const overflow = positions[positions.length - 1].pct - cfg.end;
+                      for (let i = positions.length - 1; i >= 0; i--) {
+                        positions[i].pct -= overflow;
+                      }
+                      if (positions[0].pct < cfg.start) {
+                        const step = zoneWidth / (positions.length > 1 ? positions.length - 1 : 1);
+                        positions.forEach((p, idx) => {
+                          p.pct =
+                            positions.length === 1
+                              ? (cfg.start + cfg.end) / 2
+                              : cfg.start + idx * step;
+                        });
+                      }
+                    }
+
+                    positions.forEach((p) => {
+                      results.push({
+                        wave: p.wave,
+                        pctLeft: Number(p.pct.toFixed(2)),
+                        tier: results.length % 2 === 0 ? 'top' : 'bottom',
+                      });
+                    });
+                  });
+
+                  return results;
+                } else {
+                  // Single zone selected: expand evenly across 5% to 95%
+                  const total = sorted.length;
+                  return sorted.map((w, idx) => {
+                    const step = total > 1 ? 90 / (total - 1) : 0;
+                    const pctLeft = total === 1 ? 50 : 5 + idx * step;
+                    return {
+                      wave: w,
+                      pctLeft: Number(pctLeft.toFixed(2)),
+                      tier: (idx % 2 === 0 ? 'top' : 'bottom') as 'top' | 'bottom',
+                    };
+                  });
+                }
+              })();
+
               const displayedRows = showAllUpcomingTimeline
                 ? filteredTimelineItems
                 : filteredTimelineItems.slice(0, 10);
@@ -1698,7 +1802,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
 
                     {/* Proportional Timeline Axis */}
                     <div className="relative pt-4 pb-7 px-3 bg-slate-50/80 rounded-lg border border-slate-200/80 overflow-x-auto">
-                      <div className="min-w-[640px] relative">
+                      <div className="min-w-[980px] relative">
                         {/* Interactive Horizon Zone Headers (+7 Days, +8 to +14 Days, +15 to +28 Days, +29 Days & Beyond) */}
                         <div className="grid grid-cols-4 gap-1.5 text-[10px] font-mono font-bold text-slate-500 mb-3">
                           <button
@@ -1788,27 +1892,36 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                           </button>
                         </div>
 
-                        {/* Horizontal Spine Line */}
-                        <div className="relative h-10 flex items-center">
-                          <div className="w-full h-2 rounded-full bg-gradient-to-r from-amber-200 via-sky-200 to-emerald-200" />
+                        {/* Horizon Timeline Track Container */}
+                        <div className="relative h-28 my-3 flex items-center select-none">
+                          {/* Zone Segment Visual Shading Rails */}
+                          <div className="absolute inset-0 grid grid-cols-4 gap-1.5 pointer-events-none opacity-40">
+                            <div className="rounded-lg bg-amber-100/60 border border-dashed border-amber-300" />
+                            <div className="rounded-lg bg-sky-100/60 border border-dashed border-sky-300" />
+                            <div className="rounded-lg bg-indigo-100/60 border border-dashed border-indigo-300" />
+                            <div className="rounded-lg bg-emerald-100/60 border border-dashed border-emerald-300" />
+                          </div>
+
+                          {/* Central Spine Rail */}
+                          <div className="w-full h-2 rounded-full bg-slate-200 relative overflow-hidden shadow-2xs">
+                            <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-sky-400 via-indigo-400 to-emerald-400 opacity-80" />
+                          </div>
 
                           {/* TODAY Marker */}
                           <div
-                            className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-center z-10"
+                            className="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col items-center z-20 pointer-events-none"
                             title="Today"
                           >
-                            <div className="w-3 h-6 rounded-xs bg-slate-900 border-2 border-white shadow-xs" />
-                            <span className="text-[9px] font-mono font-extrabold text-slate-900 mt-1">
+                            <div className="w-3.5 h-7 rounded-xs bg-slate-900 border-2 border-white shadow-md flex items-center justify-center">
+                              <div className="w-0.5 h-3.5 bg-amber-400 rounded-full" />
+                            </div>
+                            <span className="text-[9px] font-mono font-black text-slate-900 mt-1 uppercase tracking-tight">
                               TODAY
                             </span>
                           </div>
 
                           {/* Date Wave Nodes along the Timeline */}
-                          {dateWaves.map((wave) => {
-                            const pctLeft = Math.min(
-                              97,
-                              Math.max(4, Math.round((wave.daysUntil / maxDaysSpan) * 94) + 2)
-                            );
+                          {positionedWaves.map(({ wave, pctLeft, tier }) => {
                             const primaryItem = wave.items[0];
                             const hasHighRisk = wave.items.some(
                               (i) => i.effectiveHealth === 'High Risk'
@@ -1828,6 +1941,8 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                                 (i) => i.project.id === activeHoveredItem?.project.id
                               );
 
+                            const isTop = tier === 'top';
+
                             return (
                               <button
                                 key={wave.dateStr}
@@ -1841,23 +1956,68 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                                   selectWaveInSpotlight(wave.dateStr);
                                 }}
                                 style={{ left: `${pctLeft}%` }}
-                                className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 group cursor-pointer transition-transform ${
-                                  isSelectedWave ? 'z-30 scale-125' : 'z-20 hover:scale-125'
-                                }`}
-                                title={`${formatGoLiveDate(wave.dateStr)} (In ${wave.daysUntil} days) — ${wave.items.length} ${
+                                className={`absolute -translate-x-1/2 group cursor-pointer transition-all flex flex-col items-center ${
+                                  isTop ? 'bottom-1/2 pb-0.5' : 'top-1/2 pt-0.5'
+                                } ${isSelectedWave ? 'z-30 scale-110' : 'z-20 hover:scale-110'}`}
+                                title={`${formatGoLiveDate(wave.dateStr)} (In ${wave.daysUntil} days) — ${
+                                  wave.items.length
+                                } ${
                                   wave.items.length === 1 ? 'property' : 'properties'
                                 }: ${wave.items.map((x) => x.project.propertyName).join(', ')}`}
                               >
-                                <div
-                                  className={`w-6 h-6 rounded-full border-2 shadow-sm flex items-center justify-center text-[10px] font-mono font-extrabold ${nodeColor} ${
-                                    isSelectedWave ? 'ring-2 ring-slate-900' : ''
-                                  }`}
-                                >
-                                  {wave.items.length}
-                                </div>
-                                <div className="absolute top-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-mono font-bold text-slate-600">
-                                  +{wave.daysUntil}d
-                                </div>
+                                {isTop ? (
+                                  <>
+                                    <div
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-tight whitespace-nowrap mb-1 transition-all ${
+                                        isSelectedWave
+                                          ? 'bg-slate-900 text-white ring-1 ring-slate-900 shadow-xs'
+                                          : 'bg-white/95 text-slate-700 border border-slate-300 shadow-2xs group-hover:border-slate-500 group-hover:text-slate-900'
+                                      }`}
+                                    >
+                                      +{wave.daysUntil}d
+                                    </div>
+                                    <div
+                                      className={`w-6 h-6 rounded-full border-2 shadow-sm flex items-center justify-center text-[10px] font-mono font-extrabold ${nodeColor} ${
+                                        isSelectedWave ? 'ring-2 ring-slate-900 ring-offset-1' : ''
+                                      }`}
+                                    >
+                                      {wave.items.length}
+                                    </div>
+                                    <div
+                                      className={`w-0.5 h-3 transition-colors ${
+                                        isSelectedWave
+                                          ? 'bg-slate-900'
+                                          : 'bg-slate-300 group-hover:bg-slate-600'
+                                      }`}
+                                    />
+                                  </>
+                                ) : (
+                                  <>
+                                    <div
+                                      className={`w-0.5 h-3 transition-colors ${
+                                        isSelectedWave
+                                          ? 'bg-slate-900'
+                                          : 'bg-slate-300 group-hover:bg-slate-600'
+                                      }`}
+                                    />
+                                    <div
+                                      className={`w-6 h-6 rounded-full border-2 shadow-sm flex items-center justify-center text-[10px] font-mono font-extrabold ${nodeColor} ${
+                                        isSelectedWave ? 'ring-2 ring-slate-900 ring-offset-1' : ''
+                                      }`}
+                                    >
+                                      {wave.items.length}
+                                    </div>
+                                    <div
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-tight whitespace-nowrap mt-1 transition-all ${
+                                        isSelectedWave
+                                          ? 'bg-slate-900 text-white ring-1 ring-slate-900 shadow-xs'
+                                          : 'bg-white/95 text-slate-700 border border-slate-300 shadow-2xs group-hover:border-slate-500 group-hover:text-slate-900'
+                                      }`}
+                                    >
+                                      +{wave.daysUntil}d
+                                    </div>
+                                  </>
+                                )}
                               </button>
                             );
                           })}
