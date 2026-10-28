@@ -104,6 +104,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [activeRoadblockCategory, setActiveRoadblockCategory] = useState<'all' | 'municipal' | 'supply_chain' | 'internal_assist'>('all');
   const [financialSortBy, setFinancialSortBy] = useState<'profit' | 'revenue' | 'margin' | 'collection'>('profit');
   const [isFinancialProjectsMinimized, setIsFinancialProjectsMinimized] = useState<boolean>(true);
+  const [isActiveProjectsTableMinimized, setIsActiveProjectsTableMinimized] = useState<boolean>(true);
 
   // Pop-up modal state for "Assistance Provided"
   const [assistModalProject, setAssistModalProject] = useState<OperationProject | null>(null);
@@ -3278,15 +3279,45 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
       {/* Main Table: Active Projects Installation Status with PM Filter */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
         <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Active Implementation Projects</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Each quote automatically populates a dedicated project workspace with fillable BOM tracking and customer comms.
-            </p>
-          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-1">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">Active Implementation Projects</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                  {filteredProjects.length} Projects
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Each quote automatically populates a dedicated project workspace with fillable BOM tracking and customer comms.
+              </p>
+            </div>
 
-          {/* Table Filters: Search, PM Filter, and Kickoff Filter */}
-          <div className="flex flex-wrap items-center gap-3">
+            {/* Minimize / Expand Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsActiveProjectsTableMinimized((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 transition-colors cursor-pointer border border-slate-300 shadow-2xs shrink-0 self-start sm:self-auto"
+              title={isActiveProjectsTableMinimized ? 'Expand active projects table' : 'Minimize active projects table'}
+            >
+              {isActiveProjectsTableMinimized ? (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Expand Projects ({filteredProjects.length})</span>
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Minimize Table</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {!isActiveProjectsTableMinimized ? (
+          <>
+            {/* Table Filters: Search, PM Filter, and Kickoff Filter */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
               <input
@@ -3401,7 +3432,6 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               </button>
             )}
           </div>
-        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -3656,7 +3686,67 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Minimize Footer */}
+        <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+          <span className="font-mono text-[11px]">
+            Showing all {filteredProjects.length} active implementation projects
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsActiveProjectsTableMinimized(true)}
+            className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+          >
+            <ChevronUp className="w-3.5 h-3.5" />
+            <span>Minimize Table</span>
+          </button>
+        </div>
+      </>
+    ) : (
+      <div className="p-4 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-extrabold text-slate-900 font-mono text-[10px] uppercase tracking-wider bg-slate-200/90 px-2 py-0.5 rounded border border-slate-300">
+            {filteredProjects.length} Projects Minimized
+          </span>
+          <span className="text-slate-300">•</span>
+          <span>
+            Active: <strong className="font-mono text-sky-700">{activeImplementationProjects.length}</strong>
+          </span>
+          <span className="text-slate-300">•</span>
+          <span>
+            Completed: <strong className="font-mono text-emerald-700">{completedProjects.length}</strong>
+          </span>
+          <span className="text-slate-300">•</span>
+          <span>
+            New (Unstarted): <strong className="font-mono text-purple-700">{unstartedProjects.length}</strong>
+          </span>
+          <span className="text-slate-300">•</span>
+          <span>
+            Total Units:{' '}
+            <strong className="font-mono text-slate-800">
+              {filteredProjects.reduce((s, p) => s + p.unitsCount, 0).toLocaleString()}
+            </strong>
+          </span>
+          <span className="text-slate-300">•</span>
+          <span>
+            Health:{' '}
+            <strong className="text-emerald-700 font-semibold">{onTrackProjects.length} Track</strong> /{' '}
+            <strong className="text-amber-700 font-semibold">{behindScheduleProjects.length} Behind</strong> /{' '}
+            <strong className="text-rose-700 font-semibold">{highRiskProjects.length} Risk</strong>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsActiveProjectsTableMinimized(false)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+          <span>Expand Projects Table</span>
+        </button>
       </div>
+    )}
+  </div>
 
       {/* Assistance Provided Pop-Up Modal */}
       {assistModalProject && (
