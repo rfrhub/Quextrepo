@@ -23,6 +23,8 @@ import {
   createProjectFromQuote,
   INITIAL_QUOTES,
   INITIAL_PROJECTS,
+  addArchivedProjectId,
+  loadArchivedProjectIds,
 } from './data/initialData';
 import { Header } from './components/Header';
 import { HomeScreen } from './components/HomeScreen';
@@ -50,6 +52,8 @@ import {
   subscribeToLiveProjects,
   subscribeToLiveQuotes,
   saveLiveProject,
+  deleteLiveProject,
+  archiveLiveProject,
   saveLiveQuote,
 } from './services/realtimeSyncService';
 import PartnerAcademyApp from './partner-academy/App';
@@ -990,23 +994,63 @@ export default function App() {
   };
 
   // Merge duplicate projects into a single consolidated project ("The Clone Wars")
-  const handleMergeProjects = (survivorProject: OperationProject, obsoleteProjectId: string) => {
+  const handleMergeProjects = async (
+    survivorProject: OperationProject,
+    obsoleteProjectId: string,
+    obsoleteProject?: OperationProject
+  ) => {
+    // 1. Permanently register obsolete ID in local archived registry
+    addArchivedProjectId(obsoleteProjectId);
+
+    // 2. Optimistically update local React state and local storage immediately
     setProjects((prev) => {
-      const updated = prev
-        .filter((p) => p.id !== obsoleteProjectId)
-        .map((p) => (p.id === survivorProject.id ? survivorProject : p));
+      const updated: OperationProject[] = [];
+      let survivorAdded = false;
+
+      for (const p of prev) {
+        if (p.id === obsoleteProjectId) {
+          continue; // Strip obsolete duplicate
+        }
+        if (p.id === survivorProject.id) {
+          if (!survivorAdded) {
+            updated.push(survivorProject);
+            survivorAdded = true;
+          }
+        } else {
+          updated.push(p);
+        }
+      }
+
+      if (!survivorAdded) {
+        updated.unshift(survivorProject);
+      }
+
       saveStoredProjects(updated);
-      saveLiveProject(survivorProject).catch((e) =>
-        console.warn('[Cloud Sync] Merged project save failed:', e)
-      );
       return updated;
     });
+
+    // 3. Save consolidated survivor to Cloud Firestore
+    saveLiveProject(survivorProject).catch((e) =>
+      console.warn('[Cloud Sync] Merged survivor project save failed:', e)
+    );
+
+    // 4. Permanently delete obsolete duplicate from Cloud Firestore
+    deleteLiveProject(obsoleteProjectId).catch((e) =>
+      console.warn('[Cloud Sync] Failed to delete obsolete project from cloud:', e)
+    );
+
+    // 5. Store obsolete duplicate in Cloud Firestore Archive for audit tracking
+    if (obsoleteProject) {
+      archiveLiveProject(obsoleteProject, survivorProject.id).catch((e) =>
+        console.warn('[Cloud Sync] Failed to archive duplicate in cloud:', e)
+      );
+    }
 
     const mergeNotif: ProjectActivityNotification = {
       id: `merge_notif_${Date.now()}`,
       timestamp: 'Just now',
       title: 'Project Merged (The Clone Wars)',
-      details: `Consolidated "${survivorProject.propertyName}" with obsolete duplicate (${obsoleteProjectId}). Scope and logs merged.`,
+      details: `Consolidated "${survivorProject.propertyName}" and permanently archived duplicate (${obsoleteProjectId}). Scope, units, and audit history merged.`,
       actorName: signedInUserRef.current?.name || 'Quext Project Manager',
       badgeLabel: 'Clone Wars Merge',
     };

@@ -10,6 +10,7 @@ import {
   collection,
   doc,
   setDoc,
+  deleteDoc,
   onSnapshot,
   getDocs,
   writeBatch,
@@ -21,6 +22,7 @@ import {
   enrichProjectDefaults,
   saveStoredProjects,
   saveStoredQuotes,
+  loadArchivedProjectIds,
 } from '../data/initialData';
 
 // Active Google Cloud Firestore Database Config
@@ -35,6 +37,7 @@ const syncApp = getApps().find((a) => a.name === appName) || initializeApp(CLOUD
 const db = getFirestore(syncApp);
 
 const PROJECTS_COLLECTION = 'quext_live_projects';
+const ARCHIVED_PROJECTS_COLLECTION = 'quext_archived_projects';
 const QUOTES_COLLECTION = 'quext_live_quotes';
 
 export interface SyncStatus {
@@ -109,10 +112,17 @@ export function subscribeToLiveProjects(
         const liveList: OperationProject[] = [];
         let hadNonLockTagsInCloud = false;
         const projectsToCleanseInCloud: OperationProject[] = [];
+        const archivedIds = loadArchivedProjectIds();
 
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as OperationProject;
           if (data && data.id) {
+            // If project is registered as merged/archived, purge it from Cloud Firestore and skip
+            if (archivedIds.has(data.id)) {
+              deleteDoc(doc(db, PROJECTS_COLLECTION, data.id)).catch(() => {});
+              return;
+            }
+
             const hasInvalidLockTag = (data.bomItems || []).some(
               (b) => !isLockBOMItem(b) && Boolean(b.lockFinishConfig)
             );
@@ -200,6 +210,55 @@ export async function saveLiveProject(project: OperationProject): Promise<void> 
       error: err?.message || 'Failed to save project to cloud',
     });
     throw err;
+  }
+}
+
+/**
+ * Permanently deletes an obsolete/duplicate project from Cloud Firestore.
+ */
+export async function deleteLiveProject(projectId: string): Promise<void> {
+  if (!projectId) return;
+  try {
+    updateSyncStatus({ isSyncing: true });
+    const docRef = doc(db, PROJECTS_COLLECTION, projectId);
+    await deleteDoc(docRef);
+
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    updateSyncStatus({
+      isConnected: true,
+      isSyncing: false,
+      lastSyncedAt: nowStr,
+      error: null,
+    });
+  } catch (err: any) {
+    console.error(`[Cloud Sync] Failed to delete project ${projectId} from Firestore:`, err);
+    updateSyncStatus({
+      isSyncing: false,
+      error: err?.message || 'Failed to delete project from cloud',
+    });
+    throw err;
+  }
+}
+
+/**
+ * Archives an obsolete duplicate project into the archived projects collection for permanent audit retention.
+ */
+export async function archiveLiveProject(
+  obsoleteProject: OperationProject,
+  survivorProjectId: string
+): Promise<void> {
+  if (!obsoleteProject || !obsoleteProject.id) return;
+  try {
+    const archivePayload = sanitizeForFirestore({
+      ...obsoleteProject,
+      archivedAt: new Date().toISOString(),
+      archivedReason: 'Merged in The Clone Wars Duplicate Studio',
+      mergedIntoProjectId: survivorProjectId,
+    });
+    const docRef = doc(db, ARCHIVED_PROJECTS_COLLECTION, obsoleteProject.id);
+    await setDoc(docRef, archivePayload, { merge: true });
+  } catch (err: any) {
+    console.warn(`[Cloud Sync] Failed to record archived project ${obsoleteProject.id}:`, err);
   }
 }
 

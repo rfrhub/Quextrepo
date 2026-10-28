@@ -8,6 +8,7 @@ import {
   CustomerCommsLog,
   getProjectIntegratorPartners,
 } from '../types';
+import { loadArchivedProjectIds } from '../data/initialData';
 import {
   GitMerge,
   Sparkles,
@@ -274,7 +275,11 @@ export function detectCloneClusters(
 
 interface CloneWarsWorkspaceProps {
   projects: OperationProject[];
-  onMergeProjects: (survivorProject: OperationProject, obsoleteProjectId: string) => void;
+  onMergeProjects: (
+    survivorProject: OperationProject,
+    obsoleteProjectId: string,
+    obsoleteProject?: OperationProject
+  ) => void;
   onClose: () => void;
   onNavigateToProject?: (projectId: string) => void;
 }
@@ -378,8 +383,10 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
 
   // Scan clusters based on current projects list, factoring in confirmed clones & learned noise words
   const detectedClusters = useMemo(() => {
+    const archivedIds = loadArchivedProjectIds();
+    const activeProjects = projects.filter((p) => !archivedIds.has(p.id));
     return detectCloneClusters(
-      projects,
+      activeProjects,
       strictScan,
       dismissedSet,
       learnedWordsSet,
@@ -915,10 +922,21 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     const survivor = previewFinalProject;
     const obsoleteId =
       chosenSurvivorId === 'A' ? activePair.projectB.id : activePair.projectA.id;
-    const obsoleteName =
-      chosenSurvivorId === 'A' ? activePair.projectB.propertyName : activePair.projectA.propertyName;
+    const obsoleteProject =
+      chosenSurvivorId === 'A' ? activePair.projectB : activePair.projectA;
+    const obsoleteName = obsoleteProject.propertyName;
 
-    onMergeProjects(survivor, obsoleteId);
+    // Unmark from confirmedPairs if it was tracked there
+    const pairId = `${activePair.projectA.id}__${activePair.projectB.id}`;
+    const reverseKey = `${activePair.projectB.id}__${activePair.projectA.id}`;
+    const cleanConfirmed = confirmedPairs.filter((p) => p.id !== pairId && p.id !== reverseKey);
+    if (cleanConfirmed.length !== confirmedPairs.length) {
+      setConfirmedPairs(cleanConfirmed);
+      saveConfirmedPairs(cleanConfirmed);
+    }
+
+    // Trigger parent merge & archive handler
+    onMergeProjects(survivor, obsoleteId, obsoleteProject);
 
     setMergedSuccessMsg({
       survivorName: survivor.propertyName,

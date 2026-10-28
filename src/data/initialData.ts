@@ -2116,12 +2116,48 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
   return checkAndApplyCsmHandoffAutoClose(enriched);
 }
 
+export const STORAGE_KEY_ARCHIVED_PROJECTS = 'quext_archived_project_ids_v1';
+
+export function loadArchivedProjectIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ARCHIVED_PROJECTS);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return new Set(arr);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load archived project IDs', e);
+  }
+  return new Set();
+}
+
+export function saveArchivedProjectIds(ids: Set<string> | string[]) {
+  try {
+    const arr = Array.from(ids);
+    localStorage.setItem(STORAGE_KEY_ARCHIVED_PROJECTS, JSON.stringify(arr));
+  } catch (e) {
+    console.error('Failed to save archived project IDs', e);
+  }
+}
+
+export function addArchivedProjectId(id: string) {
+  if (!id) return;
+  const current = loadArchivedProjectIds();
+  current.add(id);
+  saveArchivedProjectIds(current);
+}
+
 export function loadStoredProjects(): OperationProject[] {
   try {
+    const archivedIds = loadArchivedProjectIds();
     const raw = localStorage.getItem(STORAGE_KEY_PROJECTS);
     if (raw) {
       const parsed: OperationProject[] = JSON.parse(raw);
-      return parsed.map((p) => enrichProjectDefaults(p));
+      return parsed
+        .filter((p) => !archivedIds.has(p.id))
+        .map((p) => enrichProjectDefaults(p));
     }
   } catch (e) {
     console.error('Failed to parse stored projects', e);
