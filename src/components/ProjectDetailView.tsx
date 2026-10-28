@@ -2883,6 +2883,35 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                       </div>
                     </button>
 
+                    {/* Option 3: Project Closure Email */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsClosureSummaryOpen(true);
+                        setIsCommsDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                        isClosureSummaryOpen
+                          ? 'bg-emerald-50 border border-emerald-300 shadow-2xs'
+                          : 'hover:bg-slate-50 border border-transparent'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5">
+                        <FileCheck className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-bold text-xs text-slate-900">Project Closure Email</span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                            1-Page Certificate
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                          Official 1-page implementation handover certificate &amp; customer closure email with CSM auto-CC.
+                        </p>
+                      </div>
+                    </button>
+
                     {/* Direct Link Action Bar */}
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 px-1">
                       <button
@@ -2914,7 +2943,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               )}
             </div>
 
-            {/* Direct 1-Tap Kickoff Walkthrough Button on Mobile/Tablet */}
+            {/* Direct 1-Tap Kickoff Walkthrough Button */}
             <button
               type="button"
               onClick={() => setActiveTab('customer-kickoff')}
@@ -2926,6 +2955,21 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             >
               <Presentation className="w-3.5 h-3.5 shrink-0" />
               <span>Kickoff Walkthrough</span>
+            </button>
+
+            {/* Project Closure Email Button next to Kickoff Walkthrough */}
+            <button
+              type="button"
+              onClick={() => setIsClosureSummaryOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                isClosureSummaryOpen
+                  ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                  : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+              title="Open One-Page Project Closure Summary & Customer Email with CSM Introduction"
+            >
+              <FileCheck className="w-3.5 h-3.5 shrink-0" />
+              <span>Project Closure Email</span>
             </button>
           </div>
 
