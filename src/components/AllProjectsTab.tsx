@@ -30,7 +30,10 @@ import {
   ChevronUp,
   LayoutGrid,
   List,
+  Download,
+  Upload,
 } from 'lucide-react';
+import { exportAllProjects, openImportModal } from '../utils/projectBackupService';
 import {
   getProjectPartnerCourseCompletion,
   loadPartnerAcademyUsers,
@@ -142,11 +145,33 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto">
-            <span className="text-xs text-slate-500">Active Projects:</span>
-            <span className="px-3 py-1 bg-slate-100 border border-slate-200 rounded-lg text-slate-900 font-mono font-bold">
-              {projects.length}
-            </span>
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            <button
+              type="button"
+              data-tutorial-id="all-projects-export-btn"
+              onClick={() => exportAllProjects(projects)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+              title="Export complete site backup of all active projects (BOM with finishes, install logs with photos, notes, milestones) to JSON file"
+            >
+              <Download className="w-3.5 h-3.5 text-sky-600" />
+              <span>Export All Projects</span>
+            </button>
+            <button
+              type="button"
+              data-tutorial-id="all-projects-import-restore-btn"
+              onClick={openImportModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+              title="Import projects from spreadsheet or restore a full JSON backup"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Import / Restore</span>
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Active Projects:</span>
+              <span className="px-3 py-1 bg-slate-100 border border-slate-200 rounded-lg text-slate-900 font-mono font-bold">
+                {projects.length}
+              </span>
+            </div>
           </div>
         </div>
 

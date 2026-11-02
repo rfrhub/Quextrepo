@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Quote,
   OperationProject,
@@ -50,13 +50,17 @@ import {
   KeyRound,
   ChevronDown,
   FileSpreadsheet,
+  Download,
+  Database,
   LogOut,
 } from 'lucide-react';
+import { exportAllProjects } from '../utils/projectBackupService';
 import { CloudSyncIndicator } from './CloudSyncIndicator';
 import { ProductCatalogView } from './ProductCatalogView';
 import { SearchablePropertyPicker } from './SearchablePropertyPicker';
 import { CreateManualProjectModal } from './CreateManualProjectModal';
 import { ImportProjectsModal } from './ImportProjectsModal';
+import { CustomerSuccessPortal } from './CustomerSuccessPortal';
 
 export type MyQuextTopTab =
   | 'salesHub'
@@ -124,7 +128,8 @@ interface MyQuextPlatformShellProps {
   onOpenPMTutorial?: () => void;
   onOpenCloneWars?: () => void;
   onCreateProject?: (newProject: OperationProject) => void;
-  onImportProjects?: (newProjects: OperationProject[]) => void;
+  onImportProjects?: (newProjects: OperationProject[], isBackupRestore?: boolean) => void;
+  onUpdateProject?: (updatedProject: OperationProject) => void;
   onResetData: () => void;
   onToggleStandaloneMode: () => void;
   children: React.ReactNode;
@@ -174,6 +179,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   onOpenCloneWars,
   onCreateProject,
   onImportProjects,
+  onUpdateProject,
   onResetData,
   onToggleStandaloneMode,
   children,
@@ -181,6 +187,12 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [isImportProjectsModalOpen, setIsImportProjectsModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenImportModal = () => setIsImportProjectsModalOpen(true);
+    window.addEventListener('quext-open-import-modal', handleOpenImportModal);
+    return () => window.removeEventListener('quext-open-import-modal', handleOpenImportModal);
+  }, []);
   const [salesSubTab, setSalesSubTab] = useState<SalesHubSidebarTab>('dashboard');
   const [whatsHappeningFilter, setWhatsHappeningFilter] = useState<'all' | 'mentions' | 'Leading' | 'Contributing'>('all');
   const [globalSearch, setGlobalSearch] = useState('');
@@ -751,7 +763,26 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                         </span>
                       </button>
 
-                      {/* Import Projects from Spreadsheet (CSV / Excel) */}
+                      {/* Export All Projects Backup (Lossless JSON) */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          exportAllProjects(projects, currentUserName);
+                        }}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-sky-950 bg-sky-50/70 hover:bg-sky-100/90 border border-sky-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                        title="Export complete site backup of all active projects (BOM, logs, notes, milestones, customer intake) to JSON file"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Download className="w-4 h-4 text-sky-600 shrink-0" />
+                          <span className="font-bold text-sky-950">Export All Projects</span>
+                        </div>
+                        <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-sky-200 text-sky-900 rounded-md">
+                          Backup
+                        </span>
+                      </button>
+
+                      {/* Import & Restore Projects (JSON Backup, CSV / Excel) */}
                       <button
                         type="button"
                         data-tutorial-id="profile-dropdown-import-projects-btn"
@@ -760,14 +791,14 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                           setIsImportProjectsModalOpen(true);
                         }}
                         className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-emerald-950 bg-emerald-50/70 hover:bg-emerald-100/90 border border-emerald-200/70 flex items-center justify-between cursor-pointer transition-colors"
-                        title="Import projects from CSV or Excel (.xlsx / .xls) spreadsheet with downloadable templates"
+                        title="Import projects from CSV or Excel spreadsheet, or restore a complete JSON project backup"
                       >
                         <div className="flex items-center gap-2.5">
                           <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <span className="font-bold text-emerald-950">Import Projects</span>
+                          <span className="font-bold text-emerald-950">Import / Restore</span>
                         </div>
                         <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-emerald-200 text-emerald-900 rounded-md">
-                          CSV / Excel
+                          JSON · Excel
                         </span>
                       </button>
 
@@ -2124,113 +2155,16 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
           CUSTOMER SUCCESS / REPORTS / PRODUCT CATALOG TABS IN myquext.com SHELL
       ===================================================================== */}
       {activeTopTab === 'customerSuccess' && (
-        <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <span className="px-2.5 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                myquext.com Customer Success
-              </span>
-              <h1 className="text-2xl font-semibold text-slate-900 font-['Inter_Tight',sans-serif] mt-1">
-                Active Buildings &amp; CSM Portfolio ({projects.length})
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Properties transitioned from Sales Hub &amp; Operations into active Customer Success
-                management.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              {onOpenSowAutomation && (
-                <button
-                  type="button"
-                  onClick={onOpenSowAutomation}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors"
-                  title="Open OneQuext SOW Google Form Automation Hub & Field Tech Dispatcher"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>SOW Automation Hub</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  onSelectTopTab('operations');
-                  onGoToOperationsDashboard();
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
-              >
-                <span>Go to Operations Installation Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* SOW Automation Feature Hub in Customer Success */}
-          {onOpenSowAutomation && (
-            <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white border border-teal-500/30 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="relative z-10 space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/40 text-teal-300 text-xs font-bold">
-                  <FileText className="w-3.5 h-3.5 text-teal-400" />
-                  <span>OneQuext SOW Google Form Automation Hub</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                  Automate SOW Intake &amp; Field Tech Dispatch
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Collect Google Form survey submissions, auto-generate official branded SOW PDF agreements,
-                  and dispatch Field Techs (Sean Gates, Hector Lopez) with 1-click email and calendar notifications.
-                </p>
-              </div>
-              <div className="relative z-10 shrink-0">
-                <button
-                  type="button"
-                  onClick={onOpenSowAutomation}
-                  className="px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 active:bg-teal-600 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
-                >
-                  <FileText className="w-4 h-4 stroke-[2.5]" />
-                  <span>Launch SOW Automation Hub</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projects.slice(0, 18).map((proj) => (
-              <div
-                key={proj.id}
-                className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs hover:border-blue-300 transition-all flex flex-col justify-between gap-3"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm text-slate-900 truncate">
-                      {proj.propertyName}
-                    </span>
-                    <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                      {proj.unitsCount} Units
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    {proj.clientName} • {proj.city}, {proj.state}
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-2">
-                    Assigned CSM: <strong className="text-slate-800">{proj.assignedCSM}</strong> • PM:{' '}
-                    <strong className="text-slate-800">{proj.assignedPM.name}</strong>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleOpenProjectInOperations(proj.id)}
-                  className="w-full py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Open Project in Operations →
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CustomerSuccessPortal
+          projects={projects}
+          onUpdateProject={onUpdateProject || (() => {})}
+          onOpenProjectInOperations={handleOpenProjectInOperations}
+          onGoToOperationsDashboard={() => {
+            onSelectTopTab('operations');
+            onGoToOperationsDashboard();
+          }}
+          currentUserName={currentUserName}
+        />
       )}
 
       {activeTopTab === 'reports' && (
@@ -2402,9 +2336,9 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
       <ImportProjectsModal
         isOpen={isImportProjectsModalOpen}
         onClose={() => setIsImportProjectsModalOpen(false)}
-        onImportProjects={(imported) => {
+        onImportProjects={(imported, isBackupRestore) => {
           if (onImportProjects) {
-            onImportProjects(imported);
+            onImportProjects(imported, isBackupRestore);
           } else if (onCreateProject) {
             imported.forEach((p) => onCreateProject(p));
           }

@@ -25,6 +25,7 @@ import {
   getCsmHandoffAutoCloseInfo,
   projectHasGatewayOrHubOnBOM,
   getCSMCalendarBookingProfile,
+  CSM_CALENDAR_BOOKING_DIRECTORY,
   QUEXT_TRAINING_HELP_ARTICLE_URL,
   PendingInstallationChange,
   buildCustomerKickoffPortalUrl,
@@ -57,6 +58,7 @@ import { ManualLinkProjectPanel } from './ManualLinkProjectPanel';
 import { PMPMitigationPlanPanel } from './PMPMitigationPlanPanel';
 import {
   Building2,
+  Mail,
   QrCode,
   Smartphone,
   Clock,
@@ -98,7 +100,10 @@ import {
   GraduationCap,
   Wrench,
   ShieldAlert,
+  Download,
+  Upload,
 } from 'lucide-react';
+import { exportSingleProject, openImportModal } from '../utils/projectBackupService';
 import {
   getProjectPartnerCourseCompletion,
   loadPartnerAcademyUsers,
@@ -1591,18 +1596,17 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             )}
 
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              {/* Portal Build Out Button */}
-              <button
-                type="button"
-                onClick={() => setIsPortalBuildOutOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                title="Open 18-question Portal Build Out form and export PDF"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Portal Build Out</span>
-              </button>
-
-              {isProjectClosed ? null : isTrainingCsmActive ? (
+              {isProjectClosed ? (
+                <button
+                  type="button"
+                  onClick={() => setIsClosureSummaryOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
+                  title="Generate official 1-page closure email"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  <span>Closure Email</span>
+                </button>
+              ) : isTrainingCsmActive ? (
                 <button
                   type="button"
                   onClick={handleCopyCsmPortalLink}
@@ -1696,6 +1700,19 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   <span className="hidden sm:inline">View Quote Counts</span>
                 </button>
               )}
+
+              {/* Export Full Project Backup (Lossless JSON) */}
+              <button
+                type="button"
+                data-tutorial-id="project-detail-export-backup-btn"
+                onClick={() => exportSingleProject(project, currentUserName)}
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 text-xs font-semibold text-white bg-emerald-600/80 hover:bg-emerald-600 backdrop-blur-md border border-emerald-400/30 rounded-lg transition-colors shadow-sm cursor-pointer"
+                title="Export complete project backup (BOM items with lock finishes, install logs with photos, notes, milestones, customer intake) to JSON file"
+              >
+                <Download className="w-3 h-3 text-emerald-100" />
+                <span className="hidden sm:inline">Export Project</span>
+                <span className="sm:hidden">Export</span>
+              </button>
             </div>
 
             {/* PM Edit Mode Button - Located directly under View Quote Counts */}
@@ -1758,7 +1775,25 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => exportSingleProject(project, currentUserName)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-800 text-white font-bold text-xs shadow-xs cursor-pointer transition-all"
+                    title="Export complete project backup to JSON"
+                  >
+                    <Download className="w-3.5 h-3.5 text-sky-200" />
+                    <span>Export Backup</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openImportModal}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs shadow-xs cursor-pointer transition-all"
+                    title="Restore project from JSON backup or spreadsheet"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Restore / Import</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirmModal(true)}
@@ -2556,66 +2591,170 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         </div>
       </div>
 
-      {/* CSM Intro - Pre-implementation Milestone Active: CSM Calendar Booking Link Automation Banner */}
+      {/* CSM Intro - Pre-implementation Milestone Active: CSM Calendar Booking Link Automation Banner & Pre-Implementation Review Template Card */}
       {(showCSMIntroBookingAlert || isOnCSMIntroMilestone) && (
-        <div className="bg-gradient-to-r from-[#191E29] via-[#132D46] to-[#191E29] text-white p-4 sm:p-5 rounded-2xl shadow-md border border-[#01C38D]/40 flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fadeIn">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-[#01C38D]/20 border border-[#01C38D]/40 flex items-center justify-center shrink-0 shadow-inner">
-              <Calendar className="w-5 h-5 text-[#01C38D]" />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm sm:text-base font-['Plus_Jakarta_Sans'] flex flex-wrap items-center gap-2">
-                <span>CSM Intro - Pre-Implementation • Calendar Booking Automation Active</span>
-                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-[#01C38D]/20 text-[#01C38D] border border-[#01C38D]/40 font-bold">
-                  Assigned CSM: {csmBookingProfile.name}
-                </span>
+        <div className="space-y-3 animate-fadeIn">
+          <div className="bg-gradient-to-r from-[#191E29] via-[#132D46] to-[#191E29] text-white p-4 sm:p-5 rounded-2xl shadow-md border border-[#01C38D]/40 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#01C38D]/20 border border-[#01C38D]/40 flex items-center justify-center shrink-0 shadow-inner">
+                <Calendar className="w-5 h-5 text-[#01C38D]" />
               </div>
-              <p className="text-xs text-slate-200 mt-1 max-w-3xl leading-relaxed">
-                This project is on the <strong>CSM Intro - Pre-implementation</strong> milestone. Send the customer their designated CSM&apos;s Google Calendar booking link (<strong>{csmBookingProfile.name}</strong> — <em>&ldquo;{csmBookingProfile.quote}&rdquo;</em>) and full Quext CSM booking directory so they can book their training session.
-              </p>
+              <div>
+                <div className="font-extrabold text-sm sm:text-base font-['Plus_Jakarta_Sans'] flex flex-wrap items-center gap-2">
+                  <span>CSM Intro - Pre-Implementation • Calendar Booking Automation Active</span>
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-[#01C38D]/20 text-[#01C38D] border border-[#01C38D]/40 font-bold">
+                    Assigned CSM: {csmBookingProfile.name}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-200 mt-1 max-w-3xl leading-relaxed">
+                  This project is on the <strong>CSM Intro - Pre-implementation</strong> milestone. Send the customer their designated CSM&apos;s Google Calendar booking link (<strong>{csmBookingProfile.name}</strong> — <em>&ldquo;{csmBookingProfile.quote}&rdquo;</em>) and full Quext CSM booking directory so they can book their training session.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const defaultRecip =
+                    project.customerIntake?.subscriberEmail ||
+                    project.customerIntake?.communityEmail ||
+                    project.customerIntake?.staffRoles?.[0]?.email ||
+                    'RFRleasing@gmail.com';
+                  const allCsmLinksHtml = CSM_CALENDAR_BOOKING_DIRECTORY.map(
+                    (csm) => `
+                      <li style="margin-bottom: 10px;">
+                        <strong>${csm.name}</strong> (${csm.title}) — <em>"${csm.quote}"</em><br/>
+                        👉 <a href="${csm.bookingUrl}" style="color: #0284c7; font-weight: bold;">Click Here to Book a Session with ${csm.name}</a>
+                      </li>
+                    `
+                  ).join('');
+                  const htmlBody = `
+                    <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+                      <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
+                        <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
+                        <span style="float: right; font-size: 11px; color: #0284c7; text-transform: uppercase; line-height: 28px; font-weight: bold;">CSM Intro • Pre-Implementation</span>
+                      </div>
+                      <p>Hello <strong>${project.clientName}</strong> Team,</p>
+                      <p><strong>${project.propertyName}</strong> has reached the <strong>CSM Intro - Pre-implementation</strong> milestone! You can now schedule your 1-on-1 training and pre-implementation review session directly with your designated Customer Success Manager below.</p>
+                      <div style="background-color: #f0fdf4; padding: 16px; border-radius: 10px; border: 1px solid #bbf7d0; margin: 16px 0;">
+                        <div style="font-size: 11px; text-transform: uppercase; color: #047857; font-weight: bold; margin-bottom: 4px;">Your Designated Customer Success Manager</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #0f172a;">${csmBookingProfile.name} — ${csmBookingProfile.title}</div>
+                        <p style="font-style: italic; color: #334155; margin: 6px 0 12px 0;">"${csmBookingProfile.quote}"</p>
+                        <p style="margin: 0;">
+                          👉 <a href="${csmBookingProfile.bookingUrl}" style="display: inline-block; background-color: #01C38D; color: #191E29; font-weight: bold; padding: 10px 16px; border-radius: 8px; text-decoration: none;">Click Here to Book a Session with ${csmBookingProfile.name}</a>
+                        </p>
+                      </div>
+                      <p style="font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 18px;">Full Quext CSM Booking Directory (<a href="${QUEXT_TRAINING_HELP_ARTICLE_URL}" style="color: #0284c7;">help.quext.io</a>):</p>
+                      <ul style="font-size: 12px; color: #334155; padding-left: 18px;">
+                        ${allCsmLinksHtml}
+                      </ul>
+                      <div style="background-color: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 12px; margin-top: 16px;">
+                        <strong>Pre-Implementation Review &amp; Training Template:</strong> <a href="https://docs.google.com/email-layouts/d/19VypdKoiZlpv3HMQ1qymXwmCqArZsRzYlHbtD3fW4Fs/edit" style="color: #0284c7; font-weight: bold;">Open Pre-Implementation Review Email Layout Template</a><br/>
+                        <strong>Related Guides:</strong> <a href="https://help.quext.io/en/articles/10297981-staff-create-a-quext-pass">Staff - Create a Quext Pass</a> | <a href="https://help.quext.io/en/articles/13622261-residents-how-to-set-up-and-use-wallet-access">Residents - How to Set Up and Use Wallet Access</a>
+                      </div>
+                      <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
+                        Best regards,<br/>
+                        <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
+                      </p>
+                    </div>
+                  `;
+                  setGmailModalPayload({
+                    title: `Send CSM Calendar Link & Directory to Customer (${csmBookingProfile.name})`,
+                    defaultRecipients: defaultRecip,
+                    subject: `[CSM Intro - Pre-Implementation] Schedule Your Training Session with ${csmBookingProfile.name} — ${project.propertyName}`,
+                    htmlBody,
+                    onDispatched: ({ recipients, subject, gmailMessageId }) => {
+                      const newLog: CustomerCommsLog = {
+                        id: `log-csm-booking-${Date.now()}`,
+                        projectId: project.id,
+                        timestamp: new Date().toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }),
+                        type: 'csm_training_portal',
+                        recipientEmail: recipients.join(', '),
+                        subject,
+                        summary: `Sent CSM Calendar Booking Link (${csmBookingProfile.name}) & Directory directly to customer [Gmail ID: ${gmailMessageId || 'Sent'}].`,
+                        sentBy: project.assignedPM.name,
+                        status: 'Delivered',
+                      };
+                      onUpdateProject({
+                        ...project,
+                        customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
+                        lastUpdated: new Date().toISOString(),
+                      });
+                    },
+                  });
+                }}
+                className="px-4 py-2 bg-[#01C38D] hover:bg-[#00b07f] text-slate-950 font-black rounded-lg text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Send CSM Calendar Link &amp; Directory</span>
+              </button>
+              <a
+                href={csmBookingProfile.bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5"
+                title={`Open ${csmBookingProfile.name}'s Google Calendar booking page`}
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-[#01C38D]" />
+                <span>Book w/ {csmBookingProfile.name.split(' ')[0]}</span>
+              </a>
+              <a
+                href={QUEXT_TRAINING_HELP_ARTICLE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 bg-white/5 hover:bg-white/15 text-slate-200 border border-white/15 font-semibold rounded-lg text-xs transition-colors flex items-center gap-1"
+              >
+                <span>All CSM Links</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              {showCSMIntroBookingAlert && (
+                <button
+                  type="button"
+                  onClick={() => setShowCSMIntroBookingAlert(false)}
+                  className="px-2.5 py-2 text-xs text-slate-300 hover:text-white"
+                >
+                  Dismiss
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                setCsmPortalInitialMode('csm-intro-booking');
-                setIsCSMTrainingOpen(true);
-              }}
-              className="px-4 py-2 bg-[#01C38D] hover:bg-[#00b07f] text-slate-950 font-black rounded-lg text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Send CSM Calendar Link &amp; Directory</span>
-            </button>
-            <a
-              href={csmBookingProfile.bookingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5"
-              title={`Open ${csmBookingProfile.name}'s Google Calendar booking page`}
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-[#01C38D]" />
-              <span>Book w/ {csmBookingProfile.name.split(' ')[0]}</span>
-            </a>
-            <a
-              href={QUEXT_TRAINING_HELP_ARTICLE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 bg-white/5 hover:bg-white/15 text-slate-200 border border-white/15 font-semibold rounded-lg text-xs transition-colors flex items-center gap-1"
-            >
-              <span>All CSM Links</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-            {showCSMIntroBookingAlert && (
-              <button
-                type="button"
-                onClick={() => setShowCSMIntroBookingAlert(false)}
-                className="px-2.5 py-2 text-xs text-slate-300 hover:text-white"
+          {/* Pre-Implementation Review Google Email Layout Template Card */}
+          <div className="p-4 sm:p-5 bg-gradient-to-br from-indigo-50 via-white to-emerald-50 border-2 border-indigo-200 rounded-2xl shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 border border-indigo-300 text-[10px] font-black uppercase tracking-wider">
+                  Ready-to-Send Google Email Layout Template • Pre-Implementation Review
+                </div>
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
+                  Pre-Implementation Review_Template — Customer Success &amp; Hardware Scope Review
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
+                  Official Quext Google Email Layout template for <strong>Pre-Implementation Review</strong> covering CSM Training &amp; Support introduction, Smart Hardware overview (Unit Locks, Access Control, Readers, Smart Thermostats, Resident Mobile App &amp; Wallet Key), Hardware Type Target vs. Completed table, and Daily Installation &amp; Completion charts.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <a
+                href="https://docs.google.com/email-layouts/d/19VypdKoiZlpv3HMQ1qymXwmCqArZsRzYlHbtD3fW4Fs/edit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
               >
-                Dismiss
-              </button>
-            )}
+                <Mail className="w-3.5 h-3.5" />
+                <span>Pre-Implementation Review Template</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -3063,7 +3202,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPortalBuildOutOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+                  title="Open 18-question Portal Build Out form and export PDF"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Portal Build Out</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('customer-kickoff')}

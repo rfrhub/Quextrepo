@@ -54,7 +54,10 @@ import {
   Wrench,
   ShieldCheck,
   Sparkles,
+  Download,
+  Upload,
 } from 'lucide-react';
+import { exportAllProjects, openImportModal } from '../utils/projectBackupService';
 
 interface OverallDashboardProps {
   projects: OperationProject[];
@@ -546,13 +549,35 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={() => onGoToAllProjects()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition-all shrink-0 self-start md:self-auto cursor-pointer"
-          >
-            <Layers className="w-4 h-4" />
-            <span>View All Active Projects Directory</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start md:self-auto">
+            <button
+              type="button"
+              data-tutorial-id="dashboard-export-all-projects-btn"
+              onClick={() => exportAllProjects(projects)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+              title="Export complete site backup of all active projects (BOM with finishes, install logs with photos, notes, milestones) to JSON file"
+            >
+              <Download className="w-3.5 h-3.5 text-sky-600" />
+              <span>Export All Projects</span>
+            </button>
+            <button
+              type="button"
+              data-tutorial-id="dashboard-import-restore-btn"
+              onClick={openImportModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+              title="Import projects from spreadsheet or restore a full JSON backup"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Import / Restore</span>
+            </button>
+            <button
+              onClick={() => onGoToAllProjects()}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition-all shrink-0 cursor-pointer"
+            >
+              <Layers className="w-4 h-4" />
+              <span>View All Active Projects Directory</span>
+            </button>
+          </div>
         </div>
 
         {/* Top-Level Dashboard Filter Toolbar: Timeframe (All Time, Month, Quarter) + Platform Filter */}

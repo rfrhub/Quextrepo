@@ -954,7 +954,122 @@ export interface OperationProject {
   financialMilestones?: FinancialMilestones;
   partnerCourseBundle?: PrePackagedProjectCourseBundle;
   pmpMitigationPlan?: PMPMitigationPlan;
+  csmPortalData?: CSMPropertyPortalData;
   lastUpdated: string;
+}
+
+export type CSMRiskTier =
+  | 'None'
+  | 'Tier 3 - Low Risk'
+  | 'Tier 2 - Moderate Risk'
+  | 'Tier 1 - High Risk'
+  | 'Critical - Escalation';
+
+export const CSM_RISK_TIERS: readonly CSMRiskTier[] = [
+  'None',
+  'Tier 3 - Low Risk',
+  'Tier 2 - Moderate Risk',
+  'Tier 1 - High Risk',
+  'Critical - Escalation',
+] as const;
+
+export const CSM_DEFAULT_NOTE_TAGS: readonly string[] = [
+  'Hardware / Locks',
+  'Thermostats / HVAC',
+  'Gateways / Connectivity',
+  'PMS Integration',
+  'Access Control / Doors',
+  'Resident Onboarding',
+  'Staff Training',
+  'Billing / Contract',
+  'Support Escalation',
+  'Renewal / Expansion',
+] as const;
+
+export interface CSMContractPartySignature {
+  partyRole: 'Quext' | 'Customer / Owner';
+  entityName: string;
+  signerName: string;
+  signerTitle: string;
+  signedDate: string;
+}
+
+export interface CSMContractScrubbedAnalysis {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  fileDataUrl?: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  aiScrubbedAt: string;
+  aiModelUsed: string;
+  contractStartDate: string;
+  contractTerminationDate: string;
+  contractTermSummary: string;
+  autoRenewalTerms?: string;
+  quextSignatory: CSMContractPartySignature;
+  customerSignatory: CSMContractPartySignature;
+  quextResponsibilities: string[];
+  customerResponsibilities: string[];
+  executiveSummary?: string;
+}
+
+export interface CSMResolutionPlan {
+  hasResolutionPlan: boolean;
+  issueStatus: 'Open' | 'Resolution Plan Active' | 'Resolved';
+  planSummary: string;
+  nextSteps: string;
+  owner: string;
+  targetResolutionDate?: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface CSMPropertyNote {
+  id: string;
+  propertyId: string;
+  author: string;
+  createdAt: string;
+  updatedAt?: string;
+  text: string;
+  riskTier: CSMRiskTier;
+  tags: string[];
+  riskGroupId?: string;
+  resolutionPlan?: CSMResolutionPlan;
+}
+
+export interface CSMRiskGroup {
+  id: string;
+  propertyId: string;
+  title: string;
+  riskTier: CSMRiskTier;
+  tags: string[];
+  contributingNoteIds: string[];
+  createdAt: string;
+  createdBy: string;
+  resolutionPlan: CSMResolutionPlan;
+}
+
+export interface CSMPropertyPortalData {
+  contracts: CSMContractScrubbedAnalysis[];
+  csmNotes: CSMPropertyNote[];
+  riskGroups: CSMRiskGroup[];
+  lastUpdatedAt?: string;
+}
+
+/**
+ * Checks whether an Operations Project should be brought over into the Customer Success Portal as a Property.
+ * A project transitions into Customer Success when its "CSM Handoff" milestone is marked "In Progress"
+ * (or "Completed" after entering CSM Handoff).
+ */
+export function isProjectInCustomerSuccessPortal(project: OperationProject): boolean {
+  if (!project || !Array.isArray(project.milestones)) return false;
+  return project.milestones.some(
+    (m) =>
+      (m.title === 'CSM Handoff' || m.title.toLowerCase().includes('csm handoff')) &&
+      (m.status === 'In Progress' || m.status === 'Completed')
+  );
 }
 
 export type PMPMitigationStrategyType =

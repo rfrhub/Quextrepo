@@ -2479,7 +2479,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
               Resident Communication & Onboarding Kit
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Ready-to-use digital templates and print guides delivered to your on-site management team.
+              Ready-to-use digital templates and digital print-ready materials sent by our team for your on-site management team to print.
             </p>
           </div>
 
@@ -2494,15 +2494,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
                   Ready-to-Send Google Email Layout Template
                 </div>
                 <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-                  <a
-                    href="https://docs.google.com/email-layouts/d/1BSKZsB_enu8fZRPO8Prf6ueTt_B2gliWiQ-SwpJFbPg/edit?usp=sharing"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-emerald-700 underline decoration-emerald-400 underline-offset-4 inline-flex items-center gap-1.5"
-                  >
-                    <span>Resident Onboarding</span>
-                    <ExternalLink className="w-4 h-4 text-emerald-600 shrink-0" />
-                  </a>
+                  Resident Onboarding
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
                   An official Quext email template you can insert directly into your emails to easily send onboarding instructions and smart home setup steps to your residents.
@@ -2531,29 +2523,8 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
                   <Mail className="w-4 h-4 text-sky-600" />
                   <span>Automated Email Templates</span>
                 </span>
-                <a
-                  href="https://docs.google.com/email-layouts/d/1BSKZsB_enu8fZRPO8Prf6ueTt_B2gliWiQ-SwpJFbPg/edit?usp=sharing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] font-bold text-sky-700 hover:text-sky-900 underline inline-flex items-center gap-1"
-                >
-                  <span>Resident Onboarding</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
               </div>
               <ul className="space-y-1.5 text-slate-600 text-[11px]">
-                <li>
-                  •{' '}
-                  <a
-                    href="https://docs.google.com/email-layouts/d/1BSKZsB_enu8fZRPO8Prf6ueTt_B2gliWiQ-SwpJFbPg/edit?usp=sharing"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold text-sky-700 hover:text-sky-900 underline"
-                  >
-                    Resident Onboarding
-                  </a>{' '}
-                  — Insertable email template to easily send to residents
-                </li>
                 <li>• 7-Day Advance Product Notice (Scheduled date window)</li>
                 <li>• Quext Mobile App Download badge for iOS & Android</li>
                 <li>• Password Creation & Apple Wallet digital key generation</li>
@@ -2563,12 +2534,15 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
               <div className="font-bold text-slate-900 flex items-center gap-1.5">
                 <FileCheck className="w-4 h-4 text-emerald-600" />
-                <span>Print Materials & Welcome Collateral</span>
+                <span>Digital Print Materials & Welcome Collateral</span>
               </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Our team sends your property digital, print-ready materials and collateral files for your team to print on-site:
+              </p>
               <ul className="space-y-1.5 text-slate-600 text-[11px]">
-                <li>• Printable Quick Start Guide for your team</li>
-                <li>• Custom NFC door hangers with property branding</li>
-                <li>• Emergency maintenance master protocol sheet</li>
+                <li>• Digital Quick Start Guide sent by our team for your team to print</li>
+                <li>• Digital door hanger & welcome collateral files ready for your team to print</li>
+                <li>• Digital emergency maintenance master protocol sheet sent for on-site printing</li>
               </ul>
             </div>
           </div>

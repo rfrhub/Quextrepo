@@ -67,6 +67,7 @@ import {
 } from './partner-academy/utils/projectCoursePackager';
 import { resolvePartnerByAccessCode } from './partner-academy/utils/partnerSecurity';
 import { PartnerAccessCodesModal } from './components/PartnerAccessCodesModal';
+import { upsertProjects } from './utils/projectBackupService';
 import { RotateCcw, ArrowLeft, Building2, Mail, Eye } from 'lucide-react';
 
 function extractKickoffIdFromLocation(): string | null {
@@ -964,18 +965,21 @@ export default function App() {
     );
   };
 
-  // Batch import projects from CSV or Excel spreadsheet
-  const handleImportProjects = (newProjects: OperationProject[]) => {
+  // Batch import projects from CSV or Excel spreadsheet, or restore full project JSON backups
+  const handleImportProjects = (newProjects: OperationProject[], isBackupRestore?: boolean) => {
     const enrichedList: OperationProject[] = newProjects.map((p) => ({
       ...p,
-      partnerCourseBundle: p.partnerCourseBundle || buildProjectPrePackagedBundle(p, 'Spreadsheet Import'),
+      partnerCourseBundle:
+        p.partnerCourseBundle ||
+        buildProjectPrePackagedBundle(p, isBackupRestore ? 'Backup Restore' : 'Spreadsheet Import'),
     }));
-    const updatedProjects = [...enrichedList, ...projects];
-    setProjects(updatedProjects);
-    saveStoredProjects(updatedProjects);
+
+    const { updatedList, updatedCount, addedCount } = upsertProjects(projects, enrichedList);
+    setProjects(updatedList);
+    saveStoredProjects(updatedList);
     enrichedList.forEach((p) => {
       saveLiveProject(p).catch((e) =>
-        console.warn('[Cloud Sync] Background imported project save failed:', e)
+        console.warn('[Cloud Sync] Background project save failed:', e)
       );
     });
 
@@ -985,13 +989,21 @@ export default function App() {
         ? propNames.join(' and ')
         : `${propNames.slice(0, 2).join(', ')}, and ${propNames.length - 2} more`;
 
+    const title = isBackupRestore
+      ? `${enrichedList.length} Project${enrichedList.length === 1 ? '' : 's'} Restored from Backup`
+      : `${enrichedList.length} Project${enrichedList.length === 1 ? '' : 's'} Imported`;
+
+    const details = isBackupRestore
+      ? `Successfully restored ${enrichedList.length} project${enrichedList.length === 1 ? '' : 's'} (${summaryText}) from JSON backup (${updatedCount} updated, ${addedCount} added). BOM line items, install logs, notes, milestones, and customer intake restored.`
+      : `Successfully imported ${enrichedList.length} project${enrichedList.length === 1 ? '' : 's'} (${summaryText}) via spreadsheet upload. Baseline BOM, milestones, and partner course bundles initialized.`;
+
     const importNotif: ProjectActivityNotification = {
       id: `import_notif_${Date.now()}`,
       timestamp: 'Just now',
-      title: `${enrichedList.length} Project${enrichedList.length === 1 ? '' : 's'} Imported`,
-      details: `Successfully imported ${enrichedList.length} project${enrichedList.length === 1 ? '' : 's'} (${summaryText}) via spreadsheet upload. Baseline BOM, milestones, and partner course bundles initialized.`,
+      title,
+      details,
       actorName: signedInUserRef.current?.name || 'Quext Project Manager',
-      badgeLabel: 'Spreadsheet Import',
+      badgeLabel: isBackupRestore ? 'Backup Restore' : 'Spreadsheet Import',
     };
     setLatestNotification(importNotif);
     setAutoPopTriggerKey((k) => k + 1);
@@ -1864,6 +1876,7 @@ export default function App() {
           projects={projects}
           onCreateProject={handleCreateManualProject}
           onImportProjects={handleImportProjects}
+          onUpdateProject={handleUpdateProject}
           onUpdateQuoteStage={handleUpdateQuoteStage}
           onCreateNewOpportunity={handleCreateNewOpportunity}
           onSyncLiveMyQuext={handleSyncLiveMyQuext}

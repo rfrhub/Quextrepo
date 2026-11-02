@@ -17,6 +17,8 @@ import {
   Calendar,
   User,
   Search,
+  Database,
+  RotateCcw,
 } from 'lucide-react';
 import {
   downloadExcelTemplate,
@@ -26,12 +28,16 @@ import {
   ParsedProjectRow,
   TEMPLATE_REFERENCE_GUIDE,
 } from '../utils/projectSpreadsheetService';
+import {
+  parseAndValidateProjectBackup,
+  BackupParseResult,
+} from '../utils/projectBackupService';
 import { OperationProject, getPlatformBadgeStyle } from '../types';
 
 interface ImportProjectsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImportProjects: (projects: OperationProject[]) => void;
+  onImportProjects: (projects: OperationProject[], isBackupRestore?: boolean) => void;
   onGoToDashboard?: () => void;
 }
 
@@ -50,9 +56,14 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
   const [isParsing, setIsParsing] = useState<boolean>(false);
   const [parseError, setParseError] = useState<string | null>(null);
 
-  // Parsed rows state
+  // Parsed rows state (Spreadsheet)
   const [parsedRows, setParsedRows] = useState<ParsedProjectRow[]>([]);
   const [selectedRowIndices, setSelectedRowIndices] = useState<Set<number>>(new Set());
+
+  // Parsed backup state (JSON)
+  const [backupResult, setBackupResult] = useState<BackupParseResult | null>(null);
+  const [selectedBackupIndices, setSelectedBackupIndices] = useState<Set<number>>(new Set());
+  const [isBackupRestoreDone, setIsBackupRestoreDone] = useState<boolean>(false);
 
   // Search filter for preview
   const [searchFilter, setSearchFilter] = useState<string>('');
@@ -68,26 +79,42 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
     setParseError(null);
     setParsedRows([]);
     setSelectedRowIndices(new Set());
+    setBackupResult(null);
+    setSelectedBackupIndices(new Set());
     setImportedProjects(null);
+    setIsBackupRestoreDone(false);
 
     try {
-      const buffer = await file.arrayBuffer();
-      const result = parseProjectSpreadsheet(buffer, file.name);
-
-      if (result.rows.length === 0) {
-        setParseError('The file contains no data rows. Please check that you filled in the template starting on row 2.');
+      if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') {
+        const text = await file.text();
+        const res = parseAndValidateProjectBackup(text);
+        if (!res.valid) {
+          setParseError(res.error || 'The file is not a valid Quext project backup JSON.');
+        } else {
+          setBackupResult(res);
+          const allIndices = new Set<number>();
+          res.projects.forEach((_, idx) => allIndices.add(idx));
+          setSelectedBackupIndices(allIndices);
+        }
       } else {
-        setParsedRows(result.rows);
-        // Select all valid rows by default
-        const validIndices = new Set<number>();
-        result.rows.forEach((r, idx) => {
-          if (r.isValid) validIndices.add(idx);
-        });
-        setSelectedRowIndices(validIndices);
+        const buffer = await file.arrayBuffer();
+        const result = parseProjectSpreadsheet(buffer, file.name);
+
+        if (result.rows.length === 0) {
+          setParseError('The file contains no data rows. Please check that you filled in the template starting on row 2.');
+        } else {
+          setParsedRows(result.rows);
+          // Select all valid rows by default
+          const validIndices = new Set<number>();
+          result.rows.forEach((r, idx) => {
+            if (r.isValid) validIndices.add(idx);
+          });
+          setSelectedRowIndices(validIndices);
+        }
       }
     } catch (err: any) {
-      console.error('[Spreadsheet Import] Parsing failed:', err);
-      setParseError(err?.message || 'Failed to read spreadsheet. Please ensure it is a valid .xlsx, .xls, or .csv file.');
+      console.error('[Import / Restore] Parsing failed:', err);
+      setParseError(err?.message || 'Failed to read file. Please ensure it is a valid .xlsx, .xls, .csv, or .json file.');
     } finally {
       setIsParsing(false);
     }
@@ -126,10 +153,33 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
     setSelectedFile(null);
     setParsedRows([]);
     setSelectedRowIndices(new Set());
+    setBackupResult(null);
+    setSelectedBackupIndices(new Set());
     setParseError(null);
     setImportedProjects(null);
+    setIsBackupRestoreDone(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleExecuteRestoreBackup = () => {
+    if (!backupResult || selectedBackupIndices.size === 0) return;
+    const projectsToRestore = backupResult.projects.filter((_, idx) =>
+      selectedBackupIndices.has(idx)
+    );
+    if (projectsToRestore.length === 0) return;
+
+    setIsSubmitting(true);
+    try {
+      onImportProjects(projectsToRestore, true);
+      setImportedProjects(projectsToRestore);
+      setIsBackupRestoreDone(true);
+    } catch (err: any) {
+      console.error('[Backup Restore] Failed:', err);
+      setParseError(err?.message || 'Failed to restore projects from backup.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -200,22 +250,22 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
         {/* =====================================================================
             MODAL HEADER
         ===================================================================== */}
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-50 via-white to-emerald-50/40 shrink-0">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-50 via-white to-sky-50/40 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
-              <FileSpreadsheet className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Database className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-slate-900 font-['Inter_Tight',sans-serif]">
-                  Import Projects from Spreadsheet
+                  Import &amp; Restore Projects
                 </h2>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  CSV &amp; Excel
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded-md bg-sky-100 text-sky-800 border border-sky-300">
+                  JSON Backup · Excel · CSV
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Batch create new implementation projects by uploading a formatted spreadsheet.
+                Restore full project backups with complete BOM &amp; install logs, or batch import new projects from spreadsheets.
               </p>
             </div>
           </div>
@@ -242,10 +292,14 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
               </div>
               <div className="space-y-1.5">
                 <h3 className="text-xl font-bold text-slate-900">
-                  {importedProjects.length} Project{importedProjects.length === 1 ? '' : 's'} Successfully Created!
+                  {isBackupRestoreDone
+                    ? `${importedProjects.length} Project${importedProjects.length === 1 ? '' : 's'} Successfully Restored!`
+                    : `${importedProjects.length} Project${importedProjects.length === 1 ? '' : 's'} Successfully Created!`}
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  The projects have been imported with default milestones, initial BOM line items, and assigned implementation team members.
+                  {isBackupRestoreDone
+                    ? 'All project details—including fillable BOM items with installed counts, lock trim finishes & spares, technician install logs with photos, notes, milestone target dates, and customer intake—have been restored.'
+                    : 'The projects have been imported with default milestones, initial BOM line items, and assigned implementation team members.'}
                 </p>
               </div>
 
@@ -282,7 +336,7 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                   onClick={handleClear}
                   className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors cursor-pointer"
                 >
-                  Import More Projects
+                  {isBackupRestoreDone ? 'Restore Another Backup' : 'Import More Projects'}
                 </button>
                 <button
                   type="button"
@@ -401,25 +455,25 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
                     isDragging
-                      ? 'border-emerald-500 bg-emerald-50/50 scale-[0.99]'
-                      : 'border-slate-300 hover:border-emerald-400 hover:bg-slate-50/70 bg-slate-50/30'
+                      ? 'border-sky-500 bg-sky-50/50 scale-[0.99]'
+                      : 'border-slate-300 hover:border-sky-400 hover:bg-slate-50/70 bg-slate-50/30'
                   }`}
                 >
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    accept=".xlsx,.xls,.csv,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                     onChange={handleFileInputChange}
                     className="hidden"
                   />
-                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 rounded-full bg-sky-50 text-sky-600 border border-sky-200 flex items-center justify-center mx-auto mb-3">
                     <Upload className="w-6 h-6" />
                   </div>
                   <div className="text-sm font-bold text-slate-900">
-                    Drop your spreadsheet here, or <span className="text-emerald-700 underline">browse files</span>
+                    Drop your project backup (.json) or spreadsheet here, or <span className="text-sky-700 underline">browse files</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Supports Microsoft Excel (.xlsx, .xls) and CSV (.csv) files.
+                    Supports Quext Project Backup (.json) files, and Microsoft Excel (.xlsx, .xls) / CSV (.csv) spreadsheets.
                   </p>
                 </div>
               )}
@@ -427,8 +481,8 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
               {/* PARSING LOADER */}
               {isParsing && (
                 <div className="py-8 text-center space-y-2">
-                  <RefreshCw className="w-6 h-6 text-emerald-600 animate-spin mx-auto" />
-                  <p className="text-xs font-semibold text-slate-600">Reading and validating spreadsheet data...</p>
+                  <RefreshCw className="w-6 h-6 text-sky-600 animate-spin mx-auto" />
+                  <p className="text-xs font-semibold text-slate-600">Reading and validating file data...</p>
                 </div>
               )}
 
@@ -439,6 +493,135 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                   <div className="flex-1">
                     <strong className="font-bold">Import Error: </strong>
                     <span>{parseError}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3A. BACKUP RESTORE PREVIEW TABLE */}
+              {selectedFile && backupResult && (
+                <div className="space-y-3">
+                  <div className="bg-sky-50/60 border border-sky-200 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                        <Database className="w-4 h-4" />
+                      </div>
+                      <div className="leading-tight truncate">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900 truncate">
+                            {selectedFile.name}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-100 text-sky-800 border border-sky-300">
+                            {backupResult.exportType === 'full_site_backup' ? 'Full Site Backup' : 'Single Project Backup'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-600 mt-0.5">
+                          Exported {backupResult.exportedAt ? new Date(backupResult.exportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'recently'} {backupResult.exportedBy ? `by ${backupResult.exportedBy}` : ''} · <strong>{backupResult.projects.length}</strong> project{backupResult.projects.length === 1 ? '' : 's'} included
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleClear}
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        Change File
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Projects selection banner */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                    <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 font-medium text-slate-700">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedBackupIndices.size === backupResult.projects.length) {
+                              setSelectedBackupIndices(new Set());
+                            } else {
+                              setSelectedBackupIndices(new Set(backupResult.projects.map((_, i) => i)));
+                            }
+                          }}
+                          className="text-xs font-bold text-sky-700 hover:text-sky-900 underline cursor-pointer"
+                        >
+                          {selectedBackupIndices.size === backupResult.projects.length ? 'Deselect All' : `Select All (${backupResult.projects.length})`}
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <span>Selected: <strong className="text-slate-900">{selectedBackupIndices.size}</strong> of {backupResult.projects.length}</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        ✓ Lossless Full Project Restore
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                      {backupResult.projects.map((p, idx) => {
+                        const isSelected = selectedBackupIndices.has(idx);
+                        const badgeStyle = getPlatformBadgeStyle(p.platform);
+                        const totalBom = p.bomItems?.length || 0;
+                        const installedBomCount = (p.bomItems || []).reduce((sum, b) => sum + (b.installedCount || 0), 0);
+                        const totalLogs = p.installLogs?.length || 0;
+                        const photosCount = (p.installLogs || []).reduce((sum, l) => sum + (l.photos?.length || 0), 0);
+                        const totalNotes = p.notes?.length || 0;
+
+                        return (
+                          <div
+                            key={p.id || idx}
+                            onClick={() => {
+                              setSelectedBackupIndices((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(idx)) next.delete(idx);
+                                else next.add(idx);
+                                return next;
+                              });
+                            }}
+                            className={`p-3 transition-colors cursor-pointer flex items-start gap-3 text-xs ${
+                              isSelected ? 'bg-sky-50/40 hover:bg-sky-50/70' : 'bg-white hover:bg-slate-50 opacity-60'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}} // parent onClick handles toggle
+                              className="mt-1 rounded text-sky-600 focus:ring-sky-500 shrink-0 cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-slate-900 text-sm">{p.propertyName}</span>
+                                <span className="text-slate-500 font-medium">({p.clientName})</span>
+                                <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${badgeStyle.border} ${badgeStyle.bg} ${badgeStyle.text}`}>
+                                  {p.platform || 'Quext'}
+                                </span>
+                                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                  Quote #{p.quoteNumber}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
+                                <div>
+                                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Units &amp; PM</span>
+                                  <strong className="text-slate-800">{p.unitsCount} units</strong> · {p.assignedPM?.name || 'Raul Recalde'}
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">BOM Items</span>
+                                  <strong className="text-slate-800">{totalBom} items</strong> ({installedBomCount} installed)
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Install Logs</span>
+                                  <strong className="text-slate-800">{totalLogs} logs</strong> ({photosCount} photos)
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Notes &amp; Milestones</span>
+                                  <strong className="text-slate-800">{totalNotes} notes</strong> · {p.milestones?.length || 0} milestones
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -675,26 +858,49 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                 </button>
               )}
 
-              <button
-                type="button"
-                disabled={selectedRowIndices.size === 0 || isSubmitting}
-                onClick={handleExecuteImport}
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg shadow-xs transition-colors cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Creating Projects...</span>
-                  </>
-                ) : (
-                  <>
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
-                    <span>
-                      Import {selectedRowIndices.size} Project{selectedRowIndices.size === 1 ? '' : 's'}
-                    </span>
-                  </>
-                )}
-              </button>
+              {backupResult ? (
+                <button
+                  type="button"
+                  disabled={selectedBackupIndices.size === 0 || isSubmitting}
+                  onClick={handleExecuteRestoreBackup}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Restoring Projects...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>
+                        Restore {selectedBackupIndices.size} Project{selectedBackupIndices.size === 1 ? '' : 's'} to Site
+                      </span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={selectedRowIndices.size === 0 || isSubmitting}
+                  onClick={handleExecuteImport}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Creating Projects...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      <span>
+                        Import {selectedRowIndices.size} Project{selectedRowIndices.size === 1 ? '' : 's'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}
