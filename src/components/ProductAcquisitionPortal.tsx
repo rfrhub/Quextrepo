@@ -1568,17 +1568,19 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                         </button>
                       </div>
 
-                      {/* When is product needed by Date Picker */}
-                      <div className="flex items-center gap-2 shrink-0 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
+                      {/* Viewable (Non-editable) Needed By Date Display */}
+                      <div className="flex items-center gap-1.5 shrink-0 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
                         <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="text-[11px] font-bold text-amber-300">Needed By:</span>
-                        <input
-                          type="date"
-                          value={item.neededByDate || ''}
-                          onChange={(e) => handleUpdateMilestone(item, { neededByDate: e.target.value })}
-                          className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-950 border border-amber-500/50 text-white focus:outline-none focus:border-amber-400 cursor-pointer"
-                          title="When is this product needed by? (Syncs with project & notifies PM)"
-                        />
+                        <span className="text-[11px] font-bold text-slate-300">Needed By:</span>
+                        {item.neededByDate ? (
+                          <span className="font-mono text-xs font-black text-amber-300 px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/40">
+                            {item.neededByDate}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">
+                            Not Specified
+                          </span>
+                        )}
                       </div>
                     </div>
 
