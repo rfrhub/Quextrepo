@@ -2164,11 +2164,13 @@ export default function App() {
         projects={projects}
       />
 
-      {/* OneQuext SOW Google Form Automation Hub & Field Tech Dispatcher */}
+      {/* OneQuext SOW Creation Hub & Partner Integrator / Vendor Email Dispatcher */}
       <SOWFormAutomationHub
         isOpen={isSowHubOpen}
         onClose={() => setIsSowHubOpen(false)}
         onNavigateToProject={handleGoToOperationsProject}
+        properties={projects}
+        currentUserName={currentUser.name}
       />
 
       {isPMTutorialOpen && (

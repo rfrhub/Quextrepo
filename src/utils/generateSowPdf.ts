@@ -213,11 +213,14 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
 
   // If equipment shipping was specified
   if (submission.equipmentNeedsShipping === 'Yes') {
-    let shipVal = `Parts to ship: ${submission.equipmentToShip || 'Standard replenishment kit'}\nQuantity & Locations: ${
-      submission.equipmentQuantityAndLocation || 'Per site ticket specs'
-    }\nShipping Method: ${submission.shippingMethod || 'Ground'} | Recipient: ${
-      submission.shippingRecipient || submission.pocName || 'Site POC'
-    } (${submission.shippingPhone || submission.pocPhone || '—'})`;
+    const equipDetails =
+      submission.equipmentQuantityAndLocation ||
+      submission.equipmentToShip ||
+      'Per site ticket specs';
+    const recipientName = submission.shippingRecipient || `${submission.pocName || 'Site POC'} (Same as POC)`;
+    const recipientPhone = submission.shippingPhone || submission.pocPhone || '—';
+    const recipientEmail = submission.shippingEmail || submission.pocEmail || '—';
+    const shipVal = `Equipment, Qty & Location: ${equipDetails}\nRecipient: ${recipientName} | Phone: ${recipientPhone} | Email: ${recipientEmail}\nShipping Method: ${submission.shippingMethod || 'Ground'}`;
     scopeRows.push({ label: 'Equipment Shipping:', value: shipVal });
   }
 

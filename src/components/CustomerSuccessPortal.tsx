@@ -20,6 +20,7 @@ import {
 import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
 import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
+import { SOWFormAutomationHub } from './SOWFormAutomationHub';
 import {
   Building2,
   Wrench,
@@ -131,6 +132,8 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [csmFilter, setCsmFilter] = useState<string>('all');
   const [projectToTransitionId, setProjectToTransitionId] = useState<string>('');
+  const [isSowModalOpen, setIsSowModalOpen] = useState<boolean>(false);
+  const [sowTargetProperty, setSowTargetProperty] = useState<OperationProject | null>(null);
 
   const selectedProperty = useMemo(() => {
     if (!selectedPropertyId) return null;
@@ -205,13 +208,29 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
 
   if (selectedProperty) {
     return (
-      <CustomerSuccessPropertyDetailView
-        property={selectedProperty}
-        onBack={() => setSelectedPropertyId(null)}
-        onUpdateProperty={onUpdateProject}
-        onOpenInOperations={() => onOpenProjectInOperations(selectedProperty.id)}
-        currentUserName={currentUserName}
-      />
+      <>
+        <CustomerSuccessPropertyDetailView
+          property={selectedProperty}
+          onBack={() => setSelectedPropertyId(null)}
+          onUpdateProperty={onUpdateProject}
+          onOpenInOperations={() => onOpenProjectInOperations(selectedProperty.id)}
+          onOpenCreateSow={() => {
+            setSowTargetProperty(selectedProperty);
+            setIsSowModalOpen(true);
+          }}
+          currentUserName={currentUserName}
+        />
+        <SOWFormAutomationHub
+          isOpen={isSowModalOpen}
+          onClose={() => {
+            setIsSowModalOpen(false);
+            setSowTargetProperty(null);
+          }}
+          properties={handoffProperties}
+          initialProperty={sowTargetProperty}
+          currentUserName={currentUserName}
+        />
+      </>
     );
   }
 
@@ -239,6 +258,19 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setSowTargetProperty(null);
+                setIsSowModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black flex items-center gap-2 shadow-sm cursor-pointer transition-colors"
+              title="Open the in-app Onsite Visit Scheduling and SOW Information Form to generate a ready-to-use SOW PDF & Partner Integrator / Vendor email"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Create SOW</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+            </button>
             <div className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-2">
               <Building2 className="w-4 h-4 text-emerald-600" />
               <span>{handoffProperties.length} Active Properties in CSM Workspace</span>
@@ -304,6 +336,38 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Onsite Visit Scheduling & SOW Creation Feature Banner on Customer Success Page */}
+      <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white border border-teal-500/30 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative z-10 space-y-2 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/40 text-teal-300 text-xs font-bold">
+            <FileText className="w-3.5 h-3.5 text-teal-400" />
+            <span>Onsite Visit Scheduling &amp; SOW Information Form</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            Create SOW &amp; Email Partner Integrator or Vendor
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Fill out the built-in 23-question Onsite Visit Scheduling and SOW Information Form directly inside the Customer Success Portal to generate a ready-to-use 2-page SOW PDF and formatted dispatch email for your Partner Integrator or Vendor.
+          </p>
+        </div>
+        <div className="relative z-10 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setSowTargetProperty(null);
+              setIsSowModalOpen(true);
+            }}
+            className="px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 active:bg-teal-600 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
+          >
+            <FileText className="w-4 h-4 stroke-[2.5]" />
+            <span>Create SOW</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {/* Properties Portfolio List */}
@@ -553,6 +617,17 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
           })}
         </div>
       )}
+
+      <SOWFormAutomationHub
+        isOpen={isSowModalOpen}
+        onClose={() => {
+          setIsSowModalOpen(false);
+          setSowTargetProperty(null);
+        }}
+        properties={handoffProperties}
+        initialProperty={sowTargetProperty}
+        currentUserName={currentUserName}
+      />
     </div>
   );
 };
@@ -566,6 +641,7 @@ interface CustomerSuccessPropertyDetailViewProps {
   onBack: () => void;
   onUpdateProperty: (updated: OperationProject) => void;
   onOpenInOperations: () => void;
+  onOpenCreateSow: () => void;
   currentUserName: string;
 }
 
@@ -574,6 +650,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   onBack,
   onUpdateProperty,
   onOpenInOperations,
+  onOpenCreateSow,
   currentUserName,
 }) => {
   const intake = property.customerIntake;
@@ -1050,6 +1127,15 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenCreateSow}
+              className="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md cursor-pointer transition-colors"
+              title="Fill out the Onsite Visit Scheduling and SOW Information Form for this property and generate a ready-to-send SOW email for the Partner Integrator or Vendor"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Create SOW</span>
+            </button>
             <div className="px-3.5 py-2 rounded-xl bg-white/10 border border-white/15 text-xs">
               <div className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">
                 Assigned CSM
