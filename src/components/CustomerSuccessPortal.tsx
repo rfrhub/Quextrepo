@@ -72,6 +72,7 @@ import {
   ClipboardCheck,
   UserCheck,
   FileSignature,
+  Truck,
 } from 'lucide-react';
 
 interface CustomerSuccessPortalProps {
@@ -1971,9 +1972,10 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                                   ? 'Ordered'
                                   : 'In Queue'}
                               </span>
-                              {isShipped && trackNum && (
-                                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300">
-                                  Track: {trackNum}
+                              {trackNum && (
+                                <span className="font-mono font-bold bg-white px-2 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300 flex items-center gap-1">
+                                  <Truck className="w-3 h-3 text-sky-600" />
+                                  <span>Tracking: {trackNum}</span>
                                 </span>
                               )}
                             </span>
@@ -2913,6 +2915,20 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                             {ticket.serialNumbers || 'Pending'} • Created by {ticket.createdBy} (
                             {ticket.createdAt})
                           </div>
+                          {(ticket.trackingNumber ||
+                            ticket.returnTrackingNumber ||
+                            property.acquisitionMilestones?.[`rma::${property.id}::${ticket.id}`]?.trackingNumber) && (
+                            <div className="pt-0.5">
+                              <span className="inline-flex items-center gap-1 font-mono font-bold text-sky-900 bg-sky-50 border border-sky-300 px-2 py-0.5 rounded text-[11px]">
+                                <Truck className="w-3.5 h-3.5 text-sky-600" />
+                                <span>
+                                  Tracking #: {ticket.trackingNumber ||
+                                    ticket.returnTrackingNumber ||
+                                    property.acquisitionMilestones?.[`rma::${property.id}::${ticket.id}`]?.trackingNumber}
+                                </span>
+                              </span>
+                            </div>
+                          )}
                           <div className="pt-1.5 border-t border-slate-100 space-y-1 text-[11px] text-slate-700">
                             <div>
                               <span className="font-bold text-slate-900">Failure Description:</span>{' '}
@@ -2992,6 +3008,19 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                               </span>
                             )}
                           </div>
+
+                          {(co.trackingNumber ||
+                            property.acquisitionMilestones?.[`co::${property.id}::${co.id}`]?.trackingNumber) && (
+                            <div>
+                              <span className="inline-flex items-center gap-1 font-mono font-bold text-sky-900 bg-sky-50 border border-sky-300 px-2 py-0.5 rounded text-[11px]">
+                                <Truck className="w-3.5 h-3.5 text-sky-600" />
+                                <span>
+                                  Tracking #: {co.trackingNumber ||
+                                    property.acquisitionMilestones?.[`co::${property.id}::${co.id}`]?.trackingNumber}
+                                </span>
+                              </span>
+                            </div>
+                          )}
 
                           {(co.reason || co.notes) && (
                             <div className="text-[11px] text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-0.5">

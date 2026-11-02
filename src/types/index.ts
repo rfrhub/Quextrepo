@@ -128,6 +128,7 @@ export interface BOMItem {
   sparesDelivered?: boolean; // Subtle confirmation by PM that spares have been delivered to customer
   overAllocationOffset?: number; // When installer exceeded SOW, tracked offset
   overAllocationDenied?: boolean; // Flagged when PM denied the over-allocation
+  trackingNumber?: string; // Carrier tracking number documented from Product Acquisition Portal
 }
 
 export interface ProjectNote {
@@ -1076,6 +1077,7 @@ export interface ChangeOrderLineItem {
   notes?: string;
   thermostatBrand?: ThermostatBrand;
   lockFinishConfig?: LockFinishConfig;
+  trackingNumber?: string;
 }
 
 export interface ChangeOrderRecord {

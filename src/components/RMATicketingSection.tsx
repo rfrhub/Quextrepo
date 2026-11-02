@@ -1549,6 +1549,14 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
             <div className="grid grid-cols-1 gap-3">
               {existingTickets.map((ticket) => {
                 const proc = RMA_COMPANY_PROCEDURES[ticket.matchedCompany];
+                const acqUid = `rma::${project.id}::${ticket.id}`;
+                const acqMilestone = project.acquisitionMilestones?.[acqUid];
+                const trackNum = acqMilestone?.trackingNumber || ticket.trackingNumber || ticket.returnTrackingNumber;
+                const neededBy = acqMilestone?.neededByDate || ticket.neededByDate;
+                const isShipped = !!(acqMilestone?.isShipped ?? ticket.isShipped ?? (ticket.status === '4. Packaged & Shipped'));
+                const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? ticket.isArrivedToWarehouse);
+                const isOrdered = !!(acqMilestone?.isOrdered ?? ticket.isOrdered ?? (ticket.status === '3. RMA Number Issued'));
+
                 return (
                   <div
                     key={ticket.id}
@@ -1593,54 +1601,43 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                       </div>
 
                       {/* Acquisition Portal Status Badge & Milestones */}
-                      {(() => {
-                        const acqUid = `rma::${project.id}::${ticket.id}`;
-                        const acqMilestone = project.acquisitionMilestones?.[acqUid];
-                        const isShipped = !!(acqMilestone?.isShipped ?? ticket.isShipped ?? (ticket.status === '4. Packaged & Shipped'));
-                        const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? ticket.isArrivedToWarehouse);
-                        const isOrdered = !!(acqMilestone?.isOrdered ?? ticket.isOrdered ?? (ticket.status === '3. RMA Number Issued'));
-                        const trackNum = acqMilestone?.trackingNumber || ticket.trackingNumber || ticket.returnTrackingNumber;
-                        const neededBy = acqMilestone?.neededByDate || ticket.neededByDate;
-
-                        return (
-                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                                isShipped
-                                  ? 'bg-sky-100 text-sky-950 border-sky-300'
-                                  : isArrived
-                                  ? 'bg-teal-100 text-teal-950 border-teal-300'
-                                  : isOrdered
-                                  ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
-                                  : 'bg-emerald-50 text-emerald-950 border-emerald-300'
-                              }`}
-                            >
-                              <Package className="w-3 h-3 text-emerald-700" />
-                              <span>
-                                Acquisition Portal:{' '}
-                                {isShipped
-                                  ? 'Shipped'
-                                  : isArrived
-                                  ? 'Arrived to Warehouse'
-                                  : isOrdered
-                                  ? 'Ordered'
-                                  : 'In Intake Queue'}
-                              </span>
-                              {isShipped && trackNum && (
-                                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300">
-                                  Track: {trackNum}
-                                </span>
-                              )}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                            isShipped
+                              ? 'bg-sky-100 text-sky-950 border-sky-300'
+                              : isArrived
+                              ? 'bg-teal-100 text-teal-950 border-teal-300'
+                              : isOrdered
+                              ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
+                              : 'bg-emerald-50 text-emerald-950 border-emerald-300'
+                          }`}
+                        >
+                          <Package className="w-3 h-3 text-emerald-700" />
+                          <span>
+                            Acquisition Portal:{' '}
+                            {isShipped
+                              ? 'Shipped'
+                              : isArrived
+                              ? 'Arrived to Warehouse'
+                              : isOrdered
+                              ? 'Ordered'
+                              : 'In Intake Queue'}
+                          </span>
+                          {trackNum && (
+                            <span className="font-mono font-bold bg-white px-2 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300 flex items-center gap-1">
+                              <Truck className="w-3 h-3 text-sky-600" />
+                              <span>Track: {trackNum}</span>
                             </span>
-                            {neededBy && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-950 border border-amber-300">
-                                <Calendar className="w-3 h-3 text-amber-600" />
-                                <span>Needed by: {neededBy}</span>
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
+                          )}
+                        </span>
+                        {neededBy && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-950 border border-amber-300">
+                            <Calendar className="w-3 h-3 text-amber-600" />
+                            <span>Needed by: {neededBy}</span>
+                          </span>
+                        )}
+                      </div>
 
                       {ticket.lockFinishConfig && (
                         <div className="space-y-1.5 pt-0.5">
@@ -1705,8 +1702,11 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                         )}
                         {ticket.brivoClaimType && <span>Brivo Claim: {ticket.brivoClaimType}</span>}
                         {ticket.pdkRmaPath && <span>PDK Path: {ticket.pdkRmaPath}</span>}
-                        {ticket.returnTrackingNumber && (
-                          <span>Tracking: {ticket.returnTrackingNumber}</span>
+                        {(trackNum || ticket.returnTrackingNumber) && (
+                          <span className="inline-flex items-center gap-1 font-bold font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                            <Truck className="w-3 h-3 text-sky-600" />
+                            Tracking: {trackNum || ticket.returnTrackingNumber}
+                          </span>
                         )}
                         <span>
                           Created by {ticket.createdBy} ({ticket.createdAt})

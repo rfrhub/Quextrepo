@@ -545,6 +545,15 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     const nextMilestonesMap = {
       ...(targetProject.acquisitionMilestones || {}),
       [item.uid]: nextMilestone,
+      ...(item.parentRecordId && item.uid.startsWith('co::')
+        ? { [`co::${targetProject.id}::${item.parentRecordId}`]: nextMilestone }
+        : {}),
+      ...(item.parentRecordId && item.uid.startsWith('rma::')
+        ? { [`rma::${targetProject.id}::${item.parentRecordId}`]: nextMilestone }
+        : {}),
+      ...(item.parentRecordId && item.uid.startsWith('bom::')
+        ? { [`bom::${targetProject.id}::${item.parentRecordId}`]: nextMilestone }
+        : {}),
     };
 
     // Derive fulfillment status based on milestones
@@ -575,6 +584,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         } else if (nextMilestone.isOrdered && t.status === '1. Tech Support Troubleshooting') {
           newRmaStatus = '3. RMA Number Issued';
         }
+        const trackingVal = nextMilestone.trackingNumber || t.trackingNumber || t.returnTrackingNumber;
         return {
           ...t,
           status: newRmaStatus,
@@ -584,8 +594,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
           shippedAt: nextMilestone.shippedAt,
-          trackingNumber: nextMilestone.trackingNumber || t.returnTrackingNumber,
-          returnTrackingNumber: nextMilestone.trackingNumber || t.returnTrackingNumber,
+          trackingNumber: trackingVal,
+          returnTrackingNumber: trackingVal,
           neededByDate: nextMilestone.neededByDate || t.neededByDate,
           updatedAt: new Date().toLocaleDateString('en-US', {
             month: 'short',
@@ -612,6 +622,16 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         } else if (nextMilestone.isOrdered && co.status === 'Draft') {
           newCoStatus = 'Approved';
         }
+        const trackingVal = nextMilestone.trackingNumber || co.trackingNumber;
+        const updatedItems = (co.items || []).map((ci) => {
+          if (ci.id === item.lineItemId) {
+            return {
+              ...ci,
+              trackingNumber: trackingVal || ci.trackingNumber,
+            };
+          }
+          return ci;
+        });
         return {
           ...co,
           status: newCoStatus,
@@ -621,8 +641,9 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
           shippedAt: nextMilestone.shippedAt,
-          trackingNumber: nextMilestone.trackingNumber || co.trackingNumber,
+          trackingNumber: trackingVal,
           neededByDate: nextMilestone.neededByDate || co.neededByDate,
+          items: updatedItems,
           updatedAt: new Date().toISOString(),
         };
       });
@@ -633,6 +654,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     if (item.sourceSection === 'Smart Community Bill of Materials (BOM)') {
       nextBomSubmissions = (targetProject.bomAcquisitionSubmissions || []).map((s) => {
         if (s.id !== item.parentRecordId) return s;
+        const trackingVal = nextMilestone.trackingNumber || s.trackingNumber || s.poOrTrackingNumber;
         return {
           ...s,
           fulfillmentStatus: derivedStatus,
@@ -643,12 +665,79 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
           shippedAt: nextMilestone.shippedAt,
-          trackingNumber: nextMilestone.trackingNumber || s.trackingNumber,
-          poOrTrackingNumber: nextMilestone.trackingNumber || s.poOrTrackingNumber,
+          trackingNumber: trackingVal,
+          poOrTrackingNumber: trackingVal,
           neededByDate: nextMilestone.neededByDate || s.neededByDate,
           updatedAt: new Date().toISOString(),
         };
       });
+    }
+
+    // 4. Document tracking number directly on originating BOM line item notes & logs
+    let nextBomItems = targetProject.bomItems;
+    if (nextMilestone.trackingNumber) {
+      const trackingVal = nextMilestone.trackingNumber;
+      nextBomItems = (targetProject.bomItems || []).map((bi) => {
+        const isTarget =
+          bi.id === item.lineItemId ||
+          bi.id === item.parentRecordId ||
+          (targetProject.bomAcquisitionSubmissions || []).some(
+            (s) => s.id === item.parentRecordId && s.bomItemId === bi.id
+          );
+        if (!isTarget) return bi;
+
+        const newLog = {
+          id: `log-track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          installerName: currentUserName || 'Product Acquisition Portal',
+          statusCheck: 'Pass' as const,
+          quantityCompleted: 0,
+          locationCompleted: bi.location || 'Warehouse / In Transit',
+          notes: `Tracking # documented: ${trackingVal}`,
+          itemNotes: `Dispatched / Shipped via Product Acquisition Portal (Tracking #: ${trackingVal})`,
+        };
+
+        const existingLogs = bi.postItLogs || [];
+        const alreadyHasTrack = existingLogs.some(
+          (l) => l.notes?.includes(trackingVal) || l.itemNotes?.includes(trackingVal)
+        );
+
+        return {
+          ...bi,
+          trackingNumber: trackingVal,
+          postItLogs: alreadyHasTrack ? existingLogs : [newLog, ...existingLogs],
+        };
+      });
+    }
+
+    // 5. Document tracking number in Project Notes (accessible to CSMs & PMs)
+    let nextProjectNotes = targetProject.notes || [];
+    if (updates.trackingNumber && updates.trackingNumber.trim()) {
+      const trackVal = updates.trackingNumber.trim();
+      const alreadyHasNote = nextProjectNotes.some((n) => n.text?.includes(trackVal));
+      if (!alreadyHasNote) {
+        const newNote = {
+          id: `note-track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          projectId: targetProject.id,
+          author: currentUserName || 'Product Acquisition Portal',
+          timestamp: new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          category: 'Hardware Delivery' as const,
+          text: `Carrier Tracking # populated: ${trackVal} for ${item.productName} (${item.referenceNumber || item.sourceSection}). Dispatched to ${targetProject.propertyName}.`,
+        };
+        nextProjectNotes = [newNote, ...nextProjectNotes];
+      }
     }
 
     // 4. Generate high-priority notification to PMs in their Notifications tab
@@ -722,6 +811,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       rmaTickets: nextRmaTickets,
       changeOrders: nextChangeOrders,
       bomAcquisitionSubmissions: nextBomSubmissions,
+      bomItems: nextBomItems,
+      notes: nextProjectNotes,
       activityNotifications: nextActivityNotifications,
       lastUpdated: new Date().toISOString(),
     });

@@ -43,6 +43,7 @@ import {
   Check,
   Wrench,
   Calendar,
+  Truck,
 } from 'lucide-react';
 
 interface UnifiedCatalogEntry {
@@ -1461,6 +1462,14 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             const orderFieldTech = normalizeFieldTech(
               co.assignedFieldTech || project.assignedFieldTech
             );
+            const acqUid = `co::${project.id}::${co.id}`;
+            const firstItemUid = co.items && co.items[0] ? `co::${project.id}::${co.id}::${co.items[0].id}` : '';
+            const acqMilestone = project.acquisitionMilestones?.[acqUid] || (firstItemUid ? project.acquisitionMilestones?.[firstItemUid] : undefined);
+            const trackNum = acqMilestone?.trackingNumber || co.trackingNumber;
+            const neededBy = acqMilestone?.neededByDate || co.neededByDate;
+            const isShipped = !!(acqMilestone?.isShipped ?? co.isShipped ?? (co.status === 'In Fulfillment / Installed'));
+            const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? co.isArrivedToWarehouse);
+            const isOrdered = !!(acqMilestone?.isOrdered ?? co.isOrdered ?? (co.status === 'Approved'));
 
             return (
               <div
@@ -1562,6 +1571,15 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                         <span>Created by {co.createdBy}</span>
                         <span>•</span>
                         <span>{new Date(co.createdAt).toLocaleDateString()}</span>
+                        {trackNum && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 font-mono font-bold text-sky-300 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-500/40">
+                              <Truck className="w-3 h-3 text-sky-400" />
+                              Tracking #: {trackNum}
+                            </span>
+                          </>
+                        )}
                         {co.neededByDate && (
                           <>
                             <span>•</span>
@@ -1582,55 +1600,43 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                       </div>
 
                       {/* Acquisition Portal Status Badge & Milestones */}
-                      {(() => {
-                        const acqUid = `co::${project.id}::${co.id}`;
-                        const firstItemUid = co.items && co.items[0] ? `co::${project.id}::${co.id}::${co.items[0].id}` : '';
-                        const acqMilestone = project.acquisitionMilestones?.[acqUid] || (firstItemUid ? project.acquisitionMilestones?.[firstItemUid] : undefined);
-                        const isShipped = !!(acqMilestone?.isShipped ?? co.isShipped ?? (co.status === 'In Fulfillment / Installed'));
-                        const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? co.isArrivedToWarehouse);
-                        const isOrdered = !!(acqMilestone?.isOrdered ?? co.isOrdered ?? (co.status === 'Approved'));
-                        const trackNum = acqMilestone?.trackingNumber || co.trackingNumber;
-                        const neededBy = acqMilestone?.neededByDate || co.neededByDate;
-
-                        return (
-                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                                isShipped
-                                  ? 'bg-sky-950/80 text-sky-300 border-sky-500/40'
-                                  : isArrived
-                                  ? 'bg-teal-950/80 text-teal-300 border-teal-500/40'
-                                  : isOrdered
-                                  ? 'bg-indigo-950/80 text-indigo-300 border-indigo-500/40'
-                                  : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
-                              }`}
-                            >
-                              <Package className="w-3 h-3 text-emerald-400" />
-                              <span>
-                                Acquisition Portal:{' '}
-                                {isShipped
-                                  ? 'Shipped'
-                                  : isArrived
-                                  ? 'Arrived to Warehouse'
-                                  : isOrdered
-                                  ? 'Ordered'
-                                  : 'In Intake Queue'}
-                              </span>
-                              {isShipped && trackNum && (
-                                <span className="font-mono font-bold bg-slate-900 px-1.5 py-0.2 rounded text-[10px] text-sky-300 border border-sky-500/40">
-                                  Track: {trackNum}
-                                </span>
-                              )}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                            isShipped
+                              ? 'bg-sky-950/80 text-sky-300 border-sky-500/40'
+                              : isArrived
+                              ? 'bg-teal-950/80 text-teal-300 border-teal-500/40'
+                              : isOrdered
+                              ? 'bg-indigo-950/80 text-indigo-300 border-indigo-500/40'
+                              : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                          }`}
+                        >
+                          <Package className="w-3 h-3 text-emerald-400" />
+                          <span>
+                            Acquisition Portal:{' '}
+                            {isShipped
+                              ? 'Shipped'
+                              : isArrived
+                              ? 'Arrived to Warehouse'
+                              : isOrdered
+                              ? 'Ordered'
+                              : 'In Intake Queue'}
+                          </span>
+                          {trackNum && (
+                            <span className="inline-flex items-center gap-1 font-mono font-bold bg-slate-900 px-2 py-0.5 rounded text-[10px] text-sky-300 border border-sky-500/40">
+                              <Truck className="w-3 h-3 text-sky-400" />
+                              <span>Track: {trackNum}</span>
                             </span>
-                            {neededBy && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-500/40">
-                                <Calendar className="w-3 h-3 text-amber-400" />
-                                <span>Needed by: {neededBy}</span>
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
+                          )}
+                        </span>
+                        {neededBy && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-500/40">
+                            <Calendar className="w-3 h-3 text-amber-400" />
+                            <span>Needed by: {neededBy}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Status Controls & Actions */}
@@ -1772,12 +1778,21 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
 
                                 <td className="py-3 px-3 align-middle">
                                   <div className="font-bold text-white">{item.name}</div>
-                                  <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                                  <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-2">
                                     <span className="font-mono text-indigo-300">{item.sku}</span>
                                     <span>•</span>
                                     <span>{item.manufacturer}</span>
                                     <span>•</span>
                                     <span>{item.category}</span>
+                                    {(item.trackingNumber || trackNum) && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="inline-flex items-center gap-1 font-mono text-sky-400 bg-sky-950/70 border border-sky-500/30 px-1.5 py-0.2 rounded text-[10px]">
+                                          <Truck className="w-2.5 h-2.5 text-sky-400" />
+                                          Track: {item.trackingNumber || trackNum}
+                                        </span>
+                                      </>
+                                    )}
                                   </div>
                                   {isHw && (
                                     <div className="mt-1.5 space-y-1.5">

@@ -622,13 +622,25 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                               const acqSub = (project?.bomAcquisitionSubmissions || []).find(
                                 (s) => s.bomItemId === item.id
                               );
-                              if (!acqSub) return null;
+                              if (!acqSub) {
+                                if (item.trackingNumber) {
+                                  return (
+                                    <div className="mt-2 flex items-center gap-1">
+                                      <span className="font-mono font-bold bg-sky-50 text-sky-900 border border-sky-300 px-2 py-0.5 rounded text-[10px] flex items-center gap-1">
+                                        <Truck className="w-3 h-3 text-sky-600" />
+                                        <span>Tracking: {item.trackingNumber}</span>
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }
                               const acqUid = `bom::${project?.id}::${acqSub.id}`;
                               const acqMilestone = project?.acquisitionMilestones?.[acqUid];
                               const isShipped = !!(acqMilestone?.isShipped ?? acqSub.isShipped ?? (acqSub.fulfillmentStatus === 'In Transit / Shipped'));
                               const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? acqSub.isArrivedToWarehouse);
                               const isOrdered = !!(acqMilestone?.isOrdered ?? acqSub.isOrdered ?? (acqSub.fulfillmentStatus === 'PO Submitted / Ordered'));
-                              const trackNum = acqMilestone?.trackingNumber || acqSub.trackingNumber || acqSub.poOrTrackingNumber;
+                              const trackNum = acqMilestone?.trackingNumber || acqSub.trackingNumber || acqSub.poOrTrackingNumber || item.trackingNumber;
                               const neededBy = acqMilestone?.neededByDate || acqSub.neededByDate;
 
                               return (
@@ -655,9 +667,10 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                         ? 'Ordered'
                                         : 'In Queue'}
                                     </span>
-                                    {isShipped && trackNum && (
-                                      <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300">
-                                        Tracking: {trackNum}
+                                    {trackNum && (
+                                      <span className="font-mono font-bold bg-white px-2 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300 flex items-center gap-1">
+                                        <Truck className="w-3 h-3 text-sky-600" />
+                                        <span>Tracking: {trackNum}</span>
                                       </span>
                                     )}
                                   </span>
