@@ -2601,6 +2601,19 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                         <span className="text-slate-500">
                           Client: <strong>{project.clientName}</strong>
                         </span>
+                        {(project.propertyManagementCompany ||
+                          project.customerIntake?.propertyManagementCompany) && (
+                          <>
+                            <span>·</span>
+                            <span className="text-indigo-700 font-semibold">
+                              Property Mgmt Co.:{' '}
+                              <strong>
+                                {project.propertyManagementCompany ||
+                                  project.customerIntake?.propertyManagementCompany}
+                              </strong>
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

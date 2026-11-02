@@ -38,6 +38,7 @@ import {
   AVAILABLE_PLATFORMS,
   getProjectPlatform,
   getPlatformBadgeStyle,
+  getPropertyManagementCompany,
 } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
@@ -184,6 +185,23 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     onUpdateProject({
       ...project,
       propertyName: newName,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleUpdatePropertyManagementCompany = (companyName: string) => {
+    const existingIntake = project.customerIntake || {
+      pmsSoftware: 'None',
+      commonAreaDoors: [],
+      staffRoles: [],
+    };
+    onUpdateProject({
+      ...project,
+      propertyManagementCompany: companyName,
+      customerIntake: {
+        ...existingIntake,
+        propertyManagementCompany: companyName,
+      },
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -1929,6 +1947,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                       />
                     </div>
                     <div>
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Property Management Company (Optional)</label>
+                      <input
+                        type="text"
+                        value={getPropertyManagementCompany(project)}
+                        onChange={(e) => handleUpdatePropertyManagementCompany(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-semibold focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        placeholder="e.g. Greystar, Lincoln, Bozzuto"
+                      />
+                    </div>
+                    <div>
                       <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Time Zone &amp; Priority</label>
                       <div className="grid grid-cols-2 gap-1.5">
                         <select
@@ -2007,7 +2035,22 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-              <span className="text-slate-900 font-semibold">{project.clientName}</span>
+              <span className="text-slate-900 font-semibold">
+                Client / Owner: {project.clientName}
+              </span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1.5 bg-indigo-50/80 px-2.5 py-0.5 rounded-md border border-indigo-200 text-indigo-950">
+                <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span className="text-[11px] font-semibold text-indigo-800">Property Mgmt Co.:</span>
+                <input
+                  type="text"
+                  value={getPropertyManagementCompany(project)}
+                  onChange={(e) => handleUpdatePropertyManagementCompany(e.target.value)}
+                  placeholder="Add Management Co. (Optional)..."
+                  className="bg-transparent font-bold text-indigo-950 placeholder:text-indigo-400 placeholder:font-normal focus:outline-none focus:bg-white focus:px-1.5 rounded text-xs min-w-[165px]"
+                  title="Property Management Company on this project (also synced with the optional Kickoff Walkthrough question)"
+                />
+              </span>
               <span>·</span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
@@ -3250,9 +3293,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               {/* Box 1: PMS Integration & Entrata Password (Visible to PMs) */}
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
                 <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                  <span>PMS Integration</span>
+                  <span>PMS &amp; Mgmt Co.</span>
                   <span className="font-mono text-[11px] font-bold text-sky-700 bg-white px-2 py-0.5 rounded border border-slate-200">
                     {pmsChoice}
+                  </span>
+                </div>
+
+                <div className="text-[11px] bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between gap-2">
+                  <span className="text-slate-500 font-medium shrink-0">Property Mgmt Co.:</span>
+                  <span className="font-bold text-slate-900 truncate">
+                    {getPropertyManagementCompany(project) || 'Not specified (Optional)'}
                   </span>
                 </div>
 

@@ -94,6 +94,9 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
   };
 
   const [pmsChoice, setPmsChoice] = useState<PMSSoftwareChoice>(existingIntake.pmsSoftware || 'Yardi');
+  const [propertyManagementCompany, setPropertyManagementCompany] = useState<string>(
+    project.propertyManagementCompany || existingIntake.propertyManagementCompany || ''
+  );
   const [entrataCreds, setEntrataCreds] = useState<EntrataCredentials>(
     existingIntake.entrataCredentials || { username: '', password: '', apiBaseUrl: 'https://api.entrata.com' }
   );
@@ -233,6 +236,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
 
     onUpdateProject({
       ...project,
+      propertyManagementCompany,
       useQrIntercom: nextUseQr !== undefined ? nextUseQr : project.useQrIntercom,
       useNfcWallet: nextUseNfc !== undefined ? nextUseNfc : project.useNfcWallet,
       communityDetails: project.communityDetails
@@ -244,6 +248,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
       customerIntake: {
         ...project.customerIntake,
         pmsSoftware: pmsChoice,
+        propertyManagementCompany,
         entrataCredentials: entrataCreds,
         commonAreaDoors: commonDoors,
         staffRoles: staffList,
@@ -336,7 +341,8 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
     cadence = emailUpdateCadence,
     doorsNotAvailable = doorNamesNotAvailableNow,
     followUpDate = doorNamesFollowUpDate,
-    customNotification?: { title: string; details: string; isSubmission?: boolean }
+    customNotification?: { title: string; details: string; isSubmission?: boolean },
+    updatedPropertyManagementCompany = propertyManagementCompany
   ) => {
     if (onUpdateProject) {
       const notif = buildCustomerNotification(
@@ -345,7 +351,11 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
             ? `Customer Submitted Kickoff Walkthrough Form Answers`
             : `Customer Updated Kickoff Walkthrough Form`),
         customNotification?.details ||
-          `PMS: ${updatedPms} · ${updatedDoors.length} Common Area Doors · ${
+          `PMS: ${updatedPms}${
+            updatedPropertyManagementCompany
+              ? ` · Property Mgmt Co.: ${updatedPropertyManagementCompany}`
+              : ''
+          } · ${updatedDoors.length} Common Area Doors · ${
             updatedStaff.length
           } Staff Roles${subscriberEmail ? ` · Subscriber: ${subscriberEmail} (${cadence})` : ''}`,
         Boolean(customNotification?.isSubmission ?? submitted)
@@ -353,11 +363,13 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
 
       onUpdateProject({
         ...project,
+        propertyManagementCompany: updatedPropertyManagementCompany,
         useQrIntercom: customerQrIntercomChoice !== undefined ? customerQrIntercomChoice : project.useQrIntercom,
         useNfcWallet: customerNfcWalletChoice !== undefined ? customerNfcWalletChoice : project.useNfcWallet,
         customerIntake: {
           ...project.customerIntake,
           pmsSoftware: updatedPms,
+          propertyManagementCompany: updatedPropertyManagementCompany,
           entrataCredentials: updatedEntrata,
           commonAreaDoors: updatedDoors,
           staffRoles: updatedStaff,
@@ -545,12 +557,13 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
   <div class="header">
     <div class="badge">Official Customer Kickoff Record</div>
     <h1>${project.propertyName}</h1>
-    <div class="meta">Client: ${project.clientName} · ${project.city}, ${project.state} · ${project.unitsCount} Units · Quote: #${project.quoteNumber}</div>
+    <div class="meta">Client: ${project.clientName}${propertyManagementCompany ? ` · Property Management Co.: ${propertyManagementCompany}` : ''} · ${project.city}, ${project.state} · ${project.unitsCount} Units · Quote: #${project.quoteNumber}</div>
     <div class="meta" style="margin-top: 6px;">Generated on: ${new Date().toLocaleString()} · Assigned PM: ${project.assignedPM.name} (${project.assignedPM.email}) · Field Tech: ${project.assignedFieldTech || 'Hector'}</div>
   </div>
 
   <div class="section">
-    <h2>1. Property Management System (PMS) Integration</h2>
+    <h2>1. Property Management Company &amp; System (PMS) Integration</h2>
+    <div class="kv"><div class="kv-k">Property Management Company:</div><div class="kv-v"><strong>${propertyManagementCompany || 'Not provided (Optional)'}</strong></div></div>
     <div class="kv"><div class="kv-k">PMS Choice:</div><div class="kv-v"><strong>${pmsChoice}</strong></div></div>
     ${pmsChoice === 'Entrata' ? `
     <div class="kv"><div class="kv-k">Entrata API Base URL:</div><div class="kv-v">${entrataCreds.apiBaseUrl || 'Not provided'}</div></div>
@@ -1097,14 +1110,53 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
               Integration Setup
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-['Plus_Jakarta_Sans'] mt-2">
-              Property Management Software (PMS)
+              Property Management Company &amp; Software (PMS)
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Select the property management system that manages resident leases and move-in/move-out workflows.
+              Let us know your property management company (optional) and select the property management software that manages resident leases and move-in/move-out workflows.
             </p>
           </div>
 
-          <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4 max-w-2xl text-xs">
+          <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-5 max-w-2xl text-xs">
+            {/* Optional Question: Property Management Company */}
+            <div className="space-y-1.5 pb-4 border-b border-slate-200">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
+                  <span>What Property Management Company manages this property?</span>
+                </label>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 uppercase tracking-wider">
+                  Optional
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                If a property management company operates this community, enter the company name below. This automatically syncs to your Project and Customer Success Property profile.
+              </p>
+              <input
+                type="text"
+                value={propertyManagementCompany}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPropertyManagementCompany(val);
+                  saveIntakeUpdates(
+                    commonDoors,
+                    staffList,
+                    pmsChoice,
+                    entrataCreds,
+                    isWalkthroughSubmitted,
+                    residentEmailForUpdates,
+                    emailUpdateCadence,
+                    doorNamesNotAvailableNow,
+                    doorNamesFollowUpDate,
+                    undefined,
+                    val
+                  );
+                }}
+                placeholder="e.g. Greystar, Lincoln Property Company, Bozzuto (Optional)"
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-semibold focus:outline-none focus:border-sky-500 text-xs shadow-xs"
+              />
+            </div>
+
             <div className="space-y-1.5">
               <label className="font-bold text-slate-900 text-sm">
                 What Property Management Software will you be using?

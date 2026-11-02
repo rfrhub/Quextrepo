@@ -12,6 +12,7 @@ import {
   AVAILABLE_PLATFORMS,
   getProjectPlatform,
   getPlatformBadgeStyle,
+  getPropertyManagementCompany,
 } from '../types';
 import {
   MapPin,
@@ -105,6 +106,7 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
     const matchesSearch =
       project.propertyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      getPropertyManagementCompany(project).toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -361,7 +363,12 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
                           </div>
                         </td>
                         <td className="p-3 whitespace-nowrap text-slate-600">
-                          {project.clientName}
+                          <div>{project.clientName}</div>
+                          {getPropertyManagementCompany(project) && (
+                            <div className="text-[10px] font-semibold text-indigo-700">
+                              Mgmt: {getPropertyManagementCompany(project)}
+                            </div>
+                          )}
                         </td>
                         <td className="p-3 whitespace-nowrap font-bold font-mono">
                           {project.unitsCount}
@@ -509,8 +516,15 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
 
                   <div className="p-4 space-y-3.5 text-xs">
                     <div className="flex items-center justify-between text-slate-500">
-                      <span>Client / Operator:</span>
+                      <span>Client / Owner:</span>
                       <strong className="text-slate-900">{project.clientName}</strong>
+                    </div>
+
+                    <div className="flex items-center justify-between text-slate-500">
+                      <span>Property Mgmt Co.:</span>
+                      <strong className="text-indigo-900">
+                        {getPropertyManagementCompany(project) || 'Not specified'}
+                      </strong>
                     </div>
 
                     <div className="flex items-center justify-between text-slate-500">

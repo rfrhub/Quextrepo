@@ -1690,11 +1690,16 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
   );
 
   const platform = p.platform || getProjectPlatform(p);
+  const resolvedPropertyManagementCompany =
+    p.propertyManagementCompany !== undefined
+      ? p.propertyManagementCompany
+      : p.customerIntake?.propertyManagementCompany;
 
   const seenBomIds = new Set<string>();
   const enriched: OperationProject = {
     ...p,
     platform,
+    propertyManagementCompany: resolvedPropertyManagementCompany,
     assignedFieldTech: normalizeFieldTech(p.assignedFieldTech),
     integratorPartners: partners,
     bomItems: (p.bomItems || []).map((b, idx) => {
@@ -1803,6 +1808,10 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
       commonAreaDoors: [],
       staffRoles: [],
       ...(p.customerIntake || {}),
+      propertyManagementCompany:
+        p.customerIntake?.propertyManagementCompany !== undefined
+          ? p.customerIntake.propertyManagementCompany
+          : resolvedPropertyManagementCompany,
       sitePlanConfirmedEdited:
         p.customerIntake?.sitePlanConfirmedEdited !== undefined
           ? p.customerIntake.sitePlanConfirmedEdited

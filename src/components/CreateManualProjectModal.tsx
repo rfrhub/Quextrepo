@@ -52,6 +52,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
 
   const [propertyName, setPropertyName] = useState<string>('');
   const [clientName, setClientName] = useState<string>('');
+  const [propertyManagementCompany, setPropertyManagementCompany] = useState<string>('');
   const [address, setAddress] = useState<string>('');
   const [city, setCity] = useState<string>('');
   const [state, setState] = useState<string>('TX');
@@ -274,6 +275,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
       quoteNumber: `QXT-MANUAL-${Math.floor(1000 + Math.random() * 9000)}`,
       propertyName: propertyName.trim(),
       clientName: clientName.trim(),
+      propertyManagementCompany: propertyManagementCompany.trim() || undefined,
       address: address.trim() || '100 Main St',
       city: city.trim() || 'Austin',
       state: state.trim() || 'TX',
@@ -296,6 +298,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
       milestones: createDefaultMilestones(`m-${projectId}`, new Date().toISOString().split('T')[0], targetDate),
       customerIntake: {
         pmsSoftware: 'Yardi',
+        propertyManagementCompany: propertyManagementCompany.trim() || undefined,
         commonAreaDoors: [
           { id: 'cad-m1', doorName: 'Clubhouse Main Entry', buildingOrArea: 'Clubhouse', installedStatus: 'Pending' },
           { id: 'cad-m2', doorName: 'Fitness Center Entry', buildingOrArea: 'Clubhouse Floor 1', installedStatus: 'Pending' },
@@ -420,7 +423,19 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
                   required
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  placeholder="e.g. Cortland Management"
+                  placeholder="e.g. Cortland Partners"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 mt-1 focus:outline-none focus:border-sky-500"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="font-semibold text-slate-700">
+                  Property Management Company <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={propertyManagementCompany}
+                  onChange={(e) => setPropertyManagementCompany(e.target.value)}
+                  placeholder="e.g. Greystar, Lincoln Property Company, Bozzuto (Optional)"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 mt-1 focus:outline-none focus:border-sky-500"
                 />
               </div>

@@ -15,6 +15,7 @@ import {
   getLockFinishSummaryTag,
   AVAILABLE_CSMS,
   CSMName,
+  getPropertyManagementCompany,
 } from '../types';
 import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
 import { RMATicketingSection } from './RMATicketingSection';
@@ -150,6 +151,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
       return (
         prop.propertyName.toLowerCase().includes(q) ||
         prop.clientName.toLowerCase().includes(q) ||
+        getPropertyManagementCompany(prop).toLowerCase().includes(q) ||
         prop.city.toLowerCase().includes(q) ||
         prop.state.toLowerCase().includes(q) ||
         (prop.customerIntake?.communityEmail || '').toLowerCase().includes(q) ||
@@ -391,6 +393,13 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
                         <span>
                           Client / Owner:{' '}
                           <strong className="text-slate-900">{property.clientName}</strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Property Mgmt Co.:{' '}
+                          <strong className="text-indigo-900">
+                            {getPropertyManagementCompany(property) || 'Not specified'}
+                          </strong>
                         </span>
                         <span>•</span>
                         <span>
@@ -1021,9 +1030,21 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               {property.propertyName}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300">
-              Client / Owner: <strong className="text-white">{property.clientName}</strong> •{' '}
-              {property.address}, {property.city}, {property.state}
+            <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-2">
+              <span>
+                Client / Owner: <strong className="text-white">{property.clientName}</strong>
+              </span>
+              <span>•</span>
+              <span>
+                Property Mgmt Co.:{' '}
+                <strong className="text-[#01C38D]">
+                  {getPropertyManagementCompany(property) || 'Not specified'}
+                </strong>
+              </span>
+              <span>•</span>
+              <span>
+                {property.address}, {property.city}, {property.state}
+              </span>
             </p>
           </div>
 
@@ -1039,15 +1060,41 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
 
         {/* Up-Front Key Property Contacts & Ownership Summary Strip */}
         <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/70 border-b border-slate-200">
-          {/* Card 1: Property & Client/Owner */}
+          {/* Card 1: Property, Client/Owner & Property Management Company */}
           <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1.5">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Property &amp; Client / Owner</span>
+              <span>Property, Client / Owner &amp; Mgmt Co.</span>
             </div>
             <div className="text-base font-extrabold text-slate-900">{property.propertyName}</div>
             <div className="text-xs text-slate-700">
-              Owner / Management: <strong className="text-slate-900">{property.clientName}</strong>
+              Client / Owner: <strong className="text-slate-900">{property.clientName}</strong>
+            </div>
+            <div className="text-xs text-slate-700 flex items-center gap-1.5">
+              <span className="shrink-0">Property Mgmt Co.:</span>
+              <input
+                type="text"
+                value={getPropertyManagementCompany(property)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onUpdateProperty({
+                    ...property,
+                    propertyManagementCompany: val,
+                    customerIntake: {
+                      ...(property.customerIntake || {
+                        pmsSoftware: 'Yardi',
+                        commonAreaDoors: [],
+                        staffRoles: [],
+                      }),
+                      propertyManagementCompany: val,
+                    },
+                    lastUpdated: new Date().toISOString(),
+                  });
+                }}
+                placeholder="Enter Property Mgmt Co. (Optional)..."
+                className="flex-1 min-w-0 px-2 py-0.5 bg-indigo-50/70 hover:bg-indigo-50 focus:bg-white border border-indigo-200 focus:border-indigo-500 rounded font-bold text-indigo-950 placeholder:text-slate-400 placeholder:font-normal text-xs focus:outline-none"
+                title="Property Management Company on this Property (synced with Project & Kickoff Walkthrough)"
+              />
             </div>
             <div className="text-xs text-slate-500">
               {property.address}, {property.city}, {property.state} ({property.unitsCount} Units)
@@ -1213,10 +1260,16 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs pt-2">
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-              PMS Software &amp; Integration
+              PMS Software &amp; Mgmt Company
             </div>
             <div className="font-bold text-slate-900 text-sm">
               {intake?.pmsSoftware || property.communityDetails?.pmsSystem || 'Not Specified'}
+            </div>
+            <div className="text-[11px] text-slate-700">
+              Property Mgmt Co.:{' '}
+              <strong className="text-indigo-900">
+                {getPropertyManagementCompany(property) || 'Not provided (Optional)'}
+              </strong>
             </div>
             {intake?.pmsSoftware === 'Entrata' && intake.entrataCredentials ? (
               <div className="text-[11px] text-slate-600 space-y-0.5 pt-1 border-t border-slate-200/70">

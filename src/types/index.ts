@@ -752,6 +752,7 @@ export interface ProductAcceptanceSubmission {
 
 export interface KickoffCustomerIntake {
   pmsSoftware: PMSSoftwareChoice;
+  propertyManagementCompany?: string; // Optional Property Management Company provided in Kickoff Walkthrough or on Project/Property
   entrataCredentials?: EntrataCredentials;
   pmsNoticeAcknowledged?: boolean;
   commonAreaDoors: CommonAreaDoor[];
@@ -909,6 +910,7 @@ export interface OperationProject {
   quoteNumber: string;
   propertyName: string;
   clientName: string;
+  propertyManagementCompany?: string; // Property Management Company on the project or property
   address: string;
   city: string;
   state: string;
@@ -957,6 +959,14 @@ export interface OperationProject {
   csmPortalData?: CSMPropertyPortalData;
   rmaTickets?: RMATicketRecord[];
   lastUpdated: string;
+}
+
+export function getPropertyManagementCompany(project?: Partial<OperationProject>): string {
+  const direct = (project?.propertyManagementCompany || '').trim();
+  if (direct) return direct;
+  const fromIntake = (project?.customerIntake?.propertyManagementCompany || '').trim();
+  if (fromIntake) return fromIntake;
+  return '';
 }
 
 export type RMAProductCompany =
