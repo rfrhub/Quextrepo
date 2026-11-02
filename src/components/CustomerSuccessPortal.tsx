@@ -2046,15 +2046,6 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                           <Wrench className="w-3.5 h-3.5 text-indigo-600" />
                           <span>RMA Ticket</span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPropertyBomAcquisitionModal(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold cursor-pointer transition-colors"
-                          title={`Send ${item.name} to the Product Acquisition Portal (confirm quantity & include full details + finish options)`}
-                        >
-                          <Send className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>Send to Acquisition</span>
-                        </button>
                       </div>
                     </td>
                   </tr>
