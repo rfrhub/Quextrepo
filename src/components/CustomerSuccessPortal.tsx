@@ -29,6 +29,12 @@ import {
   getProjectIntegratorPartners,
   isDiyPartner,
   getPropertyManagementCompany,
+  canEditCustomerSuccessPortal,
+  isCustomerSuccessManager,
+  isProductAcquisitionUser,
+  CSM_CALENDAR_BOOKING_DIRECTORY,
+  QUEXT_TRAINING_HELP_ARTICLE_URL,
+  CSMCalendarBookingProfile,
 } from '../types';
 import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
@@ -73,6 +79,14 @@ import {
   UserCheck,
   FileSignature,
   Truck,
+  LayoutDashboard,
+  Activity,
+  TrendingUp,
+  BarChart3,
+  ShieldAlert,
+  Filter,
+  Flame,
+  Eye,
 } from 'lucide-react';
 
 interface CustomerSuccessPortalProps {
@@ -129,6 +143,948 @@ export function getRiskTierBadgeStyle(tier: CSMRiskTier): {
   }
 }
 
+export function getPropertyRiskTier(property: OperationProject): CSMRiskTier {
+  const groups = property.csmPortalData?.riskGroups || [];
+  const openGroups = groups.filter((g) => g.resolutionPlan?.issueStatus !== 'Resolved');
+  if (openGroups.some((g) => g.riskTier === 'Critical - Escalation')) return 'Critical - Escalation';
+  if (openGroups.some((g) => g.riskTier === 'Tier 1 - High Risk')) return 'Tier 1 - High Risk';
+  if (openGroups.some((g) => g.riskTier === 'Tier 2 - Moderate Risk')) return 'Tier 2 - Moderate Risk';
+  if (openGroups.some((g) => g.riskTier === 'Tier 3 - Low Risk')) return 'Tier 3 - Low Risk';
+
+  const notes = property.csmPortalData?.csmNotes || [];
+  if (notes.some((n) => n.riskTier === 'Critical - Escalation')) return 'Critical - Escalation';
+  if (notes.some((n) => n.riskTier === 'Tier 1 - High Risk')) return 'Tier 1 - High Risk';
+  if (notes.some((n) => n.riskTier === 'Tier 2 - Moderate Risk')) return 'Tier 2 - Moderate Risk';
+  if (notes.some((n) => n.riskTier === 'Tier 3 - Low Risk')) return 'Tier 3 - Low Risk';
+
+  return 'None';
+}
+
+// ============================================================================
+// COMPONENT 1: CSM OVERVIEW DASHBOARD VIEW
+// ============================================================================
+
+interface CSMOverviewDashboardViewProps {
+  properties: OperationProject[];
+  onSelectProperty: (propertyId: string) => void;
+  onOpenCreateSow: (property?: OperationProject) => void;
+  onNavigateToProperties: (csmFilter?: string) => void;
+  onNavigateToActivityHub: () => void;
+  currentUserName?: string;
+  canEdit?: boolean;
+}
+
+export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> = ({
+  properties,
+  onSelectProperty,
+  onOpenCreateSow,
+  onNavigateToProperties,
+  onNavigateToActivityHub,
+  currentUserName = 'Customer Success Manager',
+  canEdit = true,
+}) => {
+  const totalProperties = properties.length;
+  const totalUnits = properties.reduce(
+    (sum, p) => sum + (p.customerIntake?.unitCount || p.units || 120),
+    0
+  );
+  const totalDoors = properties.reduce(
+    (sum, p) => sum + (p.customerIntake?.commonAreaDoors?.length || 0),
+    0
+  );
+
+  // Risk breakdown
+  const critProps = properties.filter(
+    (p) => getPropertyRiskTier(p) === 'Critical - Escalation'
+  );
+  const highProps = properties.filter(
+    (p) => getPropertyRiskTier(p) === 'Tier 1 - High Risk'
+  );
+  const medProps = properties.filter(
+    (p) => getPropertyRiskTier(p) === 'Tier 2 - Moderate Risk'
+  );
+  const lowProps = properties.filter(
+    (p) =>
+      getPropertyRiskTier(p) === 'Tier 3 - Low Risk' ||
+      getPropertyRiskTier(p) === 'None'
+  );
+
+  const healthScorePct =
+    totalProperties > 0
+      ? Math.round(((lowProps.length + medProps.length * 0.7) / totalProperties) * 100)
+      : 100;
+
+  // Contracts
+  const totalContracts = properties.reduce(
+    (sum, p) => sum + (p.csmPortalData?.contracts?.length || 0),
+    0
+  );
+  const verifiedContracts = properties.reduce(
+    (sum, p) =>
+      sum +
+      (p.csmPortalData?.contracts || []).filter(
+        (c) => c.quextSignatory?.name && c.customerSignatory?.name
+      ).length,
+    0
+  );
+
+  // Change Orders / Supplemental Orders
+  const allChangeOrders = properties.flatMap((p) =>
+    (p.changeOrders || []).map((co) => ({
+      ...co,
+      propertyId: p.id,
+      propertyName: p.propertyName,
+      assignedCSM: p.assignedCSM,
+    }))
+  );
+  const totalCoValue = allChangeOrders.reduce(
+    (sum, co) => sum + (co.totalAmount || 0),
+    0
+  );
+
+  // RMA Tickets
+  const allRmas = properties.flatMap((p) =>
+    (p.rmaTickets || []).map((rma) => ({
+      ...rma,
+      propertyId: p.id,
+      propertyName: p.propertyName,
+      assignedCSM: p.assignedCSM,
+    }))
+  );
+  const activeRmas = allRmas.filter(
+    (r) => r.status !== '5. Replacement Received / Closed'
+  );
+
+  // High priority watchlist (Critical + High)
+  const riskWatchlist = [...critProps, ...highProps];
+
+  return (
+    <div className="space-y-6">
+      {/* Top Portfolio Metrics KPI Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        {/* KPI 1: Active Properties */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+              CSM Portfolio
+            </span>
+            <Building2 className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-3xl font-black text-slate-900 font-['Inter_Tight',sans-serif]">
+            {totalProperties}
+          </div>
+          <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+            <span>{totalUnits.toLocaleString()} Res Units</span>
+            <span className="text-slate-300">•</span>
+            <span>{totalDoors} Common Doors</span>
+          </div>
+        </div>
+
+        {/* KPI 2: Portfolio Health */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-800 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+              Health Score
+            </span>
+            <TrendingUp className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div className="text-3xl font-black text-slate-900 font-['Inter_Tight',sans-serif] flex items-baseline gap-1.5">
+            <span>{healthScorePct}%</span>
+            <span className="text-xs font-bold text-emerald-600">Stable</span>
+          </div>
+          <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5 pt-1 border-t border-slate-100">
+            <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">
+              {critProps.length} Crit
+            </span>
+            <span className="px-1.5 py-0.2 rounded bg-orange-100 text-orange-800 font-bold text-[10px]">
+              {highProps.length} High
+            </span>
+            <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+              {lowProps.length} Healthy
+            </span>
+          </div>
+        </div>
+
+        {/* KPI 3: AI Contract Repository */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md">
+              Agreements
+            </span>
+            <Sparkles className="w-4 h-4 text-purple-600" />
+          </div>
+          <div className="text-3xl font-black text-slate-900 font-['Inter_Tight',sans-serif]">
+            {totalContracts}
+          </div>
+          <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+            <span>{verifiedContracts} Fully Signed</span>
+            <span className="text-purple-600 font-bold">AI Scrubbed</span>
+          </div>
+        </div>
+
+        {/* KPI 4: Supplemental Orders */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-sky-800 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
+              Change Orders
+            </span>
+            <Package className="w-4 h-4 text-sky-600" />
+          </div>
+          <div className="text-3xl font-black text-slate-900 font-['Inter_Tight',sans-serif]">
+            {allChangeOrders.length}
+          </div>
+          <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+            <span>Total Value</span>
+            <span className="font-mono font-bold text-sky-700">
+              ${totalCoValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        {/* KPI 5: Active RMA Tickets */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+              Hardware RMAs
+            </span>
+            <Wrench className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="text-3xl font-black text-slate-900 font-['Inter_Tight',sans-serif]">
+            {activeRmas.length}
+          </div>
+          <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+            <span>{allRmas.length} Total Logged</span>
+            <span className="text-amber-700 font-bold">In Progress</span>
+          </div>
+        </div>
+      </div>
+
+      {/* CSM Team Portfolio Breakdown */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 font-['Inter_Tight',sans-serif]">
+              Customer Success Manager Team Portfolio
+            </h2>
+            <p className="text-xs text-slate-500">
+              Active CSM assignments, community counts, unit footprints, and booking links
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateToProperties('all')}
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <span>View All Properties</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          {CSM_CALENDAR_BOOKING_DIRECTORY.map((csm) => {
+            const assigned = properties.filter(
+              (p) => (p.assignedCSM || 'Nicole Franklin').toLowerCase() === csm.name.toLowerCase()
+            );
+            const csmUnits = assigned.reduce(
+              (sum, p) => sum + (p.customerIntake?.unitCount || p.units || 120),
+              0
+            );
+            const csmCrit = assigned.filter(
+              (p) => getPropertyRiskTier(p) === 'Critical - Escalation'
+            ).length;
+            const csmHigh = assigned.filter(
+              (p) => getPropertyRiskTier(p) === 'Tier 1 - High Risk'
+            ).length;
+
+            return (
+              <div
+                key={csm.name}
+                className="bg-slate-50/70 hover:bg-white rounded-xl border border-slate-200 hover:border-emerald-300 p-4 transition-all shadow-2xs hover:shadow-xs space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <img
+                    src={csm.avatar}
+                    alt={csm.name}
+                    className="w-11 h-11 rounded-full object-cover border-2 border-emerald-400 shrink-0 shadow-2xs"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 truncate">{csm.name}</div>
+                    <div className="text-[10px] text-slate-500 truncate">{csm.title}</div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-white border border-slate-200/80 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 text-[11px]">Properties:</span>
+                    <span className="font-bold text-slate-900">{assigned.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 text-[11px]">Units Managed:</span>
+                    <span className="font-mono font-bold text-slate-900">{csmUnits.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
+                    <span className="text-slate-400">Risk Alerts:</span>
+                    <span
+                      className={`font-bold ${
+                        csmCrit > 0
+                          ? 'text-rose-600'
+                          : csmHigh > 0
+                          ? 'text-orange-600'
+                          : 'text-emerald-600'
+                      }`}
+                    >
+                      {csmCrit > 0 ? `${csmCrit} Crit` : csmHigh > 0 ? `${csmHigh} High` : '0 Issues'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToProperties(csm.name)}
+                    className="w-full py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold cursor-pointer transition-colors"
+                  >
+                    Filter Properties ({assigned.length})
+                  </button>
+                  <a
+                    href={csm.bookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-1 rounded-lg text-slate-500 hover:text-slate-800 text-[10px] font-medium flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <Calendar className="w-3 h-3 text-slate-400" />
+                    <span>Booking Page</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2-Column Section: High-Priority Risk Watchlist + Recent Change Orders & RMAs */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: High-Priority Risk Watchlist */}
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 font-['Inter_Tight',sans-serif]">
+                  Critical &amp; High-Priority Risk Watchlist ({riskWatchlist.length})
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Properties requiring immediate Customer Success resolution plans
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {riskWatchlist.length === 0 ? (
+            <div className="text-center py-10 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+              <div className="text-xs font-bold text-slate-800">
+                All Customer Success properties operating at healthy status
+              </div>
+              <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                No active Critical or High risk tiers are currently flagged across the property portfolio.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {riskWatchlist.map((prop) => {
+                const tier = getPropertyRiskTier(prop);
+                const tierStyle = getRiskTierBadgeStyle(tier);
+                const latestNote = prop.csmPortalData?.csmNotes?.[0];
+                const activeGroup = (prop.csmPortalData?.riskGroups || []).find(
+                  (g) => g.resolutionPlan?.issueStatus !== 'Resolved'
+                );
+
+                return (
+                  <div
+                    key={prop.id}
+                    onClick={() => onSelectProperty(prop.id)}
+                    className="p-4 rounded-xl border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/20 transition-all cursor-pointer group shadow-2xs space-y-2.5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-sm group-hover:text-emerald-700">
+                          {prop.propertyName}
+                        </span>
+                        <span className="text-slate-400 text-xs">•</span>
+                        <span className="text-xs text-slate-500">
+                          {prop.city}, {prop.state}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${tierStyle.badge}`}>
+                        {tier}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-slate-800">
+                          Assigned CSM: {prop.assignedCSM || 'Nicole Franklin'}
+                        </span>
+                        {activeGroup && (
+                          <span className="text-amber-800 font-mono text-[10px]">
+                            Target: {activeGroup.resolutionPlan?.targetDate || 'In Review'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="line-clamp-2 italic text-slate-700">
+                        "{latestNote?.text || activeGroup?.resolutionPlan?.summary || 'Active remediation underway with local property management.'}"
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 text-[11px]">
+                      <span className="text-slate-400">
+                        {prop.csmPortalData?.csmNotes?.length || 0} Notes logged • {prop.units || 120} units
+                      </span>
+                      <span className="text-emerald-700 font-bold group-hover:underline flex items-center gap-1">
+                        <span>Open Property Workspace</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Recent Supplemental Orders & RMA Tickets */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 font-['Inter_Tight',sans-serif]">
+                    Supplemental Orders in CSM ({allChangeOrders.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Hardware additions with Amount Ordered vs Total Qty
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {allChangeOrders.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-400">
+                No supplemental orders submitted on Customer Success properties yet.
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                {allChangeOrders.slice(0, 5).map((co, idx) => (
+                  <div
+                    key={co.id || idx}
+                    onClick={() => onSelectProperty(co.propertyId)}
+                    className="p-3 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/20 transition-all cursor-pointer group space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-900 group-hover:text-sky-700">
+                        {co.orderNumber || `SO-${idx + 1}`}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200">
+                        {co.status || 'Submitted'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 flex items-center justify-between">
+                      <span className="truncate max-w-[180px]">{co.propertyName}</span>
+                      <span className="font-mono font-bold text-slate-900">
+                        ${(co.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {co.items && co.items.length > 0 && (
+                      <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2 bg-slate-50 px-2 py-1 rounded">
+                        <span>{co.items[0].name}</span>
+                        <span className="text-indigo-600 font-bold">
+                          {co.items[0].quantity} Ordered vs {co.items[0].manualProjectTotalQty || co.items[0].quantity} Total
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Action Card */}
+          <div className="bg-gradient-to-br from-emerald-900 to-slate-950 rounded-2xl border border-emerald-500/30 p-5 text-white space-y-3 shadow-md">
+            <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Customer Success Quick Actions</span>
+            </div>
+            <p className="text-xs text-slate-200 leading-relaxed">
+              Create an automated SOW form with vendor routing, view live telemetry in the Activity Hub, or explore property contracts.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => onOpenCreateSow()}
+                className="px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>+ Create SOW Form</span>
+              </button>
+              <button
+                type="button"
+                onClick={onNavigateToActivityHub}
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors border border-white/20"
+              >
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Open Live Activity Hub</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// COMPONENT 2: CSM LIVE ACTIVITY HUB VIEW
+// ============================================================================
+
+interface CSMLiveActivityItem {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  assignedCSM: string;
+  category: 'risk' | 'orders' | 'rma' | 'contracts' | 'sow' | 'milestones';
+  categoryLabel: string;
+  badgeColor: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  isoDate: string;
+  actionText?: string;
+}
+
+interface CSMLiveActivityHubViewProps {
+  properties: OperationProject[];
+  onSelectProperty: (propertyId: string) => void;
+  onOpenCreateSow: (property?: OperationProject) => void;
+  currentUserName?: string;
+}
+
+export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
+  properties,
+  onSelectProperty,
+  onOpenCreateSow,
+  currentUserName = 'Customer Success Manager',
+}) => {
+  const [selectedPropertyFilter, setSelectedPropertyFilter] = useState<string>('all');
+  const [selectedCsmFilter, setSelectedCsmFilter] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Collect and compile events across all properties in Customer Success
+  const allEvents = useMemo<CSMLiveActivityItem[]>(() => {
+    const list: CSMLiveActivityItem[] = [];
+
+    for (const prop of properties) {
+      const csm = prop.assignedCSM || 'Nicole Franklin';
+
+      // 1. CSM Notes & Risk Groups
+      for (const note of prop.csmPortalData?.csmNotes || []) {
+        const tier = note.riskTier;
+        list.push({
+          id: `csm-note-${note.id}`,
+          propertyId: prop.id,
+          propertyName: prop.propertyName,
+          assignedCSM: csm,
+          category: 'risk',
+          categoryLabel: tier !== 'None' ? `Risk: ${tier}` : 'CSM Note',
+          badgeColor:
+            tier === 'Critical - Escalation'
+              ? 'bg-rose-100 text-rose-800 border-rose-300'
+              : tier === 'Tier 1 - High Risk'
+              ? 'bg-orange-100 text-orange-800 border-orange-300'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-300',
+          title: `Note recorded by ${note.author || csm}`,
+          description: note.text,
+          timestamp: note.createdAt || 'Recent',
+          isoDate: note.createdAt || new Date().toISOString(),
+        });
+      }
+
+      // 2. Change Orders / Supplemental Orders
+      for (const co of prop.changeOrders || []) {
+        const itemCount = co.items?.length || 0;
+        list.push({
+          id: `csm-co-${co.id}`,
+          propertyId: prop.id,
+          propertyName: prop.propertyName,
+          assignedCSM: csm,
+          category: 'orders',
+          categoryLabel: 'Supplemental Order',
+          badgeColor: 'bg-sky-100 text-sky-800 border-sky-300',
+          title: `${co.orderNumber || 'Order'} (${co.status || 'Active'})`,
+          description: `${itemCount} item(s) • Total: $${(co.totalAmount || 0).toFixed(2)}${
+            co.trackingNumber ? ` • Track #: ${co.trackingNumber}` : ''
+          }`,
+          timestamp: co.updatedAt || co.createdAt || 'Recent',
+          isoDate: co.updatedAt || co.createdAt || new Date().toISOString(),
+        });
+      }
+
+      // 3. RMA Tickets
+      for (const rma of prop.rmaTickets || []) {
+        list.push({
+          id: `csm-rma-${rma.id}`,
+          propertyId: prop.id,
+          propertyName: prop.propertyName,
+          assignedCSM: csm,
+          category: 'rma',
+          categoryLabel: 'Hardware RMA',
+          badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
+          title: `RMA #${rma.ticketNumber}: ${rma.partName || 'Equipment Replacement'}`,
+          description: `Qty: ${rma.defectiveQuantity || 1} • Status: ${rma.status || 'Open'}${
+            rma.trackingNumber || rma.returnTrackingNumber
+              ? ` • Tracking: ${rma.trackingNumber || rma.returnTrackingNumber}`
+              : ''
+          }`,
+          timestamp: rma.createdAt || 'Recent',
+          isoDate: rma.createdAt || new Date().toISOString(),
+        });
+      }
+
+      // 4. AI Scrubbed Contracts
+      for (const contract of prop.csmPortalData?.contracts || []) {
+        list.push({
+          id: `csm-contract-${contract.id}`,
+          propertyId: prop.id,
+          propertyName: prop.propertyName,
+          assignedCSM: csm,
+          category: 'contracts',
+          categoryLabel: 'AI Agreement Scrubbed',
+          badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
+          title: `${contract.agreementType || 'Master Agreement'} (${contract.fileName})`,
+          description: `Parties: ${contract.quextSignatory?.name || 'Quext'} & ${contract.customerSignatory?.name || 'Customer'} • Effective: ${contract.effectiveDate || 'Verified'}`,
+          timestamp: contract.scrubbedAt || 'Recent',
+          isoDate: contract.scrubbedAt || new Date().toISOString(),
+        });
+      }
+
+      // 5. Milestones
+      for (const m of prop.milestones || []) {
+        if (
+          m.title === 'CSM Handoff' ||
+          m.title.toLowerCase().includes('csm') ||
+          m.title.toLowerCase().includes('live')
+        ) {
+          list.push({
+            id: `csm-ms-${m.id}`,
+            propertyId: prop.id,
+            propertyName: prop.propertyName,
+            assignedCSM: csm,
+            category: 'milestones',
+            categoryLabel: 'Milestone Progress',
+            badgeColor:
+              m.status === 'Completed'
+                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                : 'bg-indigo-100 text-indigo-900 border-indigo-300',
+            title: `${m.title}: ${m.status}`,
+            description: `Target Date: ${m.targetDate || 'TBD'}${m.completedDate ? ` • Completed: ${m.completedDate}` : ''}`,
+            timestamp: m.completedDate || m.startedAt || 'Recent',
+            isoDate: m.completedDate || m.startedAt || new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    // Sort newest first
+    return list.sort((a, b) => b.isoDate.localeCompare(a.isoDate));
+  }, [properties]);
+
+  // Filtered event list
+  const filteredEvents = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return allEvents.filter((ev) => {
+      if (selectedPropertyFilter !== 'all' && ev.propertyId !== selectedPropertyFilter) {
+        return false;
+      }
+      if (selectedCsmFilter !== 'all' && ev.assignedCSM.toLowerCase() !== selectedCsmFilter.toLowerCase()) {
+        return false;
+      }
+      if (selectedCategory !== 'all' && ev.category !== selectedCategory) {
+        return false;
+      }
+      if (q) {
+        const full = `${ev.propertyName} ${ev.assignedCSM} ${ev.title} ${ev.description}`.toLowerCase();
+        return full.includes(q);
+      }
+      return true;
+    });
+  }, [allEvents, selectedPropertyFilter, selectedCsmFilter, selectedCategory, searchQuery]);
+
+  return (
+    <div className="space-y-6">
+      {/* Live Activity Top Controls Bar */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 font-['Inter_Tight',sans-serif]">
+                CSM Live Telemetry &amp; Activity Stream
+              </h2>
+              <p className="text-xs text-slate-500">
+                Real-time updates across risk adjustments, supplemental orders, RMA hardware, contracts, and handoffs
+              </p>
+            </div>
+          </div>
+          <span className="text-xs text-slate-400 font-mono font-medium">
+            Showing {filteredEvents.length} events
+          </span>
+        </div>
+
+        {/* Filter Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+          <div className="sm:col-span-5 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search activity by property, note, order #, or SKU..."
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <div className="sm:col-span-4">
+            <select
+              value={selectedPropertyFilter}
+              onChange={(e) => setSelectedPropertyFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500"
+            >
+              <option value="all">All CSM Properties ({properties.length})</option>
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.propertyName} ({p.city}, {p.state})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="sm:col-span-3">
+            <select
+              value={selectedCsmFilter}
+              onChange={(e) => setSelectedCsmFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500"
+            >
+              <option value="all">All CSMs ({AVAILABLE_CSMS.length})</option>
+              {AVAILABLE_CSMS.map((csm) => (
+                <option key={csm} value={csm}>
+                  {csm}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+            <Filter className="w-3 h-3 text-slate-400" />
+            <span>Category:</span>
+          </span>
+          {[
+            { id: 'all', label: 'All Activities', count: allEvents.length },
+            { id: 'risk', label: 'Risk & Notes', count: allEvents.filter((e) => e.category === 'risk').length },
+            { id: 'orders', label: 'Supplemental Orders', count: allEvents.filter((e) => e.category === 'orders').length },
+            { id: 'rma', label: 'Hardware RMAs', count: allEvents.filter((e) => e.category === 'rma').length },
+            { id: 'contracts', label: 'Contracts', count: allEvents.filter((e) => e.category === 'contracts').length },
+            { id: 'milestones', label: 'Handoff Milestones', count: allEvents.filter((e) => e.category === 'milestones').length },
+          ].map((cat) => {
+            const active = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  active
+                    ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+                    : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className={`ml-1.5 text-[10px] font-mono ${active ? 'text-emerald-100' : 'text-slate-400'}`}>
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main 2-Column Live Feed Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Activity Feed Stream */}
+        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-sm font-bold text-slate-900 font-['Inter_Tight',sans-serif]">
+                Real-Time Telemetry Feed
+              </h3>
+            </div>
+            <span className="text-[11px] text-slate-400">
+              Live updates from Customer Success field operations
+            </span>
+          </div>
+
+          {filteredEvents.length === 0 ? (
+            <div className="text-center py-14 text-slate-400 text-xs space-y-1">
+              <div>No activity matches the current filter settings.</div>
+              <p className="text-[11px] text-slate-400">
+                Try selecting "All CSM Properties" or clearing your search term.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredEvents.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => onSelectProperty(item.propertyId)}
+                  className="p-4 rounded-xl border border-slate-200/80 hover:border-emerald-400 hover:bg-emerald-50/20 transition-all cursor-pointer group shadow-2xs space-y-1.5"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-emerald-700 group-hover:underline">
+                        {item.propertyName}
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                        CSM: {item.assignedCSM}
+                      </span>
+                      <span className="text-slate-300">·</span>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {item.timestamp}
+                      </span>
+                    </div>
+
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${item.badgeColor}`}>
+                      {item.categoryLabel}
+                    </span>
+                  </div>
+
+                  <div className="font-bold text-slate-900 text-xs mt-0.5">
+                    {item.title}
+                  </div>
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                    {item.description}
+                  </p>
+
+                  <div className="flex items-center justify-end pt-1">
+                    <span className="text-[11px] font-bold text-emerald-700 group-hover:text-emerald-800 flex items-center gap-1">
+                      <span>Open Property</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Spotlight Panels */}
+        <div className="lg:col-span-4 space-y-4">
+          {/* Spotlight Panel 1: CSM Workload Summary */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                CSM Workload &amp; Activity
+              </h4>
+              <span className="text-[10px] font-bold text-emerald-600">Active</span>
+            </div>
+            <div className="space-y-2">
+              {AVAILABLE_CSMS.map((csm) => {
+                const csmEvents = allEvents.filter(
+                  (e) => e.assignedCSM.toLowerCase() === csm.toLowerCase()
+                );
+                const csmProps = properties.filter(
+                  (p) => (p.assignedCSM || 'Nicole Franklin').toLowerCase() === csm.toLowerCase()
+                );
+
+                return (
+                  <button
+                    key={csm}
+                    type="button"
+                    onClick={() => setSelectedCsmFilter(csm)}
+                    className={`w-full p-2.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-left ${
+                      selectedCsmFilter === csm
+                        ? 'bg-emerald-50 border-emerald-300 ring-1 ring-emerald-400'
+                        : 'bg-slate-50 border-slate-200/80 hover:bg-white'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">{csm}</div>
+                      <div className="text-[10px] text-slate-500">
+                        {csmProps.length} Properties • {csmEvents.length} events logged
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-emerald-700 shrink-0">
+                      {csmEvents.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Spotlight Panel 2: Knowledge & Quick Links */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100">
+              Customer Success Resources
+            </h4>
+            <div className="space-y-2 text-xs">
+              <a
+                href={QUEXT_TRAINING_HELP_ARTICLE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 flex items-center justify-between transition-colors group cursor-pointer block"
+              >
+                <div>
+                  <div className="font-bold text-slate-900 group-hover:text-emerald-700">
+                    Schedule Training Session Help
+                  </div>
+                  <div className="text-[10px] text-slate-500">
+                    Official Quext Customer Training Guide
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 shrink-0" />
+              </a>
+
+              <button
+                type="button"
+                onClick={() => onOpenCreateSow()}
+                className="w-full p-2.5 rounded-xl bg-teal-50 hover:bg-teal-100/70 border border-teal-200 text-teal-900 flex items-center justify-between transition-colors cursor-pointer text-left font-bold"
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-teal-700" />
+                  <span>Generate New SOW Form</span>
+                </div>
+                <span className="text-[10px] font-mono text-teal-700">+ Launch</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
   projects,
   onUpdateProject,
@@ -147,6 +1103,8 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
   }, [projects]);
 
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [csmViewMode, setCsmViewMode] = useState<'overview' | 'properties' | 'activity_hub'>('overview');
+  const canEdit = canEditCustomerSuccessPortal(currentUserName);
   const [searchTerm, setSearchTerm] = useState('');
   const [csmFilter, setCsmFilter] = useState<string>('all');
   const [projectToTransitionId, setProjectToTransitionId] = useState<string>('');
@@ -296,65 +1254,170 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
           </div>
         </div>
 
-        {/* Search, Filter & Quick Transition Bar */}
-        <div className="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-          <div className="md:col-span-5 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search properties by name, client/owner, city, or staff contact..."
-              className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <div className="md:col-span-3">
-            <select
-              value={csmFilter}
-              onChange={(e) => setCsmFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500"
-            >
-              <option value="all">All Assigned CSMs ({handoffProperties.length})</option>
-              {AVAILABLE_CSMS.map((csm) => (
-                <option key={csm} value={csm}>
-                  CSM: {csm}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-4 flex items-center gap-2">
-            <select
-              value={projectToTransitionId}
-              onChange={(e) => setProjectToTransitionId(e.target.value)}
-              className="flex-1 min-w-0 px-3 py-2 text-xs bg-indigo-50/60 border border-indigo-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:border-indigo-500"
-              title="Mark an Operations project's CSM Handoff milestone In Progress to bring it into Customer Success as a Property"
-            >
-              <option value="">
-                + Bring Operations Project to CSM Handoff ({pendingOperationsProjects.length} in Ops)...
-              </option>
-              {pendingOperationsProjects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.propertyName} ({p.clientName})
-                </option>
-              ))}
-            </select>
+        {/* CSM View Mode Switcher: Overview Dashboard | Active Properties | CSM Live Activity Hub */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
             <button
               type="button"
-              disabled={!projectToTransitionId}
-              onClick={() => {
-                if (projectToTransitionId) {
-                  handleMarkCsmHandoffInProgress(projectToTransitionId);
-                }
-              }}
-              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-bold shrink-0 cursor-pointer transition-colors"
+              onClick={() => setCsmViewMode('overview')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                csmViewMode === 'overview'
+                  ? 'bg-white text-emerald-800 shadow-2xs border border-slate-200/80 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
             >
-              Mark In Progress
+              <LayoutDashboard className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Overview Dashboard</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCsmViewMode('properties')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                csmViewMode === 'properties'
+                  ? 'bg-white text-emerald-800 shadow-2xs border border-slate-200/80 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Active Properties ({handoffProperties.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCsmViewMode('activity_hub')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                csmViewMode === 'activity_hub'
+                  ? 'bg-white text-emerald-800 shadow-2xs border border-slate-200/80 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-emerald-600" />
+              <span>CSM Live Activity Hub</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </button>
           </div>
+
+          {!canEdit && (
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+              <span>View-Only Mode ({currentUserName})</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Read-Only Notice for Non-CSM / Non-PM Users */}
+      {!canEdit && (
+        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>View-Only Mode:</strong> Signed in as <strong>{currentUserName}</strong>. Product Acquisition Users have edit access restricted to the Product Acquisition Portal. Full edit access here is granted to Customer Success Managers and PMs.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded bg-amber-200/80 text-amber-900 font-mono text-[10px] font-bold shrink-0">
+            Read-Only
+          </span>
+        </div>
+      )}
+
+      {/* VIEW 1: OVERVIEW DASHBOARD */}
+      {csmViewMode === 'overview' && (
+        <CSMOverviewDashboardView
+          properties={handoffProperties}
+          onSelectProperty={(propId) => setSelectedPropertyId(propId)}
+          onOpenCreateSow={(prop) => {
+            setSowTargetProperty(prop || null);
+            setIsSowModalOpen(true);
+          }}
+          onNavigateToProperties={(filterCsm) => {
+            if (filterCsm && filterCsm !== 'all') setCsmFilter(filterCsm);
+            setCsmViewMode('properties');
+          }}
+          onNavigateToActivityHub={() => setCsmViewMode('activity_hub')}
+          currentUserName={currentUserName}
+          canEdit={canEdit}
+        />
+      )}
+
+      {/* VIEW 2: CSM LIVE ACTIVITY HUB */}
+      {csmViewMode === 'activity_hub' && (
+        <CSMLiveActivityHubView
+          properties={handoffProperties}
+          onSelectProperty={(propId) => setSelectedPropertyId(propId)}
+          onOpenCreateSow={(prop) => {
+            setSowTargetProperty(prop || null);
+            setIsSowModalOpen(true);
+          }}
+          currentUserName={currentUserName}
+        />
+      )}
+
+      {/* VIEW 3: ACTIVE PROPERTIES GRID & FILTERS */}
+      {csmViewMode === 'properties' && (
+        <>
+          {/* Search, Filter & Quick Transition Bar Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+              <div className="md:col-span-5 relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search properties by name, client/owner, city, or staff contact..."
+                  className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <select
+                  value={csmFilter}
+                  onChange={(e) => setCsmFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="all">All Assigned CSMs ({handoffProperties.length})</option>
+                  {AVAILABLE_CSMS.map((csm) => (
+                    <option key={csm} value={csm}>
+                      CSM: {csm}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="md:col-span-4 flex items-center gap-2">
+                <select
+                  value={projectToTransitionId}
+                  onChange={(e) => setProjectToTransitionId(e.target.value)}
+                  disabled={!canEdit}
+                  className="flex-1 min-w-0 px-3 py-2 text-xs bg-indigo-50/60 border border-indigo-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:border-indigo-500 disabled:opacity-60"
+                  title="Mark an Operations project's CSM Handoff milestone In Progress to bring it into Customer Success as a Property"
+                >
+                  <option value="">
+                    + Bring Operations Project to CSM Handoff ({pendingOperationsProjects.length} in Ops)...
+                  </option>
+                  {pendingOperationsProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.propertyName} ({p.clientName})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!projectToTransitionId || !canEdit}
+                  onClick={() => {
+                    if (projectToTransitionId && canEdit) {
+                      handleMarkCsmHandoffInProgress(projectToTransitionId);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-bold shrink-0 cursor-pointer transition-colors"
+                >
+                  Mark In Progress
+                </button>
+              </div>
+            </div>
+          </div>
 
       {/* Onsite Visit Scheduling & SOW Creation Feature Banner on Customer Success Page */}
       <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white border border-teal-500/30 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -660,6 +1723,8 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
           })}
         </div>
       )}
+        </>
+      )}
 
       <SOWFormAutomationHub
         isOpen={isSowModalOpen}
@@ -696,6 +1761,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   onOpenCreateSow,
   currentUserName,
 }) => {
+  const canEdit = canEditCustomerSuccessPortal(currentUserName);
   const intake = property.customerIntake;
   const staffRoles = intake?.staffRoles || [];
   const commonDoors = intake?.commonAreaDoors || [];
@@ -819,6 +1885,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   };
 
   const handleContractFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canEdit) return;
     const file = e.target.files?.[0];
     if (!file) return;
     setScrubError(null);
@@ -1028,7 +2095,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
 
   const handleCreateCsmNote = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!noteText.trim()) return;
+    if (!canEdit || !noteText.trim()) return;
 
     const nowFormatted = new Date().toLocaleDateString('en-US', {
       month: 'short',
@@ -3051,29 +4118,57 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                                   <tr className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] border-b border-slate-200">
                                     <th className="py-1.5 px-2.5">Catalog Item</th>
                                     <th className="py-1.5 px-2.5">Type</th>
-                                    <th className="py-1.5 px-2.5">Amount Ordered vs Total Qty</th>
+                                    <th className="py-1.5 px-2.5 text-center">Amount Ordered vs Total Qty</th>
+                                    <th className="py-1.5 px-2.5 text-center">Installed / Deployed</th>
                                     <th className="py-1.5 px-2.5">Location &amp; Notes</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                  {co.items.map((ci) => (
-                                    <tr key={ci.id}>
-                                      <td className="py-1.5 px-2.5 font-bold text-slate-900">
-                                        {ci.name}{' '}
-                                        <span className="font-mono text-slate-500 font-normal">
-                                          ({ci.sku})
-                                        </span>
-                                      </td>
-                                      <td className="py-1.5 px-2.5">{ci.productType}</td>
-                                      <td className="py-1.5 px-2.5 font-mono font-bold">
-                                        {ci.installedCount} / {ci.quantity}
-                                      </td>
-                                      <td className="py-1.5 px-2.5 text-slate-600">
-                                        {ci.location}
-                                        {ci.notes ? ` — ${ci.notes}` : ''}
-                                      </td>
-                                    </tr>
-                                  ))}
+                                  {co.items.map((ci) => {
+                                    const totalQty = ci.manualProjectTotalQty ?? ci.quantity;
+                                    const inst = ci.installedCount || 0;
+                                    const ord = Number(ci.quantity) || 1;
+                                    const pct = Math.min(100, Math.round((inst / ord) * 100));
+
+                                    return (
+                                      <tr key={ci.id}>
+                                        <td className="py-1.5 px-2.5 font-bold text-slate-900">
+                                          {ci.name}{' '}
+                                          <span className="font-mono text-slate-500 font-normal">
+                                            ({ci.sku})
+                                          </span>
+                                        </td>
+                                        <td className="py-1.5 px-2.5">{ci.productType}</td>
+                                        <td className="py-1.5 px-2.5 text-center">
+                                          <div className="inline-flex items-center gap-1.5 font-mono text-[11px]">
+                                            <span className="font-bold text-sky-700">{ci.quantity} Ord</span>
+                                            <span className="text-slate-400 font-sans">vs</span>
+                                            <span className="font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 rounded text-[10px]">
+                                              {totalQty} Total
+                                            </span>
+                                            {ci.isMatchedApproved && (
+                                              <span
+                                                className="px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-[9px] font-bold"
+                                                title={`Approved on property by ${ci.matchedApprovedBy || 'CSM'}`}
+                                              >
+                                                ✓ Appr
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-center">
+                                          <span className="font-mono font-bold text-slate-800">
+                                            {inst} / {ord}
+                                          </span>
+                                          <span className="text-[10px] text-slate-400 ml-1">({pct}%)</span>
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-slate-600">
+                                          {ci.location}
+                                          {ci.notes ? ` — ${ci.notes}` : ''}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>

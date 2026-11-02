@@ -44,6 +44,8 @@ import {
   Wrench,
   Calendar,
   Truck,
+  Link2,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface UnifiedCatalogEntry {
@@ -226,6 +228,75 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
   const [editReasonValue, setEditReasonValue] = useState('');
   const [editApprovedByValue, setEditApprovedByValue] = useState('');
   const [editNeededByValue, setEditNeededByValue] = useState('');
+
+  // Manual Tie & Match modal state for order line items
+  const [manualTieTarget, setManualTieTarget] = useState<{
+    coId: string;
+    item: ChangeOrderLineItem;
+  } | null>(null);
+  const [tieSelectedBomId, setTieSelectedBomId] = useState<string>('');
+  const [tieManualTotalQty, setTieManualTotalQty] = useState<number>(1);
+  const [tieIsApproved, setTieIsApproved] = useState<boolean>(false);
+
+  const openManualTieModal = (coId: string, item: ChangeOrderLineItem) => {
+    const autoMatch =
+      project.bomItems?.find((b) => b.id === item.tiedBomItemId) ||
+      project.bomItems?.find(
+        (b) =>
+          b.model.toLowerCase() === item.sku.toLowerCase() ||
+          b.name.toLowerCase() === item.name.toLowerCase()
+      );
+
+    const defaultTotalQty =
+      item.manualProjectTotalQty ??
+      (autoMatch ? autoMatch.quantity + (Number(item.quantity) || 1) : (Number(item.quantity) || 1));
+
+    setManualTieTarget({ coId, item });
+    setTieSelectedBomId(item.tiedBomItemId || autoMatch?.id || '');
+    setTieManualTotalQty(defaultTotalQty);
+    setTieIsApproved(Boolean(item.isMatchedApproved));
+  };
+
+  const handleSelectBomItem = (bomId: string) => {
+    setTieSelectedBomId(bomId);
+    const matched = project.bomItems?.find((b) => b.id === bomId);
+    if (matched && manualTieTarget) {
+      const itemQty = Number(manualTieTarget.item.quantity) || 1;
+      setTieManualTotalQty(matched.quantity + itemQty);
+    }
+  };
+
+  const handleSaveManualTie = () => {
+    if (!manualTieTarget) return;
+    const { coId, item } = manualTieTarget;
+    const matchedBom = project.bomItems?.find((b) => b.id === tieSelectedBomId);
+    const nowIso = new Date().toISOString();
+
+    handleUpdateLineItem(coId, item.id, (prev) => ({
+      ...prev,
+      tiedBomItemId: tieSelectedBomId || undefined,
+      tiedBomItemName: matchedBom ? `${matchedBom.name} (${matchedBom.model})` : undefined,
+      manualProjectTotalQty: Math.max(1, tieManualTotalQty),
+      isMatchedApproved: tieIsApproved,
+      matchedApprovedBy: tieIsApproved ? currentUserName : undefined,
+      matchedApprovedAt: tieIsApproved ? nowIso : undefined,
+    }));
+
+    setManualTieTarget(null);
+  };
+
+  const handleToggleApproveMatch = (coId: string, itemId: string) => {
+    const nowIso = new Date().toISOString();
+    handleUpdateLineItem(coId, itemId, (prev) => {
+      const nextApproved = !prev.isMatchedApproved;
+      return {
+        ...prev,
+        isMatchedApproved: nextApproved,
+        matchedApprovedBy: nextApproved ? currentUserName : undefined,
+        matchedApprovedAt: nextApproved ? nowIso : undefined,
+      };
+    });
+  };
 
   const builderPanelRef = useRef<HTMLDivElement | null>(null);
   const stagedTableRef = useRef<HTMLDivElement | null>(null);
@@ -1754,7 +1825,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                             <th className="py-2 px-3">Product / SKU</th>
                             <th className="py-2 px-3">Location / Scope</th>
                             <th className="py-2 px-3 text-center">Amount Ordered vs Total Qty</th>
-                            <th className="py-2 px-3 text-center">Total Qty</th>
+                            <th className="py-2 px-3 text-center">Installed / Deployed</th>
                             <th className="py-2 px-3 text-right">Unit Price</th>
                             <th className="py-2 px-3 text-right">Line Subtotal</th>
                             <th className="py-2 px-2 text-right">Actions</th>
@@ -1896,7 +1967,131 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                   />
                                 </td>
 
-                                {/* Installed / Activated Counter */}
+                                {/* Amount Ordered vs Total Qty & Manual Tie / Match Approval */}
+                                <td className="py-3 px-3 align-middle text-center">
+                                  {(() => {
+                                    const matchedBom =
+                                      project.bomItems?.find((b) => b.id === item.tiedBomItemId) ||
+                                      project.bomItems?.find(
+                                        (b) =>
+                                          b.model.toLowerCase() === item.sku.toLowerCase() ||
+                                          b.name.toLowerCase() === item.name.toLowerCase()
+                                      );
+                                    const projectTotalQty =
+                                      item.manualProjectTotalQty !== undefined
+                                        ? item.manualProjectTotalQty
+                                        : matchedBom
+                                        ? matchedBom.quantity + (Number(item.quantity) || 0)
+                                        : Number(item.quantity) || 0;
+
+                                    return (
+                                      <div className="flex flex-col items-center gap-1.5 min-w-[190px]">
+                                        {/* Stepper & Comparison Display */}
+                                        <div className="inline-flex items-center gap-1.5 bg-slate-950/70 border border-slate-800 px-2 py-1 rounded-lg">
+                                          <div className="inline-flex items-center gap-1">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleUpdateLineItem(co.id, item.id, (prev) => ({
+                                                  ...prev,
+                                                  quantity: Math.max(1, (Number(prev.quantity) || 1) - 1),
+                                                }))
+                                              }
+                                              className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 cursor-pointer"
+                                              title="Decrease Amount Ordered"
+                                            >
+                                              <Minus className="w-2.5 h-2.5" />
+                                            </button>
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              value={qty}
+                                              onChange={(e) => {
+                                                const val = Math.max(
+                                                  1,
+                                                  parseInt(e.target.value, 10) || 1
+                                                );
+                                                handleUpdateLineItem(co.id, item.id, (prev) => ({
+                                                  ...prev,
+                                                  quantity: val,
+                                                }));
+                                              }}
+                                              className="w-11 text-center py-0.5 rounded bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-sky-400"
+                                              title="Amount Ordered on this Order"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleUpdateLineItem(co.id, item.id, (prev) => ({
+                                                  ...prev,
+                                                  quantity: (Number(prev.quantity) || 0) + 1,
+                                                }))
+                                              }
+                                              className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 cursor-pointer"
+                                              title="Increase Amount Ordered"
+                                            >
+                                              <Plus className="w-2.5 h-2.5" />
+                                            </button>
+                                          </div>
+
+                                          <span className="text-[11px] font-bold text-slate-400 uppercase">vs</span>
+
+                                          {/* Total Qty (Number 2) */}
+                                          <div
+                                            className="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 font-mono font-bold text-xs"
+                                            title="Total Quantity on Project/Property (Number 2). Click 'Tie' to manually adjust or link to baseline BOM."
+                                          >
+                                            {projectTotalQty} Total
+                                          </div>
+                                        </div>
+
+                                        {/* Manual Tie & Match Trigger and Approval Badge */}
+                                        <div className="flex flex-wrap items-center justify-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => openManualTieModal(co.id, item)}
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer transition-colors"
+                                            title="Manually tie to a Project BOM item to ensure number 2 matches correctly"
+                                          >
+                                            <Link2 className="w-3 h-3 text-sky-400" />
+                                            <span className="truncate max-w-[110px]">
+                                              {item.tiedBomItemName ? item.tiedBomItemName : matchedBom ? matchedBom.model : 'Tie to Scope'}
+                                            </span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleApproveMatch(co.id, item.id)}
+                                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border cursor-pointer transition-colors ${
+                                              item.isMatchedApproved
+                                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                                                : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                                            }`}
+                                            title={
+                                              item.isMatchedApproved
+                                                ? `Matched & Approved on ${contextLabel} by ${item.matchedApprovedBy || 'PM'}. Click to toggle.`
+                                                : `Match pending approval on ${contextLabel}. Click to approve.`
+                                            }
+                                          >
+                                            {item.isMatchedApproved ? (
+                                              <>
+                                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                                <span>Approved</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <ShieldAlert className="w-3 h-3 text-amber-400" />
+                                                <span>Approve Match</span>
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </td>
+
+                                {/* Installed / Deployed Counter */}
                                 <td className="py-3 px-3 align-middle">
                                   <div className="flex flex-col items-center gap-1">
                                     <div className="flex items-center gap-1">
@@ -1970,52 +2165,6 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                         style={{ width: `${pct}%` }}
                                       />
                                     </div>
-                                  </div>
-                                </td>
-
-                                {/* Total Quantity Stepper */}
-                                <td className="py-3 px-3 align-middle text-center">
-                                  <div className="inline-flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleUpdateLineItem(co.id, item.id, (prev) => ({
-                                          ...prev,
-                                          quantity: Math.max(1, (Number(prev.quantity) || 1) - 1),
-                                        }))
-                                      }
-                                      className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 cursor-pointer"
-                                    >
-                                      <Minus className="w-2.5 h-2.5" />
-                                    </button>
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      value={qty}
-                                      onChange={(e) => {
-                                        const val = Math.max(
-                                          1,
-                                          parseInt(e.target.value, 10) || 1
-                                        );
-                                        handleUpdateLineItem(co.id, item.id, (prev) => ({
-                                          ...prev,
-                                          quantity: val,
-                                        }));
-                                      }}
-                                      className="w-12 text-center py-0.5 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-white"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleUpdateLineItem(co.id, item.id, (prev) => ({
-                                          ...prev,
-                                          quantity: (Number(prev.quantity) || 0) + 1,
-                                        }))
-                                      }
-                                      className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 cursor-pointer"
-                                    >
-                                      <Plus className="w-2.5 h-2.5" />
-                                    </button>
                                   </div>
                                 </td>
 
@@ -2139,6 +2288,156 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             setFinishModalTarget(null);
           }}
         />
+      )}
+
+      {/* Manual BOM Item Tie & Total Qty (Number 2) Match & Approval Modal */}
+      {manualTieTarget && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5 text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                  <Link2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white font-['Inter_Tight',sans-serif]">
+                    Manual Item Tie &amp; Total Qty Match
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Verify match and approve on the {contextLabel} page
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManualTieTarget(null)}
+                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Line Item Summary */}
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Order Line Item:</span>
+                <span className="font-bold text-white">{manualTieTarget.item.name}</span>
+              </div>
+              <div className="flex items-center justify-between font-mono text-[11px]">
+                <span className="text-slate-400">Model / SKU:</span>
+                <span className="text-indigo-300">{manualTieTarget.item.sku}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Amount Ordered (Number 1):</span>
+                <span className="font-bold text-sky-400 font-mono">
+                  {manualTieTarget.item.quantity} units
+                </span>
+              </div>
+            </div>
+
+            {/* BOM Item Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-300">
+                Match to {contextLabel} Baseline BOM Item
+              </label>
+              <select
+                value={tieSelectedBomId}
+                onChange={(e) => handleSelectBomItem(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">-- No Direct BOM Match / Custom Scope --</option>
+                {(project.bomItems || []).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.model}) — Baseline Qty: {b.quantity} [{b.category}]
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400">
+                Selecting a BOM item links this order line item to that baseline inventory item.
+              </p>
+            </div>
+
+            {/* Total Qty (The Number 2) */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-300">
+                Total Qty on {contextLabel} (Number 2)
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTieManualTotalQty((prev) => Math.max(1, prev - 1))}
+                  className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 cursor-pointer text-sm font-bold"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  value={tieManualTotalQty}
+                  onChange={(e) =>
+                    setTieManualTotalQty(Math.max(1, parseInt(e.target.value, 10) || 1))
+                  }
+                  className="flex-1 px-3 py-2 text-center rounded-lg bg-slate-950 border border-slate-700 text-sm font-mono font-bold text-indigo-300 focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTieManualTotalQty((prev) => prev + 1)}
+                  className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 cursor-pointer text-sm font-bold"
+                >
+                  +
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Represents the total quantity of this equipment on the {contextLabel.toLowerCase()}{' '}
+                (baseline + change order addition).
+              </p>
+            </div>
+
+            {/* Approval Toggle */}
+            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="tieApprovalCheckbox"
+                checked={tieIsApproved}
+                onChange={(e) => setTieIsApproved(e.target.checked)}
+                className="mt-1 w-4 h-4 rounded text-emerald-600 bg-slate-900 border-slate-700 focus:ring-emerald-500 cursor-pointer"
+              />
+              <label htmlFor="tieApprovalCheckbox" className="text-xs space-y-0.5 cursor-pointer">
+                <div className="font-bold text-white flex items-center gap-1.5">
+                  <span>Approve match on {contextLabel}</span>
+                  {tieIsApproved && (
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
+                      Approved
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  Certifies that the quantity ordered has been verified against the total requirement
+                  and approved by {currentUserName}.
+                </div>
+              </label>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setManualTieTarget(null)}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveManualTie}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Save Match &amp; Approval</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

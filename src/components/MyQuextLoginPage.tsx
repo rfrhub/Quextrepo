@@ -100,6 +100,85 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     };
   }
 
+  // 2b. Customer Success Managers (Nicole Franklin, Jasmine Hunt, Branden Girman, Kennedy Staiger, Tessa Peshke)
+  if (email.includes('nicole') || email.includes('franklin')) {
+    return {
+      name: 'Nicole Franklin',
+      email: 'nicole.franklin@onequext.com',
+      roleLabel: 'CUSTOMER SUCCESS MANAGER',
+      avatarInitial: 'N',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  if (email.includes('jasmine') || email.includes('hunt')) {
+    return {
+      name: 'Jasmine Hunt',
+      email: 'jasmine.hunt@onequext.com',
+      roleLabel: 'CUSTOMER SUCCESS MANAGER',
+      avatarInitial: 'J',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  if (email.includes('branden') || email.includes('girman')) {
+    return {
+      name: 'Branden Girman',
+      email: 'branden.girman@onequext.com',
+      roleLabel: 'CUSTOMER SUCCESS MANAGER',
+      avatarInitial: 'B',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  if (email.includes('kennedy') || email.includes('staiger')) {
+    return {
+      name: 'Kennedy Staiger',
+      email: 'kennedy.staiger@onequext.com',
+      roleLabel: 'CUSTOMER SUCCESS MANAGER',
+      avatarInitial: 'K',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  if (email.includes('tessa') || email.includes('peshke')) {
+    return {
+      name: 'Tessa Peshke',
+      email: 'tessa.peshke@onequext.com',
+      roleLabel: 'CUSTOMER SUCCESS MANAGER',
+      avatarInitial: 'T',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  // 2c. Product Acquisition Users (Clint Branch, John McBride)
+  if (email.includes('clint') || email.includes('branch')) {
+    return {
+      name: 'Clint Branch',
+      email: 'clint.branch@onequext.com',
+      roleLabel: 'PRODUCT ACQUISITION USER',
+      avatarInitial: 'C',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
+  if (email.includes('john') || email.includes('mcbride')) {
+    return {
+      name: 'John McBride',
+      email: 'john.mcbride@onequext.com',
+      roleLabel: 'PRODUCT ACQUISITION USER',
+      avatarInitial: 'J',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
   const isInternalQuext =
     email.endsWith('@onequext.com') ||
     email.endsWith('@myquext.com') ||
@@ -425,6 +504,79 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
                   className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
                 >
                   Blake Miller
+                </button>
+              </div>
+            </div>
+
+            {/* Customer Success Managers (Customer Portal) */}
+            <div className="space-y-1.5 pt-1">
+              <div className="text-[10px] font-bold text-emerald-800 flex items-center gap-1.5">
+                <span className="px-1.5 py-0.2 rounded bg-emerald-100 border border-emerald-300 text-emerald-900 font-mono text-[9px]">
+                  CSM
+                </span>
+                <span>Customer Success Managers (Customer Portal Edit Access):</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('nicole.franklin@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 cursor-pointer shadow-2xs"
+                >
+                  Nicole Franklin (Sr. CSM)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('jasmine.hunt@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 cursor-pointer shadow-2xs"
+                >
+                  Jasmine Hunt (CSM)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('branden.girman@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 cursor-pointer shadow-2xs"
+                >
+                  Branden Girman (CSM)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('kennedy.staiger@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 cursor-pointer shadow-2xs"
+                >
+                  Kennedy Staiger (CSM)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('tessa.peshke@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 cursor-pointer shadow-2xs"
+                >
+                  Tessa Peshke (CSM)
+                </button>
+              </div>
+            </div>
+
+            {/* Product Acquisition Users */}
+            <div className="space-y-1.5 pt-1">
+              <div className="text-[10px] font-bold text-amber-800 flex items-center gap-1.5">
+                <span className="px-1.5 py-0.2 rounded bg-amber-100 border border-amber-300 text-amber-900 font-mono text-[9px]">
+                  PAP
+                </span>
+                <span>Product Acquisition Users (Product Acquisition Portal Edit Access):</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('clint.branch@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer shadow-2xs"
+                >
+                  Clint Branch (Product Acquisition)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('john.mcbride@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer shadow-2xs"
+                >
+                  John McBride (Product Acquisition)
                 </button>
               </div>
             </div>

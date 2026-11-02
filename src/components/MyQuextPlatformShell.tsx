@@ -4,6 +4,9 @@ import {
   OperationProject,
   DealStage,
   AVAILABLE_PMS,
+  ALL_SYSTEM_USERS,
+  isCustomerSuccessManager,
+  isProductAcquisitionUser,
   isUserPM,
   buildPartnerAcademyPortalUrl,
 } from '../types';
@@ -978,24 +981,130 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                       </button>
                     </div>
 
-                    {/* Section 2.5: Switch Active PM / User */}
+                    {/* Section 2.5: Switch Active User & Role */}
                     {onSwitchUser && (
-                      <div className="pt-1.5 space-y-1">
-                        <div className="px-3 pt-1 pb-0.5">
+                      <div className="pt-1.5 space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                        <div className="px-3 pt-1 pb-0.5 flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            Switch Active PM / User
+                            Switch Active User &amp; Role
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-mono">
+                            {ALL_SYSTEM_USERS.length} Users
                           </span>
                         </div>
+
+                        {/* Group: Customer Success Managers */}
                         <div className="space-y-0.5">
-                          {AVAILABLE_PMS.map((pm) => {
-                            const isActive = currentUserEmail.toLowerCase() === pm.email.toLowerCase();
+                          <div className="px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50/70 rounded">
+                            Customer Success Managers (Customer Portal)
+                          </div>
+                          {ALL_SYSTEM_USERS.filter((u) => u.roleCategory === 'csm').map((u) => {
+                            const isActive = currentUserEmail.toLowerCase() === u.email.toLowerCase();
                             return (
                               <button
-                                key={pm.email}
+                                key={u.email}
                                 type="button"
                                 onClick={() => {
                                   setIsProfileMenuOpen(false);
-                                  onSwitchUser(resolveEmailToMyQuextUser(pm.email));
+                                  onSwitchUser(resolveEmailToMyQuextUser(u.email));
+                                  onSelectTopTab('customerSuccess');
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                                  isActive
+                                    ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                    : 'text-slate-700 hover:bg-slate-100 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                      isActive
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-emerald-100 text-emerald-800'
+                                    }`}
+                                  >
+                                    {u.avatarInitial}
+                                  </div>
+                                  <div className="text-left leading-tight min-w-0">
+                                    <div className="text-xs truncate">{u.name}</div>
+                                    <div className="text-[10px] text-slate-400 font-normal truncate max-w-[170px]">
+                                      {u.roleTitle}
+                                    </div>
+                                  </div>
+                                </div>
+                                {isActive && (
+                                  <span className="text-[9px] font-bold text-emerald-700 px-1.5 py-0.5 rounded bg-emerald-100 shrink-0">
+                                    Active
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Group: Product Acquisition */}
+                        <div className="space-y-0.5 pt-1">
+                          <div className="px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50/70 rounded">
+                            Product Acquisition (PAP Edit Access)
+                          </div>
+                          {ALL_SYSTEM_USERS.filter((u) => u.roleCategory === 'product_acquisition').map((u) => {
+                            const isActive = currentUserEmail.toLowerCase() === u.email.toLowerCase();
+                            return (
+                              <button
+                                key={u.email}
+                                type="button"
+                                onClick={() => {
+                                  setIsProfileMenuOpen(false);
+                                  onSwitchUser(resolveEmailToMyQuextUser(u.email));
+                                  onSelectTopTab('productAcquisition');
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                                  isActive
+                                    ? 'bg-amber-50 text-amber-950 font-bold border border-amber-300 shadow-2xs'
+                                    : 'text-slate-700 hover:bg-slate-100 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                      isActive
+                                        ? 'bg-amber-600 text-white'
+                                        : 'bg-amber-100 text-amber-800'
+                                    }`}
+                                  >
+                                    {u.avatarInitial}
+                                  </div>
+                                  <div className="text-left leading-tight min-w-0">
+                                    <div className="text-xs truncate">{u.name}</div>
+                                    <div className="text-[10px] text-slate-400 font-normal truncate max-w-[170px]">
+                                      {u.roleTitle}
+                                    </div>
+                                  </div>
+                                </div>
+                                {isActive && (
+                                  <span className="text-[9px] font-bold text-amber-700 px-1.5 py-0.5 rounded bg-amber-100 shrink-0">
+                                    Active
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Group: Project Managers & Leadership */}
+                        <div className="space-y-0.5 pt-1">
+                          <div className="px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-blue-800 bg-blue-50/70 rounded">
+                            Project Managers &amp; Operations
+                          </div>
+                          {ALL_SYSTEM_USERS.filter((u) => u.roleCategory === 'pm').map((u) => {
+                            const isActive = currentUserEmail.toLowerCase() === u.email.toLowerCase();
+                            return (
+                              <button
+                                key={u.email}
+                                type="button"
+                                onClick={() => {
+                                  setIsProfileMenuOpen(false);
+                                  onSwitchUser(resolveEmailToMyQuextUser(u.email));
                                 }}
                                 className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
                                   isActive
@@ -1011,17 +1120,65 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                                         : 'bg-slate-200 text-slate-700'
                                     }`}
                                   >
-                                    {pm.name.charAt(0)}
+                                    {u.avatarInitial}
                                   </div>
                                   <div className="text-left leading-tight min-w-0">
-                                    <div className="text-xs truncate">{pm.name}</div>
+                                    <div className="text-xs truncate">{u.name}</div>
                                     <div className="text-[10px] text-slate-400 font-normal truncate max-w-[170px]">
-                                      {pm.role}
+                                      {u.roleTitle}
                                     </div>
                                   </div>
                                 </div>
                                 {isActive && (
-                                  <span className="text-[10px] font-bold text-blue-600 px-1.5 py-0.5 rounded bg-blue-100/80 shrink-0">
+                                  <span className="text-[9px] font-bold text-blue-600 px-1.5 py-0.5 rounded bg-blue-100/80 shrink-0">
+                                    Active
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Group: Field Operations */}
+                        <div className="space-y-0.5 pt-1">
+                          <div className="px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-slate-700 bg-slate-100 rounded">
+                            Field Operations &amp; Technicians
+                          </div>
+                          {ALL_SYSTEM_USERS.filter((u) => u.roleCategory === 'field_tech').map((u) => {
+                            const isActive = currentUserEmail.toLowerCase() === u.email.toLowerCase();
+                            return (
+                              <button
+                                key={u.email}
+                                type="button"
+                                onClick={() => {
+                                  setIsProfileMenuOpen(false);
+                                  onSwitchUser(resolveEmailToMyQuextUser(u.email));
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                                  isActive
+                                    ? 'bg-slate-200 text-slate-900 font-bold border border-slate-300 shadow-2xs'
+                                    : 'text-slate-700 hover:bg-slate-100 font-medium'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                      isActive
+                                        ? 'bg-slate-800 text-white'
+                                        : 'bg-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    {u.avatarInitial}
+                                  </div>
+                                  <div className="text-left leading-tight min-w-0">
+                                    <div className="text-xs truncate">{u.name}</div>
+                                    <div className="text-[10px] text-slate-400 font-normal truncate max-w-[170px]">
+                                      {u.roleTitle}
+                                    </div>
+                                  </div>
+                                </div>
+                                {isActive && (
+                                  <span className="text-[9px] font-bold text-slate-800 px-1.5 py-0.5 rounded bg-slate-300 shrink-0">
                                     Active
                                   </span>
                                 )}

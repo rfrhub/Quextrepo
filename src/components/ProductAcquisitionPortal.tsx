@@ -15,6 +15,9 @@ import {
   getPropertyManagementCompany,
   getProjectIntegratorPartners,
   normalizeFieldTech,
+  canEditProductAcquisitionPortal,
+  isProductAcquisitionUser,
+  isCustomerSuccessManager,
 } from '../types';
 import { LockFinishModal } from './LockFinishModal';
 import {
@@ -42,6 +45,8 @@ import {
   AlertCircle,
   X,
   Edit2,
+  ShieldAlert,
+  Lock,
 } from 'lucide-react';
 
 export interface UnifiedAcquisitionIntakeItem {
@@ -155,6 +160,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
   onOpenPropertyInCustomerSuccess,
   currentUserName = 'Product Acquisition Specialist',
 }) => {
+  const canEdit = canEditProductAcquisitionPortal(currentUserName);
   const [workspaceFilter, setWorkspaceFilter] = useState<'ALL' | 'Project' | 'Property'>('ALL');
   const [sectionTypeFilter, setSectionTypeFilter] = useState<'ALL' | ProductAcquisitionSourceSection>('ALL');
   const [propertyFilter, setPropertyFilter] = useState<string>('ALL');
@@ -823,6 +829,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     item: UnifiedAcquisitionIntakeItem,
     milestoneType: 'Ordered' | 'Arrived' | 'Shipped'
   ) => {
+    if (!canEdit) return;
     const today = new Date().toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -855,6 +862,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
   };
 
   const handleSaveTracking = (item: UnifiedAcquisitionIntakeItem) => {
+    if (!canEdit) return;
     const rawVal = trackingDrafts[item.uid] ?? item.trackingNumber ?? '';
     const cleanTracking = rawVal.trim();
     const today = new Date().toLocaleDateString('en-US', {
@@ -874,6 +882,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     item: UnifiedAcquisitionIntakeItem,
     nextStatus: ProductAcquisitionFulfillmentStatus
   ) => {
+    if (!canEdit) return;
     const targetProject = projects.find((p) => p.id === item.projectId);
     if (!targetProject) return;
 
@@ -1297,6 +1306,21 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         </div>
       </div>
 
+      {/* Read-Only Banner for Non-Acquisition Users */}
+      {!canEdit && (
+        <div className="p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              <strong>View-Only Mode:</strong> Signed in as <strong>{currentUserName}</strong>. Customer Success Managers and viewers have view-only access here. Full edit permissions are granted to Product Acquisition Users (Clint Branch, John McBride) and PMs.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded bg-amber-500/30 text-amber-300 font-mono text-[10px] font-bold shrink-0">
+            Read-Only
+          </span>
+        </div>
+      )}
+
       {/* Prominent Property / Project Filter Banner (When a specific project is selected) */}
       {selectedProjectObj && (
         <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white rounded-2xl border-2 border-emerald-500/50 p-5 shadow-lg animate-fadeIn">
@@ -1626,13 +1650,20 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                         {/* 1. Ordered Toggle */}
                         <button
                           type="button"
+                          disabled={!canEdit}
                           onClick={() => handleToggleMilestone(item, 'Ordered')}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                          } ${
                             item.isOrdered
                               ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
                               : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border-slate-700'
                           }`}
-                          title="Click to toggle Ordered status"
+                          title={
+                            !canEdit
+                              ? 'View-only: Product Acquisition Users (Clint Branch, John McBride) and PMs have edit access'
+                              : 'Click to toggle Ordered status'
+                          }
                         >
                           <span
                             className={`w-4 h-4 rounded flex items-center justify-center border ${
@@ -1650,13 +1681,20 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                         {/* 2. Arrived to Warehouse Toggle */}
                         <button
                           type="button"
+                          disabled={!canEdit}
                           onClick={() => handleToggleMilestone(item, 'Arrived')}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                          } ${
                             item.isArrivedToWarehouse
                               ? 'bg-teal-600 text-white border-teal-400 shadow-sm'
                               : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border-slate-700'
                           }`}
-                          title="Click to toggle Arrived to Warehouse status"
+                          title={
+                            !canEdit
+                              ? 'View-only: Product Acquisition Users and PMs have edit access'
+                              : 'Click to toggle Arrived to Warehouse status'
+                          }
                         >
                           <span
                             className={`w-4 h-4 rounded flex items-center justify-center border ${
@@ -1674,14 +1712,19 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                         {/* 3. Shipped Toggle (Opens Tracking #) */}
                         <button
                           type="button"
+                          disabled={!canEdit}
                           onClick={() => handleToggleMilestone(item, 'Shipped')}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                          } ${
                             item.isShipped
                               ? 'bg-sky-600 text-white border-sky-400 shadow-sm'
                               : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border-slate-700'
                           }`}
                           title={
-                            isCardProjectCompleted
+                            !canEdit
+                              ? 'View-only: Product Acquisition Users and PMs have edit access'
+                              : isCardProjectCompleted
                               ? 'Project is marked as Completed on its milestone — PM notification is suppressed'
                               : 'Click to toggle Shipped status (opens Tracking # to populate and notifies PM)'
                           }
@@ -1744,6 +1787,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
+                            disabled={!canEdit}
                             value={currentTrackingDraft}
                             onChange={(e) =>
                               setTrackingDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
@@ -1754,15 +1798,19 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                                 handleSaveTracking(item);
                               }
                             }}
-                            className="px-3 py-1.5 text-xs font-mono font-bold bg-slate-950 border border-sky-400/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-400 w-64"
+                            className={`px-3 py-1.5 text-xs font-mono font-bold bg-slate-950 border border-sky-400/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-400 w-64 ${
+                              !canEdit ? 'opacity-80 cursor-not-allowed' : ''
+                            }`}
                           />
-                          <button
-                            type="button"
-                            onClick={() => handleSaveTracking(item)}
-                            className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
-                          >
-                            Save Tracking #
-                          </button>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => handleSaveTracking(item)}
+                              className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
+                            >
+                              Save Tracking #
+                            </button>
+                          )}
                           {item.trackingNumber && (
                             <button
                               type="button"

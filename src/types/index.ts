@@ -217,6 +217,179 @@ export const AVAILABLE_PMS: ProjectManagerInfo[] = [
   },
 ];
 
+export interface ProductAcquisitionUserInfo {
+  name: string;
+  email: string;
+  role: string;
+  title: string;
+  phone?: string;
+}
+
+export const AVAILABLE_PRODUCT_ACQUISITION_USERS: ProductAcquisitionUserInfo[] = [
+  {
+    name: 'Clint Branch',
+    email: 'clint.branch@onequext.com',
+    role: 'Product Acquisition User',
+    title: 'Product Acquisition Lead',
+    phone: '(800) 656-1391 ext. 501',
+  },
+  {
+    name: 'John McBride',
+    email: 'john.mcbride@onequext.com',
+    role: 'Product Acquisition User',
+    title: 'Product Acquisition Specialist',
+    phone: '(800) 656-1391 ext. 502',
+  },
+];
+
+export interface AppUserDirectoryEntry {
+  id: string;
+  name: string;
+  email: string;
+  roleCategory: 'pm' | 'field_tech' | 'csm' | 'product_acquisition';
+  roleTitle: string;
+  roleLabel: string;
+  avatarInitial: string;
+  phone?: string;
+}
+
+export const ALL_SYSTEM_USERS: AppUserDirectoryEntry[] = [
+  // PMs & Leadership
+  {
+    id: 'user-raul-recalde',
+    name: 'Raul Recalde',
+    email: 'raul.recalde@onequext.com',
+    roleCategory: 'pm',
+    roleTitle: 'Director of Implementation',
+    roleLabel: 'DIRECTOR OF IMPLEMENTATION',
+    avatarInitial: 'R',
+    phone: '(806) 555-0142',
+  },
+  {
+    id: 'user-bethany-condon',
+    name: 'Bethany Condon',
+    email: 'bethany.condon@onequext.com',
+    roleCategory: 'pm',
+    roleTitle: 'Project Manager',
+    roleLabel: 'PROJECT MANAGER',
+    avatarInitial: 'B',
+    phone: '(806) 555-0188',
+  },
+  {
+    id: 'user-megan-rossman',
+    name: 'Megan Rossman',
+    email: 'megan.rossman@onequext.com',
+    roleCategory: 'pm',
+    roleTitle: 'Director of Operations',
+    roleLabel: 'DIRECTOR OF OPERATIONS',
+    avatarInitial: 'M',
+    phone: '(806) 555-0193',
+  },
+  {
+    id: 'user-ian-robertson',
+    name: 'Ian Robertson',
+    email: 'ian.robertson@onequext.com',
+    roleCategory: 'pm',
+    roleTitle: 'Project Coordinator',
+    roleLabel: 'PROJECT COORDINATOR',
+    avatarInitial: 'I',
+    phone: '(806) 555-0177',
+  },
+  // Field Operations
+  {
+    id: 'user-sean-gates',
+    name: 'Sean Gates',
+    email: 'sean.gates@onequext.com',
+    roleCategory: 'field_tech',
+    roleTitle: 'Field Operations Lead',
+    roleLabel: 'FIELD OPERATIONS LEAD',
+    avatarInitial: 'S',
+    phone: '(806) 555-0165',
+  },
+  {
+    id: 'user-hector-lopez',
+    name: 'Hector Lopez',
+    email: 'hector.lopez@onequext.com',
+    roleCategory: 'field_tech',
+    roleTitle: 'Senior Field Technician',
+    roleLabel: 'SENIOR FIELD TECHNICIAN',
+    avatarInitial: 'H',
+    phone: '(806) 555-0154',
+  },
+  // Customer Success Managers
+  {
+    id: 'user-nicole-franklin',
+    name: 'Nicole Franklin',
+    email: 'nicole.franklin@onequext.com',
+    roleCategory: 'csm',
+    roleTitle: 'Sr. Customer Success Manager',
+    roleLabel: 'CUSTOMER SUCCESS MANAGER',
+    avatarInitial: 'N',
+    phone: '(800) 656-1391 ext. 402',
+  },
+  {
+    id: 'user-jasmine-hunt',
+    name: 'Jasmine Hunt',
+    email: 'jasmine.hunt@onequext.com',
+    roleCategory: 'csm',
+    roleTitle: 'Customer Success Manager',
+    roleLabel: 'CUSTOMER SUCCESS MANAGER',
+    avatarInitial: 'J',
+    phone: '(800) 656-1391 ext. 405',
+  },
+  {
+    id: 'user-branden-girman',
+    name: 'Branden Girman',
+    email: 'branden.girman@onequext.com',
+    roleCategory: 'csm',
+    roleTitle: 'Customer Success Manager',
+    roleLabel: 'CUSTOMER SUCCESS MANAGER',
+    avatarInitial: 'B',
+    phone: '(800) 656-1391 ext. 408',
+  },
+  {
+    id: 'user-kennedy-staiger',
+    name: 'Kennedy Staiger',
+    email: 'kennedy.staiger@onequext.com',
+    roleCategory: 'csm',
+    roleTitle: 'Customer Success Manager',
+    roleLabel: 'CUSTOMER SUCCESS MANAGER',
+    avatarInitial: 'K',
+    phone: '(800) 656-1391 ext. 411',
+  },
+  {
+    id: 'user-tessa-peshke',
+    name: 'Tessa Peshke',
+    email: 'tessa.peshke@onequext.com',
+    roleCategory: 'csm',
+    roleTitle: 'Customer Success Manager',
+    roleLabel: 'CUSTOMER SUCCESS MANAGER',
+    avatarInitial: 'T',
+    phone: '(800) 656-1391 ext. 414',
+  },
+  // Product Acquisition Users
+  {
+    id: 'user-clint-branch',
+    name: 'Clint Branch',
+    email: 'clint.branch@onequext.com',
+    roleCategory: 'product_acquisition',
+    roleTitle: 'Product Acquisition Lead',
+    roleLabel: 'PRODUCT ACQUISITION USER',
+    avatarInitial: 'C',
+    phone: '(800) 656-1391 ext. 501',
+  },
+  {
+    id: 'user-john-mcbride',
+    name: 'John McBride',
+    email: 'john.mcbride@onequext.com',
+    roleCategory: 'product_acquisition',
+    roleTitle: 'Product Acquisition Specialist',
+    roleLabel: 'PRODUCT ACQUISITION USER',
+    avatarInitial: 'J',
+    phone: '(800) 656-1391 ext. 502',
+  },
+];
+
 export const REAL_TEAM_MEMBERS: readonly string[] = [
   'raul recalde',
   'ian robertson',
@@ -225,11 +398,17 @@ export const REAL_TEAM_MEMBERS: readonly string[] = [
   'sean gates',
   'hector lopez',
   'bethany condon',
+  'nicole franklin',
+  'jasmine hunt',
+  'branden girman',
+  'kennedy staiger',
+  'tessa peshke',
+  'clint branch',
+  'john mcbride',
 ];
 
 /**
- * Checks whether an author, installer, or user matches one of the 6 authorized team members:
- * Raul Recalde, Ian Robertson, Megan Rossman, Sean Gates, Hector Lopez, Bethany Condon.
+ * Checks whether an author, installer, or user matches one of the authorized Quext team members.
  */
 export function isRealTeamMember(nameOrEmail?: string | null): boolean {
   if (!nameOrEmail) return false;
@@ -238,8 +417,47 @@ export function isRealTeamMember(nameOrEmail?: string | null): boolean {
 }
 
 /**
+ * Checks whether the current user is a Customer Success Manager.
+ * Customer Success Managers have permissions to edit only in the Customer Portal.
+ */
+export function isCustomerSuccessManager(userNameOrEmail?: string | null): boolean {
+  if (!userNameOrEmail) return false;
+  const lower = userNameOrEmail.toLowerCase().trim();
+  return (
+    lower.includes('nicole') ||
+    lower.includes('franklin') ||
+    lower.includes('jasmine') ||
+    lower.includes('hunt') ||
+    lower.includes('branden') ||
+    lower.includes('girman') ||
+    lower.includes('kennedy') ||
+    lower.includes('staiger') ||
+    lower.includes('tessa') ||
+    lower.includes('peshke') ||
+    lower.includes('customer success manager')
+  );
+}
+
+/**
+ * Checks whether the current user is a Product Acquisition User.
+ * Clint Branch and John McBride have permissions to edit only in the Product Acquisition Portal.
+ */
+export function isProductAcquisitionUser(userNameOrEmail?: string | null): boolean {
+  if (!userNameOrEmail) return false;
+  const lower = userNameOrEmail.toLowerCase().trim();
+  return (
+    lower.includes('clint') ||
+    lower.includes('branch') ||
+    lower.includes('john.mcbride') ||
+    lower.includes('john mcbride') ||
+    lower.includes('mcbride') ||
+    lower.includes('product acquisition user')
+  );
+}
+
+/**
  * Checks whether the current user holds a Project Manager or Director role.
- * Sean Gates and Hector Lopez are Field Operations / Technicians and not PMs.
+ * Sean Gates, Hector Lopez (Field Ops), CSMs, and Product Acquisition users are not PMs.
  */
 export function isUserPM(userNameOrEmail?: string | null): boolean {
   if (!userNameOrEmail) return true;
@@ -248,11 +466,45 @@ export function isUserPM(userNameOrEmail?: string | null): boolean {
     lower.includes('sean') ||
     lower.includes('gates') ||
     lower.includes('hector') ||
-    lower.includes('lopez')
+    lower.includes('lopez') ||
+    isCustomerSuccessManager(userNameOrEmail) ||
+    isProductAcquisitionUser(userNameOrEmail)
   ) {
     return false;
   }
   return true;
+}
+
+/**
+ * Edit Permission: Customer Portal.
+ * Customer Success Managers and PMs have edit access. Product Acquisition users have read-only access.
+ */
+export function canEditCustomerSuccessPortal(userNameOrEmail?: string | null): boolean {
+  if (!userNameOrEmail) return true;
+  if (isProductAcquisitionUser(userNameOrEmail)) return false;
+  return isCustomerSuccessManager(userNameOrEmail) || isUserPM(userNameOrEmail);
+}
+
+/**
+ * Edit Permission: Product Acquisition Portal.
+ * Product Acquisition users (Clint Branch, John McBride) and PMs have edit access. CSMs have read-only access.
+ */
+export function canEditProductAcquisitionPortal(userNameOrEmail?: string | null): boolean {
+  if (!userNameOrEmail) return true;
+  if (isCustomerSuccessManager(userNameOrEmail)) return false;
+  return isProductAcquisitionUser(userNameOrEmail) || isUserPM(userNameOrEmail);
+}
+
+/**
+ * Edit Permission: Operations Projects / SOW / BOM.
+ * Only PMs / Directors have edit access. CSMs and Product Acquisition users have read-only access.
+ */
+export function canEditProjectOperations(userNameOrEmail?: string | null): boolean {
+  if (!userNameOrEmail) return true;
+  if (isCustomerSuccessManager(userNameOrEmail) || isProductAcquisitionUser(userNameOrEmail)) {
+    return false;
+  }
+  return isUserPM(userNameOrEmail);
 }
 
 export type CSMName =
@@ -1078,6 +1330,13 @@ export interface ChangeOrderLineItem {
   thermostatBrand?: ThermostatBrand;
   lockFinishConfig?: LockFinishConfig;
   trackingNumber?: string;
+  // Manual Tie & Match to Project / Page
+  tiedBomItemId?: string;
+  tiedBomItemName?: string;
+  manualProjectTotalQty?: number;
+  isMatchedApproved?: boolean;
+  matchedApprovedBy?: string;
+  matchedApprovedAt?: string;
 }
 
 export interface ChangeOrderRecord {
