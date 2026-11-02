@@ -675,8 +675,8 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
     };
 
     notifications.forEach((n) => {
-      // Ignore updates made by the same user in PM mode
-      if (mode === 'pm' && isSelfUpdate(n.actorName)) {
+      // Ignore updates made by the same user in PM mode (except Product Acquisition updates which must always alert PMs)
+      if (mode === 'pm' && n.category !== 'acquisition_update' && isSelfUpdate(n.actorName)) {
         return;
       }
       if (mode === 'pm' && pmFilter !== 'all' && n.assignedPMName !== pmFilter) {
@@ -686,6 +686,13 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
       counts.all += 1;
       if (n.section && counts[n.section] !== undefined) {
         counts[n.section] += 1;
+      } else if (n.category === 'acquisition_update') {
+        const detailsLower = (n.details || '').toLowerCase();
+        if (detailsLower.includes('shipped') || detailsLower.includes('tracking')) {
+          counts.shipping += 1;
+        } else {
+          counts.bom += 1;
+        }
       }
     });
 
@@ -695,8 +702,8 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
   // Filtered notifications list
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
-      // 1. SUPPRESS SELF-UPDATES: Ignore updates made by the same user
-      if (mode === 'pm' && isSelfUpdate(n.actorName)) {
+      // 1. SUPPRESS SELF-UPDATES: Ignore updates made by the same user (except Product Acquisition updates which must always notify PMs)
+      if (mode === 'pm' && n.category !== 'acquisition_update' && isSelfUpdate(n.actorName)) {
         return false;
       }
 
@@ -706,7 +713,23 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
       }
 
       // 3. Section Filter (PM mode)
-      if (mode === 'pm' && selectedSectionFilter !== 'all' && n.section !== selectedSectionFilter) {
+      if (mode === 'pm' && selectedSectionFilter !== 'all') {
+        if (n.section === selectedSectionFilter) return true;
+        if (n.category === 'acquisition_update') {
+          const detailsLower = (n.details || '').toLowerCase();
+          if (
+            selectedSectionFilter === 'shipping' &&
+            (detailsLower.includes('shipped') || detailsLower.includes('tracking') || n.section === 'shipping')
+          ) {
+            return true;
+          }
+          if (
+            selectedSectionFilter === 'bom' &&
+            (detailsLower.includes('ordered') || detailsLower.includes('warehouse') || n.section === 'bom')
+          ) {
+            return true;
+          }
+        }
         return false;
       }
 
@@ -721,6 +744,8 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
 
   const getBadgeStyle = (category: ProjectActivityNotification['category']) => {
     switch (category) {
+      case 'acquisition_update':
+        return 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold';
       case 'customer_kickoff_submission':
       case 'customer_walkthrough_update':
         return 'bg-emerald-100 text-emerald-800 border-emerald-300';

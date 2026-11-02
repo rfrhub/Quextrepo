@@ -15,6 +15,7 @@ import {
   getLockFinishSummaryTag,
   getLockFinishColorHex,
   formatFullFinishDetailsLines,
+  getDockItemTrackingNumbers,
 } from '../types';
 import {
   QUEUXT_HARDWARE_CATALOG,
@@ -657,6 +658,109 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     onUpdateProject({
       ...project,
       changeOrders: updatedCOs,
+      lastUpdated: nowIso,
+    });
+  };
+
+  const handleTieLineItemToShippingDock = (
+    coId: string,
+    itemId: string,
+    trackingNumber: string,
+    dockItemId: string
+  ) => {
+    const nowIso = new Date().toISOString();
+    const cleanTrack = trackingNumber.trim();
+    const selectedDock = (project.shippingDockItems || []).find((d) => d.id === dockItemId);
+
+    const updatedCOs = changeOrders.map((co) => {
+      if (co.id !== coId) return co;
+      return {
+        ...co,
+        items: (co.items || []).map((item) => {
+          if (item.id !== itemId) return item;
+          return {
+            ...item,
+            tiedShippingDockId: dockItemId || undefined,
+            tiedShippingDockBatch: selectedDock?.shipmentBatchLabel || undefined,
+          };
+        }),
+        updatedAt: nowIso,
+      };
+    });
+
+    let updatedDockItems = project.shippingDockItems || [];
+    if (dockItemId && cleanTrack && selectedDock) {
+      updatedDockItems = updatedDockItems.map((dock) => {
+        if (dock.id === dockItemId) {
+          const currentTracks = getDockItemTrackingNumbers(dock);
+          const nextTracks = currentTracks.includes(cleanTrack)
+            ? currentTracks
+            : [...currentTracks, cleanTrack];
+          return {
+            ...dock,
+            trackingNumbers: nextTracks,
+            trackingNumber: nextTracks.join(', '),
+            tiedOriginIds: Array.from(
+              new Set([...(dock.tiedOriginIds || []), `co::${coId}::${itemId}`])
+            ),
+          };
+        }
+        return dock;
+      });
+    }
+
+    onUpdateProject({
+      ...project,
+      changeOrders: updatedCOs,
+      shippingDockItems: updatedDockItems,
+      lastUpdated: nowIso,
+    });
+  };
+
+  const handleTieChangeOrderToShippingDock = (
+    coId: string,
+    trackingNumber: string,
+    dockItemId: string
+  ) => {
+    const nowIso = new Date().toISOString();
+    const cleanTrack = trackingNumber.trim();
+    const selectedDock = (project.shippingDockItems || []).find((d) => d.id === dockItemId);
+
+    const updatedCOs = changeOrders.map((co) => {
+      if (co.id !== coId) return co;
+      return {
+        ...co,
+        tiedShippingDockId: dockItemId || undefined,
+        tiedShippingDockBatch: selectedDock?.shipmentBatchLabel || undefined,
+        updatedAt: nowIso,
+      };
+    });
+
+    let updatedDockItems = project.shippingDockItems || [];
+    if (dockItemId && cleanTrack && selectedDock) {
+      updatedDockItems = updatedDockItems.map((dock) => {
+        if (dock.id === dockItemId) {
+          const currentTracks = getDockItemTrackingNumbers(dock);
+          const nextTracks = currentTracks.includes(cleanTrack)
+            ? currentTracks
+            : [...currentTracks, cleanTrack];
+          return {
+            ...dock,
+            trackingNumbers: nextTracks,
+            trackingNumber: nextTracks.join(', '),
+            tiedOriginIds: Array.from(
+              new Set([...(dock.tiedOriginIds || []), `co::${coId}`])
+            ),
+          };
+        }
+        return dock;
+      });
+    }
+
+    onUpdateProject({
+      ...project,
+      changeOrders: updatedCOs,
+      shippingDockItems: updatedDockItems,
       lastUpdated: nowIso,
     });
   };
@@ -1656,10 +1760,45 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                         {trackNum && (
                           <>
                             <span>•</span>
-                            <span className="inline-flex items-center gap-1 font-mono font-bold text-sky-300 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-500/40">
-                              <Truck className="w-3 h-3 text-sky-400" />
-                              Tracking #: {trackNum}
-                            </span>
+                            <div className="inline-flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1 font-mono font-bold text-sky-300 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-500/40">
+                                <Truck className="w-3 h-3 text-sky-400" />
+                                Tracking #: {trackNum}
+                              </span>
+                              {project.shippingDockItems && project.shippingDockItems.length > 0 && (
+                                <div className="inline-flex items-center gap-1 text-[10px]">
+                                  <span className="text-slate-400 font-medium">Tie to Dock:</span>
+                                  <select
+                                    value={
+                                      co.tiedShippingDockId ||
+                                      project.shippingDockItems.find((d) =>
+                                        getDockItemTrackingNumbers(d).includes(trackNum.trim())
+                                      )?.id ||
+                                      ''
+                                    }
+                                    onChange={(e) =>
+                                      handleTieChangeOrderToShippingDock(co.id, trackNum, e.target.value)
+                                    }
+                                    className="bg-slate-900 border border-slate-700 text-sky-300 font-semibold rounded px-1.5 py-0.5 text-[10px] cursor-pointer focus:outline-none focus:border-sky-500"
+                                  >
+                                    <option value="">(Untied / Select Dock Item...)</option>
+                                    {project.shippingDockItems.map((dock) => (
+                                      <option key={dock.id} value={dock.id}>
+                                        {dock.shipmentBatchLabel} ({dock.carrier})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {(co.tiedShippingDockId ||
+                                    project.shippingDockItems.some((d) =>
+                                      getDockItemTrackingNumbers(d).includes(trackNum.trim())
+                                    )) && (
+                                    <span className="text-emerald-400 font-bold inline-flex items-center gap-0.5 text-[10px]">
+                                      <CheckCircle2 className="w-2.5 h-2.5" /> Tied
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </>
                         )}
                         {co.neededByDate && (
@@ -1866,16 +2005,57 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                     <span>{item.manufacturer}</span>
                                     <span>•</span>
                                     <span>{item.category}</span>
-                                    {(item.trackingNumber || trackNum) && (
-                                      <>
-                                        <span>•</span>
-                                        <span className="inline-flex items-center gap-1 font-mono text-sky-400 bg-sky-950/70 border border-sky-500/30 px-1.5 py-0.2 rounded text-[10px]">
-                                          <Truck className="w-2.5 h-2.5 text-sky-400" />
-                                          Track: {item.trackingNumber || trackNum}
-                                        </span>
-                                      </>
-                                    )}
                                   </div>
+                                  {(item.trackingNumber || trackNum) && (
+                                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                                      <span className="inline-flex items-center gap-1 font-mono text-sky-400 bg-sky-950/70 border border-sky-500/30 px-1.5 py-0.5 rounded text-[10px]">
+                                        <Truck className="w-2.5 h-2.5 text-sky-400" />
+                                        Track: {item.trackingNumber || trackNum}
+                                      </span>
+                                      {project.shippingDockItems && project.shippingDockItems.length > 0 && (
+                                        <div className="inline-flex items-center gap-1.5 text-[10px]">
+                                          <span className="text-slate-400 font-medium">Shipping Dock:</span>
+                                          <select
+                                            value={
+                                              item.tiedShippingDockId ||
+                                              project.shippingDockItems.find((d) =>
+                                                getDockItemTrackingNumbers(d).includes(
+                                                  (item.trackingNumber || trackNum || '').trim()
+                                                )
+                                              )?.id ||
+                                              ''
+                                            }
+                                            onChange={(e) =>
+                                              handleTieLineItemToShippingDock(
+                                                co.id,
+                                                item.id,
+                                                item.trackingNumber || trackNum || '',
+                                                e.target.value
+                                              )
+                                            }
+                                            className="bg-slate-900 border border-slate-700 text-sky-300 font-semibold rounded px-1.5 py-0.5 text-[10px] cursor-pointer focus:outline-none focus:border-sky-500"
+                                          >
+                                            <option value="">(Untied / Select Dock Item...)</option>
+                                            {project.shippingDockItems.map((dock) => (
+                                              <option key={dock.id} value={dock.id}>
+                                                {dock.shipmentBatchLabel} ({dock.carrier})
+                                              </option>
+                                            ))}
+                                          </select>
+                                          {(item.tiedShippingDockId ||
+                                            project.shippingDockItems.some((d) =>
+                                              getDockItemTrackingNumbers(d).includes(
+                                                (item.trackingNumber || trackNum || '').trim()
+                                              )
+                                            )) && (
+                                            <span className="text-emerald-400 font-bold inline-flex items-center gap-0.5">
+                                              <CheckCircle2 className="w-2.5 h-2.5" /> Tied
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                   {isHw && (
                                     <div className="mt-1.5 space-y-1.5">
                                       {item.lockFinishConfig ? (

@@ -12,6 +12,7 @@ import {
   getLockFinishSummaryTag,
   getLockFinishColorHex,
   formatFullFinishDetailsLines,
+  getDockItemTrackingNumbers,
 } from '../types';
 import { LockFinishModal } from './LockFinishModal';
 import {
@@ -702,6 +703,57 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
     onUpdateProject({
       ...project,
       rmaTickets: existingTickets.filter((t) => t.id !== ticketId),
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleTieTicketToShippingDock = (
+    ticketId: string,
+    trackingNumber: string,
+    dockItemId: string
+  ) => {
+    const cleanTrack = trackingNumber.trim();
+    const selectedDock = (project.shippingDockItems || []).find((d) => d.id === dockItemId);
+
+    const updatedTickets = existingTickets.map((t) => {
+      if (t.id !== ticketId) return t;
+      return {
+        ...t,
+        tiedShippingDockId: dockItemId || undefined,
+        tiedShippingDockBatch: selectedDock?.shipmentBatchLabel || undefined,
+        updatedAt: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+      };
+    });
+
+    let updatedDockItems = project.shippingDockItems || [];
+    if (dockItemId && cleanTrack && selectedDock) {
+      updatedDockItems = updatedDockItems.map((dock) => {
+        if (dock.id === dockItemId) {
+          const currentTracks = getDockItemTrackingNumbers(dock);
+          const nextTracks = currentTracks.includes(cleanTrack)
+            ? currentTracks
+            : [...currentTracks, cleanTrack];
+          return {
+            ...dock,
+            trackingNumbers: nextTracks,
+            trackingNumber: nextTracks.join(', '),
+            tiedOriginIds: Array.from(
+              new Set([...(dock.tiedOriginIds || []), `rma::${ticketId}`])
+            ),
+          };
+        }
+        return dock;
+      });
+    }
+
+    onUpdateProject({
+      ...project,
+      rmaTickets: updatedTickets,
+      shippingDockItems: updatedDockItems,
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -1708,10 +1760,53 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                         {ticket.brivoClaimType && <span>Brivo Claim: {ticket.brivoClaimType}</span>}
                         {ticket.pdkRmaPath && <span>PDK Path: {ticket.pdkRmaPath}</span>}
                         {(trackNum || ticket.returnTrackingNumber) && (
-                          <span className="inline-flex items-center gap-1 font-bold font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                            <Truck className="w-3 h-3 text-sky-600" />
-                            Tracking: {trackNum || ticket.returnTrackingNumber}
-                          </span>
+                          <div className="inline-flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 font-bold font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                              <Truck className="w-3 h-3 text-sky-600" />
+                              Tracking: {trackNum || ticket.returnTrackingNumber}
+                            </span>
+                            {project.shippingDockItems && project.shippingDockItems.length > 0 && (
+                              <div className="inline-flex items-center gap-1 text-[11px]">
+                                <span className="text-slate-500 font-medium">Tie to Dock:</span>
+                                <select
+                                  value={
+                                    ticket.tiedShippingDockId ||
+                                    project.shippingDockItems.find((d) =>
+                                      getDockItemTrackingNumbers(d).includes(
+                                        (trackNum || ticket.returnTrackingNumber || '').trim()
+                                      )
+                                    )?.id ||
+                                    ''
+                                  }
+                                  onChange={(e) =>
+                                    handleTieTicketToShippingDock(
+                                      ticket.id,
+                                      trackNum || ticket.returnTrackingNumber || '',
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-white border border-slate-300 text-sky-900 font-semibold rounded px-2 py-0.5 text-xs cursor-pointer focus:outline-none focus:border-sky-500"
+                                >
+                                  <option value="">(Untied / Select Dock Item...)</option>
+                                  {project.shippingDockItems.map((dock) => (
+                                    <option key={dock.id} value={dock.id}>
+                                      {dock.shipmentBatchLabel} ({dock.carrier})
+                                    </option>
+                                  ))}
+                                </select>
+                                {(ticket.tiedShippingDockId ||
+                                  project.shippingDockItems.some((d) =>
+                                    getDockItemTrackingNumbers(d).includes(
+                                      (trackNum || ticket.returnTrackingNumber || '').trim()
+                                    )
+                                  )) && (
+                                  <span className="text-emerald-600 font-bold inline-flex items-center gap-0.5 text-[10px]">
+                                    <CheckCircle2 className="w-3 h-3" /> Tied
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                         <span>
                           Created by {ticket.createdBy} ({ticket.createdAt})

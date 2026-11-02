@@ -18,6 +18,8 @@ import {
   canEditProductAcquisitionPortal,
   isProductAcquisitionUser,
   isCustomerSuccessManager,
+  getDockItemTrackingNumbers,
+  ShippingDockItem,
 } from '../types';
 import { LockFinishModal } from './LockFinishModal';
 import {
@@ -47,6 +49,7 @@ import {
   Edit2,
   ShieldAlert,
   Lock,
+  Link2,
 } from 'lucide-react';
 
 export interface UnifiedAcquisitionIntakeItem {
@@ -111,6 +114,8 @@ export interface UnifiedAcquisitionIntakeItem {
   isShipped?: boolean;
   shippedAt?: string;
   trackingNumber?: string;
+  tiedShippingDockId?: string;
+  tiedShippingDockBatch?: string;
 }
 
 interface ProductAcquisitionPortalProps {
@@ -171,6 +176,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
 
   // Local draft states for tracking numbers being edited per order UID
   const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
+  const [selectedDockItemForUid, setSelectedDockItemForUid] = useState<Record<string, string>>({});
 
   // Modal state to edit finish options directly from the Product Acquisition Portal
   const [editingFinishIntakeItem, setEditingFinishIntakeItem] =
@@ -276,6 +282,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           isShipped: isShip,
           shippedAt: itemMilestone?.shippedAt || ticket.shippedAt,
           trackingNumber: track,
+          tiedShippingDockId: itemMilestone?.tiedShippingDockId || ticket.tiedShippingDockId,
+          tiedShippingDockBatch: itemMilestone?.tiedShippingDockBatch || ticket.tiedShippingDockBatch,
         });
       }
 
@@ -366,6 +374,10 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             isShipped: isShip,
             shippedAt: itemMilestone?.shippedAt || co.shippedAt,
             trackingNumber: track,
+            tiedShippingDockId:
+              itemMilestone?.tiedShippingDockId || item.tiedShippingDockId || co.tiedShippingDockId,
+            tiedShippingDockBatch:
+              itemMilestone?.tiedShippingDockBatch || item.tiedShippingDockBatch || co.tiedShippingDockBatch,
           });
         }
       }
@@ -435,6 +447,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           isShipped: isShip,
           shippedAt: itemMilestone?.shippedAt || sub.shippedAt,
           trackingNumber: track,
+          tiedShippingDockId: itemMilestone?.tiedShippingDockId || sub.tiedShippingDockId,
+          tiedShippingDockBatch: itemMilestone?.tiedShippingDockBatch || sub.tiedShippingDockBatch,
         });
       }
     }
@@ -522,13 +536,21 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
   }, [projects, propertyFilter]);
 
   // Master handler that updates fulfillment milestones, talks back to the originating section,
-  // and generates a high-priority notification to PMs in their Notifications tab.
+  // ties tracking numbers to the shipping dock, and generates a notification to PMs.
   const handleUpdateMilestone = (
     item: UnifiedAcquisitionIntakeItem,
-    updates: Partial<AcquisitionOrderMilestones>
+    updates: Partial<AcquisitionOrderMilestones> & {
+      tiedShippingDockId?: string;
+    }
   ) => {
     const targetProject = projects.find((p) => p.id === item.projectId);
     if (!targetProject) return;
+
+    const chosenDockId =
+      updates.tiedShippingDockId ||
+      selectedDockItemForUid[item.uid] ||
+      item.tiedShippingDockId;
+    const chosenDock = (targetProject.shippingDockItems || []).find((d) => d.id === chosenDockId);
 
     const currentMilestones = targetProject.acquisitionMilestones?.[item.uid] || {
       isOrdered: item.isOrdered,
@@ -539,11 +561,15 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       shippedAt: item.shippedAt,
       trackingNumber: item.trackingNumber,
       neededByDate: item.neededByDate,
+      tiedShippingDockId: item.tiedShippingDockId,
+      tiedShippingDockBatch: item.tiedShippingDockBatch,
     };
 
     const nextMilestone: AcquisitionOrderMilestones = {
       ...currentMilestones,
       ...updates,
+      tiedShippingDockId: chosenDock?.id || updates.tiedShippingDockId || currentMilestones.tiedShippingDockId,
+      tiedShippingDockBatch: chosenDock?.shipmentBatchLabel || currentMilestones.tiedShippingDockBatch,
       updatedAt: new Date().toISOString(),
       updatedBy: currentUserName,
     };
@@ -602,6 +628,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           shippedAt: nextMilestone.shippedAt,
           trackingNumber: trackingVal,
           returnTrackingNumber: trackingVal,
+          tiedShippingDockId: chosenDock?.id || t.tiedShippingDockId,
+          tiedShippingDockBatch: chosenDock?.shipmentBatchLabel || t.tiedShippingDockBatch,
           neededByDate: nextMilestone.neededByDate || t.neededByDate,
           updatedAt: new Date().toLocaleDateString('en-US', {
             month: 'short',
@@ -634,6 +662,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             return {
               ...ci,
               trackingNumber: trackingVal || ci.trackingNumber,
+              tiedShippingDockId: chosenDock?.id || ci.tiedShippingDockId,
+              tiedShippingDockBatch: chosenDock?.shipmentBatchLabel || ci.tiedShippingDockBatch,
             };
           }
           return ci;
@@ -648,6 +678,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           isShipped: nextMilestone.isShipped,
           shippedAt: nextMilestone.shippedAt,
           trackingNumber: trackingVal,
+          tiedShippingDockId: chosenDock?.id || co.tiedShippingDockId,
+          tiedShippingDockBatch: chosenDock?.shipmentBatchLabel || co.tiedShippingDockBatch,
           neededByDate: nextMilestone.neededByDate || co.neededByDate,
           items: updatedItems,
           updatedAt: new Date().toISOString(),
@@ -673,6 +705,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           shippedAt: nextMilestone.shippedAt,
           trackingNumber: trackingVal,
           poOrTrackingNumber: trackingVal,
+          tiedShippingDockId: chosenDock?.id || s.tiedShippingDockId,
+          tiedShippingDockBatch: chosenDock?.shipmentBatchLabel || s.tiedShippingDockBatch,
           neededByDate: nextMilestone.neededByDate || s.neededByDate,
           updatedAt: new Date().toISOString(),
         };
@@ -746,7 +780,39 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       }
     }
 
-    // 4. Generate high-priority notification to PMs in their Notifications tab
+    // 6. Tie tracking number into the Shipping Dock line item if specified
+    let nextShippingDockItems = targetProject.shippingDockItems || [];
+    const trackingToTie = (
+      updates.trackingNumber !== undefined
+        ? updates.trackingNumber
+        : (nextMilestone.trackingNumber || '')
+    ).trim();
+
+    if (chosenDockId && trackingToTie) {
+      nextShippingDockItems = nextShippingDockItems.map((dock) => {
+        if (dock.id === chosenDockId) {
+          const currentTracks = getDockItemTrackingNumbers(dock);
+          const nextTracks = currentTracks.includes(trackingToTie)
+            ? currentTracks
+            : [...currentTracks, trackingToTie];
+          return {
+            ...dock,
+            trackingNumbers: nextTracks,
+            trackingNumber: nextTracks.join(', '),
+            tiedOriginIds: Array.from(
+              new Set([
+                ...(dock.tiedOriginIds || []),
+                item.uid,
+                item.lineItemId || item.parentRecordId,
+              ])
+            ),
+          };
+        }
+        return dock;
+      });
+    }
+
+    // 7. Generate high-priority notification to PMs in their Notifications tab
     let changeSummary = 'Order milestones updated in Product Acquisition Portal';
     let badgeLabel = 'Order Updated';
     if (updates.isShipped !== undefined) {
@@ -818,6 +884,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       changeOrders: nextChangeOrders,
       bomAcquisitionSubmissions: nextBomSubmissions,
       bomItems: nextBomItems,
+      shippingDockItems: nextShippingDockItems,
       notes: nextProjectNotes,
       activityNotifications: nextActivityNotifications,
       lastUpdated: new Date().toISOString(),
@@ -870,11 +937,13 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       day: 'numeric',
       year: 'numeric',
     });
+    const chosenDockId = selectedDockItemForUid[item.uid] || item.tiedShippingDockId;
 
     handleUpdateMilestone(item, {
       isShipped: true,
       shippedAt: item.shippedAt || today,
       trackingNumber: cleanTracking,
+      tiedShippingDockId: chosenDockId,
     });
   };
 
@@ -1768,64 +1837,121 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                     </div>
 
                     {/* Shipped -> Tracking # Populator Field */}
-                    {item.isShipped && (
-                      <div className="p-3 bg-sky-950/70 rounded-xl border border-sky-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-400/30 flex items-center justify-center shrink-0">
-                            <Truck className="w-4 h-4" />
+                    {(item.isShipped || item.trackingNumber) && (
+                      <div className="p-3 bg-sky-950/70 rounded-xl border border-sky-500/40 flex flex-col gap-2.5 animate-fadeIn">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-400/30 flex items-center justify-center shrink-0">
+                              <Truck className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-sky-200 block">
+                                Tracking # Dispatch Information
+                              </span>
+                              <span className="text-[10px] text-sky-300/80">
+                                Saves directly to origin element, ties to Shipping Dock, and notifies the PM.
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-xs font-bold text-sky-200 block">
-                              Tracking # Dispatch Information
-                            </span>
-                            <span className="text-[10px] text-sky-300/80">
-                              Opened because item is marked as Shipped. Saves directly to the project record and sends a PM notification.
-                            </span>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              disabled={!canEdit}
+                              value={currentTrackingDraft}
+                              onChange={(e) =>
+                                setTrackingDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
+                              }
+                              placeholder="Carrier Tracking # (e.g., 1Z9999999999999999)"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSaveTracking(item);
+                                }
+                              }}
+                              className={`px-3 py-1.5 text-xs font-mono font-bold bg-slate-950 border border-sky-400/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-400 w-64 ${
+                                !canEdit ? 'opacity-80 cursor-not-allowed' : ''
+                              }`}
+                            />
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => handleSaveTracking(item)}
+                                className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
+                              >
+                                Save Tracking #
+                              </button>
+                            )}
+                            {item.trackingNumber && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(item.trackingNumber || '');
+                                  setCopiedUid(`track::${item.uid}`);
+                                  setTimeout(() => setCopiedUid(null), 2000);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-300 border border-slate-700 text-xs font-bold cursor-pointer"
+                                title="Copy Tracking #"
+                              >
+                                {copiedUid === `track::${item.uid}` ? 'Copied' : 'Copy'}
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            disabled={!canEdit}
-                            value={currentTrackingDraft}
-                            onChange={(e) =>
-                              setTrackingDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
-                            }
-                            placeholder="Carrier Tracking # (e.g., 1Z9999999999999999)"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleSaveTracking(item);
-                              }
-                            }}
-                            className={`px-3 py-1.5 text-xs font-mono font-bold bg-slate-950 border border-sky-400/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-400 w-64 ${
-                              !canEdit ? 'opacity-80 cursor-not-allowed' : ''
-                            }`}
-                          />
-                          {canEdit && (
-                            <button
-                              type="button"
-                              onClick={() => handleSaveTracking(item)}
-                              className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold cursor-pointer transition-all shadow-xs"
-                            >
-                              Save Tracking #
-                            </button>
-                          )}
-                          {item.trackingNumber && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(item.trackingNumber || '');
-                                setCopiedUid(`track::${item.uid}`);
-                                setTimeout(() => setCopiedUid(null), 2000);
-                              }}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-300 border border-slate-700 text-xs font-bold cursor-pointer"
-                              title="Copy Tracking #"
-                            >
-                              {copiedUid === `track::${item.uid}` ? 'Copied' : 'Copy'}
-                            </button>
-                          )}
-                        </div>
+                        {/* Tie to Shipping Dock Line Item if originating project has shipping dock items */}
+                        {(() => {
+                          const projectForCard = projects.find((p) => p.id === item.projectId);
+                          const dockItems = projectForCard?.shippingDockItems || [];
+                          if (dockItems.length === 0) return null;
+
+                          const activeDockId =
+                            selectedDockItemForUid[item.uid] ||
+                            item.tiedShippingDockId ||
+                            dockItems.find((d) =>
+                              getDockItemTrackingNumbers(d).includes(
+                                (item.trackingNumber || currentTrackingDraft || '').trim()
+                              )
+                            )?.id ||
+                            '';
+
+                          return (
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-sky-800/50 text-xs">
+                              <div className="flex items-center gap-1 text-sky-300 font-semibold">
+                                <Link2 className="w-3.5 h-3.5 text-sky-400" />
+                                <span>Tie to Shipping Dock Line Item:</span>
+                              </div>
+                              <select
+                                disabled={!canEdit}
+                                value={activeDockId}
+                                onChange={(e) => {
+                                  const nextDockId = e.target.value;
+                                  setSelectedDockItemForUid((prev) => ({ ...prev, [item.uid]: nextDockId }));
+                                  if (item.trackingNumber || currentTrackingDraft) {
+                                    handleUpdateMilestone(item, {
+                                      trackingNumber: (currentTrackingDraft || item.trackingNumber || '').trim(),
+                                      tiedShippingDockId: nextDockId,
+                                    });
+                                  }
+                                }}
+                                className={`px-2.5 py-1 text-xs font-semibold bg-slate-900 border border-sky-400/50 rounded-lg text-sky-200 focus:outline-none focus:border-sky-400 cursor-pointer ${
+                                  !canEdit ? 'opacity-80 cursor-not-allowed' : ''
+                                }`}
+                              >
+                                <option value="">(Untied / Select Dock Item...)</option>
+                                {dockItems.map((dock) => (
+                                  <option key={dock.id} value={dock.id}>
+                                    {dock.shipmentBatchLabel} ({dock.carrier})
+                                  </option>
+                                ))}
+                              </select>
+                              {activeDockId && (
+                                <span className="text-emerald-400 font-bold inline-flex items-center gap-1 text-[11px] bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
+                                  <CheckCircle2 className="w-3 h-3" /> Tied to Dock
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

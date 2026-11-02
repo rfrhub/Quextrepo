@@ -958,6 +958,8 @@ export interface ShippingDockItem {
   shippedQuantity: number;
   carrier: ShippingCarrier;
   trackingNumber: string;
+  trackingNumbers?: string[];
+  tiedOriginIds?: string[];
   shippedDate: string;
   estimatedArrivalDate: string;
   status: ShipmentDockStatus;
@@ -966,6 +968,34 @@ export interface ShippingDockItem {
   customerScenarioNotes?: string;
   damagedBoxesCount?: number;
   damagedBoxPhotos?: DamagedBoxPhoto[];
+}
+
+export function getDockItemTrackingNumbers(item: Partial<ShippingDockItem> | null | undefined): string[] {
+  if (!item) return [];
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  if (item.trackingNumbers && Array.isArray(item.trackingNumbers)) {
+    for (const t of item.trackingNumbers) {
+      const clean = String(t || '').trim();
+      if (clean && !seen.has(clean)) {
+        seen.add(clean);
+        result.push(clean);
+      }
+    }
+  }
+
+  if (item.trackingNumber && item.trackingNumber.trim()) {
+    const rawTokens = item.trackingNumber.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
+    for (const t of rawTokens) {
+      if (t && !seen.has(t)) {
+        seen.add(t);
+        result.push(t);
+      }
+    }
+  }
+
+  return result;
 }
 
 export interface DamagedBoxPhoto {
@@ -1236,6 +1266,9 @@ export interface AcquisitionOrderMilestones {
   isShipped?: boolean;
   shippedAt?: string;
   trackingNumber?: string;
+  // Tie tracking number to Shipping Dock line item
+  tiedShippingDockId?: string;
+  tiedShippingDockBatch?: string;
   neededByDate?: string;
   updatedAt?: string;
   updatedBy?: string;
@@ -1302,6 +1335,9 @@ export interface BOMAcquisitionSubmission {
   isShipped?: boolean;
   shippedAt?: string;
   trackingNumber?: string;
+  // Tie tracking number to Shipping Dock line item
+  tiedShippingDockId?: string;
+  tiedShippingDockBatch?: string;
 }
 
 export type ChangeOrderStatus =
@@ -1337,6 +1373,9 @@ export interface ChangeOrderLineItem {
   isMatchedApproved?: boolean;
   matchedApprovedBy?: string;
   matchedApprovedAt?: string;
+  // Tie tracking number to Shipping Dock line item
+  tiedShippingDockId?: string;
+  tiedShippingDockBatch?: string;
 }
 
 export interface ChangeOrderRecord {
@@ -1367,6 +1406,9 @@ export interface ChangeOrderRecord {
   isShipped?: boolean;
   shippedAt?: string;
   trackingNumber?: string;
+  // Tie tracking number to Shipping Dock line item
+  tiedShippingDockId?: string;
+  tiedShippingDockBatch?: string;
 }
 
 export function getPropertyManagementCompany(project?: Partial<OperationProject>): string {
@@ -1470,6 +1512,9 @@ export interface RMATicketRecord {
   isShipped?: boolean;
   shippedAt?: string;
   trackingNumber?: string;
+  // Tie tracking number to Shipping Dock line item
+  tiedShippingDockId?: string;
+  tiedShippingDockBatch?: string;
 }
 
 /**

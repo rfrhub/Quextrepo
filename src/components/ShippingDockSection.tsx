@@ -13,6 +13,7 @@ import {
   getLockFinishSummaryTag,
   getLockFinishColorHex,
   isLockBOMItem,
+  getDockItemTrackingNumbers,
 } from '../types';
 import {
   Truck,
@@ -41,6 +42,7 @@ import {
   Image as ImageIcon,
   MapPin,
   Phone,
+  Link2,
 } from 'lucide-react';
 import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
 import { ConfirmProductAcceptanceModal } from './ConfirmProductAcceptanceModal';
@@ -836,8 +838,16 @@ export const ProductAcceptancePortalModal: React.FC<{
                       </td>
                       <td className="py-3 px-3">
                         <div className="font-semibold text-slate-800">{item.carrier}</div>
-                        <div className="font-mono text-[11px] text-sky-700 font-bold">
-                          {item.trackingNumber}
+                        <div className="font-mono text-[11px] text-sky-700 font-bold space-y-0.5">
+                          {getDockItemTrackingNumbers(item).length > 0 ? (
+                            getDockItemTrackingNumbers(item).map((trk) => (
+                              <div key={trk} className="inline-block bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 mr-1 mt-0.5">
+                                {trk}
+                              </div>
+                            ))
+                          ) : (
+                            <div>{item.trackingNumber || 'Pending'}</div>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-3">
@@ -1138,7 +1148,9 @@ export const buildShippingEmailTableHtmlHelper = (
           </td>
           <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #1e293b;">
             <div style="font-weight: 600;">${item.carrier}</div>
-            <div style="font-family: monospace; font-size: 11px; color: #0284c7; margin-top: 2px;">${item.trackingNumber}</div>
+            <div style="font-family: monospace; font-size: 11px; color: #0284c7; margin-top: 2px;">
+              ${getDockItemTrackingNumbers(item).join('<br/>') || item.trackingNumber || 'Pending'}
+            </div>
           </td>
           <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #334155; white-space: nowrap;">
             <div><strong>Shipped:</strong> ${item.shippedDate || 'TBD'}</div>
@@ -1295,6 +1307,11 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
   const [estimatedArrivalDate, setEstimatedArrivalDate] = useState<string>('2026-10-25');
   const [status, setStatus] = useState<ShipmentDockStatus>('Shipped / In Transit');
   const [editingBomRowId, setEditingBomRowId] = useState<string | null>(null);
+
+  // Multi-tracking and PAP origin tie state
+  const [openTieDropdownDockItemId, setOpenTieDropdownDockItemId] = useState<string | null>(null);
+  const [manualTrackingInputs, setManualTrackingInputs] = useState<Record<string, string>>({});
+  const [copiedTracking, setCopiedTracking] = useState<string | null>(null);
 
   const defaultRecipient =
     project.customerIntake?.subscriberEmail ||
@@ -1497,6 +1514,301 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
     onUpdateProject({
       ...project,
       shippingDockItems: dockItems.filter((i) => i.id !== id),
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  // Compute all available tracking numbers from Project Origins (Change Orders, RMAs, BOM Requests, PAP Milestones)
+  const availableOriginTrackingSources = useMemo(() => {
+    const sources: {
+      trackingNumber: string;
+      sourceType: 'Change Order' | 'RMA Ticket' | 'BOM Acquisition' | 'Product Acquisition';
+      sourceTitle: string;
+      originId: string;
+      tiedShippingDockId?: string;
+      productName?: string;
+    }[] = [];
+    const seenTracks = new Set<string>();
+
+    // 1. Change Orders
+    for (const co of project.changeOrders || []) {
+      if (co.trackingNumber && co.trackingNumber.trim()) {
+        const trk = co.trackingNumber.trim();
+        sources.push({
+          trackingNumber: trk,
+          sourceType: 'Change Order',
+          sourceTitle: `Change Order #${co.changeOrderNumber}`,
+          originId: `co::${co.id}`,
+          tiedShippingDockId: co.tiedShippingDockId,
+          productName: co.items?.[0]?.name || co.title,
+        });
+        seenTracks.add(trk.toLowerCase());
+      }
+      for (const item of co.items || []) {
+        if (item.trackingNumber && item.trackingNumber.trim()) {
+          const trk = item.trackingNumber.trim();
+          if (!seenTracks.has(trk.toLowerCase())) {
+            sources.push({
+              trackingNumber: trk,
+              sourceType: 'Change Order',
+              sourceTitle: `CO #${co.changeOrderNumber} (${item.name})`,
+              originId: `co::${co.id}::${item.id}`,
+              tiedShippingDockId: item.tiedShippingDockId || co.tiedShippingDockId,
+              productName: item.name,
+            });
+            seenTracks.add(trk.toLowerCase());
+          }
+        }
+      }
+    }
+
+    // 2. RMA Tickets
+    for (const ticket of project.rmaTickets || []) {
+      const trk = ticket.trackingNumber?.trim() || ticket.returnTrackingNumber?.trim();
+      if (trk && !seenTracks.has(trk.toLowerCase())) {
+        sources.push({
+          trackingNumber: trk,
+          sourceType: 'RMA Ticket',
+          sourceTitle: `RMA #${ticket.ticketNumber} (${ticket.bomItemName})`,
+          originId: `rma::${ticket.id}`,
+          tiedShippingDockId: ticket.tiedShippingDockId,
+          productName: ticket.bomItemName,
+        });
+        seenTracks.add(trk.toLowerCase());
+      }
+    }
+
+    // 3. BOM Acquisition Submissions
+    for (const sub of project.bomAcquisitionSubmissions || []) {
+      const trk = sub.trackingNumber?.trim() || sub.poOrTrackingNumber?.trim();
+      if (trk && !seenTracks.has(trk.toLowerCase())) {
+        sources.push({
+          trackingNumber: trk,
+          sourceType: 'BOM Acquisition',
+          sourceTitle: `BOM Request #${sub.submissionNumber} (${sub.name || sub.model})`,
+          originId: `bom::${sub.id}`,
+          tiedShippingDockId: sub.tiedShippingDockId,
+          productName: sub.name,
+        });
+        seenTracks.add(trk.toLowerCase());
+      }
+    }
+
+    // 4. Acquisition Milestones map
+    if (project.acquisitionMilestones) {
+      for (const [key, ms] of Object.entries(project.acquisitionMilestones)) {
+        if (ms?.trackingNumber && ms.trackingNumber.trim()) {
+          const trk = ms.trackingNumber.trim();
+          if (!seenTracks.has(trk.toLowerCase())) {
+            sources.push({
+              trackingNumber: trk,
+              sourceType: 'Product Acquisition',
+              sourceTitle: `PAP Item (${key.split('::').pop()})`,
+              originId: key,
+              tiedShippingDockId: ms.tiedShippingDockId,
+            });
+            seenTracks.add(trk.toLowerCase());
+          }
+        }
+      }
+    }
+
+    return sources;
+  }, [project.changeOrders, project.rmaTickets, project.bomAcquisitionSubmissions, project.acquisitionMilestones]);
+
+  const handleTieTrackingToDockItem = (
+    dockItemId: string,
+    trackingNum: string,
+    originSource?: { originId: string; sourceType: string }
+  ) => {
+    const cleanTrk = trackingNum.trim();
+    if (!cleanTrk) return;
+
+    const targetDock = dockItems.find((d) => d.id === dockItemId);
+    if (!targetDock) return;
+
+    const currentTracks = getDockItemTrackingNumbers(targetDock);
+    const nextTracks = currentTracks.includes(cleanTrk) ? currentTracks : [...currentTracks, cleanTrk];
+    const nextOriginIds = originSource
+      ? Array.from(new Set([...(targetDock.tiedOriginIds || []), originSource.originId]))
+      : targetDock.tiedOriginIds || [];
+
+    const updatedDockItems = dockItems.map((d) => {
+      if (d.id === dockItemId) {
+        return {
+          ...d,
+          trackingNumbers: nextTracks,
+          trackingNumber: nextTracks.join(', '),
+          tiedOriginIds: nextOriginIds,
+        };
+      }
+      return d;
+    });
+
+    let nextCos = project.changeOrders;
+    let nextRmas = project.rmaTickets;
+    let nextBoms = project.bomAcquisitionSubmissions;
+    let nextMilestones = project.acquisitionMilestones;
+
+    if (originSource) {
+      if (originSource.sourceType === 'Change Order') {
+        nextCos = (project.changeOrders || []).map((co) => {
+          if (originSource.originId.startsWith(`co::${co.id}`)) {
+            return {
+              ...co,
+              tiedShippingDockId: dockItemId,
+              tiedShippingDockBatch: targetDock.shipmentBatchLabel,
+              items: (co.items || []).map((item) => {
+                if (`co::${co.id}::${item.id}` === originSource.originId) {
+                  return {
+                    ...item,
+                    tiedShippingDockId: dockItemId,
+                    tiedShippingDockBatch: targetDock.shipmentBatchLabel,
+                  };
+                }
+                return item;
+              }),
+            };
+          }
+          return co;
+        });
+      } else if (originSource.sourceType === 'RMA Ticket') {
+        nextRmas = (project.rmaTickets || []).map((ticket) => {
+          if (`rma::${ticket.id}` === originSource.originId) {
+            return {
+              ...ticket,
+              tiedShippingDockId: dockItemId,
+              tiedShippingDockBatch: targetDock.shipmentBatchLabel,
+            };
+          }
+          return ticket;
+        });
+      } else if (originSource.sourceType === 'BOM Acquisition') {
+        nextBoms = (project.bomAcquisitionSubmissions || []).map((sub) => {
+          if (`bom::${sub.id}` === originSource.originId) {
+            return {
+              ...sub,
+              tiedShippingDockId: dockItemId,
+              tiedShippingDockBatch: targetDock.shipmentBatchLabel,
+            };
+          }
+          return sub;
+        });
+      } else if (project.acquisitionMilestones?.[originSource.originId]) {
+        nextMilestones = {
+          ...project.acquisitionMilestones,
+          [originSource.originId]: {
+            ...project.acquisitionMilestones[originSource.originId],
+            tiedShippingDockId: dockItemId,
+            tiedShippingDockBatch: targetDock.shipmentBatchLabel,
+          },
+        };
+      }
+    }
+
+    onUpdateProject({
+      ...project,
+      shippingDockItems: updatedDockItems,
+      changeOrders: nextCos,
+      rmaTickets: nextRmas,
+      bomAcquisitionSubmissions: nextBoms,
+      acquisitionMilestones: nextMilestones,
+      lastUpdated: new Date().toISOString(),
+    });
+
+    setOpenTieDropdownDockItemId(null);
+  };
+
+  const handleUntieTrackingFromDockItem = (dockItemId: string, trackingNum: string) => {
+    const targetDock = dockItems.find((d) => d.id === dockItemId);
+    if (!targetDock) return;
+
+    const currentTracks = getDockItemTrackingNumbers(targetDock);
+    const nextTracks = currentTracks.filter((t) => t !== trackingNum);
+
+    const updatedDockItems = dockItems.map((d) => {
+      if (d.id === dockItemId) {
+        return {
+          ...d,
+          trackingNumbers: nextTracks,
+          trackingNumber: nextTracks.join(', '),
+        };
+      }
+      return d;
+    });
+
+    const nextCos = (project.changeOrders || []).map((co) => ({
+      ...co,
+      tiedShippingDockId:
+        co.tiedShippingDockId === dockItemId && co.trackingNumber === trackingNum
+          ? undefined
+          : co.tiedShippingDockId,
+      tiedShippingDockBatch:
+        co.tiedShippingDockId === dockItemId && co.trackingNumber === trackingNum
+          ? undefined
+          : co.tiedShippingDockBatch,
+      items: (co.items || []).map((item) => ({
+        ...item,
+        tiedShippingDockId:
+          item.tiedShippingDockId === dockItemId && item.trackingNumber === trackingNum
+            ? undefined
+            : item.tiedShippingDockId,
+        tiedShippingDockBatch:
+          item.tiedShippingDockId === dockItemId && item.trackingNumber === trackingNum
+            ? undefined
+            : item.tiedShippingDockBatch,
+      })),
+    }));
+
+    const nextRmas = (project.rmaTickets || []).map((ticket) => ({
+      ...ticket,
+      tiedShippingDockId:
+        ticket.tiedShippingDockId === dockItemId &&
+        (ticket.trackingNumber === trackingNum || ticket.returnTrackingNumber === trackingNum)
+          ? undefined
+          : ticket.tiedShippingDockId,
+      tiedShippingDockBatch:
+        ticket.tiedShippingDockId === dockItemId &&
+        (ticket.trackingNumber === trackingNum || ticket.returnTrackingNumber === trackingNum)
+          ? undefined
+          : ticket.tiedShippingDockBatch,
+    }));
+
+    const nextBoms = (project.bomAcquisitionSubmissions || []).map((sub) => ({
+      ...sub,
+      tiedShippingDockId:
+        sub.tiedShippingDockId === dockItemId &&
+        (sub.trackingNumber === trackingNum || sub.poOrTrackingNumber === trackingNum)
+          ? undefined
+          : sub.tiedShippingDockId,
+      tiedShippingDockBatch:
+        sub.tiedShippingDockId === dockItemId &&
+        (sub.trackingNumber === trackingNum || sub.poOrTrackingNumber === trackingNum)
+          ? undefined
+          : sub.tiedShippingDockBatch,
+    }));
+
+    let nextMilestones = project.acquisitionMilestones;
+    if (project.acquisitionMilestones) {
+      nextMilestones = { ...project.acquisitionMilestones };
+      for (const [key, ms] of Object.entries(nextMilestones)) {
+        if (ms?.tiedShippingDockId === dockItemId && ms.trackingNumber === trackingNum) {
+          nextMilestones[key] = {
+            ...ms,
+            tiedShippingDockId: undefined,
+            tiedShippingDockBatch: undefined,
+          };
+        }
+      }
+    }
+
+    onUpdateProject({
+      ...project,
+      shippingDockItems: updatedDockItems,
+      changeOrders: nextCos,
+      rmaTickets: nextRmas,
+      bomAcquisitionSubmissions: nextBoms,
+      acquisitionMilestones: nextMilestones,
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -2446,17 +2758,178 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
                       </select>
                     </td>
 
-                    {/* Tracking Number */}
-                    <td className="py-2.5 px-3">
-                      <input
-                        type="text"
-                        value={item.trackingNumber}
-                        onChange={(e) =>
-                          handleUpdateDockItem(item.id, { trackingNumber: e.target.value })
-                        }
-                        placeholder="Enter tracking #..."
-                        className="w-full px-2 py-1 bg-sky-50/60 border border-sky-200 rounded font-mono font-bold text-sky-900 text-[11px] focus:outline-none focus:border-sky-500"
-                      />
+                    {/* Tracking Numbers (supports multiple tracking numbers & tie from PAP) */}
+                    <td className="py-2.5 px-3 min-w-[240px]">
+                      <div className="space-y-1.5">
+                        {/* List of current tracking chips */}
+                        {getDockItemTrackingNumbers(item).length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {getDockItemTrackingNumbers(item).map((trk) => {
+                              const matchedSource = availableOriginTrackingSources.find(
+                                (s) => s.trackingNumber.trim().toLowerCase() === trk.trim().toLowerCase()
+                              );
+                              const isCopied = copiedTracking === trk;
+                              return (
+                                <div
+                                  key={trk}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 border border-sky-300 text-sky-900 font-mono text-[10px] font-bold shadow-2xs group"
+                                  title={
+                                    matchedSource
+                                      ? `Tied from ${matchedSource.sourceType}: ${matchedSource.sourceTitle}`
+                                      : `Tracking #: ${trk}`
+                                  }
+                                >
+                                  <Truck className="w-2.5 h-2.5 text-sky-600 shrink-0" />
+                                  <span className="truncate max-w-[130px]">{trk}</span>
+                                  {matchedSource && (
+                                    <span className="text-[9px] px-1 rounded bg-sky-200/70 text-sky-800 font-sans font-semibold">
+                                      {matchedSource.sourceType === 'Change Order'
+                                        ? 'CO'
+                                        : matchedSource.sourceType === 'RMA Ticket'
+                                        ? 'RMA'
+                                        : 'PAP'}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(trk);
+                                      setCopiedTracking(trk);
+                                      setTimeout(() => setCopiedTracking(null), 2000);
+                                    }}
+                                    className="p-0.5 text-sky-600 hover:text-sky-900 rounded cursor-pointer"
+                                    title="Copy tracking number"
+                                  >
+                                    {isCopied ? (
+                                      <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-2.5 h-2.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUntieTrackingFromDockItem(item.id, trk)}
+                                    className="p-0.5 text-slate-400 hover:text-rose-600 rounded cursor-pointer opacity-70 group-hover:opacity-100"
+                                    title="Untie tracking number"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-400 italic">No tracking numbers tied</div>
+                        )}
+
+                        {/* Inline input to add custom tracking # */}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={manualTrackingInputs[item.id] || ''}
+                            onChange={(e) =>
+                              setManualTrackingInputs((prev) => ({ ...prev, [item.id]: e.target.value }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && (manualTrackingInputs[item.id] || '').trim()) {
+                                handleTieTrackingToDockItem(item.id, manualTrackingInputs[item.id].trim());
+                                setManualTrackingInputs((prev) => ({ ...prev, [item.id]: '' }));
+                              }
+                            }}
+                            placeholder="Add tracking #..."
+                            className="w-full px-1.5 py-0.5 bg-sky-50/50 border border-sky-200 rounded font-mono text-[10px] text-sky-900 focus:outline-none focus:border-sky-500 placeholder-slate-400"
+                          />
+                          <button
+                            type="button"
+                            disabled={!(manualTrackingInputs[item.id] || '').trim()}
+                            onClick={() => {
+                              if ((manualTrackingInputs[item.id] || '').trim()) {
+                                handleTieTrackingToDockItem(item.id, manualTrackingInputs[item.id].trim());
+                                setManualTrackingInputs((prev) => ({ ...prev, [item.id]: '' }));
+                              }
+                            }}
+                            className="px-1.5 py-0.5 bg-sky-600 text-white rounded text-[10px] font-bold hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer flex items-center gap-0.5"
+                            title="Add tracking number"
+                          >
+                            <Plus className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+
+                        {/* Tie tracking from PAP / Project Origins dropdown */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenTieDropdownDockItemId(
+                                openTieDropdownDockItemId === item.id ? null : item.id
+                              )
+                            }
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 hover:text-sky-900 cursor-pointer bg-sky-100/70 hover:bg-sky-100 px-1.5 py-0.5 rounded border border-sky-300/80 transition-colors"
+                          >
+                            <Link2 className="w-2.5 h-2.5 text-sky-600" />
+                            <span>Tie from PAP ({availableOriginTrackingSources.length})</span>
+                            <ChevronDown className="w-2.5 h-2.5" />
+                          </button>
+
+                          {openTieDropdownDockItemId === item.id && (
+                            <div className="absolute left-0 top-full mt-1 w-72 bg-white rounded-lg shadow-xl border border-sky-200 z-50 p-2 space-y-1 max-h-56 overflow-y-auto">
+                              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1 pb-1 border-b border-slate-100 flex items-center justify-between">
+                                <span>Project & PAP Tracking Numbers</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenTieDropdownDockItemId(null)}
+                                  className="text-slate-400 hover:text-slate-600"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                              {availableOriginTrackingSources.length === 0 ? (
+                                <div className="text-[11px] text-slate-400 italic p-2 text-center">
+                                  No tracking numbers found on PAP, Change Orders, or RMAs.
+                                </div>
+                              ) : (
+                                availableOriginTrackingSources.map((source) => {
+                                  const isAlreadyTiedToThis = getDockItemTrackingNumbers(item).includes(
+                                    source.trackingNumber
+                                  );
+                                  return (
+                                    <button
+                                      key={`${source.originId}-${source.trackingNumber}`}
+                                      type="button"
+                                      disabled={isAlreadyTiedToThis}
+                                      onClick={() =>
+                                        handleTieTrackingToDockItem(item.id, source.trackingNumber, source)
+                                      }
+                                      className={`w-full text-left p-1.5 rounded text-[11px] transition-colors flex flex-col gap-0.5 ${
+                                        isAlreadyTiedToThis
+                                          ? 'bg-slate-50 text-slate-400 cursor-not-allowed'
+                                          : 'hover:bg-sky-50 text-slate-800 cursor-pointer'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="font-mono font-bold text-sky-900 text-[10px]">
+                                          {source.trackingNumber}
+                                        </span>
+                                        <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+                                          {source.sourceType}
+                                        </span>
+                                      </div>
+                                      <div className="text-[10px] text-slate-500 truncate">
+                                        {source.sourceTitle}
+                                      </div>
+                                      {isAlreadyTiedToThis && (
+                                        <div className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5">
+                                          <Check className="w-2.5 h-2.5" /> Already tied to this line item
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
 
                     {/* Dates */}

@@ -931,6 +931,15 @@ export default function App() {
           triggeredNotif = partnerChecklistNotif;
         }
       }
+
+      // 6. Check if caller directly prepended an activity notification (e.g. Product Acquisition Portal updates)
+      if (!triggeredNotif) {
+        const prevIds = new Set((prevProject.activityNotifications || []).map((n) => n.id));
+        const newIncomingNotif = (updated.activityNotifications || []).find((n) => !prevIds.has(n.id));
+        if (newIncomingNotif) {
+          triggeredNotif = newIncomingNotif;
+        }
+      }
     }
 
     // Always keep the Pre-Packaged Partner Academy Course Bundle synced with the project's BOM & partners
