@@ -2700,17 +2700,53 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                     {project.milestones.map((milestone) => (
                       <div
                         key={milestone.id}
-                        className={`p-2 rounded-lg border text-xs transition-colors ${
+                        onClick={() => {
+                          if (!onUpdateProject) return;
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          const nextStatus =
+                            milestone.status === 'Upcoming'
+                              ? 'In Progress'
+                              : milestone.status === 'In Progress'
+                              ? 'Completed'
+                              : 'Upcoming';
+                          const updatedMilestones = project.milestones.map((m) =>
+                            m.id === milestone.id
+                              ? {
+                                  ...m,
+                                  status: nextStatus as typeof m.status,
+                                  startedAt:
+                                    nextStatus === 'In Progress' ? m.startedAt || todayStr : m.startedAt,
+                                  completedDate: nextStatus === 'Completed' ? todayStr : undefined,
+                                }
+                              : m
+                          );
+                          onUpdateProject({
+                            ...project,
+                            milestones: updatedMilestones,
+                            csmHandoffEnteredAt:
+                              milestone.title === 'CSM Handoff' &&
+                              (nextStatus === 'In Progress' || nextStatus === 'Completed')
+                                ? project.csmHandoffEnteredAt || todayStr
+                                : project.csmHandoffEnteredAt,
+                            lastUpdated: new Date().toISOString(),
+                          });
+                        }}
+                        title={`Click to progress status: Uncompleted → In Progress → Completed (Current: ${milestone.status})`}
+                        className={`p-2 rounded-lg border text-xs transition-all cursor-pointer select-none hover:scale-[1.02] ${
                           milestone.status === 'Completed'
                             ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 font-semibold'
                             : milestone.status === 'In Progress'
                             ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold ring-2 ring-sky-300/40'
-                            : 'bg-slate-50 border-slate-200 text-slate-500'
+                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
                         }`}
                       >
                         <div className="text-[10px] truncate">{milestone.title}</div>
                         <div className="text-[10px] font-mono text-slate-600 mt-0.5">
-                          {milestone.status === 'Completed' ? '✓ Done' : milestone.targetDate}
+                          {milestone.status === 'Completed'
+                            ? '✓ Completed'
+                            : milestone.status === 'In Progress'
+                            ? '● In Progress'
+                            : milestone.targetDate}
                         </div>
                       </div>
                     ))}

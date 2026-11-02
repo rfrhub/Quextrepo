@@ -17,8 +17,10 @@ import {
   CSMName,
 } from '../types';
 import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
+import { RMATicketingSection } from './RMATicketingSection';
 import {
   Building2,
+  Wrench,
   Users,
   Phone,
   Mail,
@@ -599,6 +601,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   const [contractEditDraft, setContractEditDraft] = useState<CSMContractScrubbedAnalysis | null>(
     null
   );
+  const [rmaPreselectedBomId, setRmaPreselectedBomId] = useState<string | null>(null);
 
   const handleContractFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1420,6 +1423,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                 <th className="py-3 px-4 text-right">Installed Quantity</th>
                 <th className="py-3 px-4 text-right">Original BOM Quantity</th>
                 <th className="py-3 px-4">Installed vs. Original Progress</th>
+                <th className="py-3 px-4 text-right">RMA Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -1484,6 +1488,24 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                         />
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRmaPreselectedBomId(item.id);
+                          setTimeout(() => {
+                            document
+                              .getElementById('rma-ticketing-workflow')
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 80);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold cursor-pointer transition-colors"
+                        title={`Select ${item.name} in the RMA Ticketing Workflow`}
+                      >
+                        <Wrench className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>RMA Ticket</span>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -1491,6 +1513,18 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
           </table>
         </div>
       </div>
+
+      {/* =====================================================================
+          SECTION 2B: PROPERTY HARDWARE RMA TICKETING WORKFLOW
+      ===================================================================== */}
+      <RMATicketingSection
+        project={property}
+        onUpdateProject={onUpdateProperty}
+        currentUserName={currentUserName}
+        preselectedBomItemId={rmaPreselectedBomId}
+        onClearPreselectedBomItem={() => setRmaPreselectedBomId(null)}
+        contextLabel="Property"
+      />
 
       {/* =====================================================================
           SECTION 3: CONTRACT FILE UPLOAD & AI CONTRACT SCRUBBER

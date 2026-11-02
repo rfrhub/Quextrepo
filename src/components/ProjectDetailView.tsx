@@ -56,6 +56,7 @@ import { ProjectClosureSummaryModal } from './ProjectClosureSummaryModal';
 import { PortalBuildOutModal } from './PortalBuildOutModal';
 import { ManualLinkProjectPanel } from './ManualLinkProjectPanel';
 import { PMPMitigationPlanPanel } from './PMPMitigationPlanPanel';
+import { RMATicketingSection } from './RMATicketingSection';
 import {
   Building2,
   Mail,
@@ -177,6 +178,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const [isPmEditMode, setIsPmEditMode] = useState<boolean>(false);
   const effectivePmEditMode = isPM && isPmEditMode;
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
+  const [rmaPreselectedBomId, setRmaPreselectedBomId] = useState<string | null>(null);
 
   const handleUpdatePropertyName = (newName: string) => {
     onUpdateProject({
@@ -949,15 +951,23 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     let enteredCsmHandoff = false;
     let enteredCsmIntro = false;
     let nextCsmHandoffEnteredAt = project.csmHandoffEnteredAt;
+    const todayStr = new Date().toISOString().split('T')[0];
 
     const updatedMilestones = project.milestones.map((m) => {
       if (m.id === milestoneId) {
-        const nextStatus = m.status === 'Completed' ? 'In Progress' : m.status === 'In Progress' ? 'Upcoming' : 'Completed';
+        // Progress: Upcoming (uncompleted) -> In Progress -> Completed
+        const nextStatus =
+          m.status === 'Upcoming'
+            ? 'In Progress'
+            : m.status === 'In Progress'
+            ? 'Completed'
+            : 'Upcoming';
+
         if (m.title === 'CSM Handoff') {
           if (nextStatus === 'In Progress' || nextStatus === 'Completed') {
             enteredCsmHandoff = true;
             if (!nextCsmHandoffEnteredAt) {
-              nextCsmHandoffEnteredAt = new Date().toISOString().split('T')[0];
+              nextCsmHandoffEnteredAt = todayStr;
             }
           }
         }
@@ -966,7 +976,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             enteredCsmIntro = true;
           }
         }
-        return { ...m, status: nextStatus as OperationProject['milestones'][0]['status'] };
+        return {
+          ...m,
+          status: nextStatus as OperationProject['milestones'][0]['status'],
+          startedAt: nextStatus === 'In Progress' ? m.startedAt || todayStr : m.startedAt,
+          completedDate: nextStatus === 'Completed' ? todayStr : undefined,
+        };
       }
       return m;
     });
@@ -2404,20 +2419,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 {project.milestones.map((milestone) => (
                   <div
                     key={milestone.id}
-                    onClick={() => isPM && !effectivePmEditMode && handleToggleMilestone(milestone.id)}
+                    onClick={() => !effectivePmEditMode && handleToggleMilestone(milestone.id)}
                     title={
-                      !isPM
-                        ? `${milestone.title}: ${milestone.status}`
-                        : effectivePmEditMode
+                      effectivePmEditMode
                         ? `Set target date for ${milestone.title}`
-                        : `Click to cycle status (${milestone.status})`
+                        : `Click to progress status: Uncompleted → In Progress → Completed (Current: ${milestone.status})`
                     }
                     className={`p-2 rounded-lg border text-xs transition-all ${
                       effectivePmEditMode
                         ? 'cursor-default ring-2 ring-amber-400 bg-amber-50/40 shadow-xs'
-                        : isPM
-                        ? 'cursor-pointer select-none hover:scale-[1.02]'
-                        : 'cursor-default select-none'
+                        : 'cursor-pointer select-none hover:scale-[1.02]'
                     } ${
                       milestone.status === 'Completed'
                         ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 font-semibold hover:bg-emerald-100/80'
@@ -2442,7 +2453,11 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                       </div>
                     ) : (
                       <div className="text-[10px] font-mono text-slate-600 mt-0.5">
-                        {milestone.status === 'Completed' ? '✓ Done' : milestone.targetDate}
+                        {milestone.status === 'Completed'
+                          ? '✓ Completed'
+                          : milestone.status === 'In Progress'
+                          ? '● In Progress'
+                          : milestone.targetDate}
                       </div>
                     )}
                   </div>
@@ -3114,6 +3129,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               BOM Table
             </a>
             <a
+              href="#rma-ticketing-workflow"
+              className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold whitespace-nowrap shrink-0 transition-colors"
+            >
+              RMA Ticketing
+            </a>
+            <a
               href="#shipping-dock-section"
               className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-800 font-semibold whitespace-nowrap shrink-0 transition-colors"
             >
@@ -3624,8 +3645,26 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               quotesList={quotesList}
               onAddBOMItem={handleAddBOMItemOverride}
               onDeleteBOMItem={handleDeleteBOMItemOverride}
+              onStartRmaForBomItem={(itemId) => {
+                setRmaPreselectedBomId(itemId);
+                setTimeout(() => {
+                  document
+                    .getElementById('rma-ticketing-workflow')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 80);
+              }}
             />
           </div>
+
+          {/* Hardware RMA Ticketing Workflow (Matches BOM Line Item -> Shows Only Related Company RMA Process & Generates Ticket) */}
+          <RMATicketingSection
+            project={project}
+            onUpdateProject={onUpdateProject}
+            currentUserName={currentUserName || project.assignedPM?.name || 'Project Manager'}
+            preselectedBomItemId={rmaPreselectedBomId}
+            onClearPreselectedBomItem={() => setRmaPreselectedBomId(null)}
+            contextLabel="Project"
+          />
 
           {/* Shipping Dock (Under BOM Section) + Product Acceptance Portal */}
           <div id="shipping-dock-section" data-tutorial-id="shipping-dock-section" className="scroll-mt-36">

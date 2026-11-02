@@ -955,7 +955,171 @@ export interface OperationProject {
   partnerCourseBundle?: PrePackagedProjectCourseBundle;
   pmpMitigationPlan?: PMPMitigationPlan;
   csmPortalData?: CSMPropertyPortalData;
+  rmaTickets?: RMATicketRecord[];
   lastUpdated: string;
+}
+
+export type RMAProductCompany =
+  | 'Allegion'
+  | 'Eagle Eye Networks'
+  | 'Brivo'
+  | 'ProdataKey (PDK)'
+  | 'ButterflyMX';
+
+export const RMA_PRODUCT_COMPANIES: RMAProductCompany[] = [
+  'Allegion',
+  'Eagle Eye Networks',
+  'Brivo',
+  'ProdataKey (PDK)',
+  'ButterflyMX',
+];
+
+export type RMATicketStatus =
+  | '1. Tech Support Troubleshooting'
+  | '2. Documentation Gathered'
+  | '3. RMA Number Issued'
+  | '4. Packaged & Shipped'
+  | '5. Replacement Received / Closed';
+
+export interface RMATicketRecord {
+  id: string;
+  ticketNumber: string;
+  projectId: string;
+  propertyName: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+  status: RMATicketStatus;
+  // Selected BOM item(s) and matched RMA company
+  bomItemId: string;
+  bomItemName: string;
+  bomItemModel: string;
+  bomItemCategory: string;
+  matchedCompany: RMAProductCompany;
+  defectiveQuantity: number;
+  // Shared RMA ticket fields
+  authorizedDealerOrPartner: string;
+  troubleshootingPerformed: boolean;
+  troubleshootingNotes: string;
+  serialNumbers: string;
+  originalInvoiceOrPo: string;
+  failureDescription: string;
+  issuedRmaNumber: string;
+  designatedReturnAddress: string;
+  returnTrackingNumber: string;
+  // Allegion-specific
+  allegionServiceRequestNumber?: string;
+  allegionCompletePartNumbers?: string;
+  // Eagle Eye Networks-specific
+  eenCustomerAccountName?: string;
+  eenBridgeOrCmvrName?: string;
+  eenCmvrDataRetentionRequired?: boolean;
+  eenCmvrDataRetentionNotes?: string;
+  eenReplacementMethod?: 'Standard RMA' | 'Rapid Replacement (30-Day Return Window)';
+  // Brivo-specific
+  brivoOriginalInstallDate?: string;
+  brivoClaimType?:
+    | 'Dead on Arrival (DOA - 0 to 30 Days)'
+    | 'Standard Warranty RMA'
+    | 'Advance Replacement';
+  brivoFormSubmitted?: boolean;
+  // ProdataKey (PDK)-specific
+  pdkPartnerTier?:
+    | 'Standard Account (1 Year)'
+    | 'Certified Partner (3 Years)'
+    | 'Gold Partner (4 Years)'
+    | 'Platinum Partner (5 Years)';
+  pdkDefectOccurredDate?: string;
+  pdkRmaPath?: 'Advance Shipment RMA' | 'Distribution RMA';
+  pdkConditionVerified?: boolean;
+  // ButterflyMX-specific
+  butterflyMxDoorLocation?: string;
+  butterflyMxMacAddress?: string;
+}
+
+/**
+ * Automatically matches a BOM line item to one of the 5 RMA product companies
+ * based on its item name, model/SKU, or category. Returns null if no direct match is detected
+ * (in which case the user can select or confirm the company for that BOM item).
+ */
+export function matchBomItemToRmaCompany(item: BOMItem): RMAProductCompany | null {
+  const haystack = `${item.name || ''} ${item.model || ''} ${item.category || ''} ${item.location || ''}`.toLowerCase();
+
+  if (
+    haystack.includes('butterflymx') ||
+    haystack.includes('butterfly mx') ||
+    haystack.includes('butterfly') ||
+    haystack.includes('bmx')
+  ) {
+    return 'ButterflyMX';
+  }
+
+  if (
+    haystack.includes('eagle eye') ||
+    haystack.includes('een') ||
+    haystack.includes('cmvr') ||
+    haystack.includes('bridge') ||
+    haystack.includes('db11') ||
+    haystack.includes('dt01') ||
+    haystack.includes('db14') ||
+    haystack.includes('dd08') ||
+    haystack.includes('dm08') ||
+    haystack.includes('en-cdud') ||
+    haystack.includes('en-hd10') ||
+    haystack.includes('security camera') ||
+    haystack.includes('turret') ||
+    haystack.includes('bullet camera') ||
+    haystack.includes('lpr')
+  ) {
+    return 'Eagle Eye Networks';
+  }
+
+  if (
+    haystack.includes('pdk') ||
+    haystack.includes('prodatakey') ||
+    haystack.includes('pro data key') ||
+    haystack.includes('red reader') ||
+    haystack.includes('cloud node') ||
+    haystack.includes('wimac')
+  ) {
+    return 'ProdataKey (PDK)';
+  }
+
+  if (
+    haystack.includes('brivo') ||
+    haystack.includes('acs300') ||
+    haystack.includes('acs6000') ||
+    haystack.includes('acs100') ||
+    haystack.includes('b-bsp')
+  ) {
+    return 'Brivo';
+  }
+
+  if (
+    haystack.includes('allegion') ||
+    haystack.includes('schlage') ||
+    haystack.includes('be467') ||
+    haystack.includes('fe410') ||
+    haystack.includes('ndeb') ||
+    haystack.includes('nde ') ||
+    haystack.includes('xe360') ||
+    haystack.includes('rc11') ||
+    haystack.includes('rc15') ||
+    haystack.includes('rck15') ||
+    haystack.includes('mtb11') ||
+    haystack.includes('mtb15') ||
+    haystack.includes('mt20') ||
+    haystack.includes('cte') ||
+    haystack.includes('deadbolt') ||
+    haystack.includes('interconnected') ||
+    haystack.includes('mortise') ||
+    haystack.includes('exit trim') ||
+    haystack.includes('electrified reader')
+  ) {
+    return 'Allegion';
+  }
+
+  return null;
 }
 
 export type CSMRiskTier =

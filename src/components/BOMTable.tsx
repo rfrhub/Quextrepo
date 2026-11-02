@@ -19,7 +19,7 @@ import {
 import { PostItWindow } from './PostItWindow';
 import { LockFinishModal } from './LockFinishModal';
 import { BOMOverrideModal } from './BOMOverrideModal';
-import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal, Trash2, X, Wrench } from 'lucide-react';
 
 interface BOMTableProps {
   items: BOMItem[];
@@ -37,6 +37,7 @@ interface BOMTableProps {
   quotesList?: Quote[];
   onAddBOMItem?: (newItem: BOMItem, overrideReason: string) => void;
   onDeleteBOMItem?: (itemId: string, overrideReason: string) => void;
+  onStartRmaForBomItem?: (itemId: string) => void;
 }
 
 export const BOMTable: React.FC<BOMTableProps> = ({
@@ -55,6 +56,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   quotesList = [],
   onAddBOMItem,
   onDeleteBOMItem,
+  onStartRmaForBomItem,
 }) => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -1023,6 +1025,18 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                             <StickyNote className="w-3.5 h-3.5 text-amber-700" />
                             <span>Post-It Note</span>
                           </button>
+
+                          {onStartRmaForBomItem && (
+                            <button
+                              type="button"
+                              onClick={() => onStartRmaForBomItem(item.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-2xs transition-all cursor-pointer"
+                              title={`Select and match ${item.name} in the RMA Ticketing Workflow`}
+                            >
+                              <Wrench className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>RMA Ticket</span>
+                            </button>
+                          )}
 
                           {itemLogs.length > 0 && (
                             <button
