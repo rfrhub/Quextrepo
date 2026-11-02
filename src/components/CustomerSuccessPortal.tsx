@@ -3051,7 +3051,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                                   <tr className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] border-b border-slate-200">
                                     <th className="py-1.5 px-2.5">Catalog Item</th>
                                     <th className="py-1.5 px-2.5">Type</th>
-                                    <th className="py-1.5 px-2.5">Installed / Qty</th>
+                                    <th className="py-1.5 px-2.5">Amount Ordered vs Total Qty</th>
                                     <th className="py-1.5 px-2.5">Location &amp; Notes</th>
                                   </tr>
                                 </thead>
