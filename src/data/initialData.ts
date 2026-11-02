@@ -1691,12 +1691,19 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
 
   const platform = p.platform || getProjectPlatform(p);
 
+  const seenBomIds = new Set<string>();
   const enriched: OperationProject = {
     ...p,
     platform,
     assignedFieldTech: normalizeFieldTech(p.assignedFieldTech),
     integratorPartners: partners,
-    bomItems: (p.bomItems || []).map((b) => {
+    bomItems: (p.bomItems || []).map((b, idx) => {
+      let uniqueId = b.id || `${p.id}-bom-${idx + 1}`;
+      if (seenBomIds.has(uniqueId)) {
+        uniqueId = `${uniqueId}-${idx + 1}`;
+      }
+      seenBomIds.add(uniqueId);
+
       let fixedModel = b.model;
       if (/enrollment reader/i.test(b.name)) {
         if (/mt20w/i.test(b.name) || /mt20w/i.test(b.model)) {
@@ -1712,18 +1719,19 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
       }
       // If it is NOT a lock (e.g. Schlage Enrollment Reader MT20W, Readers, Gate Readers, Intercoms), strip any mistakenly applied lockFinishConfig
       if (!isLockBOMItem({ ...b, model: fixedModel }) && b.lockFinishConfig) {
-        const cleaned = { ...b, model: fixedModel };
+        const cleaned = { ...b, id: uniqueId, model: fixedModel };
         delete cleaned.lockFinishConfig;
         return cleaned;
       }
       if (b.lockFinishConfig) {
-        const itemObj = { ...b, model: fixedModel };
+        const itemObj = { ...b, id: uniqueId, model: fixedModel };
         const trueFamily = detectLockFamily(itemObj);
         const splits = b.lockFinishConfig.splits
           ? sanitizeLockSplits(b.lockFinishConfig.splits, trueFamily)
           : undefined;
         return {
           ...b,
+          id: uniqueId,
           model: fixedModel,
           lockFinishConfig: {
             family: trueFamily,
@@ -1752,8 +1760,8 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
           },
         };
       }
-      if (fixedModel !== b.model) {
-        return { ...b, model: fixedModel };
+      if (fixedModel !== b.model || uniqueId !== b.id) {
+        return { ...b, id: uniqueId, model: fixedModel };
       }
       return b;
     }),
@@ -1814,7 +1822,7 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
 
   enriched.partnerCourseBundle = buildProjectPrePackagedBundle(enriched);
 
-  return checkAndApplyCsmHandoffAutoClose(enriched);
+  return enriched;
 }
 
 export const STORAGE_KEY_ARCHIVED_PROJECTS = 'quext_archived_project_ids_v1';
@@ -1854,7 +1862,6 @@ export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v2';
 
 export function isFakeNote(note: { id?: string; author?: string; text?: string }): boolean {
   if (!note) return true;
-  if (!isRealTeamMember(note.author)) return true;
   const text = (note.text || '').toLowerCase();
   const id = (note.id || '').toLowerCase();
   if (
@@ -1891,7 +1898,6 @@ export function isFakeNote(note: { id?: string; author?: string; text?: string }
 
 export function isFakeInstallLog(log: { id?: string; installerName?: string; notes?: string }): boolean {
   if (!log) return true;
-  if (!isRealTeamMember(log.installerName)) return true;
   const notes = (log.notes || '').toLowerCase();
   const id = (log.id || '').toLowerCase();
   const installer = (log.installerName || '').toLowerCase();
@@ -1941,20 +1947,15 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
 
   const cleanPending = (project.pendingInstallationChanges || []).filter((pc) => {
     if (pc.associatedLog && isFakeInstallLog(pc.associatedLog)) return false;
-    if (pc.submittedBy && !isRealTeamMember(pc.submittedBy)) return false;
     return true;
   });
 
+  // Preserve item.installedCount as set on the BOM item (do NOT overwrite with 0 when no installLogs exist)
   const cleanBom = (project.bomItems || []).map((item) => {
-    const realItemLogs = cleanLogs.filter((l) => l.itemId === item.id);
-    const realInstalledCount = realItemLogs.reduce(
-      (sum, l) => sum + (Number(l.quantityCompleted) || 0),
-      0
-    );
     const cleanPostItLogs = (item.postItLogs || []).filter((l) => !isFakeInstallLog(l));
     return {
       ...item,
-      installedCount: realInstalledCount,
+      installedCount: Math.max(0, Number(item.installedCount) || 0),
       postItLogs: cleanPostItLogs,
     };
   });

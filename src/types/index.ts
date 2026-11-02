@@ -1555,13 +1555,8 @@ export function calculateProjectScheduleHealth(
     }
   }
 
-  // Enforce dynamic timing criteria while respecting PM High Risk / Behind Schedule escalations:
-  const effectiveTag: ProjectStatusTag =
-    manualTag === 'High Risk' || autoTag === 'High Risk'
-      ? 'High Risk'
-      : manualTag === 'Behind Schedule' || autoTag === 'Behind Schedule'
-      ? 'Behind Schedule'
-      : 'On Track';
+  // Respect explicit PM manualTag selection first, falling back to autoTag when not set:
+  const effectiveTag: ProjectStatusTag = manualTag || autoTag;
 
   return {
     autoTag,
