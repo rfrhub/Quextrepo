@@ -13,6 +13,14 @@ import {
   getProjectPlatform,
   getPlatformBadgeStyle,
   getLockFinishSummaryTag,
+  getLockFinishColorHex,
+  formatFullFinishDetailsLines,
+  getCategoryDisplayName,
+  getCategoryUnitLabel,
+  BOMItem,
+  BOMAcquisitionSubmission,
+  LockFinishConfig,
+  ThermostatBrand,
   AVAILABLE_CSMS,
   CSMName,
   AVAILABLE_FIELD_TECHS,
@@ -27,6 +35,7 @@ import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
 import { SOWFormAutomationHub } from './SOWFormAutomationHub';
+import { LockFinishModal } from './LockFinishModal';
 import {
   Building2,
   Wrench,
@@ -41,6 +50,8 @@ import {
   ShieldCheck,
   Search,
   Plus,
+  Minus,
+  Send,
   Tag,
   FolderGit2,
   ArrowLeft,
@@ -720,6 +731,88 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
     null
   );
   const [rmaPreselectedBomId, setRmaPreselectedBomId] = useState<string | null>(null);
+
+  // Property BOM -> Product Acquisition Portal & Finish Options states
+  const [activeLockFinishBomItem, setActiveLockFinishBomItem] = useState<BOMItem | null>(null);
+  const [acquisitionModalBomItem, setAcquisitionModalBomItem] = useState<BOMItem | null>(null);
+  const [acquisitionConfirmedQty, setAcquisitionConfirmedQty] = useState<number>(1);
+  const [acquisitionNotes, setAcquisitionNotes] = useState<string>('');
+  const [lastSentSubmission, setLastSentSubmission] = useState<BOMAcquisitionSubmission | null>(null);
+
+  const handleUpdatePropertyBomLockFinish = (itemId: string, config?: LockFinishConfig) => {
+    const updatedBomItems = property.bomItems.map((i) =>
+      i.id === itemId ? { ...i, lockFinishConfig: config } : i
+    );
+    onUpdateProperty({
+      ...property,
+      bomItems: updatedBomItems,
+      lastUpdated: new Date().toISOString(),
+    });
+    if (acquisitionModalBomItem && acquisitionModalBomItem.id === itemId) {
+      setAcquisitionModalBomItem({
+        ...acquisitionModalBomItem,
+        lockFinishConfig: config,
+      });
+    }
+  };
+
+  const handleOpenPropertyBomAcquisitionModal = (item: BOMItem) => {
+    setAcquisitionModalBomItem(item);
+    setAcquisitionConfirmedQty(Math.max(1, item.quantity));
+    setAcquisitionNotes('');
+  };
+
+  const handleConfirmSendPropertyBomToAcquisition = () => {
+    if (!acquisitionModalBomItem) return;
+    const latestItem =
+      property.bomItems.find((i) => i.id === acquisitionModalBomItem.id) || acquisitionModalBomItem;
+    const existingSubmissions = property.bomAcquisitionSubmissions || [];
+    const nextIdx = existingSubmissions.length + 1;
+    const subNum = `ACQ-BOM-${property.quoteNumber.replace(/^QXT-/, '')}-${String(nextIdx).padStart(2, '0')}`;
+    const qtyToSend = Math.max(1, Number(acquisitionConfirmedQty) || latestItem.quantity);
+    const uPrice = latestItem.unitPrice || 0;
+    const dispCategory = getCategoryDisplayName(latestItem.category);
+    const isTherm = dispCategory === 'Smart Thermostats';
+    const resolvedBrand: ThermostatBrand | undefined = isTherm
+      ? latestItem.thermostatBrand ||
+        (latestItem.name.toLowerCase().includes('honeywell') ? 'Honeywell' : 'Quext')
+      : latestItem.thermostatBrand;
+
+    const newSubmission: BOMAcquisitionSubmission = {
+      id: `bom-acq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      submissionNumber: subNum,
+      bomItemId: latestItem.id,
+      name: latestItem.name,
+      model: latestItem.model,
+      category: latestItem.category,
+      location: latestItem.location,
+      description: latestItem.description,
+      quotedQuantity: latestItem.quantity,
+      installedCount: latestItem.installedCount,
+      sparesCount: latestItem.sparesCount,
+      confirmedQuantity: qtyToSend,
+      unitPrice: uPrice,
+      totalCost: Number((qtyToSend * uPrice).toFixed(2)),
+      thermostatBrand: resolvedBrand,
+      lockFinishConfig: latestItem.lockFinishConfig,
+      notes: acquisitionNotes.trim() || undefined,
+      sourceWorkspace: 'Property',
+      sourceSectionLabel: 'Smart Community Bill of Materials (BOM)',
+      itemType: 'Smart Community Bill of Materials (BOM)',
+      fulfillmentStatus: 'Pending Acquisition / Review',
+      createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      createdBy: currentUserName || property.assignedCSM || 'Customer Success Manager',
+    };
+
+    onUpdateProperty({
+      ...property,
+      bomAcquisitionSubmissions: [newSubmission, ...existingSubmissions],
+      lastUpdated: new Date().toISOString(),
+    });
+
+    setLastSentSubmission(newSubmission);
+    setAcquisitionModalBomItem(null);
+  };
 
   const handleContractFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1720,20 +1813,69 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             </p>
           </div>
 
-          <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-4 shrink-0">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                Installed / Original BOM Total
-              </div>
-              <div className="text-base font-black font-mono text-[#01C38D]">
-                {totalInstalledBomQty.toLocaleString()} / {totalOriginalBomQty.toLocaleString()}{' '}
-                <span className="text-xs text-white font-sans font-bold">
-                  ({overallInstalledPct}%)
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('quext:open-product-acquisition-portal'));
+              }}
+              className="px-3.5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              title="Open the centralized Product Acquisition Portal"
+            >
+              <Package className="w-4 h-4" />
+              <span>Product Acquisition Portal</span>
+              {(property.bomAcquisitionSubmissions?.length || 0) > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">
+                  {property.bomAcquisitionSubmissions?.length}
                 </span>
+              )}
+            </button>
+            <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-4 shrink-0">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                  Installed / Original BOM Total
+                </div>
+                <div className="text-base font-black font-mono text-[#01C38D]">
+                  {totalInstalledBomQty.toLocaleString()} / {totalOriginalBomQty.toLocaleString()}{' '}
+                  <span className="text-xs text-white font-sans font-bold">
+                    ({overallInstalledPct}%)
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {lastSentSubmission && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-emerald-950">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                Sent <strong>{lastSentSubmission.confirmedQuantity}x {lastSentSubmission.name}</strong> ({lastSentSubmission.submissionNumber}) to the <strong>Product Acquisition Portal</strong> with full product &amp; finish details.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('quext:open-product-acquisition-portal'));
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold cursor-pointer transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>View in Product Acquisition Portal</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLastSentSubmission(null)}
+                className="p-1 rounded text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto border border-slate-200 rounded-xl">
           <table className="w-full text-left border-collapse text-xs">
@@ -1744,7 +1886,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                 <th className="py-3 px-4 text-right">Installed Quantity</th>
                 <th className="py-3 px-4 text-right">Original BOM Quantity</th>
                 <th className="py-3 px-4">Installed vs. Original Progress</th>
-                <th className="py-3 px-4 text-right">RMA Action</th>
+                <th className="py-3 px-4 text-right">RMA &amp; Product Acquisition</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -1762,11 +1904,31 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                         Model: {item.model}
                         {item.thermostatBrand ? ` • ${item.thermostatBrand}` : ''}
                       </div>
-                      {finishSummary && (
-                        <div className="text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 inline-block mt-1 font-semibold">
-                          {finishSummary}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        {finishSummary && (
+                          <div className="inline-flex items-center gap-1 text-[10px] text-white bg-slate-900 border border-slate-700 rounded-full px-2 py-0.5 font-semibold">
+                            <span
+                              className="w-2 h-2 rounded-full border border-white/50 shrink-0"
+                              style={{
+                                backgroundColor: getLockFinishColorHex(
+                                  item.lockFinishConfig?.befeColorFinish ||
+                                    item.lockFinishConfig?.ndeColorFinish ||
+                                    item.lockFinishConfig?.xe360ColorFinish
+                                ),
+                              }}
+                            />
+                            <span>{finishSummary}</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setActiveLockFinishBomItem(item)}
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 cursor-pointer transition-colors"
+                          title="Configure or edit finish options for this BOM item"
+                        >
+                          🎨 {item.lockFinishConfig ? 'Edit Finish' : '+ Finish Options'}
+                        </button>
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-semibold text-slate-800">{item.category}</div>
@@ -1810,22 +1972,33 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRmaPreselectedBomId(item.id);
-                          setTimeout(() => {
-                            document
-                              .getElementById('rma-ticketing-workflow')
-                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }, 80);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold cursor-pointer transition-colors"
-                        title={`Select ${item.name} in the RMA Ticketing Workflow`}
-                      >
-                        <Wrench className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>RMA Ticket</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRmaPreselectedBomId(item.id);
+                            setTimeout(() => {
+                              document
+                                .getElementById('rma-ticketing-workflow')
+                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 80);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold cursor-pointer transition-colors"
+                          title={`Select ${item.name} in the RMA Ticketing Workflow`}
+                        >
+                          <Wrench className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>RMA Ticket</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPropertyBomAcquisitionModal(item)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold cursor-pointer transition-colors"
+                          title={`Send ${item.name} to the Product Acquisition Portal (confirm quantity & include full details + finish options)`}
+                        >
+                          <Send className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>Send to Acquisition</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1833,6 +2006,281 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             </tbody>
           </table>
         </div>
+
+        {/* Property BOM Lock Finish Modal */}
+        {activeLockFinishBomItem && (
+          <LockFinishModal
+            item={activeLockFinishBomItem}
+            isOpen={!!activeLockFinishBomItem}
+            onClose={() => setActiveLockFinishBomItem(null)}
+            onSave={(itemId, config) => {
+              handleUpdatePropertyBomLockFinish(itemId, config);
+            }}
+          />
+        )}
+
+        {/* Property BOM -> Send to Product Acquisition Confirmation Modal */}
+        {acquisitionModalBomItem && (() => {
+          const liveItem =
+            property.bomItems.find((i) => i.id === acquisitionModalBomItem.id) ||
+            acquisitionModalBomItem;
+          const unitLabel = getCategoryUnitLabel(liveItem.category, liveItem);
+          const dispCategory = getCategoryDisplayName(liveItem.category);
+          const remainingQty = Math.max(0, liveItem.quantity - liveItem.installedCount);
+          const totalWithSpares = liveItem.quantity + (liveItem.sparesCount || 0);
+          const finishLines = formatFullFinishDetailsLines(liveItem.lockFinishConfig, liveItem);
+          const unitPrice = liveItem.unitPrice || 0;
+          const estTotal = Math.max(1, Number(acquisitionConfirmedQty) || 1) * unitPrice;
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+                <div className="bg-emerald-950 text-white p-4 sm:p-5 flex items-start justify-between gap-3 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <Send className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-bold text-white">
+                          Send BOM Line Item to Product Acquisition Portal
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                          Property Page · Smart Community BOM
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-200/90 mt-0.5">
+                        Confirm the quantity to send and verify full product &amp; finish specifications
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAcquisitionModalBomItem(null)}
+                    className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-900 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+                  <div className="p-4 rounded-xl bg-emerald-50/80 border-2 border-emerald-300 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="block text-xs font-extrabold text-emerald-950 uppercase tracking-wider">
+                          1. Confirm Quantity to Send to Product Acquisition *
+                        </label>
+                        <p className="text-[11px] text-emerald-800 mt-0.5">
+                          Specify how many units of <strong>{liveItem.name}</strong> should be queued in the Product Acquisition Portal.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAcquisitionConfirmedQty(Math.max(1, acquisitionConfirmedQty - 1))
+                          }
+                          className="w-8 h-8 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center justify-center cursor-pointer"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          value={acquisitionConfirmedQty}
+                          onChange={(e) =>
+                            setAcquisitionConfirmedQty(Math.max(1, parseInt(e.target.value, 10) || 1))
+                          }
+                          className="w-24 text-center py-1.5 px-2 bg-white border-2 border-emerald-500 rounded-lg font-mono font-extrabold text-sm text-emerald-950 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAcquisitionConfirmedQty(acquisitionConfirmedQty + 1)}
+                          className="w-8 h-8 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center justify-center cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-emerald-200/80">
+                      <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                        Quick Presets:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAcquisitionConfirmedQty(Math.max(1, liveItem.quantity))}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold border cursor-pointer ${
+                          acquisitionConfirmedQty === liveItem.quantity
+                            ? 'bg-emerald-700 text-white border-emerald-800'
+                            : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                        }`}
+                      >
+                        Full Quoted Qty ({liveItem.quantity} {unitLabel})
+                      </button>
+                      {remainingQty > 0 && remainingQty !== liveItem.quantity && (
+                        <button
+                          type="button"
+                          onClick={() => setAcquisitionConfirmedQty(remainingQty)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold border cursor-pointer ${
+                            acquisitionConfirmedQty === remainingQty
+                              ? 'bg-emerald-700 text-white border-emerald-800'
+                              : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                          }`}
+                        >
+                          Remaining Uninstalled ({remainingQty} {unitLabel})
+                        </button>
+                      )}
+                      {(liveItem.sparesCount || 0) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setAcquisitionConfirmedQty(totalWithSpares)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold border cursor-pointer ${
+                            acquisitionConfirmedQty === totalWithSpares
+                              ? 'bg-emerald-700 text-white border-emerald-800'
+                              : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                          }`}
+                        >
+                          Quoted + Spares ({totalWithSpares} {unitLabel})
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider">
+                        2. Full Product Specifications (Included in Portal Intake)
+                      </span>
+                      <span className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Est. Value: ${estTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Product Name</span>
+                        <span className="font-bold text-slate-900 text-xs">{liveItem.name}</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Model / SKU</span>
+                        <span className="font-mono font-bold text-slate-800 text-xs">{liveItem.model}</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Category</span>
+                        <span className="font-semibold text-slate-800 text-xs">{dispCategory}</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Location / Scope</span>
+                        <span className="font-semibold text-slate-800 text-xs">{liveItem.location || 'Property-wide'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 text-white rounded-xl p-4 border border-slate-800 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-sky-400" />
+                        <div>
+                          <span className="text-xs font-bold text-sky-300 block">
+                            3. Product Finish &amp; Hardware Options Included
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            Full finish options (trim, color finish, lever style, grade, function, or split finishes) travel with this item
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveLockFinishBomItem(liveItem)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold cursor-pointer"
+                      >
+                        <span>🎨 {liveItem.lockFinishConfig ? 'Edit Finish Options' : '+ Set Finish Options'}</span>
+                      </button>
+                    </div>
+
+                    {liveItem.lockFinishConfig ? (
+                      <div className="space-y-1.5 pt-1">
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-sky-200">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
+                            style={{
+                              backgroundColor: getLockFinishColorHex(
+                                liveItem.lockFinishConfig.befeColorFinish ||
+                                  liveItem.lockFinishConfig.ndeColorFinish ||
+                                  liveItem.lockFinishConfig.xe360ColorFinish
+                              ),
+                            }}
+                          />
+                          <span>{getLockFinishSummaryTag(liveItem.lockFinishConfig)}</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                          {finishLines.map((line, idx) => (
+                            <div
+                              key={idx}
+                              className="text-[11px] text-slate-200 bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 font-mono"
+                            >
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-slate-300 bg-slate-950/60 p-3 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                        <span>
+                          No custom finish configuration attached yet (Standard factory finish will be listed unless configured).
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveLockFinishBomItem(liveItem)}
+                          className="text-sky-400 hover:text-sky-300 font-bold underline shrink-0 cursor-pointer"
+                        >
+                          Configure Finish Now
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Acquisition / Fulfillment Notes (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={acquisitionNotes}
+                      onChange={(e) => setAcquisitionNotes(e.target.value)}
+                      placeholder="Add any shipping priority, phase allocation, or special procurement instructions..."
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+                  <div className="text-[11px] text-slate-500">
+                    Tagged as: <strong className="text-slate-800">Property Page</strong> ·{' '}
+                    <strong className="text-emerald-700">Smart Community Bill of Materials (BOM)</strong>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAcquisitionModalBomItem(null)}
+                      className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 rounded-lg cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmSendPropertyBomToAcquisition}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Confirm &amp; Send {acquisitionConfirmedQty} {unitLabel} to Acquisition Portal</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* =====================================================================
@@ -3070,7 +3518,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               <span>CSM Property Note Engine &amp; Risk Resolution Tracker</span>
             </div>
             <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 mt-1">
-              CSM Notes, Multi-Tag Risk Tiers &amp; Grouped Resolution Plans
+              CSM, Notes &amp; Resolutions Plans
             </h2>
             <p className="text-xs text-slate-500">
               Log property notes, assign a Risk Tier level and multiple tags, group a specific subset of notes contributing to a risk level, and maintain resolution plans with next steps while issues remain open.

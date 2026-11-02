@@ -10,6 +10,11 @@ import {
   normalizeFieldTech,
   getProjectIntegratorPartners,
   isDiyPartner,
+  LockFinishConfig,
+  isLockBOMItem,
+  getLockFinishSummaryTag,
+  getLockFinishColorHex,
+  formatFullFinishDetailsLines,
 } from '../types';
 import {
   QUEUXT_HARDWARE_CATALOG,
@@ -17,6 +22,7 @@ import {
   MYQUEXT_FULL_PRODUCT_CATALOG,
 } from '../data/catalogData';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
+import { LockFinishModal } from './LockFinishModal';
 import {
   FilePlus2,
   Package,
@@ -202,6 +208,14 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
 
   // Expanded Order cards
   const [collapsedIds, setCollapsedIds] = useState<Record<string, boolean>>({});
+
+  // Finish Options modal state for Staged or Existing Change Order line items
+  const [finishModalTarget, setFinishModalTarget] = useState<{
+    mode: 'staged' | 'existing';
+    coId?: string;
+    item: ChangeOrderLineItem;
+  } | null>(null);
+  const [expandedFinishItemIds, setExpandedFinishItemIds] = useState<Record<string, boolean>>({});
 
   // Inline editing for existing Order metadata
   const [editingHeaderId, setEditingHeaderId] = useState<string | null>(null);
@@ -396,6 +410,12 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         if (co.id !== targetChangeOrderId) return co;
         return {
           ...co,
+          sourceWorkspace: co.sourceWorkspace || contextLabel,
+          sourceSectionLabel:
+            co.sourceSectionLabel ||
+            (contextLabel === 'Project'
+              ? 'Product Acquisition and Change Order'
+              : 'Supplemental Order Catalog'),
           integratorPartners: coPartners,
           assignedFieldTech: coFieldTech,
           items: [...(co.items || []), ...stagedItems],
@@ -414,13 +434,15 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     } else {
       // Create new Supplemental Order record with all staged items
       const coIndex = changeOrders.length + 1;
-      const coNumber = `SO-${new Date().getFullYear()}-${String(coIndex).padStart(3, '0')}`;
+      const coNumber = `${contextLabel === 'Project' ? 'PACO' : 'SO'}-${new Date().getFullYear()}-${String(coIndex).padStart(3, '0')}`;
       const newRecord: ChangeOrderRecord = {
         id: `co-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         changeOrderNumber: coNumber,
         projectId: project.id,
         propertyName: project.propertyName,
-        title: coTitle.trim() || `Supplemental Order #${coIndex}`,
+        title:
+          coTitle.trim() ||
+          `${contextLabel === 'Project' ? 'Change Order' : 'Supplemental Order'} #${coIndex}`,
         reason:
           coReason.trim() || 'Additional hardware/software scope requested outside original BOM',
         status: coStatus,
@@ -434,6 +456,11 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             : undefined,
         integratorPartners: coPartners,
         assignedFieldTech: coFieldTech,
+        sourceWorkspace: contextLabel,
+        sourceSectionLabel:
+          contextLabel === 'Project'
+            ? 'Product Acquisition and Change Order'
+            : 'Supplemental Order Catalog',
         items: stagedItems,
         notes: coNotes.trim() || undefined,
       };
@@ -628,6 +655,17 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('quext:open-product-acquisition-portal'));
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Open the centralized Product Acquisition Portal"
+          >
+            <Package className="w-4 h-4" />
+            <span>Product Acquisition Portal</span>
+          </button>
           <button
             type="button"
             onClick={openNewChangeOrderBuilder}
@@ -1133,6 +1171,49 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                             <div className="text-[10px] text-slate-400 font-mono">
                               {item.sku} • {item.manufacturer}
                             </div>
+                            {isHw && (
+                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                {item.lockFinishConfig ? (
+                                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-950 border border-indigo-500/40 text-[10px] text-white">
+                                    <span
+                                      className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
+                                      style={{
+                                        backgroundColor: getLockFinishColorHex(
+                                          item.lockFinishConfig.befeColorFinish ||
+                                            item.lockFinishConfig.ndeColorFinish ||
+                                            item.lockFinishConfig.xe360ColorFinish
+                                        ),
+                                      }}
+                                    />
+                                    <span className="font-semibold text-indigo-200">
+                                      {getLockFinishSummaryTag(item.lockFinishConfig)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setFinishModalTarget({ mode: 'staged', item })
+                                      }
+                                      className="text-sky-300 hover:text-white font-bold underline ml-1 cursor-pointer"
+                                    >
+                                      ✎ Edit Finish
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setFinishModalTarget({ mode: 'staged', item })}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 cursor-pointer transition-colors"
+                                    title="Configure lock trim style, color finish, lever style, or split finishes for this item"
+                                  >
+                                    <span>
+                                      {isLockBOMItem(item)
+                                        ? '🎨 + Set Lock Finish Options'
+                                        : '🎨 + Finish / Hardware Options'}
+                                    </span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="py-2.5 px-2.5">
                             <input
@@ -1556,6 +1637,81 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                     <span>•</span>
                                     <span>{item.category}</span>
                                   </div>
+                                  {isHw && (
+                                    <div className="mt-1.5 space-y-1.5">
+                                      {item.lockFinishConfig ? (
+                                        <div className="inline-flex flex-wrap items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[10px] text-white">
+                                          <span
+                                            className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
+                                            style={{
+                                              backgroundColor: getLockFinishColorHex(
+                                                item.lockFinishConfig.befeColorFinish ||
+                                                  item.lockFinishConfig.ndeColorFinish ||
+                                                  item.lockFinishConfig.xe360ColorFinish
+                                              ),
+                                            }}
+                                          />
+                                          <span className="font-semibold">
+                                            {getLockFinishSummaryTag(item.lockFinishConfig)}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setExpandedFinishItemIds((prev) => ({
+                                                ...prev,
+                                                [item.id]: !prev[item.id],
+                                              }))
+                                            }
+                                            className="px-1.5 py-0.2 rounded-full bg-slate-800 text-sky-300 font-bold cursor-pointer"
+                                          >
+                                            {expandedFinishItemIds[item.id] ? 'Hide' : 'Options'}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setFinishModalTarget({
+                                                mode: 'existing',
+                                                coId: co.id,
+                                                item,
+                                              })
+                                            }
+                                            className="text-amber-300 hover:text-white font-bold underline cursor-pointer"
+                                          >
+                                            ✎ Edit
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setFinishModalTarget({
+                                              mode: 'existing',
+                                              coId: co.id,
+                                              item,
+                                            })
+                                          }
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 cursor-pointer transition-colors"
+                                        >
+                                          <span>
+                                            {isLockBOMItem(item)
+                                              ? '🎨 + Set Lock Finish Options'
+                                              : '🎨 + Finish / Hardware Options'}
+                                          </span>
+                                        </button>
+                                      )}
+
+                                      {item.lockFinishConfig && expandedFinishItemIds[item.id] && (
+                                        <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-200 space-y-0.5">
+                                          {formatFullFinishDetailsLines(
+                                            item.lockFinishConfig,
+                                            item
+                                          ).map((line, lIdx) => (
+                                            <div key={lIdx}>{line}</div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </td>
 
                                 <td className="py-3 px-3 align-middle">
@@ -1779,6 +1935,43 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
           })
         )}
       </div>
+
+      {/* Lock Finish & Hardware Options Modal for Staged or Existing Change Order Line Items */}
+      {finishModalTarget && (
+        <LockFinishModal
+          item={{
+            id: finishModalTarget.item.id,
+            name: finishModalTarget.item.name,
+            model: finishModalTarget.item.sku,
+            category: finishModalTarget.item.bomCategory || 'Smart Access Control',
+            location: finishModalTarget.item.location || 'Property-Wide',
+            quantity: Math.max(1, Number(finishModalTarget.item.quantity) || 1),
+            installedCount: Number(finishModalTarget.item.installedCount) || 0,
+            unitPrice: Number(finishModalTarget.item.unitPrice) || 0,
+            lockFinishConfig: finishModalTarget.item.lockFinishConfig,
+          }}
+          isOpen={Boolean(finishModalTarget)}
+          onClose={() => setFinishModalTarget(null)}
+          onSave={(_itemId, config) => {
+            if (finishModalTarget.mode === 'staged') {
+              handleUpdateStagedItem(finishModalTarget.item.id, (prev) => ({
+                ...prev,
+                lockFinishConfig: config,
+              }));
+            } else if (finishModalTarget.mode === 'existing' && finishModalTarget.coId) {
+              handleUpdateLineItem(
+                finishModalTarget.coId,
+                finishModalTarget.item.id,
+                (prev) => ({
+                  ...prev,
+                  lockFinishConfig: config,
+                })
+              );
+            }
+            setFinishModalTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 };

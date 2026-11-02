@@ -7,7 +7,13 @@ import {
   RMATicketStatus,
   RMATicketRecord,
   matchBomItemToRmaCompany,
+  LockFinishConfig,
+  isLockBOMItem,
+  getLockFinishSummaryTag,
+  getLockFinishColorHex,
+  formatFullFinishDetailsLines,
 } from '../types';
+import { LockFinishModal } from './LockFinishModal';
 import {
   Wrench,
   Phone,
@@ -408,6 +414,13 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
 
   const [butterflyMxDoorLocation, setButterflyMxDoorLocation] = useState<string>('');
   const [butterflyMxMacAddress, setButterflyMxMacAddress] = useState<string>('');
+  const [ticketLockFinishConfig, setTicketLockFinishConfig] = useState<
+    LockFinishConfig | undefined
+  >(undefined);
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState<boolean>(false);
+  const [expandedTicketFinishIds, setExpandedTicketFinishIds] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Handle preselected BOM item from parent table row click
   useEffect(() => {
@@ -420,6 +433,9 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
       if (item) {
         setAllegionPartNumbers(item.model || item.name);
         setButterflyMxDoorLocation(item.location || '');
+        setTicketLockFinishConfig(
+          item.lockFinishConfig ? JSON.parse(JSON.stringify(item.lockFinishConfig)) : undefined
+        );
         const autoComp = matchBomItemToRmaCompany(item);
         if (autoComp === 'ProdataKey (PDK)') {
           setDesignatedReturnAddress(
@@ -469,6 +485,9 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
     if (item) {
       setAllegionPartNumbers(item.model ? `${item.model} (${item.name})` : item.name);
       setButterflyMxDoorLocation(item.location || '');
+      setTicketLockFinishConfig(
+        item.lockFinishConfig ? JSON.parse(JSON.stringify(item.lockFinishConfig)) : undefined
+      );
       const matched = matchBomItemToRmaCompany(item);
       if (matched === 'ProdataKey (PDK)') {
         setDesignatedReturnAddress(
@@ -505,6 +524,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
     setPdkConditionVerified(false);
     setButterflyMxDoorLocation('');
     setButterflyMxMacAddress('');
+    setTicketLockFinishConfig(undefined);
   };
 
   const handleEditExistingTicket = (ticket: RMATicketRecord) => {
@@ -539,6 +559,14 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
     setPdkConditionVerified(Boolean(ticket.pdkConditionVerified));
     setButterflyMxDoorLocation(ticket.butterflyMxDoorLocation || '');
     setButterflyMxMacAddress(ticket.butterflyMxMacAddress || '');
+    const fallbackItem = bomItems.find((b) => b.id === ticket.bomItemId);
+    setTicketLockFinishConfig(
+      ticket.lockFinishConfig
+        ? JSON.parse(JSON.stringify(ticket.lockFinishConfig))
+        : fallbackItem?.lockFinishConfig
+        ? JSON.parse(JSON.stringify(fallbackItem.lockFinishConfig))
+        : undefined
+    );
   };
 
   const handleSubmitTicket = (e: React.FormEvent) => {
@@ -620,6 +648,13 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
         activeCompany === 'ButterflyMX' ? butterflyMxDoorLocation.trim() : undefined,
       butterflyMxMacAddress:
         activeCompany === 'ButterflyMX' ? butterflyMxMacAddress.trim() : undefined,
+      sourceWorkspace: contextLabel,
+      sourceSectionLabel: 'Hardware RMA Ticketing Workflow',
+      lockFinishConfig: ticketLockFinishConfig,
+      thermostatBrand: selectedBomItem.thermostatBrand,
+      unitPrice: selectedBomItem.unitPrice,
+      location: selectedBomItem.location,
+      description: selectedBomItem.description,
     };
 
     const nextTickets = editingTicketId
@@ -667,12 +702,20 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
   };
 
   const handleCopyTicketSummary = (ticket: RMATicketRecord) => {
+    const finishLines = formatFullFinishDetailsLines(ticket.lockFinishConfig, {
+      name: ticket.bomItemName,
+      model: ticket.bomItemModel,
+      category: ticket.bomItemCategory,
+      thermostatBrand: ticket.thermostatBrand,
+    });
     const lines = [
       `=== QUEXT HARDWARE RMA TICKET: ${ticket.ticketNumber} ===`,
+      `Source: ${ticket.sourceWorkspace || contextLabel} Page — ${ticket.sourceSectionLabel || 'Hardware RMA Ticketing Workflow'}`,
       `${contextLabel}: ${ticket.propertyName}`,
       `Product Company: ${ticket.matchedCompany}`,
       `BOM Item: ${ticket.bomItemName} (Model: ${ticket.bomItemModel})`,
       `Defective Quantity: ${ticket.defectiveQuantity}`,
+      ...(finishLines.length > 0 ? [`Finish & Hardware Options:`, ...finishLines.map((l) => `  ${l}`)] : []),
       `Current Status: ${ticket.status}`,
       `Authorized Partner/Dealer: ${ticket.authorizedDealerOrPartner}`,
       `Serial Number(s): ${ticket.serialNumbers || 'Pending'}`,
@@ -726,6 +769,18 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('quext:open-product-acquisition-portal'));
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-xs font-bold cursor-pointer transition-colors"
+            title="Open the centralized Product Acquisition Portal"
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>Product Acquisition Portal</span>
+          </button>
           <span className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-mono font-bold text-white">
             {existingTickets.length} Active RMA Ticket{existingTickets.length === 1 ? '' : 's'}
           </span>
@@ -920,6 +975,87 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                   Installed: {selectedBomItem.installedCount} / BOM Total:{' '}
                   {selectedBomItem.quantity}
                 </span>
+              </div>
+
+              {/* Product Details & Finish Options Card (Synced with Product Acquisition Portal) */}
+              <div className="p-3.5 rounded-xl bg-slate-900 text-white border border-slate-800 space-y-2.5 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <span>Product &amp; Finish Options (Sent to Product Acquisition Portal)</span>
+                    </div>
+                    <div className="font-bold text-white text-xs sm:text-sm">
+                      {selectedBomItem.name}{' '}
+                      <span className="text-slate-400 font-mono text-xs">
+                        (Model: {selectedBomItem.model})
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>Category: {selectedBomItem.category}</span>
+                      <span>Location: {selectedBomItem.location}</span>
+                      {selectedBomItem.thermostatBrand && (
+                        <span className="text-amber-300 font-semibold">
+                          Thermostat Brand: {selectedBomItem.thermostatBrand}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsFinishModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-xs font-bold cursor-pointer transition-colors shrink-0"
+                  >
+                    <span>
+                      {ticketLockFinishConfig
+                        ? '🎨 Edit Finish Options'
+                        : '🎨 + Set Finish Options'}
+                    </span>
+                  </button>
+                </div>
+
+                {ticketLockFinishConfig ? (
+                  <div className="p-2.5 rounded-lg bg-slate-950/90 border border-slate-800 space-y-1 text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 font-bold text-sky-300">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full border border-white/50 shrink-0"
+                          style={{
+                            backgroundColor: getLockFinishColorHex(
+                              ticketLockFinishConfig.befeColorFinish ||
+                                ticketLockFinishConfig.ndeColorFinish ||
+                                ticketLockFinishConfig.xe360ColorFinish
+                            ),
+                          }}
+                        />
+                        <span>
+                          {getLockFinishSummaryTag(ticketLockFinishConfig) ||
+                            'Configured Finish Options'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTicketLockFinishConfig(undefined)}
+                        className="text-[10px] text-slate-400 hover:text-rose-400 cursor-pointer"
+                      >
+                        Clear Finish
+                      </button>
+                    </div>
+                    <div className="text-slate-300 space-y-0.5 pt-1 border-t border-slate-800/80">
+                      {formatFullFinishDetailsLines(ticketLockFinishConfig, selectedBomItem).map(
+                        (line, idx) => (
+                          <div key={idx}>{line}</div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-slate-400">
+                    {isLockBOMItem(selectedBomItem)
+                      ? 'No lock finish options set yet — click "🎨 + Set Finish Options" to specify Trim Style, Color Finish, Lever Style, or Split Finishes for this RMA replacement.'
+                      : 'Optional: Click "🎨 + Set Finish Options" if this RMA item requires trim, finish, or hardware configuration notes.'}
+                  </div>
+                )}
               </div>
 
               {/* Core Shared RMA Fields */}
@@ -1433,7 +1569,54 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                         <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-mono font-bold">
                           Qty: {ticket.defectiveQuantity}
                         </span>
+                        <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200 text-[10px] font-bold">
+                          {ticket.sourceWorkspace || contextLabel} • RMA Ticket
+                        </span>
                       </div>
+
+                      {ticket.lockFinishConfig && (
+                        <div className="space-y-1.5 pt-0.5">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[11px] border border-slate-700">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
+                              style={{
+                                backgroundColor: getLockFinishColorHex(
+                                  ticket.lockFinishConfig.befeColorFinish ||
+                                    ticket.lockFinishConfig.ndeColorFinish ||
+                                    ticket.lockFinishConfig.xe360ColorFinish
+                                ),
+                              }}
+                            />
+                            <span className="font-semibold">
+                              Finish: {getLockFinishSummaryTag(ticket.lockFinishConfig)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedTicketFinishIds((prev) => ({
+                                  ...prev,
+                                  [ticket.id]: !prev[ticket.id],
+                                }))
+                              }
+                              className="ml-1 px-1.5 py-0.2 rounded-full bg-slate-800 text-sky-300 text-[9px] font-bold cursor-pointer"
+                            >
+                              {expandedTicketFinishIds[ticket.id] ? 'Hide Details' : 'Full Finish Details'}
+                            </button>
+                          </div>
+                          {expandedTicketFinishIds[ticket.id] && (
+                            <div className="p-2.5 rounded-xl bg-slate-950 text-slate-200 border border-slate-800 text-[11px] space-y-0.5 max-w-xl">
+                              {formatFullFinishDetailsLines(ticket.lockFinishConfig, {
+                                name: ticket.bomItemName,
+                                model: ticket.bomItemModel,
+                                category: ticket.bomItemCategory,
+                                thermostatBrand: ticket.thermostatBrand,
+                              }).map((l, idx) => (
+                                <div key={idx}>{l}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="text-xs text-slate-700 leading-relaxed">
                         <strong>Failure:</strong> {ticket.failureDescription}
@@ -1505,6 +1688,23 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
           </div>
         )}
         </div>
+      )}
+
+      {/* Lock Finish Modal for RMA Ticket Item */}
+      {selectedBomItem && isFinishModalOpen && (
+        <LockFinishModal
+          item={{
+            ...selectedBomItem,
+            quantity: Math.max(1, defectiveQuantity),
+            lockFinishConfig: ticketLockFinishConfig,
+          }}
+          isOpen={isFinishModalOpen}
+          onClose={() => setIsFinishModalOpen(false)}
+          onSave={(_itemId, config) => {
+            setTicketLockFinishConfig(config);
+            setIsFinishModalOpen(false);
+          }}
+        />
       )}
     </div>
   );

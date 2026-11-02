@@ -61,11 +61,13 @@ import { SearchablePropertyPicker } from './SearchablePropertyPicker';
 import { CreateManualProjectModal } from './CreateManualProjectModal';
 import { ImportProjectsModal } from './ImportProjectsModal';
 import { CustomerSuccessPortal } from './CustomerSuccessPortal';
+import { ProductAcquisitionPortal } from './ProductAcquisitionPortal';
 
 export type MyQuextTopTab =
   | 'salesHub'
   | 'operations'
   | 'customerSuccess'
+  | 'productAcquisition'
   | 'reports'
   | 'productCatalog';
 
@@ -190,9 +192,29 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
 
   useEffect(() => {
     const handleOpenImportModal = () => setIsImportProjectsModalOpen(true);
+    const handleOpenProductAcquisition = () => {
+      onSelectTopTab('productAcquisition');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
     window.addEventListener('quext-open-import-modal', handleOpenImportModal);
-    return () => window.removeEventListener('quext-open-import-modal', handleOpenImportModal);
-  }, []);
+    window.addEventListener('quext:open-product-acquisition-portal', handleOpenProductAcquisition);
+    return () => {
+      window.removeEventListener('quext-open-import-modal', handleOpenImportModal);
+      window.removeEventListener('quext:open-product-acquisition-portal', handleOpenProductAcquisition);
+    };
+  }, [onSelectTopTab]);
+
+  const totalAcquisitionIntakeCount = useMemo(() => {
+    return projects.reduce((sum, p) => {
+      const rmaCount = (p.rmaTickets || []).length;
+      const coItemsCount = (p.changeOrders || []).reduce(
+        (acc, co) => acc + (co.items?.length || 0),
+        0
+      );
+      const bomSubCount = (p.bomAcquisitionSubmissions || []).length;
+      return sum + rmaCount + coItemsCount + bomSubCount;
+    }, 0);
+  }, [projects]);
   const [salesSubTab, setSalesSubTab] = useState<SalesHubSidebarTab>('dashboard');
   const [whatsHappeningFilter, setWhatsHappeningFilter] = useState<'all' | 'mentions' | 'Leading' | 'Contributing'>('all');
   const [globalSearch, setGlobalSearch] = useState('');
@@ -499,6 +521,27 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 }`}
               >
                 Customer Success
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onSelectTopTab('productAcquisition')}
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                  activeTopTab === 'productAcquisition'
+                    ? 'bg-emerald-50 text-emerald-700 font-semibold ring-1 ring-emerald-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                }`}
+              >
+                <span>Product Acquisition</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums ${
+                    activeTopTab === 'productAcquisition'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  {totalAcquisitionIntakeCount}
+                </span>
               </button>
 
               <button
@@ -1086,6 +1129,28 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             }`}
           >
             Customer Success
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectTopTab('productAcquisition')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+              activeTopTab === 'productAcquisition'
+                ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>Product Acquisition</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                activeTopTab === 'productAcquisition'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-emerald-100 text-emerald-800'
+              }`}
+            >
+              {totalAcquisitionIntakeCount}
+            </span>
           </button>
 
           <button
@@ -2162,6 +2227,18 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
           onGoToOperationsDashboard={() => {
             onSelectTopTab('operations');
             onGoToOperationsDashboard();
+          }}
+          currentUserName={currentUserName}
+        />
+      )}
+
+      {activeTopTab === 'productAcquisition' && (
+        <ProductAcquisitionPortal
+          projects={projects}
+          onUpdateProject={onUpdateProject || (() => {})}
+          onOpenProjectInOperations={handleOpenProjectInOperations}
+          onOpenPropertyInCustomerSuccess={() => {
+            onSelectTopTab('customerSuccess');
           }}
           currentUserName={currentUserName}
         />

@@ -959,7 +959,64 @@ export interface OperationProject {
   csmPortalData?: CSMPropertyPortalData;
   rmaTickets?: RMATicketRecord[];
   changeOrders?: ChangeOrderRecord[];
+  bomAcquisitionSubmissions?: BOMAcquisitionSubmission[];
+  acquisitionStatusOverrides?: Record<
+    string,
+    {
+      status: ProductAcquisitionFulfillmentStatus;
+      poOrTrackingNumber?: string;
+      updatedAt: string;
+      updatedBy: string;
+      notes?: string;
+    }
+  >;
   lastUpdated: string;
+}
+
+export type ProductAcquisitionSourceSection =
+  | 'Hardware RMA Ticketing Workflow'
+  | 'Supplemental Order Catalog'
+  | 'Product Acquisition and Change Order'
+  | 'Smart Community Bill of Materials (BOM)';
+
+export type ProductAcquisitionItemType =
+  | 'RMA Replacement / Warranty Claim'
+  | 'Supplemental Catalog Order (Property)'
+  | 'Product Acquisition & Change Order (Project)'
+  | 'BOM Line-Item Acquisition Request';
+
+export type ProductAcquisitionFulfillmentStatus =
+  | 'Pending Acquisition / Review'
+  | 'PO Submitted / Ordered'
+  | 'In Transit / Shipped'
+  | 'Delivered / Fulfilled';
+
+export interface BOMAcquisitionSubmission {
+  id: string;
+  submissionNumber: string;
+  projectId: string;
+  propertyName: string;
+  sourceWorkspace: 'Project' | 'Property';
+  sourceSection: 'Smart Community Bill of Materials (BOM)';
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+  status: ProductAcquisitionFulfillmentStatus;
+  bomItemId: string;
+  itemName: string;
+  model: string;
+  category: BOMCategory;
+  location: string;
+  confirmedQuantityToSend: number;
+  originalBomQuantity: number;
+  installedBomQuantity: number;
+  sparesCount?: number;
+  unitPrice: number;
+  description?: string;
+  thermostatBrand?: ThermostatBrand;
+  lockFinishConfig?: LockFinishConfig;
+  notes?: string;
+  poOrTrackingNumber?: string;
 }
 
 export type ChangeOrderStatus =
@@ -985,6 +1042,8 @@ export interface ChangeOrderLineItem {
   location: string;
   description?: string;
   notes?: string;
+  thermostatBrand?: ThermostatBrand;
+  lockFinishConfig?: LockFinishConfig;
 }
 
 export interface ChangeOrderRecord {
@@ -1002,6 +1061,8 @@ export interface ChangeOrderRecord {
   approvedAt?: string;
   integratorPartners?: string[];
   assignedFieldTech?: FieldTechName;
+  sourceWorkspace?: 'Project' | 'Property';
+  sourceSectionLabel?: 'Product Acquisition and Change Order' | 'Supplemental Order Catalog';
   items: ChangeOrderLineItem[];
   notes?: string;
 }
@@ -1090,6 +1151,14 @@ export interface RMATicketRecord {
   // ButterflyMX-specific
   butterflyMxDoorLocation?: string;
   butterflyMxMacAddress?: string;
+  // Source & Full Product / Finish Options metadata
+  sourceWorkspace?: 'Project' | 'Property';
+  sourceSectionLabel?: 'Hardware RMA Ticketing Workflow';
+  lockFinishConfig?: LockFinishConfig;
+  thermostatBrand?: ThermostatBrand;
+  unitPrice?: number;
+  location?: string;
+  description?: string;
 }
 
 /**
@@ -2188,10 +2257,15 @@ export interface LockFinishConfig {
   splits?: LockFinishSplit[];
 }
 
-export function isLockBOMItem(item: { name?: string; model?: string; category?: string }): boolean {
+export function isLockBOMItem(item: {
+  name?: string;
+  model?: string;
+  sku?: string;
+  category?: string;
+}): boolean {
   if (!item) return false;
   const name = (item.name || '').toLowerCase();
-  const model = (item.model || '').toLowerCase();
+  const model = `${item.model || ''} ${item.sku || ''}`.toLowerCase();
   const s = `${name} ${model}`;
 
   // Explicitly exclude non-lock items (Enrollment Readers, MT20W, Readers, Gate Readers, Elevators, Controllers, Intercoms, Fobs, Credentials, Handles)
@@ -2252,10 +2326,11 @@ export function isLockBOMItem(item: { name?: string; model?: string; category?: 
 export function detectLockFamily(item: {
   name?: string;
   model?: string;
+  sku?: string;
   category?: string;
   lockFinishConfig?: LockFinishConfig;
 }): LockFamilyType {
-  const s = `${item?.name || ''} ${item?.model || ''}`.toLowerCase();
+  const s = `${item?.name || ''} ${item?.model || ''} ${item?.sku || ''}`.toLowerCase();
   
   // 1. NDEB / NDE commercial wireless levers (must be checked BEFORE generic 'tubular' or 'mortise' to avoid misclassifying NDEB Tubular)
   if (s.includes('ndeb') || s.includes('nde') || s.includes('wireless lever') || s.includes('cylindrical')) {
@@ -2289,8 +2364,12 @@ export function detectLockFamily(item: {
   return 'befe';
 }
 
-export function isLockFamilyLockedToBOM(item: { name?: string; model?: string }): boolean {
-  const s = `${item?.name || ''} ${item?.model || ''}`.toLowerCase();
+export function isLockFamilyLockedToBOM(item: {
+  name?: string;
+  model?: string;
+  sku?: string;
+}): boolean {
+  const s = `${item?.name || ''} ${item?.model || ''} ${item?.sku || ''}`.toLowerCase();
   return (
     s.includes('xe360') ||
     s.includes('ndeb') ||
@@ -2304,11 +2383,17 @@ export function isLockFamilyLockedToBOM(item: { name?: string; model?: string })
 }
 
 export function getLockTypeDisplay(
-  item: { name?: string; model?: string; category?: string; lockFinishConfig?: LockFinishConfig },
+  item: {
+    name?: string;
+    model?: string;
+    sku?: string;
+    category?: string;
+    lockFinishConfig?: LockFinishConfig;
+  },
   splitOrSubtype?: Xe360Subtype | { xe360Subtype?: Xe360Subtype }
 ): string {
   const family = detectLockFamily(item);
-  const s = `${item?.name || ''} ${item?.model || ''}`.toUpperCase();
+  const s = `${item?.name || ''} ${item?.model || ''} ${item?.sku || ''}`.toUpperCase();
 
   if (family === 'xe360') {
     let subtype: Xe360Subtype = 'Mortise';
@@ -2464,5 +2549,111 @@ export function getLockFinishColorHex(colorFinish?: string): string {
   if (c.includes('612') || c.includes('satin bronze')) return '#92400E';
   return '#64748B';
 }
+
+export function formatFullFinishDetailsLines(
+  config?: LockFinishConfig,
+  item?: {
+    name?: string;
+    model?: string;
+    sku?: string;
+    category?: string;
+    thermostatBrand?: ThermostatBrand;
+  }
+): string[] {
+  const lines: string[] = [];
+  if (item?.thermostatBrand) {
+    lines.push(`Thermostat Brand: ${item.thermostatBrand}`);
+  }
+  if (!config) return lines;
+
+  const family = config.family || detectLockFamily({ ...item, lockFinishConfig: config });
+
+  if (config.isSplit && config.splits && config.splits.length > 0) {
+    lines.push(
+      `Split Hardware Finish Allocation (${config.splits.length} Groups):`
+    );
+    config.splits.forEach((s, idx) => {
+      const lockType = getLockTypeDisplay({ ...item, lockFinishConfig: config }, s);
+      const finish =
+        family === 'befe'
+          ? s.befeColorFinish
+          : family === 'nde'
+          ? s.ndeColorFinish
+          : s.xe360ColorFinish;
+      const trimOrLever =
+        family === 'befe'
+          ? s.befeTrimStyle
+            ? `Trim: ${s.befeTrimStyle}`
+            : ''
+          : family === 'nde'
+          ? s.ndeLeverType
+            ? `Lever: ${s.ndeLeverType}`
+            : ''
+          : s.xe360LeverStyle
+          ? `Lever: ${s.xe360LeverStyle}`
+          : '';
+      const xeExtras =
+        family === 'xe360'
+          ? [
+              s.xe360TubularGrade || s.xe360MortiseGrade,
+              s.xe360ExitTrimFunction || s.xe360TubularFunction || s.xe360MortiseFunction,
+              s.xe360ExitTrimCrashbar ? `Crashbar: ${s.xe360ExitTrimCrashbar}` : '',
+            ]
+              .filter(Boolean)
+              .join(' | ')
+          : '';
+      const segParts = [
+        `${s.quantity}x ${lockType}`,
+        finish ? `Finish: ${finish}` : '',
+        trimOrLever,
+        xeExtras,
+        s.notes ? `Scope: ${s.notes}` : '',
+      ].filter(Boolean);
+      lines.push(
+        `  • ${s.label || `Group #${idx + 1}`}: ${segParts.join(' · ')}`
+      );
+    });
+  } else {
+    const lockType = getLockTypeDisplay({ ...item, lockFinishConfig: config });
+    lines.push(`Lock Type: ${lockType}`);
+    if (family === 'befe') {
+      if (config.befeTrimStyle) lines.push(`Trim / Escutcheon Style: ${config.befeTrimStyle}`);
+      if (config.befeColorFinish) lines.push(`Color Finish: ${config.befeColorFinish}`);
+    } else if (family === 'nde') {
+      if (config.ndeColorFinish) lines.push(`Color Finish: ${config.ndeColorFinish}`);
+      if (config.ndeLeverType) lines.push(`Lever Design: ${config.ndeLeverType}`);
+    } else if (family === 'xe360') {
+      if (config.xe360Subtype) lines.push(`XE360 Subtype: ${config.xe360Subtype}`);
+      if (config.xe360ColorFinish) lines.push(`Color Finish: ${config.xe360ColorFinish}`);
+      if (config.xe360LeverStyle) lines.push(`Lever Style: ${config.xe360LeverStyle}`);
+      if (config.xe360TubularGrade || config.xe360MortiseGrade) {
+        lines.push(`ANSI/BHMA Grade: ${config.xe360TubularGrade || config.xe360MortiseGrade}`);
+      }
+      if (
+        config.xe360ExitTrimFunction ||
+        config.xe360TubularFunction ||
+        config.xe360MortiseFunction
+      ) {
+        lines.push(
+          `Function: ${
+            config.xe360ExitTrimFunction ||
+            config.xe360TubularFunction ||
+            config.xe360MortiseFunction
+          }`
+        );
+      }
+      if (config.xe360ExitTrimCrashbar) {
+        lines.push(`Crashbar Compatibility: ${config.xe360ExitTrimCrashbar}`);
+      }
+    }
+  }
+
+  if (config.customNotes && config.customNotes.trim()) {
+    lines.push(`Finish Specification Notes: ${config.customNotes.trim()}`);
+  }
+
+  return lines;
+}
+
 
 

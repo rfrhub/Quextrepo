@@ -12,14 +12,16 @@ import {
   getLockFinishSummaryTag,
   getLockFinishColorHex,
   getSingleLockFinishSummary,
+  formatFullFinishDetailsLines,
   LockFinishConfig,
+  BOMAcquisitionSubmission,
   OperationProject,
   Quote,
 } from '../types';
 import { PostItWindow } from './PostItWindow';
 import { LockFinishModal } from './LockFinishModal';
 import { BOMOverrideModal } from './BOMOverrideModal';
-import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal, Trash2, X, Wrench } from 'lucide-react';
+import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal, Trash2, X, Wrench, Package, Send, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 interface BOMTableProps {
   items: BOMItem[];
@@ -34,6 +36,9 @@ interface BOMTableProps {
   onDeleteLog?: (logId: string) => void;
   isReadOnly?: boolean;
   project?: OperationProject;
+  onUpdateProject?: (updated: OperationProject) => void;
+  currentUserName?: string;
+  contextLabel?: 'Project' | 'Property';
   quotesList?: Quote[];
   onAddBOMItem?: (newItem: BOMItem, overrideReason: string) => void;
   onDeleteBOMItem?: (itemId: string, overrideReason: string) => void;
@@ -53,6 +58,9 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   onDeleteLog,
   isReadOnly = false,
   project,
+  onUpdateProject,
+  currentUserName = 'Project Manager',
+  contextLabel = 'Project',
   quotesList = [],
   onAddBOMItem,
   onDeleteBOMItem,
@@ -69,6 +77,68 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   const [expandedRowLogs, setExpandedRowLogs] = useState<Record<string, boolean>>({});
   // Lock finish expanded options card state (per row)
   const [expandedFinishRows, setExpandedFinishRows] = useState<Record<string, boolean>>({});
+
+  // Send BOM Line Item to Product Acquisition Portal confirmation modal state
+  const [acquisitionModalItem, setAcquisitionModalItem] = useState<BOMItem | null>(null);
+  const [acquisitionConfirmedQty, setAcquisitionConfirmedQty] = useState<number>(1);
+  const [acquisitionNotes, setAcquisitionNotes] = useState<string>('');
+  const [lastSentSubmission, setLastSentSubmission] = useState<BOMAcquisitionSubmission | null>(null);
+
+  const handleOpenAcquisitionModal = (item: BOMItem) => {
+    setAcquisitionModalItem(item);
+    setAcquisitionConfirmedQty(Math.max(1, item.quantity));
+    setAcquisitionNotes('');
+  };
+
+  const handleConfirmSendToAcquisition = () => {
+    if (!acquisitionModalItem || !project || !onUpdateProject) return;
+    const latestItem = items.find((i) => i.id === acquisitionModalItem.id) || acquisitionModalItem;
+    const existingSubmissions = project.bomAcquisitionSubmissions || [];
+    const nextIdx = existingSubmissions.length + 1;
+    const subNum = `ACQ-BOM-${project.quoteNumber.replace(/^QXT-/, '')}-${String(nextIdx).padStart(2, '0')}`;
+    const qtyToSend = Math.max(1, Number(acquisitionConfirmedQty) || latestItem.quantity);
+    const uPrice = latestItem.unitPrice || 0;
+    const dispCategory = getCategoryDisplayName(latestItem.category);
+    const isTherm = dispCategory === 'Smart Thermostats';
+    const resolvedBrand: ThermostatBrand | undefined = isTherm
+      ? latestItem.thermostatBrand || (latestItem.name.toLowerCase().includes('honeywell') ? 'Honeywell' : 'Quext')
+      : latestItem.thermostatBrand;
+
+    const newSubmission: BOMAcquisitionSubmission = {
+      id: `bom-acq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      submissionNumber: subNum,
+      bomItemId: latestItem.id,
+      name: latestItem.name,
+      model: latestItem.model,
+      category: latestItem.category,
+      location: latestItem.location,
+      description: latestItem.description,
+      quotedQuantity: latestItem.quantity,
+      installedCount: latestItem.installedCount,
+      sparesCount: latestItem.sparesCount,
+      confirmedQuantity: qtyToSend,
+      unitPrice: uPrice,
+      totalCost: Number((qtyToSend * uPrice).toFixed(2)),
+      thermostatBrand: resolvedBrand,
+      lockFinishConfig: latestItem.lockFinishConfig,
+      notes: acquisitionNotes.trim() || undefined,
+      sourceWorkspace: contextLabel,
+      sourceSectionLabel: 'Smart Community Bill of Materials (BOM)',
+      itemType: 'Smart Community Bill of Materials (BOM)',
+      fulfillmentStatus: 'Pending Acquisition / Review',
+      createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      createdBy: currentUserName,
+    };
+
+    onUpdateProject({
+      ...project,
+      bomAcquisitionSubmissions: [newSubmission, ...existingSubmissions],
+      lastUpdated: new Date().toISOString(),
+    });
+
+    setLastSentSubmission(newSubmission);
+    setAcquisitionModalItem(null);
+  };
 
   // BOM Override states (triggered by clicking invisible button 7 times)
   const [overrideClicks, setOverrideClicks] = useState<number>(0);
@@ -288,6 +358,23 @@ export const BOMTable: React.FC<BOMTableProps> = ({
             )}
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('quext:open-product-acquisition-portal'));
+            }}
+            className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            title="Open the centralized Product Acquisition Portal"
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>Product Acquisition Portal</span>
+            {(project?.bomAcquisitionSubmissions?.length || 0) > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">
+                {project?.bomAcquisitionSubmissions?.length}
+              </span>
+            )}
+          </button>
+
           {hasLocksOnBOM && (
             <button
               type="button"
@@ -301,6 +388,38 @@ export const BOMTable: React.FC<BOMTableProps> = ({
           )}
         </div>
       </div>
+
+      {/* Sent to Product Acquisition Confirmation Banner */}
+      {lastSentSubmission && (
+        <div className="px-4 py-3 bg-emerald-50 border-b border-emerald-200 flex flex-wrap items-center justify-between gap-3 text-xs animate-fadeIn">
+          <div className="flex items-center gap-2 text-emerald-950">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              Sent <strong>{lastSentSubmission.confirmedQuantity}x {lastSentSubmission.name}</strong> ({lastSentSubmission.submissionNumber}) to the <strong>Product Acquisition Portal</strong> with full product &amp; finish details.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('quext:open-product-acquisition-portal'));
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold cursor-pointer transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />
+              <span>View in Product Acquisition Portal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLastSentSubmission(null)}
+              className="p-1 rounded text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -1034,7 +1153,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                     {/* Action: Open Post-It Note Window & View Row Logs */}
                     {!isReadOnly && (
                       <td className="py-3.5 px-3 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <button
                             type="button"
                             onClick={() => setActivePostItItem(item)}
@@ -1054,6 +1173,18 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                             >
                               <Wrench className="w-3.5 h-3.5 text-indigo-600" />
                               <span>RMA Ticket</span>
+                            </button>
+                          )}
+
+                          {onUpdateProject && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAcquisitionModal(item)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+                              title={`Send ${item.name} to the Product Acquisition Portal (confirm quantity & include full details + finish options)`}
+                            >
+                              <Send className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Send to Acquisition</span>
                             </button>
                           )}
 
@@ -1194,9 +1325,334 @@ export const BOMTable: React.FC<BOMTableProps> = ({
             if (onUpdateLockFinishConfig) {
               onUpdateLockFinishConfig(itemId, config);
             }
+            if (acquisitionModalItem && acquisitionModalItem.id === itemId) {
+              setAcquisitionModalItem({
+                ...acquisitionModalItem,
+                lockFinishConfig: config,
+              });
+            }
           }}
         />
       )}
+
+      {/* Send BOM Line Item to Product Acquisition Portal — Confirm Quantity & Full Product Details Modal */}
+      {acquisitionModalItem && (() => {
+        const liveItem = items.find((i) => i.id === acquisitionModalItem.id) || acquisitionModalItem;
+        const unitLabel = getCategoryUnitLabel(liveItem.category, liveItem);
+        const dispCategory = getCategoryDisplayName(liveItem.category);
+        const remainingQty = Math.max(0, liveItem.quantity - liveItem.installedCount);
+        const totalWithSpares = liveItem.quantity + (liveItem.sparesCount || 0);
+        const finishLines = formatFullFinishDetailsLines(liveItem.lockFinishConfig, liveItem);
+        const isThermostat = dispCategory === 'Smart Thermostats';
+        const resolvedThermBrand: ThermostatBrand =
+          liveItem.thermostatBrand || (liveItem.name.toLowerCase().includes('honeywell') ? 'Honeywell' : 'Quext');
+        const unitPrice = liveItem.unitPrice || 0;
+        const estTotal = (Math.max(1, Number(acquisitionConfirmedQty) || 1) * unitPrice);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+              {/* Header */}
+              <div className="bg-emerald-950 text-white p-4 sm:p-5 flex items-start justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Send className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-bold text-white">
+                        Send BOM Line Item to Product Acquisition Portal
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                        {contextLabel} Page · Smart Community BOM
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-200/90 mt-0.5">
+                      Confirm the quantity to send and verify full product &amp; finish specifications
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAcquisitionModalItem(null)}
+                  className="p-1.5 rounded-lg text-emerald-200 hover:text-white hover:bg-emerald-900 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+                {/* 1. Confirm Quantity to Send */}
+                <div className="p-4 rounded-xl bg-emerald-50/80 border-2 border-emerald-300 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="block text-xs font-extrabold text-emerald-950 uppercase tracking-wider">
+                        1. Confirm Quantity to Send to Product Acquisition *
+                      </label>
+                      <p className="text-[11px] text-emerald-800 mt-0.5">
+                        Specify how many units of <strong>{liveItem.name}</strong> should be queued in the Product Acquisition Portal.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setAcquisitionConfirmedQty(Math.max(1, acquisitionConfirmedQty - 1))}
+                        className="w-8 h-8 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center justify-center cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={acquisitionConfirmedQty}
+                        onChange={(e) => setAcquisitionConfirmedQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-24 text-center py-1.5 px-2 bg-white border-2 border-emerald-500 rounded-lg font-mono font-extrabold text-sm text-emerald-950 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setAcquisitionConfirmedQty(acquisitionConfirmedQty + 1)}
+                        className="w-8 h-8 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center justify-center cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick-select Quantity Presets */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-emerald-200/80">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Quick Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAcquisitionConfirmedQty(Math.max(1, liveItem.quantity))}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
+                        acquisitionConfirmedQty === liveItem.quantity
+                          ? 'bg-emerald-700 text-white border-emerald-800'
+                          : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                      }`}
+                    >
+                      Full Quoted Qty ({liveItem.quantity} {unitLabel})
+                    </button>
+                    {remainingQty > 0 && remainingQty !== liveItem.quantity && (
+                      <button
+                        type="button"
+                        onClick={() => setAcquisitionConfirmedQty(remainingQty)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
+                          acquisitionConfirmedQty === remainingQty
+                            ? 'bg-emerald-700 text-white border-emerald-800'
+                            : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                        }`}
+                      >
+                        Remaining Uninstalled ({remainingQty} {unitLabel})
+                      </button>
+                    )}
+                    {(liveItem.sparesCount || 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAcquisitionConfirmedQty(totalWithSpares)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
+                          acquisitionConfirmedQty === totalWithSpares
+                            ? 'bg-emerald-700 text-white border-emerald-800'
+                            : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                        }`}
+                      >
+                        Quoted + Spares ({totalWithSpares} {unitLabel})
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Full Product Details Included */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider">
+                      2. Full Product Specifications (Included in Portal Intake)
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Est. Value: ${estTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Product Name</span>
+                      <span className="font-bold text-slate-900 text-xs">{liveItem.name}</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Model / SKU</span>
+                      <span className="font-mono font-bold text-slate-800 text-xs">{liveItem.model}</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Category</span>
+                      <span className="font-semibold text-slate-800 text-xs">{dispCategory}</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Location / Scope</span>
+                      <span className="font-semibold text-slate-800 text-xs">{liveItem.location || 'Property-wide'}</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">BOM Baseline Counts</span>
+                      <span className="font-mono text-slate-700 text-xs">
+                        Quoted: <strong>{liveItem.quantity}</strong> · Installed: <strong>{liveItem.installedCount}</strong>
+                        {(liveItem.sparesCount || 0) > 0 ? ` · Spares: +${liveItem.sparesCount}` : ''}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Unit Price &amp; Source Tag</span>
+                      <span className="font-mono text-slate-700 text-xs">
+                        ${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / unit ·{' '}
+                        <strong className="text-indigo-700">{contextLabel} BOM</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {liveItem.description && (
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Catalog Description</span>
+                      <p className="text-slate-700 text-xs mt-0.5 leading-relaxed">{liveItem.description}</p>
+                    </div>
+                  )}
+
+                  {isThermostat && (
+                    <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-amber-800 uppercase font-bold block">Thermostat Brand Option</span>
+                        <span className="font-bold text-amber-950 text-xs">{resolvedThermBrand}</span>
+                      </div>
+                      {onUpdateThermostatBrand && (
+                        <div className="inline-flex items-center gap-1 bg-white p-0.5 rounded border border-amber-300">
+                          <button
+                            type="button"
+                            onClick={() => onUpdateThermostatBrand(liveItem.id, 'Quext')}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                              resolvedThermBrand === 'Quext' ? 'bg-sky-600 text-white' : 'text-slate-600'
+                            }`}
+                          >
+                            Quext
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onUpdateThermostatBrand(liveItem.id, 'Honeywell')}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                              resolvedThermBrand === 'Honeywell' ? 'bg-amber-600 text-white' : 'text-slate-600'
+                            }`}
+                          >
+                            Honeywell
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Full Finish & Hardware Options Included */}
+                <div className="bg-slate-900 text-white rounded-xl p-4 border border-slate-800 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-sky-400" />
+                      <div>
+                        <span className="text-xs font-bold text-sky-300 block">
+                          3. Product Finish &amp; Hardware Options Included
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          Full finish options (trim, color finish, lever style, grade, function, or split finishes) travel with this item
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveLockFinishItem(liveItem)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <span>🎨 {liveItem.lockFinishConfig ? 'Edit Finish Options' : '+ Set Finish Options'}</span>
+                    </button>
+                  </div>
+
+                  {liveItem.lockFinishConfig ? (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-sky-200">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
+                          style={{
+                            backgroundColor: getLockFinishColorHex(
+                              liveItem.lockFinishConfig.befeColorFinish ||
+                                liveItem.lockFinishConfig.ndeColorFinish ||
+                                liveItem.lockFinishConfig.xe360ColorFinish
+                            ),
+                          }}
+                        />
+                        <span>{getLockFinishSummaryTag(liveItem.lockFinishConfig)}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                        {finishLines.map((line, idx) => (
+                          <div
+                            key={idx}
+                            className="text-[11px] text-slate-200 bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 font-mono"
+                          >
+                            {line}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-300 bg-slate-950/60 p-3 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                      <span>
+                        No custom finish configuration attached yet (Standard factory finish will be listed unless configured).
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveLockFinishItem(liveItem)}
+                        className="text-sky-400 hover:text-sky-300 font-bold underline shrink-0 cursor-pointer"
+                      >
+                        Configure Finish Now
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Optional Acquisition Notes */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Acquisition / Fulfillment Notes (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={acquisitionNotes}
+                    onChange={(e) => setAcquisitionNotes(e.target.value)}
+                    placeholder="Add any shipping priority, phase allocation, or special procurement instructions..."
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+                <div className="text-[11px] text-slate-500">
+                  Tagged as: <strong className="text-slate-800">{contextLabel} Page</strong> ·{' '}
+                  <strong className="text-emerald-700">Smart Community Bill of Materials (BOM)</strong>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAcquisitionModalItem(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmSendToAcquisition}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Confirm &amp; Send {acquisitionConfirmedQty} {unitLabel} to Acquisition Portal</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* BOM Override Modal (Triggered by 7 clicks on invisible button) */}
       {isOverrideModalOpen && (
