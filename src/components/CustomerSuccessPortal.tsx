@@ -826,6 +826,86 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   const [filterRiskTier, setFilterRiskTier] = useState<string>('all');
   const [filterTag, setFilterTag] = useState<string>('all');
 
+  // Project History section filter tab
+  const [projectHistoryTab, setProjectHistoryTab] = useState<
+    | 'all'
+    | 'sow'
+    | 'doors'
+    | 'installer_logs'
+    | 'shipping'
+    | 'bom_notes'
+    | 'rma_tickets'
+    | 'change_orders'
+  >('all');
+
+  // Selective Project Notes Browser & Transfer Modal State (Project notes only appear when CSM clicks this button)
+  const [isProjectNotesBrowserOpen, setIsProjectNotesBrowserOpen] = useState<boolean>(false);
+  const [selectedProjectNoteIdsToTransfer, setSelectedProjectNoteIdsToTransfer] = useState<
+    string[]
+  >([]);
+  const [transferNotesRiskTier, setTransferNotesRiskTier] = useState<CSMRiskTier>('None');
+
+  const projectNotes = useMemo(() => property.notes || [], [property.notes]);
+
+  const alreadyTransferredProjectNoteIds = useMemo(() => {
+    const set = new Set<string>();
+    csmNotes.forEach((n) => {
+      if (n.transferredFromProjectNoteId) {
+        set.add(n.transferredFromProjectNoteId);
+      }
+    });
+    return set;
+  }, [csmNotes]);
+
+  const handleToggleProjectNoteForTransfer = (projNoteId: string) => {
+    setSelectedProjectNoteIdsToTransfer((prev) =>
+      prev.includes(projNoteId) ? prev.filter((id) => id !== projNoteId) : [...prev, projNoteId]
+    );
+  };
+
+  const handleTransferSelectedProjectNotes = () => {
+    if (selectedProjectNoteIdsToTransfer.length === 0) return;
+
+    const nowFormatted = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const notesToCopy = projectNotes.filter((pn) =>
+      selectedProjectNoteIdsToTransfer.includes(pn.id)
+    );
+    if (notesToCopy.length === 0) return;
+
+    const transferredCsmNotes: CSMPropertyNote[] = notesToCopy.map((pn, idx) => ({
+      id: `csm-note-transferred-${property.id}-${Date.now()}-${idx}`,
+      propertyId: property.id,
+      author: `${pn.author} (Transferred Project Note)`,
+      createdAt: `${nowFormatted} (Orig: ${pn.timestamp})`,
+      text: pn.text,
+      riskTier: transferNotesRiskTier,
+      tags: [pn.category, 'Transferred Project Note'].filter(Boolean),
+      transferredFromProjectNoteId: pn.id,
+    }));
+
+    const updatedNotes = [...transferredCsmNotes, ...csmNotes];
+    onUpdateProperty({
+      ...property,
+      csmPortalData: {
+        ...portalData,
+        csmNotes: updatedNotes,
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      lastUpdated: new Date().toISOString(),
+    });
+
+    setSelectedProjectNoteIdsToTransfer([]);
+    setTransferNotesRiskTier('None');
+    setIsProjectNotesBrowserOpen(false);
+  };
+
   const allAvailableTags = useMemo(() => {
     const set = new Set<string>(CSM_DEFAULT_NOTE_TAGS);
     csmNotes.forEach((n) => n.tags.forEach((t) => set.add(t)));
@@ -1778,6 +1858,691 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
       />
 
       {/* =====================================================================
+          SECTION 2C: PROJECT HISTORY (HIGHLIGHTS OF EACH SECTION'S ITEMS & NOTES TRANSFERRED TO PROPERTIES + RMA TICKETS & CHANGE ORDERS)
+      ===================================================================== */}
+      {(() => {
+        const sowItems = property.sowForecastItems || [];
+        const doorItems = property.customerIntake?.commonAreaDoors || [];
+        const installLogs = property.installLogs || [];
+        const shippingItems = property.shippingDockItems || [];
+        const acceptanceSubmission = property.productAcceptanceSubmission;
+        const bomItemsWithNotes = (property.bomItems || []).filter(
+          (b) =>
+            (b.postItLogs && b.postItLogs.length > 0) ||
+            Boolean(b.description && b.description.trim()) ||
+            installLogs.some((l) => l.itemId === b.id && (l.notes?.trim() || l.itemNotes?.trim()))
+        );
+        const rmaTickets = property.rmaTickets || [];
+        const changeOrders = property.changeOrders || [];
+
+        const tabs: {
+          id:
+            | 'all'
+            | 'sow'
+            | 'doors'
+            | 'installer_logs'
+            | 'shipping'
+            | 'bom_notes'
+            | 'rma_tickets'
+            | 'change_orders';
+          label: string;
+          count: number;
+        }[] = [
+          {
+            id: 'all',
+            label: 'All Project History',
+            count:
+              sowItems.length +
+              doorItems.length +
+              installLogs.length +
+              shippingItems.length +
+              bomItemsWithNotes.length +
+              rmaTickets.length +
+              changeOrders.length,
+          },
+          { id: 'sow', label: 'SOW Forecaster', count: sowItems.length },
+          {
+            id: 'doors',
+            label: 'Common Area Doors & Device Mapping',
+            count: doorItems.length,
+          },
+          {
+            id: 'installer_logs',
+            label: 'Installer Completion & Verification Log',
+            count: installLogs.length,
+          },
+          { id: 'shipping', label: 'Shipping Dock', count: shippingItems.length },
+          {
+            id: 'bom_notes',
+            label: 'Smart Community BOM Notes',
+            count: bomItemsWithNotes.length,
+          },
+          { id: 'rma_tickets', label: 'RMA Tickets', count: rmaTickets.length },
+          { id: 'change_orders', label: 'Change Orders', count: changeOrders.length },
+        ];
+
+        const showSection = (
+          key:
+            | 'sow'
+            | 'doors'
+            | 'installer_logs'
+            | 'shipping'
+            | 'bom_notes'
+            | 'rma_tickets'
+            | 'change_orders'
+        ) => projectHistoryTab === 'all' || projectHistoryTab === key;
+
+        return (
+          <div
+            id="property-project-history"
+            className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-5"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-sky-900 bg-sky-100 border border-sky-300 px-2.5 py-0.5 rounded-md">
+                  <Layers className="w-3.5 h-3.5 text-sky-700" />
+                  <span>Transferred Implementation Record</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 mt-1">
+                  Project History
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Highlights of each section&apos;s items and their notes transferred to{' '}
+                  <strong>{property.propertyName}</strong> from the SOW Forecaster, Common Area
+                  Doors Location Tree &amp; Device Mapping, Installer Completion &amp; Verification
+                  Log, Shipping Dock, and Smart Community Bill of Materials (BOM) notes, plus all
+                  documented RMA Tickets and Change Orders.
+                </p>
+              </div>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {tabs.map((tab) => {
+                const active = projectHistoryTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setProjectHistoryTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 flex items-center gap-1.5 border transition-colors cursor-pointer ${
+                      active
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                        active ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="space-y-5">
+              {/* 1. SOW Forecaster Highlights & Notes */}
+              {showSection('sow') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-sky-600" />
+                      <span>1. SOW Forecaster Highlights &amp; Notes ({sowItems.length})</span>
+                    </h3>
+                  </div>
+
+                  {sowItems.length === 0 ? (
+                    <div className="text-xs text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                      No SOW Forecaster items logged on the project yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {sowItems.map((sow) => (
+                        <div
+                          key={sow.id}
+                          className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="font-extrabold text-slate-900">
+                              {sow.bomItemNames && sow.bomItemNames.length > 0
+                                ? sow.bomItemNames.join(', ')
+                                : sow.bomItemName}
+                            </div>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold border shrink-0 ${
+                                sow.status === 'Completed'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : sow.status === 'In Progress'
+                                  ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                            >
+                              {sow.status}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-600 flex flex-wrap gap-x-3 gap-y-0.5">
+                            <span>
+                              Area: <strong>{sow.buildingOrArea || 'Property-Wide'}</strong>
+                            </span>
+                            <span>
+                              Forecasted Qty: <strong className="font-mono">{sow.forecastedQuantity}</strong>
+                            </span>
+                            <span>
+                              Installer: <strong>{sow.assignedInstaller}</strong>
+                            </span>
+                            <span>
+                              Dates:{' '}
+                              <strong className="font-mono">
+                                {sow.scheduledStartDate} → {sow.scheduledEndDate}
+                              </strong>
+                            </span>
+                          </div>
+                          {(sow.workDescription || sow.notes) && (
+                            <div className="pt-1.5 border-t border-slate-100 space-y-1 text-[11px]">
+                              {sow.workDescription && (
+                                <div className="text-slate-700">
+                                  <span className="font-bold text-slate-900">Scope / Work Note:</span>{' '}
+                                  {sow.workDescription}
+                                </div>
+                              )}
+                              {sow.notes && (
+                                <div className="text-slate-700">
+                                  <span className="font-bold text-slate-900">SOW Note:</span>{' '}
+                                  {sow.notes}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 2. Common Area Doors Location Tree & Device Mapping Highlights & Notes */}
+              {showSection('doors') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <KeyRound className="w-4 h-4 text-emerald-600" />
+                      <span>
+                        2. Common Area Doors Location Tree &amp; Device Mapping ({doorItems.length})
+                      </span>
+                    </h3>
+                  </div>
+
+                  {doorItems.length === 0 ? (
+                    <div className="text-xs text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                      No common area doors mapped on the project yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {doorItems.map((door) => (
+                        <div
+                          key={door.id}
+                          className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-extrabold text-slate-900">{door.doorName}</div>
+                              <div className="text-[11px] text-slate-500">
+                                {door.buildingOrArea || 'Common Area'}
+                              </div>
+                            </div>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold border shrink-0 ${
+                                door.installedStatus === 'Installed & Online' ||
+                                door.installedStatus === 'Wired & Calibrated'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : door.installedStatus === 'Needs Service'
+                                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {door.installedStatus}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-700">
+                            Mapped Device:{' '}
+                            <strong className="text-slate-900">
+                              {door.installedDeviceName || 'Unassigned'}
+                            </strong>
+                            {door.installedDate ? ` • Completed: ${door.installedDate}` : ''}
+                          </div>
+                          {door.installerNotes && (
+                            <div className="pt-1.5 border-t border-slate-100 text-[11px] text-slate-700">
+                              <span className="font-bold text-slate-900">Door Installer Note:</span>{' '}
+                              {door.installerNotes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 3. Installer Completion & Verification Log Highlights & Notes */}
+              {showSection('installer_logs') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <ClipboardCheck className="w-4 h-4 text-indigo-600" />
+                      <span>
+                        3. Installer Completion &amp; Verification Log Highlights &amp; Notes (
+                        {installLogs.length})
+                      </span>
+                    </h3>
+                  </div>
+
+                  {installLogs.length === 0 ? (
+                    <div className="text-xs text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                      No installer completion logs recorded on the project yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {installLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-extrabold text-slate-900">
+                                {log.itemName}{' '}
+                                <span className="text-emerald-700 font-mono">
+                                  (+{log.quantityCompleted} Installed)
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-500">
+                                By <strong>{log.installerName}</strong> • {log.timestamp} •{' '}
+                                {log.locationCompleted}
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold shrink-0">
+                              {log.statusCheck}
+                            </span>
+                          </div>
+                          {(log.notes || log.itemNotes) && (
+                            <div className="pt-1.5 border-t border-slate-100 space-y-1 text-[11px] text-slate-700">
+                              {log.notes && (
+                                <div>
+                                  <span className="font-bold text-slate-900">Verification Note:</span>{' '}
+                                  {log.notes}
+                                </div>
+                              )}
+                              {log.itemNotes && (
+                                <div>
+                                  <span className="font-bold text-slate-900">BOM Item Note:</span>{' '}
+                                  {log.itemNotes}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 4. Shipping Dock Highlights & Notes */}
+              {showSection('shipping') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-amber-600" />
+                      <span>
+                        4. Shipping Dock Highlights &amp; Notes ({shippingItems.length} Shipments)
+                      </span>
+                    </h3>
+                  </div>
+
+                  {acceptanceSubmission && (
+                    <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs space-y-1">
+                      <div className="font-extrabold text-emerald-950">
+                        ✓ Product Acceptance Signed by {acceptanceSubmission.signedByName} (
+                        {acceptanceSubmission.signedByTitle}) on {acceptanceSubmission.signedAt}
+                      </div>
+                      {acceptanceSubmission.stagingLocation && (
+                        <div className="text-[11px] text-emerald-900">
+                          Staging Location: <strong>{acceptanceSubmission.stagingLocation}</strong>
+                        </div>
+                      )}
+                      {acceptanceSubmission.overallDeliveryNotes && (
+                        <div className="text-[11px] text-emerald-900">
+                          <strong>Delivery Acceptance Notes:</strong>{' '}
+                          {acceptanceSubmission.overallDeliveryNotes}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {shippingItems.length === 0 ? (
+                    <div className="text-xs text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                      No Shipping Dock shipments logged on the project yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {shippingItems.map((ship) => (
+                        <div
+                          key={ship.id}
+                          className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-extrabold text-slate-900">
+                                {ship.shipmentBatchLabel}:{' '}
+                                {ship.bomItemNames && ship.bomItemNames.length > 0
+                                  ? ship.bomItemNames.join(', ')
+                                  : ship.bomItemName}
+                              </div>
+                              <div className="text-[11px] text-slate-500 font-mono">
+                                Carrier: {ship.carrier} • Tracking: {ship.trackingNumber}
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200 text-[10px] font-bold shrink-0">
+                              {ship.status}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-700 flex flex-wrap gap-x-3 gap-y-0.5">
+                            <span>
+                              Shipped Qty: <strong className="font-mono">{ship.shippedQuantity}</strong>
+                            </span>
+                            <span>
+                              Shipped: <strong className="font-mono">{ship.shippedDate}</strong>
+                            </span>
+                            <span>
+                              ETA: <strong className="font-mono">{ship.estimatedArrivalDate}</strong>
+                            </span>
+                            {ship.integratorName && (
+                              <span>
+                                Recipient: <strong>{ship.integratorName}</strong>
+                              </span>
+                            )}
+                          </div>
+                          {ship.customerScenarioNotes && (
+                            <div className="pt-1.5 border-t border-slate-100 text-[11px] text-slate-700">
+                              <span className="font-bold text-slate-900">Shipping Dock Note:</span>{' '}
+                              {ship.customerScenarioNotes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 5. Smart Community Bill of Materials (BOM) Notes */}
+              {showSection('bom_notes') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-purple-600" />
+                      <span>
+                        5. Smart Community Bill of Materials (BOM) Notes ({bomItemsWithNotes.length}{' '}
+                        Items with Notes)
+                      </span>
+                    </h3>
+                  </div>
+
+                  {bomItemsWithNotes.length === 0 ? (
+                    <div className="text-xs text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                      No row notes or post-it logs recorded on individual BOM line items yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {bomItemsWithNotes.map((item) => {
+                        const rowLogs = [
+                          ...(item.postItLogs || []),
+                          ...installLogs.filter(
+                            (l) =>
+                              l.itemId === item.id &&
+                              !(item.postItLogs || []).some((p) => p.id === l.id) &&
+                              (l.notes?.trim() || l.itemNotes?.trim())
+                          ),
+                        ];
+                        return (
+                          <div
+                            key={item.id}
+                            className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2 text-xs"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="font-extrabold text-slate-900">{item.name}</div>
+                                <div className="text-[11px] text-slate-500 font-mono">
+                                  Model: {item.model} • Location: {item.location}
+                                </div>
+                              </div>
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-bold shrink-0">
+                                {item.installedCount} / {item.quantity} Installed
+                              </span>
+                            </div>
+
+                            {item.description && (
+                              <div className="text-[11px] text-slate-700 bg-slate-50 p-2 rounded border border-slate-200">
+                                <span className="font-bold text-slate-900">BOM Description / Spec:</span>{' '}
+                                {item.description}
+                              </div>
+                            )}
+
+                            {rowLogs.length > 0 && (
+                              <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                                {rowLogs.map((rl) => (
+                                  <div
+                                    key={rl.id}
+                                    className="p-2 rounded-lg bg-amber-50/70 border border-amber-200 text-[11px] text-slate-800 space-y-0.5"
+                                  >
+                                    <div className="font-bold text-amber-950">
+                                      {rl.installerName} • {rl.timestamp} (+{rl.quantityCompleted}{' '}
+                                      at {rl.locationCompleted})
+                                    </div>
+                                    {rl.itemNotes && <div>{rl.itemNotes}</div>}
+                                    {rl.notes && rl.notes !== rl.itemNotes && <div>{rl.notes}</div>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 6. Documented RMA Tickets */}
+              {showSection('rma_tickets') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <Wrench className="w-4 h-4 text-rose-600" />
+                      <span>6. Documented RMA Tickets ({rmaTickets.length})</span>
+                    </h3>
+                  </div>
+
+                  {rmaTickets.length === 0 ? (
+                    <div className="text-xs text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                      No RMA tickets have been created for this property yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {rmaTickets.map((ticket) => (
+                        <div
+                          key={ticket.id}
+                          className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold">
+                                {ticket.ticketNumber}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold">
+                                {ticket.matchedCompany}
+                              </span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-900 border border-sky-200 text-[10px] font-bold">
+                              {ticket.status}
+                            </span>
+                          </div>
+                          <div className="font-extrabold text-slate-900">
+                            {ticket.bomItemName} ({ticket.bomItemModel}) — Qty:{' '}
+                            {ticket.defectiveQuantity}
+                          </div>
+                          <div className="text-[11px] text-slate-600 font-mono">
+                            RMA #: {ticket.issuedRmaNumber || 'Pending'} • SN:{' '}
+                            {ticket.serialNumbers || 'Pending'} • Created by {ticket.createdBy} (
+                            {ticket.createdAt})
+                          </div>
+                          <div className="pt-1.5 border-t border-slate-100 space-y-1 text-[11px] text-slate-700">
+                            <div>
+                              <span className="font-bold text-slate-900">Failure Description:</span>{' '}
+                              {ticket.failureDescription || '—'}
+                            </div>
+                            {ticket.troubleshootingNotes && (
+                              <div>
+                                <span className="font-bold text-slate-900">
+                                  Troubleshooting Notes:
+                                </span>{' '}
+                                {ticket.troubleshootingNotes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 7. Documented Change Orders / Supplemental Orders */}
+              {showSection('change_orders') && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                      <Plus className="w-4 h-4 text-indigo-600" />
+                      <span>
+                        7. Documented Change Orders &amp; Supplemental Orders ({changeOrders.length})
+                      </span>
+                    </h3>
+                  </div>
+
+                  {changeOrders.length === 0 ? (
+                    <div className="text-xs text-slate-500 italic bg-white p-3 rounded-lg border border-slate-200">
+                      No change orders or supplemental orders have been created for this property yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {changeOrders.map((co) => (
+                        <div
+                          key={co.id}
+                          className="p-4 rounded-xl bg-white border border-slate-200 space-y-2.5 text-xs"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-200 font-mono text-[10px] font-bold">
+                                {co.changeOrderNumber}
+                              </span>
+                              <span className="font-extrabold text-slate-900 text-sm">
+                                {co.title}
+                              </span>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                              {co.status}
+                            </span>
+                          </div>
+
+                          <div className="text-[11px] text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
+                            <span>
+                              Created by <strong>{co.createdBy}</strong> on {co.createdAt}
+                            </span>
+                            {co.approvedBy && (
+                              <span>
+                                Approved by: <strong>{co.approvedBy}</strong>
+                              </span>
+                            )}
+                            {co.integratorPartners && co.integratorPartners.length > 0 && (
+                              <span>
+                                Partner Integrator:{' '}
+                                <strong>{co.integratorPartners.join(', ')}</strong>
+                              </span>
+                            )}
+                            {co.assignedFieldTech && (
+                              <span>
+                                Field Tech: <strong>{co.assignedFieldTech}</strong>
+                              </span>
+                            )}
+                          </div>
+
+                          {(co.reason || co.notes) && (
+                            <div className="text-[11px] text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-0.5">
+                              {co.reason && (
+                                <div>
+                                  <span className="font-bold text-slate-900">Order Reason / Scope:</span>{' '}
+                                  {co.reason}
+                                </div>
+                              )}
+                              {co.notes && (
+                                <div>
+                                  <span className="font-bold text-slate-900">Order Notes:</span>{' '}
+                                  {co.notes}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {co.items && co.items.length > 0 && (
+                            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                              <table className="w-full text-left border-collapse text-[11px]">
+                                <thead>
+                                  <tr className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] border-b border-slate-200">
+                                    <th className="py-1.5 px-2.5">Catalog Item</th>
+                                    <th className="py-1.5 px-2.5">Type</th>
+                                    <th className="py-1.5 px-2.5">Installed / Qty</th>
+                                    <th className="py-1.5 px-2.5">Location &amp; Notes</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {co.items.map((ci) => (
+                                    <tr key={ci.id}>
+                                      <td className="py-1.5 px-2.5 font-bold text-slate-900">
+                                        {ci.name}{' '}
+                                        <span className="font-mono text-slate-500 font-normal">
+                                          ({ci.sku})
+                                        </span>
+                                      </td>
+                                      <td className="py-1.5 px-2.5">{ci.productType}</td>
+                                      <td className="py-1.5 px-2.5 font-mono font-bold">
+                                        {ci.installedCount} / {ci.quantity}
+                                      </td>
+                                      <td className="py-1.5 px-2.5 text-slate-600">
+                                        {ci.location}
+                                        {ci.notes ? ` — ${ci.notes}` : ''}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* =====================================================================
           SECTION 3: CONTRACT FILE UPLOAD & AI CONTRACT SCRUBBER
       ===================================================================== */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-5">
@@ -2315,6 +3080,22 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
+              onClick={() => {
+                setSelectedProjectNoteIdsToTransfer([]);
+                setIsProjectNotesBrowserOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold cursor-pointer transition-colors shadow-2xs"
+              title="Browse project notes associated with this property and select individual notes to copy and transfer into your CSM Property Notes"
+            >
+              <FileText className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Browse &amp; Transfer Project Notes</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-indigo-200/80 text-indigo-950 font-mono text-[10px]">
+                {projectNotes.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsCreatingRiskGroup((prev) => !prev)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer transition-colors"
             >
@@ -2329,6 +3110,170 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             </button>
           </div>
         </div>
+
+        {/* Selective Project Notes Browser & Transfer Modal (Only visible when CSM clicks "Browse & Transfer Project Notes") */}
+        {isProjectNotesBrowserOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+              <div className="px-6 py-4 bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 text-white flex items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                      Selective Note Transfer
+                    </span>
+                    <span className="text-xs text-slate-300 font-mono">
+                      {projectNotes.length} Project Note{projectNotes.length === 1 ? '' : 's'} Found
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white mt-0.5">
+                    Browse &amp; Transfer Project Notes — {property.propertyName}
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Select individual project notes below to copy and transfer them into your Property Notes section. Project notes remain hidden from the Property page unless you select and transfer them.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsProjectNotesBrowserOpen(false)}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                {projectNotes.length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1.5">
+                    <div className="text-sm font-bold text-slate-700">
+                      No Project Notes Found on {property.propertyName}
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      No project notes were logged on the implementation project for this property.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedProjectNoteIdsToTransfer(projectNotes.map((n) => n.id))
+                          }
+                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold cursor-pointer"
+                        >
+                          Select All ({projectNotes.length})
+                        </button>
+                        {selectedProjectNoteIdsToTransfer.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProjectNoteIdsToTransfer([])}
+                            className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 font-semibold cursor-pointer"
+                          >
+                            Clear Selection
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="font-bold text-slate-700">
+                          Assign Risk Tier on Transfer:
+                        </label>
+                        <select
+                          value={transferNotesRiskTier}
+                          onChange={(e) => setTransferNotesRiskTier(e.target.value as CSMRiskTier)}
+                          className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
+                        >
+                          {CSM_RISK_TIERS.map((tier) => (
+                            <option key={tier} value={tier}>
+                              {tier}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {projectNotes.map((pn) => {
+                        const isSelected = selectedProjectNoteIdsToTransfer.includes(pn.id);
+                        const wasAlreadyTransferred = alreadyTransferredProjectNoteIds.has(pn.id);
+                        return (
+                          <label
+                            key={pn.id}
+                            className={`flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-50/70 border-indigo-400 ring-2 ring-indigo-400/20'
+                                : 'bg-white hover:bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleProjectNoteForTransfer(pn.id)}
+                              className="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-xs font-extrabold text-slate-900">
+                                    {pn.author}
+                                  </span>
+                                  <span className="text-[11px] text-slate-500 font-mono">
+                                    {pn.timestamp}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold">
+                                    {pn.category}
+                                  </span>
+                                  {pn.isPinned && (
+                                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold">
+                                      Pinned on Project
+                                    </span>
+                                  )}
+                                </div>
+                                {wasAlreadyTransferred && (
+                                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold">
+                                    ✓ Transferred to Property Notes
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-800 whitespace-pre-line leading-relaxed">
+                                {pn.text}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3">
+                <div className="text-xs text-slate-600 font-medium">
+                  <strong>{selectedProjectNoteIdsToTransfer.length}</strong> project note
+                  {selectedProjectNoteIdsToTransfer.length === 1 ? '' : 's'} selected to copy
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsProjectNotesBrowserOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={selectedProjectNoteIdsToTransfer.length === 0}
+                    onClick={handleTransferSelectedProjectNotes}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-bold cursor-pointer shadow-xs"
+                  >
+                    Copy &amp; Transfer Selected ({selectedProjectNoteIdsToTransfer.length}) to Property Notes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Create Risk Group Modal / Drawer (Groups a Specific Subset of Notes Contributing to a Risk Level) */}
         {(isCreatingRiskGroup || selectedNoteIdsForGrouping.length > 0) && (

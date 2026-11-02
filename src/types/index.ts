@@ -1256,6 +1256,7 @@ export interface CSMPropertyNote {
   tags: string[];
   riskGroupId?: string;
   resolutionPlan?: CSMResolutionPlan;
+  transferredFromProjectNoteId?: string;
 }
 
 export interface CSMRiskGroup {

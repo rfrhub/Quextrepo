@@ -27,6 +27,8 @@ import {
   ClipboardList,
   Hash,
   MapPin,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 export interface RMAProcedureStep {
@@ -351,6 +353,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
   const [selectedBomItemId, setSelectedBomItemId] = useState<string>('');
   const [manualCompanyOverride, setManualCompanyOverride] = useState<RMAProductCompany | ''>('');
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+  const [isSectionExpanded, setIsSectionExpanded] = useState<boolean>(false);
   const [copiedTicketId, setCopiedTicketId] = useState<string | null>(null);
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
 
@@ -409,6 +412,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
   // Handle preselected BOM item from parent table row click
   useEffect(() => {
     if (preselectedBomItemId) {
+      setIsSectionExpanded(true);
       setSelectedBomItemId(preselectedBomItemId);
       setManualCompanyOverride('');
       setIsFormOpen(true);
@@ -691,8 +695,11 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
       id="rma-ticketing-workflow"
       className="scroll-mt-36 bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden"
     >
-      {/* Section Header */}
-      <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Section Header (Collapsible — Collapsed by Default unless Expanded) */}
+      <div
+        onClick={() => setIsSectionExpanded((prev) => !prev)}
+        className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none hover:from-slate-800 hover:to-slate-900 transition-colors"
+      >
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
             <Wrench className="w-5 h-5" />
@@ -705,6 +712,11 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">
                 BOM Line-Item Matcher
               </span>
+              {!isSectionExpanded && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-slate-300 border border-white/15">
+                  Click to Expand
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
               Select any BOM line item from this {contextLabel.toLowerCase()} to view only its
@@ -713,14 +725,35 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <span className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-mono font-bold text-white">
             {existingTickets.length} Active RMA Ticket{existingTickets.length === 1 ? '' : 's'}
           </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSectionExpanded((prev) => !prev);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold cursor-pointer transition-colors"
+          >
+            {isSectionExpanded ? (
+              <>
+                <span>Collapse</span>
+                <ChevronUp className="w-4 h-4" />
+              </>
+            ) : (
+              <>
+                <span>Expand RMA Workflow</span>
+                <ChevronDown className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      {isSectionExpanded && (
+        <div className="p-6 space-y-6">
         {/* Step 1: Select & Match BOM Line Item */}
         <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -1471,7 +1504,8 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
             </div>
           </div>
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

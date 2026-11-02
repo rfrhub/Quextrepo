@@ -3176,13 +3176,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               href="#change-order-workflow"
               className="px-2.5 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold whitespace-nowrap shrink-0 transition-colors"
             >
-              Supplemental Order Catalog
-            </a>
-            <a
-              href="#rma-ticketing-workflow"
-              className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold whitespace-nowrap shrink-0 transition-colors"
-            >
-              RMA Ticketing
+              Product Acquisition &amp; Change Order
             </a>
             <a
               href="#shipping-dock-section"
@@ -3207,6 +3201,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-800 font-semibold whitespace-nowrap shrink-0 transition-colors"
             >
               Installer Log
+            </a>
+            <a
+              href="#rma-ticketing-workflow"
+              className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold whitespace-nowrap shrink-0 transition-colors"
+            >
+              RMA Ticketing
             </a>
             <a
               href="#pm-project-notes"
@@ -3713,7 +3713,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             />
           </div>
 
-          {/* Change Order Workflow (Allows PMs to add Hardware & Software Catalog items outside of the baseline BOM) */}
+          {/* Product Acquisition and Change Order (Allows PMs to add Hardware & Software Catalog items outside of the baseline BOM) */}
           <div className="scroll-mt-36">
             <ChangeOrderSection
               project={project}
@@ -3722,16 +3722,6 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               contextLabel="Project"
             />
           </div>
-
-          {/* Hardware RMA Ticketing Workflow (Matches BOM Line Item -> Shows Only Related Company RMA Process & Generates Ticket) */}
-          <RMATicketingSection
-            project={project}
-            onUpdateProject={onUpdateProject}
-            currentUserName={currentUserName || project.assignedPM?.name || 'Project Manager'}
-            preselectedBomItemId={rmaPreselectedBomId}
-            onClearPreselectedBomItem={() => setRmaPreselectedBomId(null)}
-            contextLabel="Project"
-          />
 
           {/* Shipping Dock (Under BOM Section) + Product Acceptance Portal */}
           <div id="shipping-dock-section" data-tutorial-id="shipping-dock-section" className="scroll-mt-36">
@@ -3980,6 +3970,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               onOpenInstallersClip={() => setIsInstallersClipOpen(true)}
             />
           </div>
+
+          {/* Hardware RMA Ticketing Workflow (Moved Under Installer Completion & Verification Log; Collapsed Unless Expanded) */}
+          <RMATicketingSection
+            project={project}
+            onUpdateProject={onUpdateProject}
+            currentUserName={currentUserName || project.assignedPM?.name || 'Project Manager'}
+            preselectedBomItemId={rmaPreselectedBomId}
+            onClearPreselectedBomItem={() => setRmaPreselectedBomId(null)}
+            contextLabel="Project"
+          />
 
           {/* General Project Notes Section & Context */}
           <div id="pm-project-notes" className="scroll-mt-36">

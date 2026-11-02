@@ -280,7 +280,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
             className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
             title="Add supplemental Hardware or Software catalog items outside of the original BOM"
           >
-            <span>+ Supplemental Order</span>
+            <span>+ Product Acquisition &amp; Change Order</span>
             {project?.changeOrders && project.changeOrders.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">
                 {project.changeOrders.length}

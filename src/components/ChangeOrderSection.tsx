@@ -594,6 +594,11 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     [stagedItems]
   );
 
+  const sectionHeading =
+    contextLabel === 'Project'
+      ? 'Product Acquisition and Change Order'
+      : 'Supplemental Order Catalog';
+
   return (
     <div
       id="change-order-workflow"
@@ -607,7 +612,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
               <FilePlus2 className="w-5 h-5" />
             </div>
             <h3 className="text-lg font-bold text-white tracking-tight">
-              Supplemental Order Catalog
+              {sectionHeading}
             </h3>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
