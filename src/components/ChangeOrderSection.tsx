@@ -224,6 +224,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
   const [editTitleValue, setEditTitleValue] = useState('');
   const [editReasonValue, setEditReasonValue] = useState('');
   const [editApprovedByValue, setEditApprovedByValue] = useState('');
+  const [editNeededByValue, setEditNeededByValue] = useState('');
 
   const builderPanelRef = useRef<HTMLDivElement | null>(null);
   const stagedTableRef = useRef<HTMLDivElement | null>(null);
@@ -312,7 +313,11 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
   const openNewChangeOrderBuilder = () => {
     const nextNum = changeOrders.length + 1;
     setTargetChangeOrderId(null);
-    setCoTitle(`Supplemental Order #${nextNum} — Additional Scope`);
+    setCoTitle(
+      contextLabel === 'Project'
+        ? `Product Acquisition & Change Order #${nextNum} — Additional Scope`
+        : `Supplemental Order #${nextNum} — Additional Scope`
+    );
     setCoReason('');
     setCoStatus('Approved');
     setCoApprovedBy('');
@@ -335,11 +340,12 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     return () => {
       window.removeEventListener('quext:open-change-order-builder', handleExternalOpen);
     };
-  }, [changeOrders.length, project]);
+  }, [changeOrders.length, project, contextLabel]);
 
   const openAddItemToExistingCO = (co: ChangeOrderRecord) => {
     setTargetChangeOrderId(co.id);
     setCoTitle(co.title);
+    setCoNeededByDate(co.neededByDate || '');
     setCoPartners(
       co.integratorPartners && co.integratorPartners.length > 0
         ? co.integratorPartners
@@ -422,6 +428,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
           integratorPartners: coPartners,
           assignedFieldTech: coFieldTech,
           items: [...(co.items || []), ...stagedItems],
+          neededByDate: coNeededByDate.trim() || co.neededByDate,
           updatedAt: nowIso,
         };
       });
@@ -587,6 +594,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     setEditTitleValue(co.title);
     setEditReasonValue(co.reason || '');
     setEditApprovedByValue(co.approvedBy || '');
+    setEditNeededByValue(co.neededByDate || '');
   };
 
   const saveEditingHeader = (coId: string) => {
@@ -598,6 +606,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         title: editTitleValue.trim() || co.title,
         reason: editReasonValue.trim(),
         approvedBy: editApprovedByValue.trim() || undefined,
+        neededByDate: editNeededByValue.trim() || undefined,
         updatedAt: nowIso,
       };
     });
@@ -676,7 +685,9 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            + New Supplemental Order (Hardware &amp; Software Catalog)
+            {contextLabel === 'Project'
+              ? '+ New Product Acquisition & Change Order'
+              : '+ New Supplemental Order'} (Hardware &amp; Software Catalog)
           </button>
         </div>
       </div>
@@ -772,6 +783,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                 <h4 className="text-sm font-bold text-white">
                   {targetChangeOrderId
                     ? `Add Multiple Catalog Items to ${coTitle}`
+                    : contextLabel === 'Project'
+                    ? 'Create New Product Acquisition & Change Order (Multi-Item Hardware & Software Order)'
                     : 'Create New Supplemental Order (Multi-Item Hardware & Software Order)'}
                 </h4>
                 <p className="text-[11px] text-slate-400">
@@ -792,7 +805,28 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
 
           {/* Order Metadata + Integrator Partner / Installers + Field Tech */}
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
-            {!targetChangeOrderId && (
+            {targetChangeOrderId ? (
+              <div className="p-3.5 bg-slate-950/80 rounded-xl border border-indigo-500/30 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                <div className="md:col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block">
+                    Target Order
+                  </span>
+                  <p className="text-xs font-bold text-white mt-0.5">{coTitle}</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-amber-400" />
+                    <span>When needed by? *</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={coNeededByDate}
+                    onChange={(e) => setCoNeededByDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
@@ -802,7 +836,11 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                     type="text"
                     value={coTitle}
                     onChange={(e) => setCoTitle(e.target.value)}
-                    placeholder="e.g., Supplemental Order #1 — Additional Readers, Locks & SaaS Licenses"
+                    placeholder={
+                      contextLabel === 'Project'
+                        ? 'e.g., Product Acquisition & Change Order #1 — Additional Readers & Locks'
+                        : 'e.g., Supplemental Order #1 — Additional Readers, Locks & SaaS Licenses'
+                    }
                     className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
                   />
                 </div>
@@ -853,7 +891,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1">
                     <Calendar className="w-3 h-3 text-amber-400" />
-                    <span>When is product needed by? *</span>
+                    <span>When needed by? *</span>
                   </label>
                   <input
                     type="date"
@@ -1434,37 +1472,64 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                     <div className="space-y-1 flex-1">
                       {editingHeaderId === co.id ? (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            value={editTitleValue}
-                            onChange={(e) => setEditTitleValue(e.target.value)}
-                            className="px-2.5 py-1.5 rounded bg-slate-950 border border-indigo-500/50 text-xs text-white font-bold"
-                            placeholder="Order Title"
-                          />
-                          <input
-                            type="text"
-                            value={editReasonValue}
-                            onChange={(e) => setEditReasonValue(e.target.value)}
-                            className="px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
-                            placeholder="Reason / Scope Justification"
-                          />
-                          <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 bg-slate-950/80 p-3 rounded-lg border border-indigo-500/40">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                              Order Title
+                            </label>
                             <input
                               type="text"
-                              value={editApprovedByValue}
-                              onChange={(e) => setEditApprovedByValue(e.target.value)}
-                              className="flex-1 px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
-                              placeholder="Approved By"
+                              value={editTitleValue}
+                              onChange={(e) => setEditTitleValue(e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-indigo-500/50 text-xs text-white font-bold"
+                              placeholder="Order Title"
                             />
-                            <button
-                              type="button"
-                              onClick={() => saveEditingHeader(co.id)}
-                              className="px-2.5 py-1.5 rounded bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              Save
-                            </button>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                              Scope Reason
+                            </label>
+                            <input
+                              type="text"
+                              value={editReasonValue}
+                              onChange={(e) => setEditReasonValue(e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                              placeholder="Reason / Scope Justification"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-0.5 flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-amber-400" />
+                              <span>When needed by? *</span>
+                            </label>
+                            <input
+                              type="date"
+                              value={editNeededByValue}
+                              onChange={(e) => setEditNeededByValue(e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                              Approved By
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={editApprovedByValue}
+                                onChange={(e) => setEditApprovedByValue(e.target.value)}
+                                className="flex-1 px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                                placeholder="Approved By"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => saveEditingHeader(co.id)}
+                                className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                Save
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : (
@@ -1484,7 +1549,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                             type="button"
                             onClick={() => startEditingHeader(co)}
                             className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                            title="Edit Order Title & Reason"
+                            title="Edit Order Title, Reason & Needed By Date"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
@@ -1497,6 +1562,15 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                         <span>Created by {co.createdBy}</span>
                         <span>•</span>
                         <span>{new Date(co.createdAt).toLocaleDateString()}</span>
+                        {co.neededByDate && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 text-amber-300 font-semibold">
+                              <Calendar className="w-3 h-3 text-amber-400" />
+                              Needed By: {co.neededByDate}
+                            </span>
+                          </>
+                        )}
                         {co.approvedBy && (
                           <>
                             <span>•</span>
