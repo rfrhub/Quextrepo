@@ -234,14 +234,10 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={onGoToOperationsDashboard}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer transition-colors"
-            >
-              <span>Operations Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            <div className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-emerald-600" />
+              <span>{handoffProperties.length} Active Properties in CSM Workspace</span>
+            </div>
           </div>
         </div>
 
@@ -358,7 +354,16 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
             return (
               <div
                 key={property.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-2xs hover:border-emerald-400 hover:shadow-md transition-all overflow-hidden flex flex-col justify-between"
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedPropertyId(property.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedPropertyId(property.id);
+                  }
+                }}
+                className="bg-white rounded-2xl border border-slate-200 shadow-2xs hover:border-emerald-400 hover:shadow-md transition-all overflow-hidden flex flex-col justify-between cursor-pointer group"
               >
                 <div className="p-5 sm:p-6 space-y-4">
                   {/* Up-Front Header: Property Name, Client/Owner, Status Badges */}
@@ -377,10 +382,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
                           {property.unitsCount} Units
                         </span>
                       </div>
-                      <h2
-                        onClick={() => setSelectedPropertyId(property.id)}
-                        className="text-lg sm:text-xl font-extrabold text-slate-900 hover:text-emerald-700 cursor-pointer transition-colors"
-                      >
+                      <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors">
                         {property.propertyName}
                       </h2>
                       <div className="text-xs font-semibold text-slate-600 mt-0.5 flex flex-wrap items-center gap-2">
@@ -397,8 +399,11 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => setSelectedPropertyId(property.id)}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 cursor-pointer flex items-center gap-1.5 shadow-2xs transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPropertyId(property.id);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 group-hover:bg-emerald-700 text-white text-xs font-bold shrink-0 cursor-pointer flex items-center gap-1.5 shadow-2xs transition-colors"
                     >
                       <span>Open Property</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -526,13 +531,10 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onOpenProjectInOperations(property.id)}
-                    className="text-slate-500 hover:text-blue-600 font-semibold cursor-pointer"
-                  >
-                    View Operations Record →
-                  </button>
+                  <span className="text-emerald-700 group-hover:text-emerald-800 font-bold inline-flex items-center gap-1">
+                    <span>Open Property Workspace</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
             );
@@ -1029,14 +1031,6 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               </div>
               <div className="font-black text-[#01C38D]">{csmProfile.name}</div>
             </div>
-            <button
-              type="button"
-              onClick={onOpenInOperations}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5"
-            >
-              <span>View in Operations</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
 
