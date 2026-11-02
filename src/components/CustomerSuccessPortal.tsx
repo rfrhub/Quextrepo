@@ -15,9 +15,15 @@ import {
   getLockFinishSummaryTag,
   AVAILABLE_CSMS,
   CSMName,
+  AVAILABLE_FIELD_TECHS,
+  FieldTechName,
+  normalizeFieldTech,
+  getProjectIntegratorPartners,
+  isDiyPartner,
   getPropertyManagementCompany,
 } from '../types';
 import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
+import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
 import { SOWFormAutomationHub } from './SOWFormAutomationHub';
@@ -512,15 +518,46 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
                       </div>
                     </div>
 
-                    <div className="space-y-1 sm:border-l sm:border-slate-200 sm:pl-3">
+                    <div className="space-y-1.5 sm:border-l sm:border-slate-200 sm:pl-3">
                       <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        Customer Success &amp; Hardware Installed
+                        Customer Success, Field Tech &amp; Integrator
                       </div>
-                      <div className="text-[11px] text-slate-700">
-                        Assigned CSM:{' '}
-                        <strong className="text-slate-900">
-                          {property.assignedCSM || 'Nicole Franklin'}
-                        </strong>
+                      <div className="text-[11px] text-slate-700 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span>
+                          Assigned CSM:{' '}
+                          <strong className="text-slate-900">
+                            {property.assignedCSM || 'Nicole Franklin'}
+                          </strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Field Tech:{' '}
+                          <strong className="text-sky-900">
+                            {normalizeFieldTech(property.assignedFieldTech)}
+                          </strong>
+                        </span>
+                      </div>
+                      <div
+                        className="pt-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <div className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                          <IntegratorPartnerSelector
+                            assignedPartners={getProjectIntegratorPartners(property)}
+                            projectName={property.propertyName}
+                            label="Integrator Partner / Installers:"
+                            onChange={(updatedPartners) => {
+                              onUpdateProject({
+                                ...property,
+                                integratorPartners: updatedPartners,
+                                isDiyInstallation: updatedPartners.some(isDiyPartner),
+                                lastUpdated: new Date().toISOString(),
+                              });
+                            }}
+                          />
+                        </div>
                       </div>
                       <div className="text-[11px] text-slate-700">
                         Installed BOM:{' '}
@@ -528,12 +565,6 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
                           {totalInstalledQty.toLocaleString()} / {totalBomQty.toLocaleString()}
                         </strong>{' '}
                         devices ({installPct}%)
-                      </div>
-                      <div className="text-[11px] text-slate-700">
-                        PMS Integration:{' '}
-                        <strong className="text-slate-900">
-                          {intake?.pmsSoftware || property.communityDetails?.pmsSystem || 'Not set'}
-                        </strong>
                       </div>
                     </div>
                   </div>
@@ -1142,6 +1173,76 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               </div>
               <div className="font-black text-[#01C38D]">{csmProfile.name}</div>
             </div>
+          </div>
+        </div>
+
+        {/* Assigned Partner Integrator / Installers, Field Tech & CSM Assignment Strip */}
+        <div className="px-5 sm:px-6 py-3.5 bg-white border-b border-slate-200 flex flex-wrap items-center gap-2.5 text-xs">
+          {/* Assigned CSM */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+            <span className="text-slate-500 text-xs">Assigned CSM:</span>
+            <select
+              value={property.assignedCSM || 'Nicole Franklin'}
+              onChange={(e) => {
+                onUpdateProperty({
+                  ...property,
+                  assignedCSM: e.target.value as CSMName,
+                  lastUpdated: new Date().toISOString(),
+                });
+              }}
+              className="font-bold text-emerald-900 bg-transparent focus:outline-none cursor-pointer text-xs"
+            >
+              {AVAILABLE_CSMS.map((csm) => (
+                <option key={csm} value={csm}>
+                  {csm}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Assigned Field Tech */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+            <span className="text-slate-500 text-xs">Field Tech:</span>
+            <select
+              value={normalizeFieldTech(property.assignedFieldTech)}
+              onChange={(e) => {
+                onUpdateProperty({
+                  ...property,
+                  assignedFieldTech: e.target.value as FieldTechName,
+                  lastUpdated: new Date().toISOString(),
+                });
+              }}
+              className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
+            >
+              {AVAILABLE_FIELD_TECHS.map((tech) => (
+                <option key={tech} value={tech}>
+                  {tech}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Assigned Integrator Partner(s) / Installers */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+            <IntegratorPartnerSelector
+              assignedPartners={getProjectIntegratorPartners(property)}
+              projectName={property.propertyName}
+              label="Integrator Partner / Installers:"
+              onChange={(updatedPartners) => {
+                onUpdateProperty({
+                  ...property,
+                  integratorPartners: updatedPartners,
+                  isDiyInstallation: updatedPartners.some(isDiyPartner),
+                  lastUpdated: new Date().toISOString(),
+                });
+              }}
+            />
+          </div>
+
+          {/* Assigned PM */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+            <span className="text-slate-500 text-xs">Implementation PM:</span>
+            <span className="font-bold text-slate-800 text-xs">{property.assignedPM.name}</span>
           </div>
         </div>
 

@@ -3176,7 +3176,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               href="#change-order-workflow"
               className="px-2.5 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold whitespace-nowrap shrink-0 transition-colors"
             >
-              Change Orders
+              Supplemental Order Catalog
             </a>
             <a
               href="#rma-ticketing-workflow"

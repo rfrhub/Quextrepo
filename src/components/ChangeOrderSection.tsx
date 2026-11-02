@@ -5,12 +5,18 @@ import {
   ChangeOrderLineItem,
   ChangeOrderStatus,
   BOMCategory,
+  AVAILABLE_FIELD_TECHS,
+  FieldTechName,
+  normalizeFieldTech,
+  getProjectIntegratorPartners,
+  isDiyPartner,
 } from '../types';
 import {
   QUEUXT_HARDWARE_CATALOG,
   QUEUXT_SOFTWARE_CATALOG,
   MYQUEXT_FULL_PRODUCT_CATALOG,
 } from '../data/catalogData';
+import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import {
   FilePlus2,
   Package,
@@ -20,20 +26,16 @@ import {
   Trash2,
   Search,
   CheckCircle2,
-  Clock,
   ShieldCheck,
   Layers,
   DollarSign,
-  MapPin,
   ChevronDown,
   ChevronUp,
   Sparkles,
   X,
   Edit3,
   Check,
-  Filter,
-  Tag,
-  FileText,
+  Wrench,
 } from 'lucide-react';
 
 interface UnifiedCatalogEntry {
@@ -63,7 +65,9 @@ const UNIFIED_CHANGE_ORDER_CATALOG: UnifiedCatalogEntry[] = (() => {
       sku: skuKey,
       name: String(fullItem.name || 'Catalog Product'),
       productType: isSw ? 'Software' : 'Hardware',
-      category: String(fullItem.category || fullItem.bomCategory || (isSw ? 'Software & SaaS' : 'Hardware')),
+      category: String(
+        fullItem.category || fullItem.bomCategory || (isSw ? 'Software & SaaS' : 'Hardware')
+      ),
       bomCategory: (fullItem.bomCategory || 'Smart Access Control') as BOMCategory,
       manufacturer: String(fullItem.brandName || 'Quext'),
       unitPrice: Number(fullItem.sellPrice ?? fullItem.msrp ?? fullItem.cost ?? 0) || 0,
@@ -82,7 +86,7 @@ const UNIFIED_CHANGE_ORDER_CATALOG: UnifiedCatalogEntry[] = (() => {
     });
   }
 
-  // 2. Hardware Catalog items (ensure any extra QUEUXT_HARDWARE_CATALOG items are included)
+  // 2. Hardware Catalog items
   for (const hw of QUEUXT_HARDWARE_CATALOG) {
     const skuKey = String(hw.sku || hw.id);
     if (!map.has(skuKey)) {
@@ -103,7 +107,7 @@ const UNIFIED_CHANGE_ORDER_CATALOG: UnifiedCatalogEntry[] = (() => {
     }
   }
 
-  // 3. Software Catalog items (ensure any extra QUEUXT_SOFTWARE_CATALOG items are included with proper fields)
+  // 3. Software Catalog items
   for (const sw of QUEUXT_SOFTWARE_CATALOG) {
     const skuKey = String(sw.sku || sw.id);
     if (!map.has(skuKey)) {
@@ -120,7 +124,9 @@ const UNIFIED_CHANGE_ORDER_CATALOG: UnifiedCatalogEntry[] = (() => {
         unitCost: Number(sw.monthlyCost ?? 0) || 0,
         billingType: isPerUnit ? 'Per Unit / Month' : 'Per Property / Month',
         description: String(sw.description || ''),
-        typicalScope: isPerUnit ? 'All Residential Units (Monthly SaaS)' : 'Property-Wide Subscription',
+        typicalScope: isPerUnit
+          ? 'All Residential Units (Monthly SaaS)'
+          : 'Property-Wide Subscription',
       });
     }
   }
@@ -168,16 +174,24 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     [project.changeOrders]
   );
 
-  // Builder Modal / Drawer state for creating a new Change Order or adding items to an existing Change Order
+  // Builder Modal / Drawer state for creating a new Order or adding multiple items to an existing Order
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
-  const [targetChangeOrderId, setTargetChangeOrderId] = useState<string | null>(null); // null = creating new CO; string = adding items to existing CO
+  const [targetChangeOrderId, setTargetChangeOrderId] = useState<string | null>(null);
 
-  // New Change Order metadata form state
+  // New Order metadata form state
   const [coTitle, setCoTitle] = useState('');
   const [coReason, setCoReason] = useState('');
   const [coStatus, setCoStatus] = useState<ChangeOrderStatus>('Approved');
   const [coApprovedBy, setCoApprovedBy] = useState('');
   const [coNotes, setCoNotes] = useState('');
+  const [coPartners, setCoPartners] = useState<string[]>(() =>
+    getProjectIntegratorPartners(project)
+  );
+  const [coFieldTech, setCoFieldTech] = useState<FieldTechName>(() =>
+    normalizeFieldTech(project.assignedFieldTech)
+  );
+
+  // Multi-item staged list for the current Order
   const [stagedItems, setStagedItems] = useState<ChangeOrderLineItem[]>([]);
 
   // Product Catalog Picker filters
@@ -186,22 +200,17 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
   const [selectedBrand, setSelectedBrand] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Quick-configure state for selected catalog item before adding to staged list
-  const [configuringEntry, setConfiguringEntry] = useState<UnifiedCatalogEntry | null>(null);
-  const [configQty, setConfigQty] = useState<number>(1);
-  const [configSpares, setConfigSpares] = useState<number>(0);
-  const [configPrice, setConfigPrice] = useState<number>(0);
-  const [configLocation, setConfigLocation] = useState<string>('');
-  const [configNotes, setConfigNotes] = useState<string>('');
-
-  // Expanded Change Order cards
+  // Expanded Order cards
   const [collapsedIds, setCollapsedIds] = useState<Record<string, boolean>>({});
 
-  // Inline editing for existing Change Order metadata
+  // Inline editing for existing Order metadata
   const [editingHeaderId, setEditingHeaderId] = useState<string | null>(null);
   const [editTitleValue, setEditTitleValue] = useState('');
   const [editReasonValue, setEditReasonValue] = useState('');
   const [editApprovedByValue, setEditApprovedByValue] = useState('');
+
+  const builderPanelRef = useRef<HTMLDivElement | null>(null);
+  const stagedTableRef = useRef<HTMLDivElement | null>(null);
 
   // Available categories & brands based on catalogTab
   const availableCategories = useMemo(() => {
@@ -209,7 +218,9 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
       catalogTab === 'ALL'
         ? UNIFIED_CHANGE_ORDER_CATALOG
         : UNIFIED_CHANGE_ORDER_CATALOG.filter((item) => item.productType === catalogTab);
-    return Array.from(new Set(base.map((i) => String(i.category || 'General')).filter(Boolean))).sort();
+    return Array.from(
+      new Set(base.map((i) => String(i.category || 'General')).filter(Boolean))
+    ).sort();
   }, [catalogTab]);
 
   const availableBrands = useMemo(() => {
@@ -217,7 +228,9 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
       catalogTab === 'ALL'
         ? UNIFIED_CHANGE_ORDER_CATALOG
         : UNIFIED_CHANGE_ORDER_CATALOG.filter((item) => item.productType === catalogTab);
-    return Array.from(new Set(base.map((i) => String(i.manufacturer || 'Quext')).filter(Boolean))).sort();
+    return Array.from(
+      new Set(base.map((i) => String(i.manufacturer || 'Quext')).filter(Boolean))
+    ).sort();
   }, [catalogTab]);
 
   const filteredCatalog = useMemo(() => {
@@ -237,7 +250,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     });
   }, [catalogTab, selectedCategory, selectedBrand, searchQuery]);
 
-  // Aggregate summary metrics across all Change Orders (kept strictly separate from Original BOM)
+  // Aggregate summary metrics across all Orders (kept strictly separate from Original BOM)
   const summaryStats = useMemo(() => {
     let totalHardwareUnits = 0;
     let installedHardwareUnits = 0;
@@ -280,18 +293,17 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     };
   }, [changeOrders]);
 
-  const builderPanelRef = useRef<HTMLDivElement | null>(null);
-
   const openNewChangeOrderBuilder = () => {
     const nextNum = changeOrders.length + 1;
     setTargetChangeOrderId(null);
-    setCoTitle(`Change Order #${nextNum} — Additional Scope`);
+    setCoTitle(`Supplemental Order #${nextNum} — Additional Scope`);
     setCoReason('');
     setCoStatus('Approved');
     setCoApprovedBy('');
     setCoNotes('');
+    setCoPartners(getProjectIntegratorPartners(project));
+    setCoFieldTech(normalizeFieldTech(project.assignedFieldTech));
     setStagedItems([]);
-    setConfiguringEntry(null);
     setIsBuilderOpen(true);
     setTimeout(() => {
       builderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -306,55 +318,66 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     return () => {
       window.removeEventListener('quext:open-change-order-builder', handleExternalOpen);
     };
-  }, [changeOrders.length]);
+  }, [changeOrders.length, project]);
 
   const openAddItemToExistingCO = (co: ChangeOrderRecord) => {
     setTargetChangeOrderId(co.id);
     setCoTitle(co.title);
+    setCoPartners(
+      co.integratorPartners && co.integratorPartners.length > 0
+        ? co.integratorPartners
+        : getProjectIntegratorPartners(project)
+    );
+    setCoFieldTech(normalizeFieldTech(co.assignedFieldTech || project.assignedFieldTech));
     setStagedItems([]);
-    setConfiguringEntry(null);
     setIsBuilderOpen(true);
     setTimeout(() => {
       builderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 60);
   };
 
-  const handleSelectCatalogProduct = (entry: UnifiedCatalogEntry) => {
-    setConfiguringEntry(entry);
+  // Multi-item 1-click addition: clicking any catalog product adds it directly to the Order's staged items list!
+  const handleAddCatalogProductToOrder = (entry: UnifiedCatalogEntry) => {
     const defaultQty =
       entry.productType === 'Software' && entry.billingType === 'Per Unit / Month'
         ? project.unitsCount || 1
         : 1;
-    setConfigQty(defaultQty);
-    setConfigSpares(0);
-    setConfigPrice(entry.unitPrice);
-    setConfigLocation(entry.typicalScope || 'Change Order Scope');
-    setConfigNotes('');
+
+    setStagedItems((prev) => {
+      const newItem: ChangeOrderLineItem = {
+        id: `co-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        catalogId: entry.id,
+        sku: entry.sku,
+        name: entry.name,
+        productType: entry.productType,
+        category: entry.category,
+        bomCategory: entry.bomCategory,
+        manufacturer: entry.manufacturer,
+        quantity: defaultQty,
+        installedCount: 0,
+        sparesCount: 0,
+        unitPrice: Math.max(0, Number(entry.unitPrice) || 0),
+        billingType: entry.billingType,
+        location: entry.typicalScope || 'Supplemental Order Scope',
+        description: entry.description,
+      };
+      return [...prev, newItem];
+    });
   };
 
-  const handleAddConfiguredItemToStaged = () => {
-    if (!configuringEntry) return;
-    const newItem: ChangeOrderLineItem = {
-      id: `co-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      catalogId: configuringEntry.id,
-      sku: configuringEntry.sku,
-      name: configuringEntry.name,
-      productType: configuringEntry.productType,
-      category: configuringEntry.category,
-      bomCategory: configuringEntry.bomCategory,
-      manufacturer: configuringEntry.manufacturer,
-      quantity: Math.max(1, Number(configQty) || 1),
-      installedCount: 0,
-      sparesCount: configuringEntry.productType === 'Hardware' ? Math.max(0, Number(configSpares) || 0) : 0,
-      unitPrice: Math.max(0, Number(configPrice) || 0),
-      billingType: configuringEntry.billingType,
-      location: configLocation.trim() || configuringEntry.typicalScope || 'Change Order Scope',
-      description: configuringEntry.description,
-      notes: configNotes.trim() || undefined,
-    };
+  const handleIncrementStagedBySku = (sku: string) => {
+    setStagedItems((prev) =>
+      prev.map((item) =>
+        item.sku === sku ? { ...item, quantity: (Number(item.quantity) || 1) + 1 } : item
+      )
+    );
+  };
 
-    setStagedItems((prev) => [...prev, newItem]);
-    setConfiguringEntry(null);
+  const handleUpdateStagedItem = (
+    itemId: string,
+    updater: (item: ChangeOrderLineItem) => ChangeOrderLineItem
+  ) => {
+    setStagedItems((prev) => prev.map((item) => (item.id === itemId ? updater(item) : item)));
   };
 
   const handleRemoveStagedItem = (id: string) => {
@@ -362,74 +385,64 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
   };
 
   const handleSaveBuilder = () => {
-    let itemsToSave = [...stagedItems];
-    if (configuringEntry) {
-      const pendingItem: ChangeOrderLineItem = {
-        id: `co-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        catalogId: configuringEntry.id,
-        sku: configuringEntry.sku,
-        name: configuringEntry.name,
-        productType: configuringEntry.productType,
-        category: configuringEntry.category,
-        bomCategory: configuringEntry.bomCategory,
-        manufacturer: configuringEntry.manufacturer,
-        quantity: Math.max(1, Number(configQty) || 1),
-        installedCount: 0,
-        sparesCount:
-          configuringEntry.productType === 'Hardware' ? Math.max(0, Number(configSpares) || 0) : 0,
-        unitPrice: Math.max(0, Number(configPrice) || 0),
-        billingType: configuringEntry.billingType,
-        location: configLocation.trim() || configuringEntry.typicalScope || 'Change Order Scope',
-        description: configuringEntry.description,
-        notes: configNotes.trim() || undefined,
-      };
-      itemsToSave.push(pendingItem);
-    }
-
-    if (itemsToSave.length === 0) return;
+    if (stagedItems.length === 0) return;
 
     const nowIso = new Date().toISOString();
+    const isNowDiy = coPartners.some(isDiyPartner);
 
     if (targetChangeOrderId) {
-      // Append staged items to existing Change Order
+      // Append all staged items to the existing Order
       const updatedCOs = changeOrders.map((co) => {
         if (co.id !== targetChangeOrderId) return co;
         return {
           ...co,
-          items: [...(co.items || []), ...itemsToSave],
+          integratorPartners: coPartners,
+          assignedFieldTech: coFieldTech,
+          items: [...(co.items || []), ...stagedItems],
           updatedAt: nowIso,
         };
       });
 
       onUpdateProject({
         ...project,
+        integratorPartners: coPartners,
+        isDiyInstallation: isNowDiy,
+        assignedFieldTech: coFieldTech,
         changeOrders: updatedCOs,
         lastUpdated: nowIso,
       });
     } else {
-      // Create new Change Order record
+      // Create new Supplemental Order record with all staged items
       const coIndex = changeOrders.length + 1;
-      const coNumber = `CO-${new Date().getFullYear()}-${String(coIndex).padStart(3, '0')}`;
+      const coNumber = `SO-${new Date().getFullYear()}-${String(coIndex).padStart(3, '0')}`;
       const newRecord: ChangeOrderRecord = {
         id: `co-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         changeOrderNumber: coNumber,
         projectId: project.id,
         propertyName: project.propertyName,
-        title: coTitle.trim() || `Change Order #${coIndex}`,
-        reason: coReason.trim() || 'Additional hardware/software scope requested outside original BOM',
+        title: coTitle.trim() || `Supplemental Order #${coIndex}`,
+        reason:
+          coReason.trim() || 'Additional hardware/software scope requested outside original BOM',
         status: coStatus,
         createdBy: currentUserName,
         createdAt: nowIso,
         updatedAt: nowIso,
         approvedBy: coApprovedBy.trim() || undefined,
         approvedAt:
-          coStatus === 'Approved' || coStatus === 'In Fulfillment / Installed' ? nowIso : undefined,
-        items: itemsToSave,
+          coStatus === 'Approved' || coStatus === 'In Fulfillment / Installed'
+            ? nowIso
+            : undefined,
+        integratorPartners: coPartners,
+        assignedFieldTech: coFieldTech,
+        items: stagedItems,
         notes: coNotes.trim() || undefined,
       };
 
       onUpdateProject({
         ...project,
+        integratorPartners: coPartners,
+        isDiyInstallation: isNowDiy,
+        assignedFieldTech: coFieldTech,
         changeOrders: [newRecord, ...changeOrders],
         lastUpdated: nowIso,
       });
@@ -438,7 +451,6 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     setIsBuilderOpen(false);
     setTargetChangeOrderId(null);
     setStagedItems([]);
-    setConfiguringEntry(null);
   };
 
   const handleUpdateChangeOrderStatus = (coId: string, nextStatus: ChangeOrderStatus) => {
@@ -449,7 +461,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         ...co,
         status: nextStatus,
         approvedAt:
-          (nextStatus === 'Approved' || nextStatus === 'In Fulfillment / Installed') && !co.approvedAt
+          (nextStatus === 'Approved' || nextStatus === 'In Fulfillment / Installed') &&
+          !co.approvedAt
             ? nowIso
             : co.approvedAt,
         updatedAt: nowIso,
@@ -458,6 +471,32 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
 
     onUpdateProject({
       ...project,
+      changeOrders: updatedCOs,
+      lastUpdated: nowIso,
+    });
+  };
+
+  const handleUpdateOrderPartnersAndTech = (
+    coId: string,
+    nextPartners: string[],
+    nextTech: FieldTechName
+  ) => {
+    const nowIso = new Date().toISOString();
+    const updatedCOs = changeOrders.map((co) => {
+      if (co.id !== coId) return co;
+      return {
+        ...co,
+        integratorPartners: nextPartners,
+        assignedFieldTech: nextTech,
+        updatedAt: nowIso,
+      };
+    });
+
+    onUpdateProject({
+      ...project,
+      integratorPartners: nextPartners,
+      isDiyInstallation: nextPartners.some(isDiyPartner),
+      assignedFieldTech: nextTech,
       changeOrders: updatedCOs,
       lastUpdated: nowIso,
     });
@@ -539,6 +578,22 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     setEditingHeaderId(null);
   };
 
+  const stagedHwTotal = useMemo(
+    () =>
+      stagedItems
+        .filter((i) => i.productType === 'Hardware')
+        .reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0), 0),
+    [stagedItems]
+  );
+
+  const stagedSwMonthly = useMemo(
+    () =>
+      stagedItems
+        .filter((i) => i.productType === 'Software')
+        .reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0), 0),
+    [stagedItems]
+  );
+
   return (
     <div
       id="change-order-workflow"
@@ -552,7 +607,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
               <FilePlus2 className="w-5 h-5" />
             </div>
             <h3 className="text-lg font-bold text-white tracking-tight">
-              Change Orders & Supplemental Catalog Scope
+              Supplemental Order Catalog
             </h3>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
@@ -563,18 +618,18 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             </span>
           </div>
           <p className="text-xs text-slate-400 max-w-3xl">
-            Add supplemental Hardware and Software/SaaS items from the official Quext Product Catalog outside of the baseline Bill of Materials. Original BOM line items ({project.bomItems?.length || 0} items) remain untouched.
+            Create multi-item supplemental orders selecting from both the Quext Hardware Catalog and Software/SaaS Catalog outside of the baseline Bill of Materials. Original BOM line items ({project.bomItems?.length || 0} items) remain untouched.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={openNewChangeOrderBuilder}
             className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            + New Change Order (Hardware & Software Catalog)
+            + New Supplemental Order (Hardware &amp; Software Catalog)
           </button>
         </div>
       </div>
@@ -584,7 +639,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Active Change Orders
+              Supplemental Orders
             </p>
             <p className="text-xl font-black text-white mt-0.5">
               {summaryStats.totalChangeOrders}
@@ -601,7 +656,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90">
-              CO Hardware Installed / Total
+              Supplemental Hardware Installed / Total
             </p>
             <p className="text-xl font-black text-white mt-0.5 font-mono">
               <span className="text-emerald-400">{summaryStats.installedHardwareUnits}</span>
@@ -618,7 +673,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-sky-400/90">
-              CO Software Activated / Total
+              Supplemental Software Activated / Total
             </p>
             <p className="text-xl font-black text-white mt-0.5 font-mono">
               <span className="text-sky-400">{summaryStats.activatedSoftwareLicenses}</span>
@@ -635,7 +690,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/90">
-              Change Order Scope Value
+              Supplemental Order Scope Value
             </p>
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="text-base font-black text-emerald-400 font-mono">
@@ -654,7 +709,9 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         </div>
       </div>
 
-      {/* Change Order Builder Panel (Create New CO or Add Items to Existing CO) */}
+      {/* =====================================================================
+          SUPPLEMENTAL ORDER BUILDER PANEL (MULTI-ITEM ORDER CREATION)
+      ===================================================================== */}
       {isBuilderOpen && (
         <div
           ref={builderPanelRef}
@@ -667,11 +724,11 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white">
                   {targetChangeOrderId
-                    ? `Add Catalog Items to ${coTitle}`
-                    : 'Create New Change Order (Separate from Original BOM)'}
+                    ? `Add Multiple Catalog Items to ${coTitle}`
+                    : 'Create New Supplemental Order (Multi-Item Hardware & Software Order)'}
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  Select items from both the Quext Hardware Catalog and Software/SaaS Catalog below.
+                  Click as many Hardware and Software catalog items as needed below—all selected items are combined onto this single Order.
                 </p>
               </div>
             </div>
@@ -679,89 +736,124 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
               type="button"
               onClick={() => {
                 setIsBuilderOpen(false);
-                setConfiguringEntry(null);
               }}
-              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Metadata inputs when creating a new Change Order */}
-          {!targetChangeOrderId && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-900/90 border border-slate-800 rounded-xl p-4">
-              <div className="md:col-span-2">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Change Order Title *
-                </label>
-                <input
-                  type="text"
-                  value={coTitle}
-                  onChange={(e) => setCoTitle(e.target.value)}
-                  placeholder="e.g., CO #1 — Additional Common Area Readers & Video Intercom Licenses"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+          {/* Order Metadata + Integrator Partner / Installers + Field Tech */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
+            {!targetChangeOrderId && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Order Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={coTitle}
+                    onChange={(e) => setCoTitle(e.target.value)}
+                    placeholder="e.g., Supplemental Order #1 — Additional Readers, Locks & SaaS Licenses"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Order Status
+                  </label>
+                  <select
+                    value={coStatus}
+                    onChange={(e) => setCoStatus(e.target.value as ChangeOrderStatus)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    {CHANGE_ORDER_STATUSES.map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Customer / PM Approver (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={coApprovedBy}
+                    onChange={(e) => setCoApprovedBy(e.target.value)}
+                    placeholder="e.g., Regional Manager / Owner Rep"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Scope Reason / Justification
+                  </label>
+                  <input
+                    type="text"
+                    value={coReason}
+                    onChange={(e) => setCoReason(e.target.value)}
+                    placeholder="Reason for adding items outside of the baseline BOM (e.g., newly added amenity doors, extra leak sensors, SaaS tier expansion)"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Internal Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={coNotes}
+                    onChange={(e) => setCoNotes(e.target.value)}
+                    placeholder="PO #, billing note, or install instructions"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Assigned Integrator Partner / Installers & Field Tech on Order Creation */}
+            <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-900">
+                <IntegratorPartnerSelector
+                  assignedPartners={coPartners}
+                  projectName={project.propertyName}
+                  label="Integrator Partner / Installers:"
+                  onChange={(updatedPartners) => {
+                    setCoPartners(updatedPartners);
+                  }}
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Change Order Status
-                </label>
+              <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                <Wrench className="w-3.5 h-3.5 text-sky-600" />
+                <span className="text-slate-600 text-xs font-medium">Field Tech:</span>
                 <select
-                  value={coStatus}
-                  onChange={(e) => setCoStatus(e.target.value as ChangeOrderStatus)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  value={coFieldTech}
+                  onChange={(e) => setCoFieldTech(e.target.value as FieldTechName)}
+                  className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
                 >
-                  {CHANGE_ORDER_STATUSES.map((st) => (
-                    <option key={st} value={st}>
-                      {st}
+                  {AVAILABLE_FIELD_TECHS.map((tech) => (
+                    <option key={tech} value={tech}>
+                      {tech}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Customer / PM Approver (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={coApprovedBy}
-                  onChange={(e) => setCoApprovedBy(e.target.value)}
-                  placeholder="e.g., Regional Manager / Owner Rep"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div className="md:col-span-3">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Scope Reason / Justification
-                </label>
-                <input
-                  type="text"
-                  value={coReason}
-                  onChange={(e) => setCoReason(e.target.value)}
-                  placeholder="Reason for adding items outside of the baseline BOM (e.g., newly added amenity doors, extra leak sensors, SaaS tier expansion)"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Internal Notes (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={coNotes}
-                  onChange={(e) => setCoNotes(e.target.value)}
-                  placeholder="PO #, billing note, or install instructions"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
+              <span className="text-[11px] text-slate-400">
+                Assign the Integrator Partner / Installers and Field Tech responsible for this Supplemental Order.
+              </span>
             </div>
-          )}
+          </div>
 
-          {/* Product Catalog Browser (Hardware + Software Catalogs) */}
+          {/* Product Catalog Browser (Hardware + Software Catalogs — Click Multiple Items to Add to Same Order) */}
           <div className="bg-slate-900/95 border border-slate-800 rounded-xl p-4 space-y-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               {/* Catalog Type Tabs */}
@@ -813,7 +905,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                   }`}
                 >
                   <Cloud className="w-3.5 h-3.5" />
-                  Software & SaaS Catalog (
+                  Software &amp; SaaS Catalog (
                   {UNIFIED_CHANGE_ORDER_CATALOG.filter((i) => i.productType === 'Software').length})
                 </button>
               </div>
@@ -859,19 +951,25 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
               </div>
             </div>
 
-            {/* Catalog Product Grid */}
+            {/* Catalog Product Grid — Multi-Item 1-Click Add */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1">
               {filteredCatalog.map((entry) => {
-                const isSelected = configuringEntry?.sku === entry.sku;
+                const matchingStaged = stagedItems.filter((i) => i.sku === entry.sku);
+                const isAdded = matchingStaged.length > 0;
+                const totalStagedQty = matchingStaged.reduce(
+                  (sum, i) => sum + (Number(i.quantity) || 0),
+                  0
+                );
                 const isHardware = entry.productType === 'Hardware';
+
                 return (
                   <div
                     key={entry.sku}
-                    onClick={() => handleSelectCatalogProduct(entry)}
+                    onClick={() => handleAddCatalogProductToOrder(entry)}
                     className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
-                      isSelected
-                        ? 'bg-indigo-950/60 border-indigo-400 ring-1 ring-indigo-400/50'
-                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-600 hover:bg-slate-900'
+                      isAdded
+                        ? 'bg-emerald-950/30 border-emerald-500/60 ring-1 ring-emerald-500/40'
+                        : 'bg-slate-950/70 border-slate-800 hover:border-indigo-500/60 hover:bg-slate-900'
                     }`}
                   >
                     <div>
@@ -890,7 +988,14 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                           )}
                           {entry.productType}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400">{entry.sku}</span>
+                        {isAdded ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1">
+                            <Check className="w-3 h-3" />
+                            In Order (Qty: {totalStagedQty})
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono text-slate-400">{entry.sku}</span>
+                        )}
                       </div>
                       <p className="text-xs font-bold text-white leading-snug">{entry.name}</p>
                       <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
@@ -911,10 +1016,35 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                             : '/prop/mo'}
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-indigo-400 flex items-center gap-1">
-                        <Plus className="w-3.5 h-3.5" />
-                        Select
-                      </span>
+
+                      {isAdded ? (
+                        <div
+                          className="flex items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleIncrementStagedBySku(entry.sku)}
+                            className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold cursor-pointer"
+                            title="Increase quantity by 1"
+                          >
+                            +1 Qty
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAddCatalogProductToOrder(entry)}
+                            className="px-2 py-1 rounded bg-indigo-600/80 hover:bg-indigo-500 text-white text-[10px] font-bold cursor-pointer"
+                            title="Add another separate line item row for this product (e.g., for a different location)"
+                          >
+                            + New Row
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold flex items-center gap-1">
+                          <Plus className="w-3.5 h-3.5" />
+                          Add to Order
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -926,172 +1056,188 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                 </div>
               )}
             </div>
-
-            {/* Selected Catalog Product Configuration Bar */}
-            {configuringEntry && (
-              <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/40 space-y-3 animate-fadeIn">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        configuringEntry.productType === 'Hardware'
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : 'bg-sky-500/20 text-sky-300'
-                      }`}
-                    >
-                      {configuringEntry.productType} Catalog
-                    </span>
-                    <span className="text-xs font-bold text-white">{configuringEntry.name}</span>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      ({configuringEntry.sku})
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setConfiguringEntry(null)}
-                    className="text-xs text-slate-400 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
-                      {configuringEntry.productType === 'Hardware' ? 'Quantity *' : 'License Qty *'}
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={configQty}
-                      onChange={(e) => setConfigQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                      className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
-                    />
-                  </div>
-
-                  {configuringEntry.productType === 'Hardware' && (
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
-                        Attic Stock / Spares
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={configSpares}
-                        onChange={(e) =>
-                          setConfigSpares(Math.max(0, parseInt(e.target.value, 10) || 0))
-                        }
-                        className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
-                      Unit Price ({configuringEntry.billingType})
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={configPrice}
-                      onChange={(e) => setConfigPrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
-                    />
-                  </div>
-
-                  <div className={configuringEntry.productType === 'Hardware' ? '' : 'sm:col-span-2'}>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
-                      Deployment Location / Scope
-                    </label>
-                    <input
-                      type="text"
-                      value={configLocation}
-                      onChange={(e) => setConfigLocation(e.target.value)}
-                      placeholder="e.g., Clubhouse, Pool Gate, All Units"
-                      className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-                    />
-                  </div>
-
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={handleAddConfiguredItemToStaged}
-                      className="w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add to Change Order
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Staged Change Order Line Items Preview */}
-          <div className="bg-slate-900/95 border border-slate-800 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                Staged Change Order Items ({stagedItems.length})
-              </span>
-              {stagedItems.length > 0 && (
-                <span className="text-xs text-slate-400">
-                  Ready to save outside of baseline BOM
+          {/* Multi-Item Staged Order Table (Edit Quantities, Spares, Unit Prices & Locations for All Items on This Order) */}
+          <div
+            ref={stagedTableRef}
+            className="bg-slate-900/95 border border-indigo-500/40 rounded-xl p-4 space-y-3"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-white">
+                  Items on This Supplemental Order ({stagedItems.length} Line{' '}
+                  {stagedItems.length === 1 ? 'Item' : 'Items'})
                 </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Multi-Item Order Enabled
+                </span>
+              </div>
+              {stagedItems.length > 0 && (
+                <div className="flex items-center gap-3 text-xs font-mono">
+                  <span className="text-slate-300">
+                    HW Total:{' '}
+                    <strong className="text-emerald-400">${stagedHwTotal.toLocaleString()}</strong>
+                  </span>
+                  <span className="text-slate-300">
+                    SW Monthly:{' '}
+                    <strong className="text-sky-400">+${stagedSwMonthly.toLocaleString()}/mo</strong>
+                  </span>
+                </div>
               )}
             </div>
 
             {stagedItems.length === 0 ? (
-              <div className="py-4 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
-                Click any Hardware or Software product above to stage it for this Change Order.
+              <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-lg">
+                Click one or more <strong>Hardware</strong> or <strong>Software</strong> catalog items above to add them to this Order. You can add as many different items as needed onto a single Order.
               </div>
             ) : (
-              <div className="space-y-2">
-                {stagedItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-lg bg-slate-950 border border-slate-800"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          item.productType === 'Hardware'
-                            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                            : 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
-                        }`}
-                      >
-                        {item.productType}
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold text-white">
-                          {item.name}{' '}
-                          <span className="text-[10px] font-mono text-slate-400">({item.sku})</span>
-                        </p>
-                        <p className="text-[11px] text-slate-400">
-                          {item.category} • Location: {item.location}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="text-right font-mono text-xs">
-                        <span className="text-white font-bold">{item.quantity}</span>
-                        <span className="text-slate-400"> × ${item.unitPrice.toLocaleString()}</span>
-                        <span className="text-emerald-400 font-bold ml-2">
-                          = ${(item.quantity * item.unitPrice).toLocaleString()}
-                          {item.billingType !== 'One-Time' ? '/mo' : ''}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveStagedItem(item.id)}
-                        className="p-1 rounded hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <th className="py-2 px-2.5">Type</th>
+                      <th className="py-2 px-2.5">Catalog Product</th>
+                      <th className="py-2 px-2.5">Deployment Location / Scope</th>
+                      <th className="py-2 px-2.5 text-center">Quantity</th>
+                      <th className="py-2 px-2.5 text-center">Spares</th>
+                      <th className="py-2 px-2.5 text-right">Unit Price</th>
+                      <th className="py-2 px-2.5 text-right">Subtotal</th>
+                      <th className="py-2 px-2 text-right">Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {stagedItems.map((item) => {
+                      const isHw = item.productType === 'Hardware';
+                      const qty = Math.max(1, Number(item.quantity) || 1);
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-950/60">
+                          <td className="py-2.5 px-2.5">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                isHw
+                                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                  : 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+                              }`}
+                            >
+                              {item.productType}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2.5">
+                            <div className="font-bold text-white">{item.name}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {item.sku} • {item.manufacturer}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-2.5">
+                            <input
+                              type="text"
+                              value={item.location || ''}
+                              onChange={(e) =>
+                                handleUpdateStagedItem(item.id, (prev) => ({
+                                  ...prev,
+                                  location: e.target.value,
+                                }))
+                              }
+                              placeholder="e.g., Clubhouse, Bldg 1, All Units"
+                              className="w-full min-w-[150px] px-2.5 py-1 rounded bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2.5 text-center">
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateStagedItem(item.id, (prev) => ({
+                                    ...prev,
+                                    quantity: Math.max(1, (Number(prev.quantity) || 1) - 1),
+                                  }))
+                                }
+                                className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 cursor-pointer"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <input
+                                type="number"
+                                min={1}
+                                value={qty}
+                                onChange={(e) => {
+                                  const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                  handleUpdateStagedItem(item.id, (prev) => ({
+                                    ...prev,
+                                    quantity: val,
+                                  }));
+                                }}
+                                className="w-14 text-center py-1 rounded bg-slate-950 border border-slate-700 text-xs font-mono font-bold text-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateStagedItem(item.id, (prev) => ({
+                                    ...prev,
+                                    quantity: (Number(prev.quantity) || 1) + 1,
+                                  }))
+                                }
+                                className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-2.5 text-center">
+                            {isHw ? (
+                              <input
+                                type="number"
+                                min={0}
+                                value={item.sparesCount || 0}
+                                onChange={(e) => {
+                                  const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                  handleUpdateStagedItem(item.id, (prev) => ({
+                                    ...prev,
+                                    sparesCount: val,
+                                  }));
+                                }}
+                                className="w-14 text-center py-1 rounded bg-slate-950 border border-slate-700 text-xs font-mono text-slate-200"
+                              />
+                            ) : (
+                              <span className="text-slate-600">—</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right font-mono">
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={item.unitPrice}
+                              onChange={(e) => {
+                                const val = Math.max(0, parseFloat(e.target.value) || 0);
+                                handleUpdateStagedItem(item.id, (prev) => ({
+                                  ...prev,
+                                  unitPrice: val,
+                                }));
+                              }}
+                              className="w-20 text-right py-1 px-1.5 rounded bg-slate-950 border border-slate-700 text-xs font-mono text-white"
+                            />
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-400">
+                            ${(qty * (Number(item.unitPrice) || 0)).toLocaleString()}
+                            {item.billingType !== 'One-Time' ? '/mo' : ''}
+                          </td>
+                          <td className="py-2.5 px-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStagedItem(item.id)}
+                              className="p-1.5 rounded hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                              title="Remove item from Order"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
 
@@ -1100,28 +1246,27 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                 type="button"
                 onClick={() => {
                   setIsBuilderOpen(false);
-                  setConfiguringEntry(null);
                   setStagedItems([]);
                 }}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={stagedItems.length === 0 && !configuringEntry}
+                disabled={stagedItems.length === 0}
                 onClick={handleSaveBuilder}
                 className={`px-5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  stagedItems.length > 0 || configuringEntry
+                  stagedItems.length > 0
                     ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 cursor-pointer'
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {targetChangeOrderId
-                  ? `Add ${stagedItems.length + (configuringEntry ? 1 : 0)} Item(s) to Change Order`
-                  : `Save Change Order (${stagedItems.length + (configuringEntry ? 1 : 0)} Item${
-                      stagedItems.length + (configuringEntry ? 1 : 0) === 1 ? '' : 's'
+                  ? `Add ${stagedItems.length} Item(s) to Supplemental Order`
+                  : `Save Supplemental Order (${stagedItems.length} Item${
+                      stagedItems.length === 1 ? '' : 's'
                     })`}
               </button>
             </div>
@@ -1129,7 +1274,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         </div>
       )}
 
-      {/* List of Change Orders */}
+      {/* List of Supplemental Orders */}
       <div className="p-5 sm:p-6 space-y-4">
         {changeOrders.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/40 p-8 text-center space-y-3">
@@ -1138,10 +1283,10 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             </div>
             <div className="space-y-1">
               <p className="text-sm font-bold text-white">
-                No Change Orders Logged for {project.propertyName}
+                No Supplemental Orders Logged for {project.propertyName}
               </p>
               <p className="text-xs text-slate-400 max-w-xl mx-auto">
-                Need to add extra hardware or software licenses after the initial BOM was finalized? Create a Change Order to select items from the Quext Hardware & Software Catalogs while keeping the original BOM separate.
+                Need to add extra hardware or software licenses after the initial BOM was finalized? Create a multi-item Supplemental Order to select items from the Quext Hardware &amp; Software Catalogs while keeping the original BOM separate.
               </p>
             </div>
             <div>
@@ -1151,7 +1296,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                 className="px-4 py-2 rounded-xl bg-indigo-600/90 hover:bg-indigo-500 text-white text-xs font-bold inline-flex items-center gap-2 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Create First Change Order
+                Create First Supplemental Order
               </button>
             </div>
           </div>
@@ -1168,141 +1313,192 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
               (acc, i) => acc + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0),
               0
             );
+            const orderPartners =
+              co.integratorPartners && co.integratorPartners.length > 0
+                ? co.integratorPartners
+                : getProjectIntegratorPartners(project);
+            const orderFieldTech = normalizeFieldTech(
+              co.assignedFieldTech || project.assignedFieldTech
+            );
 
             return (
               <div
                 key={co.id}
                 className="rounded-xl border border-slate-800 bg-slate-950/70 overflow-hidden shadow-md"
               >
-                {/* Change Order Card Header */}
-                <div className="p-4 bg-slate-900/80 border-b border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                  <div className="space-y-1 flex-1">
-                    {editingHeaderId === co.id ? (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <input
-                          type="text"
-                          value={editTitleValue}
-                          onChange={(e) => setEditTitleValue(e.target.value)}
-                          className="px-2.5 py-1.5 rounded bg-slate-950 border border-indigo-500/50 text-xs text-white font-bold"
-                          placeholder="Change Order Title"
-                        />
-                        <input
-                          type="text"
-                          value={editReasonValue}
-                          onChange={(e) => setEditReasonValue(e.target.value)}
-                          className="px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
-                          placeholder="Reason / Scope Justification"
-                        />
-                        <div className="flex items-center gap-2">
+                {/* Supplemental Order Card Header */}
+                <div className="p-4 bg-slate-900/80 border-b border-slate-800 space-y-3">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="space-y-1 flex-1">
+                      {editingHeaderId === co.id ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                           <input
                             type="text"
-                            value={editApprovedByValue}
-                            onChange={(e) => setEditApprovedByValue(e.target.value)}
-                            className="flex-1 px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
-                            placeholder="Approved By"
+                            value={editTitleValue}
+                            onChange={(e) => setEditTitleValue(e.target.value)}
+                            className="px-2.5 py-1.5 rounded bg-slate-950 border border-indigo-500/50 text-xs text-white font-bold"
+                            placeholder="Order Title"
                           />
+                          <input
+                            type="text"
+                            value={editReasonValue}
+                            onChange={(e) => setEditReasonValue(e.target.value)}
+                            className="px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
+                            placeholder="Reason / Scope Justification"
+                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editApprovedByValue}
+                              onChange={(e) => setEditApprovedByValue(e.target.value)}
+                              className="flex-1 px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
+                              placeholder="Approved By"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveEditingHeader(co.id)}
+                              className="px-2.5 py-1.5 rounded bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-bold">
+                            {co.changeOrderNumber}
+                          </span>
+                          <h4 className="text-sm font-bold text-white">{co.title}</h4>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadgeStyle(
+                              co.status
+                            )}`}
+                          >
+                            {co.status}
+                          </span>
                           <button
                             type="button"
-                            onClick={() => saveEditingHeader(co.id)}
-                            className="px-2.5 py-1.5 rounded bg-emerald-600 text-white text-xs font-bold flex items-center gap-1"
+                            onClick={() => startEditingHeader(co)}
+                            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                            title="Edit Order Title & Reason"
                           >
-                            <Check className="w-3.5 h-3.5" />
-                            Save
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-bold">
-                          {co.changeOrderNumber}
-                        </span>
-                        <h4 className="text-sm font-bold text-white">{co.title}</h4>
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadgeStyle(
-                            co.status
-                          )}`}
-                        >
-                          {co.status}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => startEditingHeader(co)}
-                          className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                          title="Edit Change Order Title & Reason"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                      {co.reason && <span>Scope: {co.reason}</span>}
-                      <span>•</span>
-                      <span>Created by {co.createdBy}</span>
-                      <span>•</span>
-                      <span>{new Date(co.createdAt).toLocaleDateString()}</span>
-                      {co.approvedBy && (
-                        <>
-                          <span>•</span>
-                          <span className="text-emerald-400 font-medium">
-                            Approved by: {co.approvedBy}
-                          </span>
-                        </>
                       )}
+
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                        {co.reason && <span>Scope: {co.reason}</span>}
+                        <span>•</span>
+                        <span>Created by {co.createdBy}</span>
+                        <span>•</span>
+                        <span>{new Date(co.createdAt).toLocaleDateString()}</span>
+                        {co.approvedBy && (
+                          <>
+                            <span>•</span>
+                            <span className="text-emerald-400 font-medium">
+                              Approved by: {co.approvedBy}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Controls & Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={co.status}
+                        onChange={(e) =>
+                          handleUpdateChangeOrderStatus(
+                            co.id,
+                            e.target.value as ChangeOrderStatus
+                          )
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-slate-200 font-semibold focus:outline-none focus:border-indigo-500"
+                      >
+                        {CHANGE_ORDER_STATUSES.map((st) => (
+                          <option key={st} value={st}>
+                            Status: {st}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => openAddItemToExistingCO(co)}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Catalog Items
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteChangeOrder(co.id)}
+                        className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition-colors cursor-pointer"
+                        title="Delete Supplemental Order"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCollapsedIds((prev) => ({ ...prev, [co.id]: !prev[co.id] }))
+                        }
+                        className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/80 cursor-pointer"
+                      >
+                        {isCollapsed ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronUp className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
-                  {/* Status Controls & Actions */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={co.status}
-                      onChange={(e) =>
-                        handleUpdateChangeOrderStatus(co.id, e.target.value as ChangeOrderStatus)
-                      }
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-slate-200 font-semibold focus:outline-none focus:border-indigo-500"
-                    >
-                      {CHANGE_ORDER_STATUSES.map((st) => (
-                        <option key={st} value={st}>
-                          Status: {st}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Assigned Integrator Partner / Installers & Field Tech on Each Order */}
+                  <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-900">
+                      <IntegratorPartnerSelector
+                        assignedPartners={orderPartners}
+                        projectName={project.propertyName}
+                        label="Integrator Partner / Installers:"
+                        onChange={(updatedPartners) =>
+                          handleUpdateOrderPartnersAndTech(
+                            co.id,
+                            updatedPartners,
+                            orderFieldTech
+                          )
+                        }
+                      />
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => openAddItemToExistingCO(co)}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Catalog Item
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteChangeOrder(co.id)}
-                      className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700/80 transition-colors"
-                      title="Delete Change Order"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCollapsedIds((prev) => ({ ...prev, [co.id]: !prev[co.id] }))
-                      }
-                      className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/80"
-                    >
-                      {isCollapsed ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronUp className="w-4 h-4" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                      <span className="text-slate-500 text-xs">Field Tech:</span>
+                      <select
+                        value={orderFieldTech}
+                        onChange={(e) =>
+                          handleUpdateOrderPartnersAndTech(
+                            co.id,
+                            orderPartners,
+                            e.target.value as FieldTechName
+                          )
+                        }
+                        className="font-bold text-sky-900 bg-transparent focus:outline-none cursor-pointer text-xs"
+                      >
+                        {AVAILABLE_FIELD_TECHS.map((tech) => (
+                          <option key={tech} value={tech}>
+                            {tech}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* Change Order Line Items Table */}
+                {/* Order Line Items Table */}
                 {!isCollapsed && (
                   <div className="p-4 space-y-3">
                     <div className="overflow-x-auto">
@@ -1324,7 +1520,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                             const isHw = item.productType === 'Hardware';
                             const qty = Math.max(0, Number(item.quantity) || 0);
                             const installed = Math.max(0, Number(item.installedCount) || 0);
-                            const pct = qty > 0 ? Math.min(100, Math.round((installed / qty) * 100)) : 0;
+                            const pct =
+                              qty > 0 ? Math.min(100, Math.round((installed / qty) * 100)) : 0;
 
                             return (
                               <tr key={item.id} className="hover:bg-slate-900/50 transition-colors">
@@ -1396,7 +1593,10 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                         min={0}
                                         value={installed}
                                         onChange={(e) => {
-                                          const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                          const val = Math.max(
+                                            0,
+                                            parseInt(e.target.value, 10) || 0
+                                          );
                                           handleUpdateLineItem(co.id, item.id, (prev) => ({
                                             ...prev,
                                             installedCount: val,
@@ -1464,7 +1664,10 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                       min={1}
                                       value={qty}
                                       onChange={(e) => {
-                                        const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                        const val = Math.max(
+                                          1,
+                                          parseInt(e.target.value, 10) || 1
+                                        );
                                         handleUpdateLineItem(co.id, item.id, (prev) => ({
                                           ...prev,
                                           quantity: val,
@@ -1506,7 +1709,9 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                       className="w-20 text-right py-0.5 px-1.5 rounded bg-slate-900 border border-slate-800 text-xs font-mono text-slate-200"
                                     />
                                   </div>
-                                  <div className="text-[10px] text-slate-500">{item.billingType}</div>
+                                  <div className="text-[10px] text-slate-500">
+                                    {item.billingType}
+                                  </div>
                                 </td>
 
                                 {/* Subtotal */}
@@ -1523,8 +1728,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteLineItem(co.id, item.id)}
-                                    className="p-1.5 rounded hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors"
-                                    title="Remove item from Change Order"
+                                    className="p-1.5 rounded hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                                    title="Remove item from Supplemental Order"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -1536,7 +1741,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                       </table>
                     </div>
 
-                    {/* Change Order Footer Totals */}
+                    {/* Order Footer Totals */}
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80 text-xs">
                       <div className="text-slate-400">
                         <span className="font-semibold text-slate-300">

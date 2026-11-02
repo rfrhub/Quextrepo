@@ -1000,6 +1000,8 @@ export interface ChangeOrderRecord {
   updatedAt?: string;
   approvedBy?: string;
   approvedAt?: string;
+  integratorPartners?: string[];
+  assignedFieldTech?: FieldTechName;
   items: ChangeOrderLineItem[];
   notes?: string;
 }
