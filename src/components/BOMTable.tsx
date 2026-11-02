@@ -272,6 +272,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
           <button
             type="button"
             onClick={() => {
+              window.dispatchEvent(new CustomEvent('quext:open-change-order-builder'));
               document
                 .getElementById('change-order-workflow')
                 ?.scrollIntoView({ behavior: 'smooth', block: 'start' });

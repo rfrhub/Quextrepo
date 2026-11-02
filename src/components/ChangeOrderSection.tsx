@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   OperationProject,
   ChangeOrderRecord,
@@ -54,67 +54,73 @@ interface UnifiedCatalogEntry {
 const UNIFIED_CHANGE_ORDER_CATALOG: UnifiedCatalogEntry[] = (() => {
   const map = new Map<string, UnifiedCatalogEntry>();
 
-  // 1. Hardware Catalog items
-  for (const hw of QUEUXT_HARDWARE_CATALOG) {
-    map.set(hw.sku, {
-      id: hw.id,
-      sku: hw.sku,
-      name: hw.name,
-      productType: 'Hardware',
-      category: hw.category,
-      bomCategory: hw.category,
-      manufacturer: hw.manufacturer || 'Quext',
-      unitPrice: hw.unitPrice,
-      unitCost: hw.unitCost,
-      billingType: 'One-Time',
-      description: hw.description,
-      typicalScope: hw.typicalScope || 'Property Deployment Scope',
-    });
-  }
-
-  // 2. Software Catalog items
-  for (const sw of QUEUXT_SOFTWARE_CATALOG) {
-    map.set(sw.sku, {
-      id: sw.id,
-      sku: sw.sku,
-      name: sw.name,
-      productType: 'Software',
-      category: sw.category,
-      bomCategory: sw.bomCategory,
-      manufacturer: sw.brandName || 'Quext Software',
-      unitPrice: sw.sellPrice,
-      unitCost: sw.cost,
-      billingType: sw.isBilledPerUnit ? 'Per Unit / Month' : 'Per Property / Month',
-      description: sw.description,
-      typicalScope: sw.isBilledPerUnit ? 'All Residential Units (Monthly SaaS)' : 'Property-Wide Subscription',
-    });
-  }
-
-  // 3. Ensure any additional items from MYQUEXT_FULL_PRODUCT_CATALOG are included
+  // 1. Primary Canonical Catalog (MYQUEXT_FULL_PRODUCT_CATALOG: 85 Hardware + Software/SaaS items)
   for (const fullItem of MYQUEXT_FULL_PRODUCT_CATALOG) {
-    if (!map.has(fullItem.sku)) {
-      const isSw = fullItem.pricingModel === 'SaaS';
-      map.set(fullItem.sku, {
-        id: fullItem.id,
-        sku: fullItem.sku,
-        name: fullItem.name,
-        productType: isSw ? 'Software' : 'Hardware',
-        category: fullItem.category,
-        bomCategory: fullItem.bomCategory,
-        manufacturer: fullItem.brandName || 'Quext',
-        unitPrice: fullItem.sellPrice,
-        unitCost: fullItem.cost,
-        billingType: isSw
-          ? fullItem.isBilledPerUnit
-            ? 'Per Unit / Month'
-            : 'Per Property / Month'
-          : 'One-Time',
-        description: fullItem.description,
-        typicalScope: isSw
-          ? fullItem.isBilledPerUnit
-            ? 'All Residential Units (Monthly SaaS)'
-            : 'Property-Wide Subscription'
-          : 'Property Deployment Scope',
+    const isSw = fullItem.pricingModel === 'SaaS';
+    const skuKey = String(fullItem.sku || fullItem.id);
+    map.set(skuKey, {
+      id: String(fullItem.id || skuKey),
+      sku: skuKey,
+      name: String(fullItem.name || 'Catalog Product'),
+      productType: isSw ? 'Software' : 'Hardware',
+      category: String(fullItem.category || fullItem.bomCategory || (isSw ? 'Software & SaaS' : 'Hardware')),
+      bomCategory: (fullItem.bomCategory || 'Smart Access Control') as BOMCategory,
+      manufacturer: String(fullItem.brandName || 'Quext'),
+      unitPrice: Number(fullItem.sellPrice ?? fullItem.msrp ?? fullItem.cost ?? 0) || 0,
+      unitCost: Number(fullItem.cost ?? 0) || 0,
+      billingType: isSw
+        ? fullItem.isBilledPerUnit
+          ? 'Per Unit / Month'
+          : 'Per Property / Month'
+        : 'One-Time',
+      description: String(fullItem.description || fullItem.shortDescription || ''),
+      typicalScope: isSw
+        ? fullItem.isBilledPerUnit
+          ? 'All Residential Units (Monthly SaaS)'
+          : 'Property-Wide Subscription'
+        : 'Property Deployment Scope',
+    });
+  }
+
+  // 2. Hardware Catalog items (ensure any extra QUEUXT_HARDWARE_CATALOG items are included)
+  for (const hw of QUEUXT_HARDWARE_CATALOG) {
+    const skuKey = String(hw.sku || hw.id);
+    if (!map.has(skuKey)) {
+      map.set(skuKey, {
+        id: String(hw.id || skuKey),
+        sku: skuKey,
+        name: String(hw.name || 'Hardware Item'),
+        productType: 'Hardware',
+        category: String(hw.category || 'Smart Access Control'),
+        bomCategory: (hw.category || 'Smart Access Control') as BOMCategory,
+        manufacturer: String(hw.manufacturer || 'Quext'),
+        unitPrice: Number(hw.unitPrice ?? hw.unitCost ?? 0) || 0,
+        unitCost: Number(hw.unitCost ?? 0) || 0,
+        billingType: 'One-Time',
+        description: String(hw.description || ''),
+        typicalScope: String(hw.typicalScope || 'Property Deployment Scope'),
+      });
+    }
+  }
+
+  // 3. Software Catalog items (ensure any extra QUEUXT_SOFTWARE_CATALOG items are included with proper fields)
+  for (const sw of QUEUXT_SOFTWARE_CATALOG) {
+    const skuKey = String(sw.sku || sw.id);
+    if (!map.has(skuKey)) {
+      const isPerUnit = sw.billingType === 'per_unit_per_month';
+      map.set(skuKey, {
+        id: String(sw.id || skuKey),
+        sku: skuKey,
+        name: String(sw.name || 'Software Subscription'),
+        productType: 'Software',
+        category: String(sw.tier || (sw.features && sw.features[0]) || 'Software & SaaS'),
+        bomCategory: 'Smart Access Control',
+        manufacturer: String((sw.features && sw.features[1]) || 'Quext Software'),
+        unitPrice: Number(sw.monthlyPrice ?? sw.monthlyCost ?? 0) || 0,
+        unitCost: Number(sw.monthlyCost ?? 0) || 0,
+        billingType: isPerUnit ? 'Per Unit / Month' : 'Per Property / Month',
+        description: String(sw.description || ''),
+        typicalScope: isPerUnit ? 'All Residential Units (Monthly SaaS)' : 'Property-Wide Subscription',
       });
     }
   }
@@ -203,7 +209,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
       catalogTab === 'ALL'
         ? UNIFIED_CHANGE_ORDER_CATALOG
         : UNIFIED_CHANGE_ORDER_CATALOG.filter((item) => item.productType === catalogTab);
-    return Array.from(new Set(base.map((i) => i.category))).sort();
+    return Array.from(new Set(base.map((i) => String(i.category || 'General')).filter(Boolean))).sort();
   }, [catalogTab]);
 
   const availableBrands = useMemo(() => {
@@ -211,7 +217,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
       catalogTab === 'ALL'
         ? UNIFIED_CHANGE_ORDER_CATALOG
         : UNIFIED_CHANGE_ORDER_CATALOG.filter((item) => item.productType === catalogTab);
-    return Array.from(new Set(base.map((i) => i.manufacturer))).sort();
+    return Array.from(new Set(base.map((i) => String(i.manufacturer || 'Quext')).filter(Boolean))).sort();
   }, [catalogTab]);
 
   const filteredCatalog = useMemo(() => {
@@ -222,11 +228,11 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
       if (selectedBrand !== 'ALL' && entry.manufacturer !== selectedBrand) return false;
       if (!q) return true;
       return (
-        entry.name.toLowerCase().includes(q) ||
-        entry.sku.toLowerCase().includes(q) ||
-        entry.category.toLowerCase().includes(q) ||
-        entry.manufacturer.toLowerCase().includes(q) ||
-        entry.description.toLowerCase().includes(q)
+        String(entry.name || '').toLowerCase().includes(q) ||
+        String(entry.sku || '').toLowerCase().includes(q) ||
+        String(entry.category || '').toLowerCase().includes(q) ||
+        String(entry.manufacturer || '').toLowerCase().includes(q) ||
+        String(entry.description || '').toLowerCase().includes(q)
       );
     });
   }, [catalogTab, selectedCategory, selectedBrand, searchQuery]);
@@ -274,6 +280,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     };
   }, [changeOrders]);
 
+  const builderPanelRef = useRef<HTMLDivElement | null>(null);
+
   const openNewChangeOrderBuilder = () => {
     const nextNum = changeOrders.length + 1;
     setTargetChangeOrderId(null);
@@ -285,7 +293,20 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     setStagedItems([]);
     setConfiguringEntry(null);
     setIsBuilderOpen(true);
+    setTimeout(() => {
+      builderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 60);
   };
+
+  useEffect(() => {
+    const handleExternalOpen = () => {
+      openNewChangeOrderBuilder();
+    };
+    window.addEventListener('quext:open-change-order-builder', handleExternalOpen);
+    return () => {
+      window.removeEventListener('quext:open-change-order-builder', handleExternalOpen);
+    };
+  }, [changeOrders.length]);
 
   const openAddItemToExistingCO = (co: ChangeOrderRecord) => {
     setTargetChangeOrderId(co.id);
@@ -293,6 +314,9 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     setStagedItems([]);
     setConfiguringEntry(null);
     setIsBuilderOpen(true);
+    setTimeout(() => {
+      builderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 60);
   };
 
   const handleSelectCatalogProduct = (entry: UnifiedCatalogEntry) => {
@@ -338,7 +362,31 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
   };
 
   const handleSaveBuilder = () => {
-    if (stagedItems.length === 0) return;
+    let itemsToSave = [...stagedItems];
+    if (configuringEntry) {
+      const pendingItem: ChangeOrderLineItem = {
+        id: `co-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        catalogId: configuringEntry.id,
+        sku: configuringEntry.sku,
+        name: configuringEntry.name,
+        productType: configuringEntry.productType,
+        category: configuringEntry.category,
+        bomCategory: configuringEntry.bomCategory,
+        manufacturer: configuringEntry.manufacturer,
+        quantity: Math.max(1, Number(configQty) || 1),
+        installedCount: 0,
+        sparesCount:
+          configuringEntry.productType === 'Hardware' ? Math.max(0, Number(configSpares) || 0) : 0,
+        unitPrice: Math.max(0, Number(configPrice) || 0),
+        billingType: configuringEntry.billingType,
+        location: configLocation.trim() || configuringEntry.typicalScope || 'Change Order Scope',
+        description: configuringEntry.description,
+        notes: configNotes.trim() || undefined,
+      };
+      itemsToSave.push(pendingItem);
+    }
+
+    if (itemsToSave.length === 0) return;
 
     const nowIso = new Date().toISOString();
 
@@ -348,7 +396,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         if (co.id !== targetChangeOrderId) return co;
         return {
           ...co,
-          items: [...(co.items || []), ...stagedItems],
+          items: [...(co.items || []), ...itemsToSave],
           updatedAt: nowIso,
         };
       });
@@ -376,7 +424,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
         approvedBy: coApprovedBy.trim() || undefined,
         approvedAt:
           coStatus === 'Approved' || coStatus === 'In Fulfillment / Installed' ? nowIso : undefined,
-        items: stagedItems,
+        items: itemsToSave,
         notes: coNotes.trim() || undefined,
       };
 
@@ -608,7 +656,11 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
 
       {/* Change Order Builder Panel (Create New CO or Add Items to Existing CO) */}
       {isBuilderOpen && (
-        <div className="p-5 sm:p-6 bg-indigo-950/20 border-b border-indigo-500/30 space-y-5">
+        <div
+          ref={builderPanelRef}
+          id="change-order-builder-panel"
+          className="p-5 sm:p-6 bg-indigo-950/20 border-b border-indigo-500/30 space-y-5"
+        >
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
               <Sparkles className="w-5 h-5 text-indigo-400" />
@@ -849,7 +901,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                     <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
                       <div>
                         <span className="text-xs font-extrabold text-emerald-400 font-mono">
-                          ${entry.unitPrice.toLocaleString()}
+                          ${(Number(entry.unitPrice) || 0).toLocaleString()}
                         </span>
                         <span className="text-[10px] text-slate-400 ml-1">
                           {entry.billingType === 'One-Time'
@@ -1057,18 +1109,20 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
               </button>
               <button
                 type="button"
-                disabled={stagedItems.length === 0}
+                disabled={stagedItems.length === 0 && !configuringEntry}
                 onClick={handleSaveBuilder}
                 className={`px-5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  stagedItems.length > 0
+                  stagedItems.length > 0 || configuringEntry
                     ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 cursor-pointer'
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {targetChangeOrderId
-                  ? `Add ${stagedItems.length} Item(s) to Change Order`
-                  : `Save Change Order (${stagedItems.length} Item${stagedItems.length === 1 ? '' : 's'})`}
+                  ? `Add ${stagedItems.length + (configuringEntry ? 1 : 0)} Item(s) to Change Order`
+                  : `Save Change Order (${stagedItems.length + (configuringEntry ? 1 : 0)} Item${
+                      stagedItems.length + (configuringEntry ? 1 : 0) === 1 ? '' : 's'
+                    })`}
               </button>
             </div>
           </div>
