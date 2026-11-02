@@ -815,15 +815,20 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                   <p className="text-xs font-bold text-white mt-0.5">{coTitle}</p>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1">
+                  <label
+                    htmlFor="co-target-needed-by-date"
+                    className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1 cursor-pointer"
+                  >
                     <Calendar className="w-3 h-3 text-amber-400" />
                     <span>When needed by? *</span>
                   </label>
                   <input
                     type="date"
+                    id="co-target-needed-by-date"
                     value={coNeededByDate}
                     onChange={(e) => setCoNeededByDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer [color-scheme:dark]"
                   />
                 </div>
               </div>
@@ -890,15 +895,20 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1">
+                  <label
+                    htmlFor="co-new-needed-by-date"
+                    className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1 cursor-pointer"
+                  >
                     <Calendar className="w-3 h-3 text-amber-400" />
                     <span>When needed by? *</span>
                   </label>
                   <input
                     type="date"
+                    id="co-new-needed-by-date"
                     value={coNeededByDate}
                     onChange={(e) => setCoNeededByDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer [color-scheme:dark]"
                   />
                 </div>
 
@@ -1507,7 +1517,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-0.5 flex items-center gap-1">
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-0.5 flex items-center gap-1 cursor-pointer">
                               <Calendar className="w-3 h-3 text-amber-400" />
                               <span>When needed by? *</span>
                             </label>
@@ -1515,7 +1525,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                               type="date"
                               value={editNeededByValue}
                               onChange={(e) => setEditNeededByValue(e.target.value)}
-                              className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400"
+                              onClick={(e) => e.currentTarget.showPicker?.()}
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer [color-scheme:dark]"
                             />
                           </div>
                           <div>

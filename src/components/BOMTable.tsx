@@ -1680,20 +1680,25 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                   )}
                 </div>
 
-                {/* 4. Date Picker: When is this product needed by? */}
+                {/* 4. Date Picker: When needed by? */}
                 <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-300 space-y-1.5">
-                  <label className="block text-xs font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                  <label
+                    htmlFor="bom-acquisition-needed-by-date"
+                    className="block text-xs font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5 cursor-pointer"
+                  >
                     <Calendar className="w-3.5 h-3.5 text-amber-700" />
-                    <span>4. When is this product needed by? *</span>
+                    <span>4. When needed by? *</span>
                   </label>
                   <p className="text-[11px] text-amber-900">
                     Set the required on-site or delivery date so the Product Acquisition team can prioritize procurement and tracking.
                   </p>
                   <input
                     type="date"
+                    id="bom-acquisition-needed-by-date"
                     value={acquisitionNeededByDate}
                     onChange={(e) => setAcquisitionNeededByDate(e.target.value)}
-                    className="w-full sm:w-64 px-3 py-2 text-xs font-semibold bg-white border border-amber-400 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full sm:w-64 px-3 py-2 text-xs font-semibold bg-white border border-amber-400 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer [color-scheme:light]"
                   />
                 </div>
 

@@ -1501,15 +1501,20 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-300">
-                  <label className="block font-bold text-amber-950 mb-1 flex items-center gap-1">
+                  <label
+                    htmlFor="rma-needed-by-date"
+                    className="block font-bold text-amber-950 mb-1 flex items-center gap-1 cursor-pointer"
+                  >
                     <Calendar className="w-3.5 h-3.5 text-amber-700" />
                     <span>When needed by? *</span>
                   </label>
                   <input
                     type="date"
+                    id="rma-needed-by-date"
                     value={neededByDate}
                     onChange={(e) => setNeededByDate(e.target.value)}
-                    className="w-full px-2 py-1.5 bg-white border border-amber-400 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full px-2 py-1.5 bg-white border border-amber-400 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer [color-scheme:light]"
                   />
                 </div>
               </div>
