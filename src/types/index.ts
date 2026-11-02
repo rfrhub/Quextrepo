@@ -958,7 +958,50 @@ export interface OperationProject {
   pmpMitigationPlan?: PMPMitigationPlan;
   csmPortalData?: CSMPropertyPortalData;
   rmaTickets?: RMATicketRecord[];
+  changeOrders?: ChangeOrderRecord[];
   lastUpdated: string;
+}
+
+export type ChangeOrderStatus =
+  | 'Draft'
+  | 'Pending Customer Approval'
+  | 'Approved'
+  | 'In Fulfillment / Installed';
+
+export interface ChangeOrderLineItem {
+  id: string;
+  catalogId: string;
+  sku: string;
+  name: string;
+  productType: 'Hardware' | 'Software';
+  category: string;
+  bomCategory: BOMCategory;
+  manufacturer: string;
+  quantity: number;
+  installedCount: number;
+  sparesCount?: number;
+  unitPrice: number;
+  billingType: 'One-Time' | 'Per Unit / Month' | 'Per Property / Month';
+  location: string;
+  description?: string;
+  notes?: string;
+}
+
+export interface ChangeOrderRecord {
+  id: string;
+  changeOrderNumber: string;
+  projectId: string;
+  propertyName: string;
+  title: string;
+  reason: string;
+  status: ChangeOrderStatus;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  items: ChangeOrderLineItem[];
+  notes?: string;
 }
 
 export function getPropertyManagementCompany(project?: Partial<OperationProject>): string {

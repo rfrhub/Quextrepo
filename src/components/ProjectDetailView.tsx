@@ -58,6 +58,7 @@ import { PortalBuildOutModal } from './PortalBuildOutModal';
 import { ManualLinkProjectPanel } from './ManualLinkProjectPanel';
 import { PMPMitigationPlanPanel } from './PMPMitigationPlanPanel';
 import { RMATicketingSection } from './RMATicketingSection';
+import { ChangeOrderSection } from './ChangeOrderSection';
 import {
   Building2,
   Mail,
@@ -3172,6 +3173,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               BOM Table
             </a>
             <a
+              href="#change-order-workflow"
+              className="px-2.5 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold whitespace-nowrap shrink-0 transition-colors"
+            >
+              Change Orders
+            </a>
+            <a
               href="#rma-ticketing-workflow"
               className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold whitespace-nowrap shrink-0 transition-colors"
             >
@@ -3703,6 +3710,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 80);
               }}
+            />
+          </div>
+
+          {/* Change Order Workflow (Allows PMs to add Hardware & Software Catalog items outside of the baseline BOM) */}
+          <div className="scroll-mt-36">
+            <ChangeOrderSection
+              project={project}
+              onUpdateProject={onUpdateProject}
+              currentUserName={currentUserName || project.assignedPM?.name || 'Project Manager'}
+              contextLabel="Project"
             />
           </div>
 

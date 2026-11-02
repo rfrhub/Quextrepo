@@ -1803,6 +1803,7 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
         ? p.shippingDockItems
         : buildDefaultShippingDockItems({ ...p, integratorPartners: partners }),
     milestones: normalizeProjectMilestones(p.milestones, p.id, p.startDate, p.targetCompletionDate),
+    changeOrders: Array.isArray(p.changeOrders) ? p.changeOrders : [],
     customerIntake: {
       pmsSoftware: 'Yardi',
       commonAreaDoors: [],

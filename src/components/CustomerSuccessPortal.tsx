@@ -19,6 +19,7 @@ import {
 } from '../types';
 import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
 import { RMATicketingSection } from './RMATicketingSection';
+import { ChangeOrderSection } from './ChangeOrderSection';
 import {
   Building2,
   Wrench,
@@ -1566,6 +1567,16 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
           </table>
         </div>
       </div>
+
+      {/* =====================================================================
+          SECTION 2A: CHANGE ORDER WORKFLOW (SEPARATE FROM ORIGINAL BOM)
+      ===================================================================== */}
+      <ChangeOrderSection
+        project={property}
+        onUpdateProject={onUpdateProperty}
+        currentUserName={currentUserName || property.assignedCSM || 'Customer Success Manager'}
+        contextLabel="Property"
+      />
 
       {/* =====================================================================
           SECTION 2B: PROPERTY HARDWARE RMA TICKETING WORKFLOW
