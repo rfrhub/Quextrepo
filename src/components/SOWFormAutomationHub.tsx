@@ -197,22 +197,26 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     const secondStaff = intake?.staffRoles?.[1];
 
     const pocName =
-      intake?.communityContactName ||
-      prop.communityDetails?.siteContactName ||
+      (intake as any)?.communityContactName ||
+      (prop.communityDetails as any)?.siteContactName ||
+      intake?.submittedBy ||
       (primaryStaff ? `${primaryStaff.firstName} ${primaryStaff.lastName}`.trim() : '') ||
       '';
     const pocTitle =
       primaryStaff?.roleOrTitle ||
-      intake?.primaryKickoffPosition ||
+      (intake as any)?.primaryKickoffPosition ||
       (pocName ? 'Community Site Contact' : '');
     const pocPhone =
-      intake?.communityContactPhone ||
-      prop.communityDetails?.siteContactPhone ||
+      (intake as any)?.communityContactPhone ||
+      intake?.sitePhoneNumber ||
+      (prop.communityDetails as any)?.siteContactPhone ||
       primaryStaff?.phoneNumber ||
       '';
     const pocEmail =
-      intake?.communityContactEmail ||
-      prop.communityDetails?.siteContactEmail ||
+      intake?.communityEmail ||
+      (intake as any)?.communityContactEmail ||
+      intake?.subscriberEmail ||
+      (prop.communityDetails as any)?.siteContactEmail ||
       primaryStaff?.email ||
       '';
     const altContact = secondStaff

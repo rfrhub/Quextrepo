@@ -58,7 +58,7 @@ import {
   archiveLiveProject,
   saveLiveQuote,
 } from './services/realtimeSyncService';
-import PartnerAcademyApp from './partner-academy/App';
+const PartnerAcademyApp = React.lazy(() => import('./partner-academy/App'));
 import {
   buildProjectPrePackagedBundle,
   resolveMyQuextEmailIdentity,
@@ -1008,7 +1008,15 @@ export default function App() {
 
     const importNotif: ProjectActivityNotification = {
       id: `import_notif_${Date.now()}`,
+      projectId: enrichedList[0]?.id || 'system',
+      propertyName: enrichedList[0]?.propertyName || 'Multiple Projects',
+      assignedPMName: enrichedList[0]?.assignedPM?.name || 'Quext Project Manager',
+      assignedFieldTech: enrichedList[0]?.assignedFieldTech || 'Hector Garcia',
       timestamp: 'Just now',
+      createdAtIso: new Date().toISOString(),
+      audience: 'pm',
+      category: 'pm_update',
+      section: 'all',
       title,
       details,
       actorName: signedInUserRef.current?.name || 'Quext Project Manager',
@@ -1073,7 +1081,15 @@ export default function App() {
 
     const mergeNotif: ProjectActivityNotification = {
       id: `merge_notif_${Date.now()}`,
+      projectId: survivorProject.id,
+      propertyName: survivorProject.propertyName,
+      assignedPMName: survivorProject.assignedPM?.name || 'Quext Project Manager',
+      assignedFieldTech: survivorProject.assignedFieldTech || 'Hector Garcia',
       timestamp: 'Just now',
+      createdAtIso: new Date().toISOString(),
+      audience: 'pm',
+      category: 'pm_update',
+      section: 'all',
       title: 'Project Merged (The Clone Wars)',
       details: `Consolidated "${survivorProject.propertyName}" and permanently archived duplicate (${obsoleteProjectId}). Scope, units, and audit history merged.`,
       actorName: signedInUserRef.current?.name || 'Quext Project Manager',
@@ -1593,24 +1609,35 @@ export default function App() {
 
     return (
       <>
-        <PartnerAcademyApp
-          projects={projects}
-          onUpdateProject={handleUpdateProject}
-          activePartnerEmail={activePartnerEmail}
-          activeCompanyId={activePartnerCompanyId}
-          initialSelectedProjectId={loggedInPartnerAcademy?.selectedProjectId || null}
-          onOpenUnifiedSignInModal={undefined}
-          initialShowLoginModal={isPMTutorialOpen && isInternalQuextPM ? false : true}
-          onExitToOperationsHub={
-            isInternalQuextPM
-              ? () => {
-                  // Internal PM team member returning to Operations Hub
-                  setLoggedInPartnerAcademy(null);
-                  window.location.hash = '#/home';
-                }
-              : undefined // External partners have ZERO access or exit button to PM Workspace!
+        <React.Suspense
+          fallback={
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center text-sky-400 font-bold">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                <span>Loading Quext Partner Academy...</span>
+              </div>
+            </div>
           }
-        />
+        >
+          <PartnerAcademyApp
+            projects={projects}
+            onUpdateProject={handleUpdateProject}
+            activePartnerEmail={activePartnerEmail}
+            activeCompanyId={activePartnerCompanyId}
+            initialSelectedProjectId={loggedInPartnerAcademy?.selectedProjectId || null}
+            onOpenUnifiedSignInModal={undefined}
+            initialShowLoginModal={isPMTutorialOpen && isInternalQuextPM ? false : true}
+            onExitToOperationsHub={
+              isInternalQuextPM
+                ? () => {
+                    // Internal PM team member returning to Operations Hub
+                    setLoggedInPartnerAcademy(null);
+                    window.location.hash = '#/home';
+                  }
+                : undefined // External partners have ZERO access or exit button to PM Workspace!
+            }
+          />
+        </React.Suspense>
         {isPMTutorialOpen && isInternalQuextPM && (
           <PMTutorialGuide
             isOpen={isPMTutorialOpen}
@@ -2179,7 +2206,7 @@ export default function App() {
         onClose={() => setIsSowHubOpen(false)}
         onNavigateToProject={handleGoToOperationsProject}
         properties={projects}
-        currentUserName={currentUser.name}
+        currentUserName={signedInUser?.name || 'Raul Recalde'}
       />
 
       {isPMTutorialOpen && (

@@ -185,7 +185,7 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
 }) => {
   const totalProperties = properties.length;
   const totalUnits = properties.reduce(
-    (sum, p) => sum + (p.customerIntake?.unitCount || p.units || 120),
+    (sum, p) => sum + (p.unitsCount || (p.customerIntake as any)?.unitCount || (p as any).units || 120),
     0
   );
   const totalDoors = properties.reduce(
@@ -223,7 +223,11 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
     (sum, p) =>
       sum +
       (p.csmPortalData?.contracts || []).filter(
-        (c) => c.quextSignatory?.name && c.customerSignatory?.name
+        (c) =>
+          Boolean(
+            (c.quextSignatory?.signerName || (c.quextSignatory as any)?.name) &&
+              (c.customerSignatory?.signerName || (c.customerSignatory as any)?.name)
+          )
       ).length,
     0
   );
@@ -238,7 +242,13 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
     }))
   );
   const totalCoValue = allChangeOrders.reduce(
-    (sum, co) => sum + (co.totalAmount || 0),
+    (sum, co) =>
+      sum +
+      (co.items || []).reduce(
+        (isum, it) => isum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
+        0
+      ) +
+      ((co as any).totalAmount || 0),
     0
   );
 
@@ -386,7 +396,8 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
               (p) => (p.assignedCSM || 'Nicole Franklin').toLowerCase() === csm.name.toLowerCase()
             );
             const csmUnits = assigned.reduce(
-              (sum, p) => sum + (p.customerIntake?.unitCount || p.units || 120),
+              (sum, p) =>
+                sum + (p.unitsCount || (p.customerIntake as any)?.unitCount || (p as any).units || 120),
               0
             );
             const csmCrit = assigned.filter(
@@ -531,18 +542,18 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
                         </span>
                         {activeGroup && (
                           <span className="text-amber-800 font-mono text-[10px]">
-                            Target: {activeGroup.resolutionPlan?.targetDate || 'In Review'}
+                            Target: {activeGroup.resolutionPlan?.targetResolutionDate || (activeGroup.resolutionPlan as any)?.targetDate || 'In Review'}
                           </span>
                         )}
                       </div>
                       <p className="line-clamp-2 italic text-slate-700">
-                        "{latestNote?.text || activeGroup?.resolutionPlan?.summary || 'Active remediation underway with local property management.'}"
+                        "{latestNote?.text || activeGroup?.resolutionPlan?.planSummary || (activeGroup?.resolutionPlan as any)?.summary || 'Active remediation underway with local property management.'}"
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between pt-1 text-[11px]">
                       <span className="text-slate-400">
-                        {prop.csmPortalData?.csmNotes?.length || 0} Notes logged • {prop.units || 120} units
+                        {prop.csmPortalData?.csmNotes?.length || 0} Notes logged • {prop.unitsCount || (prop as any).units || 120} units
                       </span>
                       <span className="text-emerald-700 font-bold group-hover:underline flex items-center gap-1">
                         <span>Open Property Workspace</span>
@@ -581,36 +592,43 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
               </div>
             ) : (
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                {allChangeOrders.slice(0, 5).map((co, idx) => (
-                  <div
-                    key={co.id || idx}
-                    onClick={() => onSelectProperty(co.propertyId)}
-                    className="p-3 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/20 transition-all cursor-pointer group space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900 group-hover:text-sky-700">
-                        {co.orderNumber || `SO-${idx + 1}`}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200">
-                        {co.status || 'Submitted'}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-600 flex items-center justify-between">
-                      <span className="truncate max-w-[180px]">{co.propertyName}</span>
-                      <span className="font-mono font-bold text-slate-900">
-                        ${(co.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    {co.items && co.items.length > 0 && (
-                      <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2 bg-slate-50 px-2 py-1 rounded">
-                        <span>{co.items[0].name}</span>
-                        <span className="text-indigo-600 font-bold">
-                          {co.items[0].quantity} Ordered vs {co.items[0].manualProjectTotalQty || co.items[0].quantity} Total
+                {allChangeOrders.slice(0, 5).map((co, idx) => {
+                  const coCost =
+                    (co.items || []).reduce(
+                      (s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
+                      0
+                    ) || (co as any).totalAmount || 0;
+                  return (
+                    <div
+                      key={co.id || idx}
+                      onClick={() => onSelectProperty(co.propertyId)}
+                      className="p-3 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/20 transition-all cursor-pointer group space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-900 group-hover:text-sky-700">
+                          {co.changeOrderNumber || (co as any).orderNumber || `SO-${idx + 1}`}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200">
+                          {co.status || 'Submitted'}
                         </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="text-[11px] text-slate-600 flex items-center justify-between">
+                        <span className="truncate max-w-[180px]">{co.propertyName}</span>
+                        <span className="font-mono font-bold text-slate-900">
+                          ${coCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {co.items && co.items.length > 0 && (
+                        <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2 bg-slate-50 px-2 py-1 rounded">
+                          <span>{co.items[0].name}</span>
+                          <span className="text-indigo-600 font-bold">
+                            {co.items[0].quantity} Ordered vs {co.items[0].manualProjectTotalQty || co.items[0].quantity} Total
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -727,10 +745,13 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
           category: 'orders',
           categoryLabel: 'Supplemental Order',
           badgeColor: 'bg-sky-100 text-sky-800 border-sky-300',
-          title: `${co.orderNumber || 'Order'} (${co.status || 'Active'})`,
-          description: `${itemCount} item(s) • Total: $${(co.totalAmount || 0).toFixed(2)}${
-            co.trackingNumber ? ` • Track #: ${co.trackingNumber}` : ''
-          }`,
+          title: `${co.changeOrderNumber || (co as any).orderNumber || 'Order'} (${co.status || 'Active'})`,
+          description: `${itemCount} item(s) • Total: $${(
+            (co.items || []).reduce(
+              (s, it) => s + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
+              0
+            ) || (co as any).totalAmount || 0
+          ).toFixed(2)}${co.trackingNumber ? ` • Track #: ${co.trackingNumber}` : ''}`,
           timestamp: co.updatedAt || co.createdAt || 'Recent',
           isoDate: co.updatedAt || co.createdAt || new Date().toISOString(),
         });
@@ -746,7 +767,7 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
           category: 'rma',
           categoryLabel: 'Hardware RMA',
           badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-          title: `RMA #${rma.ticketNumber}: ${rma.partName || 'Equipment Replacement'}`,
+          title: `RMA #${rma.ticketNumber}: ${rma.bomItemName || (rma as any).partName || 'Equipment Replacement'}`,
           description: `Qty: ${rma.defectiveQuantity || 1} • Status: ${rma.status || 'Open'}${
             rma.trackingNumber || rma.returnTrackingNumber
               ? ` • Tracking: ${rma.trackingNumber || rma.returnTrackingNumber}`
@@ -759,6 +780,11 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
 
       // 4. AI Scrubbed Contracts
       for (const contract of prop.csmPortalData?.contracts || []) {
+        const qSigner = contract.quextSignatory?.signerName || (contract.quextSignatory as any)?.name || 'Quext';
+        const cSigner = contract.customerSignatory?.signerName || (contract.customerSignatory as any)?.name || 'Customer';
+        const effDate = (contract as any).effectiveDate || contract.contractStartDate || 'Verified';
+        const scrubTime = contract.aiScrubbedAt || (contract as any).scrubbedAt || 'Recent';
+
         list.push({
           id: `csm-contract-${contract.id}`,
           propertyId: prop.id,
@@ -767,10 +793,10 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
           category: 'contracts',
           categoryLabel: 'AI Agreement Scrubbed',
           badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-          title: `${contract.agreementType || 'Master Agreement'} (${contract.fileName})`,
-          description: `Parties: ${contract.quextSignatory?.name || 'Quext'} & ${contract.customerSignatory?.name || 'Customer'} • Effective: ${contract.effectiveDate || 'Verified'}`,
-          timestamp: contract.scrubbedAt || 'Recent',
-          isoDate: contract.scrubbedAt || new Date().toISOString(),
+          title: `${contract.contractTermSummary || (contract as any).contractType || (contract as any).agreementType || 'Master Agreement'} (${contract.fileName})`,
+          description: `Parties: ${qSigner} & ${cSigner} • Effective: ${effDate}`,
+          timestamp: scrubTime,
+          isoDate: scrubTime !== 'Recent' ? scrubTime : new Date().toISOString(),
         });
       }
 
@@ -1850,6 +1876,9 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
     const newSubmission: BOMAcquisitionSubmission = {
       id: `bom-acq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       submissionNumber: subNum,
+      projectId: property.id,
+      propertyName: property.propertyName,
+      sourceWorkspace: 'Property',
       bomItemId: latestItem.id,
       name: latestItem.name,
       model: latestItem.model,
@@ -1866,7 +1895,6 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
       lockFinishConfig: latestItem.lockFinishConfig,
       neededByDate: acquisitionModalNeededByDate.trim() || undefined,
       notes: acquisitionNotes.trim() || undefined,
-      sourceWorkspace: 'Property',
       sourceSectionLabel: 'Smart Community Bill of Materials (BOM)',
       itemType: 'Smart Community Bill of Materials (BOM)',
       fulfillmentStatus: 'Pending Acquisition / Review',

@@ -49,7 +49,12 @@ export interface PrePackagedProjectCourseBundle {
   projectId: string;
   propertyName: string;
   generatedAt: string;
-  generationTrigger: 'Deal Won Automation' | 'Manual Project Creation' | 'BOM Scope Sync';
+  generationTrigger:
+    | 'Deal Won Automation'
+    | 'Manual Project Creation'
+    | 'BOM Scope Sync'
+    | 'Backup Restore'
+    | 'Spreadsheet Import';
   assignedPartners: string[];
   courses: PackagedCourseItem[];
   guides: PackagedGuideItem[];
@@ -63,7 +68,12 @@ export interface PrePackagedProjectCourseBundle {
  */
 export function buildProjectPrePackagedBundle(
   project: OperationProject,
-  generationTrigger?: 'Deal Won Automation' | 'Manual Project Creation' | 'BOM Scope Sync'
+  generationTrigger?:
+    | 'Deal Won Automation'
+    | 'Manual Project Creation'
+    | 'BOM Scope Sync'
+    | 'Backup Restore'
+    | 'Spreadsheet Import'
 ): PrePackagedProjectCourseBundle {
   const bomItems: BOMItem[] = project.bomItems || [];
   const existingBundle = project.partnerCourseBundle;
@@ -542,6 +552,9 @@ export interface PartnerIdentityDirectoryEntry {
   leadName: string;
   region: string;
   aliases: string[];
+  secureAccessCode?: string;
+  tier?: string;
+  activeTechnicians?: number;
 }
 
 export const PARTNER_IDENTITY_DIRECTORY: PartnerIdentityDirectoryEntry[] = [

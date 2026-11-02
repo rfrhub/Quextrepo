@@ -109,6 +109,8 @@ export const BOMTable: React.FC<BOMTableProps> = ({
     const newSubmission: BOMAcquisitionSubmission = {
       id: `bom-acq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       submissionNumber: subNum,
+      projectId: project.id,
+      propertyName: project.propertyName,
       bomItemId: latestItem.id,
       name: latestItem.name,
       model: latestItem.model,

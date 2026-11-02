@@ -649,7 +649,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
             <CloudSyncIndicator
               onManualSync={onSyncLiveMyQuext}
               isManualSyncing={isSyncingLive}
-              lastSyncedInfo={lastSyncedInfo}
+              lastSyncedInfo={lastSyncedInfo || undefined}
             />
 
             {/* Toggle Standalone Mode */}

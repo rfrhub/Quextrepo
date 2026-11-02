@@ -306,7 +306,7 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
               {/* Imported Projects Pill List */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left max-h-48 overflow-y-auto space-y-1.5">
                 {importedProjects.map((p) => {
-                  const badgeStyle = getPlatformBadgeStyle(p.platform);
+                  const badgeStyle = getPlatformBadgeStyle(p.platform || 'Quext');
                   return (
                     <div
                       key={p.id}
@@ -320,7 +320,7 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                           {p.unitsCount} units
                         </span>
                         <span
-                          className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${badgeStyle.border} ${badgeStyle.bg} ${badgeStyle.text}`}
+                          className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${badgeStyle.badgeClass}`}
                         >
                           {p.platform || 'Quext'}
                         </span>
@@ -559,7 +559,7 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                     <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
                       {backupResult.projects.map((p, idx) => {
                         const isSelected = selectedBackupIndices.has(idx);
-                        const badgeStyle = getPlatformBadgeStyle(p.platform);
+                        const badgeStyle = getPlatformBadgeStyle(p.platform || 'Quext');
                         const totalBom = p.bomItems?.length || 0;
                         const installedBomCount = (p.bomItems || []).reduce((sum, b) => sum + (b.installedCount || 0), 0);
                         const totalLogs = p.installLogs?.length || 0;
@@ -591,7 +591,7 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-slate-900 text-sm">{p.propertyName}</span>
                                 <span className="text-slate-500 font-medium">({p.clientName})</span>
-                                <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${badgeStyle.border} ${badgeStyle.bg} ${badgeStyle.text}`}>
+                                <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${badgeStyle.badgeClass}`}>
                                   {p.platform || 'Quext'}
                                 </span>
                                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
@@ -801,7 +801,7 @@ export const ImportProjectsModal: React.FC<ImportProjectsModalProps> = ({
                                 {/* Platform */}
                                 <td className="p-2.5 whitespace-nowrap">
                                   <span
-                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badgeStyle.border} ${badgeStyle.bg} ${badgeStyle.text}`}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badgeStyle.badgeClass}`}
                                   >
                                     {row.platform}
                                   </span>

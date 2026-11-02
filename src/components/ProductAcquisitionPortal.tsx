@@ -8,6 +8,7 @@ import {
   AcquisitionOrderMilestones,
   ProjectActivityNotification,
   BOMItem,
+  InstallLogEntry,
   getLockFinishSummaryTag,
   getLockFinishColorHex,
   formatFullFinishDetailsLines,
@@ -133,6 +134,13 @@ const FULFILLMENT_STATUS_OPTIONS: ProductAcquisitionFulfillmentStatus[] = [
   'Delivered / Fulfilled',
   'Cancelled',
 ];
+
+function resolveOverrideFulfillmentStatus(raw: any): ProductAcquisitionFulfillmentStatus | undefined {
+  if (!raw) return undefined;
+  if (typeof raw === 'object' && raw.status) return raw.status as ProductAcquisitionFulfillmentStatus;
+  if (typeof raw === 'string') return raw as ProductAcquisitionFulfillmentStatus;
+  return undefined;
+}
 
 export function isProjectMilestoneCompleted(p?: Partial<OperationProject> | null): boolean {
   if (!p || !p.milestones || p.milestones.length === 0) return false;
@@ -271,7 +279,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             returnTrackingNumber: ticket.returnTrackingNumber,
             replacementTrackingNumber: track,
           },
-          fulfillmentStatus: overrides[uid] || defaultFulfillment,
+          fulfillmentStatus: resolveOverrideFulfillmentStatus(overrides[uid]) || defaultFulfillment,
           createdAt: ticket.createdAt,
           createdBy: ticket.createdBy,
           neededByDate: needed,
@@ -363,7 +371,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             thermostatBrand: item.thermostatBrand,
             lockFinishConfig: item.lockFinishConfig,
             reasonOrNotes: [co.title, item.notes, co.reason].filter(Boolean).join(' — '),
-            fulfillmentStatus: overrides[uid] || defaultFulfillment,
+            fulfillmentStatus: resolveOverrideFulfillmentStatus(overrides[uid]) || defaultFulfillment,
             createdAt: co.createdAt,
             createdBy: co.createdBy,
             neededByDate: needed,
@@ -436,7 +444,11 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           reasonOrNotes:
             sub.notes ||
             `Confirmed BOM quantity (${sub.confirmedQuantity ?? sub.confirmedQuantityToSend} quoted) sent to Product Acquisition`,
-          fulfillmentStatus: overrides[uid] || sub.fulfillmentStatus || sub.status || 'Pending Acquisition / Review',
+          fulfillmentStatus:
+            resolveOverrideFulfillmentStatus(overrides[uid]) ||
+            sub.fulfillmentStatus ||
+            sub.status ||
+            'Pending Acquisition / Review',
           createdAt: sub.createdAt,
           createdBy: sub.createdBy,
           neededByDate: needed,
@@ -726,8 +738,11 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           );
         if (!isTarget) return bi;
 
-        const newLog = {
+        const newLog: InstallLogEntry = {
           id: `log-track-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          projectId: targetProject.id,
+          itemId: bi.id,
+          itemName: bi.name,
           timestamp: new Date().toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -736,7 +751,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             minute: '2-digit',
           }),
           installerName: currentUserName || 'Product Acquisition Portal',
-          statusCheck: 'Pass' as const,
+          statusCheck: 'Hardware Swapped',
           quantityCompleted: 0,
           locationCompleted: bi.location || 'Warehouse / In Transit',
           notes: `Tracking # documented: ${trackingVal}`,

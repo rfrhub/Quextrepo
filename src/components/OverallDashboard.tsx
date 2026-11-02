@@ -199,7 +199,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           m.title.toLowerCase().includes('closure')
       );
       if (closed && closed.status === 'Completed') return true;
-      if ((p as any).isCompleted || p.statusTag === 'Completed') return true;
+      if ((p as any).isCompleted || (p as any).statusTag === 'Completed') return true;
       return false;
     });
   }, [dashboardScopedProjects]);
@@ -1229,7 +1229,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                         value={getProjectPlatform(project)}
                         onChange={(e) => {
                           const newPlat = e.target.value as ProjectPlatform;
-                          onUpdateProject({
+                          onUpdateProject?.({
                             ...project,
                             platform: newPlat,
                             lastUpdated: new Date().toISOString(),

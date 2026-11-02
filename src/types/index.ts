@@ -1246,13 +1246,14 @@ export interface OperationProject {
   bomAcquisitionSubmissions?: BOMAcquisitionSubmission[];
   acquisitionStatusOverrides?: Record<
     string,
-    {
-      status: ProductAcquisitionFulfillmentStatus;
-      poOrTrackingNumber?: string;
-      updatedAt: string;
-      updatedBy: string;
-      notes?: string;
-    }
+    | {
+        status: ProductAcquisitionFulfillmentStatus;
+        poOrTrackingNumber?: string;
+        updatedAt: string;
+        updatedBy: string;
+        notes?: string;
+      }
+    | ProductAcquisitionFulfillmentStatus
   >;
   acquisitionMilestones?: Record<string, AcquisitionOrderMilestones>;
   lastUpdated: string;
@@ -1290,7 +1291,8 @@ export type ProductAcquisitionFulfillmentStatus =
   | 'Pending Acquisition / Review'
   | 'PO Submitted / Ordered'
   | 'In Transit / Shipped'
-  | 'Delivered / Fulfilled';
+  | 'Delivered / Fulfilled'
+  | 'Cancelled';
 
 export interface BOMAcquisitionSubmission {
   id: string;
@@ -1344,7 +1346,8 @@ export type ChangeOrderStatus =
   | 'Draft'
   | 'Pending Customer Approval'
   | 'Approved'
-  | 'In Fulfillment / Installed';
+  | 'In Fulfillment / Installed'
+  | 'Cancelled';
 
 export interface ChangeOrderLineItem {
   id: string;

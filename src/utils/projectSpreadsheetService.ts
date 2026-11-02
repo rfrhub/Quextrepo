@@ -359,15 +359,13 @@ export function normalizeStatusTag(raw: any): ProjectStatusTag {
   const str = String(raw).trim().toLowerCase();
   if (str.includes('behind')) return 'Behind Schedule';
   if (str.includes('risk') || str.includes('high')) return 'High Risk';
-  if (str.includes('complet')) return 'Completed';
-  if (str.includes('not started') || str.includes('new') || str.includes('pending')) return 'Not Started';
   return 'On Track';
 }
 
 /**
  * Normalizes PM name against known available PMs.
  */
-function normalizePM(raw: any): { name: string; email: string; role: string; phone: string } {
+function normalizePM(raw: any) {
   if (!raw) return AVAILABLE_PMS[0];
   const str = String(raw).trim().toLowerCase();
   const match = AVAILABLE_PMS.find(
