@@ -124,6 +124,30 @@ const FULFILLMENT_STATUS_OPTIONS: ProductAcquisitionFulfillmentStatus[] = [
   'Cancelled',
 ];
 
+export function isProjectMilestoneCompleted(p?: Partial<OperationProject> | null): boolean {
+  if (!p || !p.milestones || p.milestones.length === 0) return false;
+  // 1. Final milestone ('Project Closed' or closure) marked as Completed
+  const closedMilestone = p.milestones.find(
+    (m) =>
+      m.title === 'Project Closed' ||
+      m.title.toLowerCase().includes('closed') ||
+      m.title.toLowerCase().includes('closure')
+  );
+  if (closedMilestone && closedMilestone.status === 'Completed') return true;
+  // 2. 'Product Acquisition' milestone marked as Completed
+  const acqMilestone = p.milestones.find(
+    (m) =>
+      m.title === 'Product Acquisition' ||
+      m.title.toLowerCase().includes('acquisition')
+  );
+  if (acqMilestone && acqMilestone.status === 'Completed') return true;
+  // 3. All milestones on the project are marked as Completed
+  if (p.milestones.every((m) => m.status === 'Completed')) return true;
+  // 4. Project status tag is 'Completed' or project is completed
+  if ((p as any).isCompleted || (p.statusTag as any) === 'Completed') return true;
+  return false;
+}
+
 export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> = ({
   projects,
   onUpdateProject,
@@ -680,6 +704,17 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       badgeLabel,
     };
 
+    // Requirement: if "3. Shipped" is selected and project is marked as Completed on its milestone, do not send a notification to the PM
+    const isShippedSelected =
+      updates.isShipped === true ||
+      (updates.trackingNumber !== undefined && nextMilestone.isShipped);
+    const isCompletedOnMilestone = isProjectMilestoneCompleted(targetProject);
+    const shouldSuppressPmNotification = isShippedSelected && isCompletedOnMilestone;
+
+    const nextActivityNotifications = shouldSuppressPmNotification
+      ? targetProject.activityNotifications || []
+      : [notif, ...(targetProject.activityNotifications || [])];
+
     onUpdateProject({
       ...targetProject,
       acquisitionMilestones: nextMilestonesMap,
@@ -687,7 +722,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       rmaTickets: nextRmaTickets,
       changeOrders: nextChangeOrders,
       bomAcquisitionSubmissions: nextBomSubmissions,
-      activityNotifications: [notif, ...(targetProject.activityNotifications || [])],
+      activityNotifications: nextActivityNotifications,
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -1371,6 +1406,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             });
             const isFinishExpanded = !!expandedFinishUids[item.uid];
             const currentTrackingDraft = trackingDrafts[item.uid] ?? item.trackingNumber ?? '';
+            const projectForCard = projects.find((p) => p.id === item.projectId);
+            const isCardProjectCompleted = isProjectMilestoneCompleted(projectForCard);
 
             return (
               <div
@@ -1552,7 +1589,11 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                               ? 'bg-sky-600 text-white border-sky-400 shadow-sm'
                               : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border-slate-700'
                           }`}
-                          title="Click to toggle Shipped status (opens Tracking # to populate)"
+                          title={
+                            isCardProjectCompleted
+                              ? 'Project is marked as Completed on its milestone — PM notification is suppressed'
+                              : 'Click to toggle Shipped status (opens Tracking # to populate and notifies PM)'
+                          }
                         >
                           <span
                             className={`w-4 h-4 rounded flex items-center justify-center border ${
@@ -1564,6 +1605,14 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                           <span>3. Shipped</span>
                           {item.isShipped && item.shippedAt && (
                             <span className="text-[10px] opacity-80 font-mono">({item.shippedAt})</span>
+                          )}
+                          {item.isShipped && isCardProjectCompleted && (
+                            <span
+                              className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40"
+                              title="Project milestone is Completed — PM notification suppressed"
+                            >
+                              PM Notif Suppressed
+                            </span>
                           )}
                         </button>
                       </div>
