@@ -894,7 +894,8 @@ export interface ProjectActivityNotification {
     | 'sow_update'
     | 'common_door_update'
     | 'note_update'
-    | 'milestone_update';
+    | 'milestone_update'
+    | 'acquisition_update';
   section?: ProjectNotificationSection;
   sectionTargetId?: string; // HTML element ID for smooth scrolling (e.g. 'pm-bom-table')
   title: string;
@@ -970,7 +971,21 @@ export interface OperationProject {
       notes?: string;
     }
   >;
+  acquisitionMilestones?: Record<string, AcquisitionOrderMilestones>;
   lastUpdated: string;
+}
+
+export interface AcquisitionOrderMilestones {
+  isOrdered?: boolean;
+  orderedAt?: string;
+  isArrivedToWarehouse?: boolean;
+  arrivedAt?: string;
+  isShipped?: boolean;
+  shippedAt?: string;
+  trackingNumber?: string;
+  neededByDate?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export type ProductAcquisitionSourceSection =
@@ -997,26 +1012,43 @@ export interface BOMAcquisitionSubmission {
   projectId: string;
   propertyName: string;
   sourceWorkspace: 'Project' | 'Property';
-  sourceSection: 'Smart Community Bill of Materials (BOM)';
+  sourceSection?: 'Smart Community Bill of Materials (BOM)';
+  sourceSectionLabel?: 'Smart Community Bill of Materials (BOM)';
   createdBy: string;
   createdAt: string;
   updatedAt?: string;
-  status: ProductAcquisitionFulfillmentStatus;
+  status?: ProductAcquisitionFulfillmentStatus;
+  fulfillmentStatus?: ProductAcquisitionFulfillmentStatus;
+  itemType?: string;
   bomItemId: string;
-  itemName: string;
+  name?: string;
+  itemName?: string;
   model: string;
   category: BOMCategory;
   location: string;
-  confirmedQuantityToSend: number;
-  originalBomQuantity: number;
-  installedBomQuantity: number;
+  confirmedQuantity?: number;
+  confirmedQuantityToSend?: number;
+  quotedQuantity?: number;
+  originalBomQuantity?: number;
+  installedCount?: number;
+  installedBomQuantity?: number;
   sparesCount?: number;
   unitPrice: number;
+  totalCost?: number;
   description?: string;
   thermostatBrand?: ThermostatBrand;
   lockFinishConfig?: LockFinishConfig;
   notes?: string;
   poOrTrackingNumber?: string;
+  // Order Fulfillment Milestones & Needed By Date
+  neededByDate?: string;
+  isOrdered?: boolean;
+  orderedAt?: string;
+  isArrivedToWarehouse?: boolean;
+  arrivedAt?: string;
+  isShipped?: boolean;
+  shippedAt?: string;
+  trackingNumber?: string;
 }
 
 export type ChangeOrderStatus =
@@ -1065,6 +1097,15 @@ export interface ChangeOrderRecord {
   sourceSectionLabel?: 'Product Acquisition and Change Order' | 'Supplemental Order Catalog';
   items: ChangeOrderLineItem[];
   notes?: string;
+  // Order Fulfillment Milestones & Needed By Date
+  neededByDate?: string;
+  isOrdered?: boolean;
+  orderedAt?: string;
+  isArrivedToWarehouse?: boolean;
+  arrivedAt?: string;
+  isShipped?: boolean;
+  shippedAt?: string;
+  trackingNumber?: string;
 }
 
 export function getPropertyManagementCompany(project?: Partial<OperationProject>): string {
@@ -1159,6 +1200,15 @@ export interface RMATicketRecord {
   unitPrice?: number;
   location?: string;
   description?: string;
+  // Order Fulfillment Milestones & Needed By Date
+  neededByDate?: string;
+  isOrdered?: boolean;
+  orderedAt?: string;
+  isArrivedToWarehouse?: boolean;
+  arrivedAt?: string;
+  isShipped?: boolean;
+  shippedAt?: string;
+  trackingNumber?: string;
 }
 
 /**

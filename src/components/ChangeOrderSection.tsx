@@ -42,6 +42,7 @@ import {
   Edit3,
   Check,
   Wrench,
+  Calendar,
 } from 'lucide-react';
 
 interface UnifiedCatalogEntry {
@@ -189,6 +190,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
   const [coReason, setCoReason] = useState('');
   const [coStatus, setCoStatus] = useState<ChangeOrderStatus>('Approved');
   const [coApprovedBy, setCoApprovedBy] = useState('');
+  const [coNeededByDate, setCoNeededByDate] = useState('');
   const [coNotes, setCoNotes] = useState('');
   const [coPartners, setCoPartners] = useState<string[]>(() =>
     getProjectIntegratorPartners(project)
@@ -314,6 +316,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     setCoReason('');
     setCoStatus('Approved');
     setCoApprovedBy('');
+    setCoNeededByDate('');
     setCoNotes('');
     setCoPartners(getProjectIntegratorPartners(project));
     setCoFieldTech(normalizeFieldTech(project.assignedFieldTech));
@@ -462,6 +465,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             ? 'Product Acquisition and Change Order'
             : 'Supplemental Order Catalog',
         items: stagedItems,
+        neededByDate: coNeededByDate.trim() || undefined,
         notes: coNotes.trim() || undefined,
       };
 
@@ -833,7 +837,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                   />
                 </div>
 
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                     Scope Reason / Justification
                   </label>
@@ -843,6 +847,19 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                     onChange={(e) => setCoReason(e.target.value)}
                     placeholder="Reason for adding items outside of the baseline BOM (e.g., newly added amenity doors, extra leak sensors, SaaS tier expansion)"
                     className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-amber-400" />
+                    <span>When is product needed by? *</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={coNeededByDate}
+                    onChange={(e) => setCoNeededByDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-amber-500/50 text-xs text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
 
@@ -1489,6 +1506,57 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
                           </>
                         )}
                       </div>
+
+                      {/* Acquisition Portal Status Badge & Milestones */}
+                      {(() => {
+                        const acqUid = `co::${project.id}::${co.id}`;
+                        const firstItemUid = co.items && co.items[0] ? `co::${project.id}::${co.id}::${co.items[0].id}` : '';
+                        const acqMilestone = project.acquisitionMilestones?.[acqUid] || (firstItemUid ? project.acquisitionMilestones?.[firstItemUid] : undefined);
+                        const isShipped = !!(acqMilestone?.isShipped ?? co.isShipped ?? (co.status === 'In Fulfillment / Installed'));
+                        const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? co.isArrivedToWarehouse);
+                        const isOrdered = !!(acqMilestone?.isOrdered ?? co.isOrdered ?? (co.status === 'Approved'));
+                        const trackNum = acqMilestone?.trackingNumber || co.trackingNumber;
+                        const neededBy = acqMilestone?.neededByDate || co.neededByDate;
+
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                isShipped
+                                  ? 'bg-sky-950/80 text-sky-300 border-sky-500/40'
+                                  : isArrived
+                                  ? 'bg-teal-950/80 text-teal-300 border-teal-500/40'
+                                  : isOrdered
+                                  ? 'bg-indigo-950/80 text-indigo-300 border-indigo-500/40'
+                                  : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                              }`}
+                            >
+                              <Package className="w-3 h-3 text-emerald-400" />
+                              <span>
+                                Acquisition Portal:{' '}
+                                {isShipped
+                                  ? 'Shipped'
+                                  : isArrived
+                                  ? 'Arrived to Warehouse'
+                                  : isOrdered
+                                  ? 'Ordered'
+                                  : 'In Intake Queue'}
+                              </span>
+                              {isShipped && trackNum && (
+                                <span className="font-mono font-bold bg-slate-900 px-1.5 py-0.2 rounded text-[10px] text-sky-300 border border-sky-500/40">
+                                  Track: {trackNum}
+                                </span>
+                              )}
+                            </span>
+                            {neededBy && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-500/40">
+                                <Calendar className="w-3 h-3 text-amber-400" />
+                                <span>Needed by: {neededBy}</span>
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Status Controls & Actions */}

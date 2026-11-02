@@ -35,6 +35,7 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
+  Calendar,
 } from 'lucide-react';
 
 export interface RMAProcedureStep {
@@ -372,6 +373,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
   const [troubleshootingPerformed, setTroubleshootingPerformed] = useState<boolean>(false);
   const [troubleshootingNotes, setTroubleshootingNotes] = useState<string>('');
   const [serialNumbers, setSerialNumbers] = useState<string>('');
+  const [neededByDate, setNeededByDate] = useState<string>('');
   const [originalInvoiceOrPo, setOriginalInvoiceOrPo] = useState<string>(
     project.quoteNumber ? `Quote #${project.quoteNumber}` : ''
   );
@@ -508,6 +510,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
     setStatus('1. Tech Support Troubleshooting');
     setTroubleshootingPerformed(false);
     setTroubleshootingNotes('');
+    setNeededByDate('');
     setSerialNumbers('');
     setFailureDescription('');
     setIssuedRmaNumber('');
@@ -537,6 +540,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
     setAuthorizedDealerOrPartner(ticket.authorizedDealerOrPartner);
     setTroubleshootingPerformed(ticket.troubleshootingPerformed);
     setTroubleshootingNotes(ticket.troubleshootingNotes);
+    setNeededByDate(ticket.neededByDate || '');
     setSerialNumbers(ticket.serialNumbers);
     setOriginalInvoiceOrPo(ticket.originalInvoiceOrPo);
     setFailureDescription(ticket.failureDescription);
@@ -617,6 +621,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
           ? RMA_COMPANY_PROCEDURES['ProdataKey (PDK)'].defaultReturnAddress || ''
           : ''),
       returnTrackingNumber: returnTrackingNumber.trim(),
+      neededByDate: neededByDate.trim() || undefined,
       // Company-specific fields
       allegionServiceRequestNumber:
         activeCompany === 'Allegion' ? allegionSrNumber.trim() : undefined,
@@ -1455,7 +1460,7 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
               </div>
 
               {/* RMA Authorization Number & Return Shipping Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs pt-2 border-t border-slate-100">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
                     Official Issued RMA Number
@@ -1492,6 +1497,19 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                     onChange={(e) => setReturnTrackingNumber(e.target.value)}
                     placeholder="UPS / FedEx / USPS Tracking #"
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono text-slate-900"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-300">
+                  <label className="block font-bold text-amber-950 mb-1 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                    <span>When needed by? *</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={neededByDate}
+                    onChange={(e) => setNeededByDate(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white border border-amber-400 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
               </div>
@@ -1573,6 +1591,56 @@ export const RMATicketingSection: React.FC<RMATicketingSectionProps> = ({
                           {ticket.sourceWorkspace || contextLabel} • RMA Ticket
                         </span>
                       </div>
+
+                      {/* Acquisition Portal Status Badge & Milestones */}
+                      {(() => {
+                        const acqUid = `rma::${project.id}::${ticket.id}`;
+                        const acqMilestone = project.acquisitionMilestones?.[acqUid];
+                        const isShipped = !!(acqMilestone?.isShipped ?? ticket.isShipped ?? (ticket.status === '4. Packaged & Shipped'));
+                        const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? ticket.isArrivedToWarehouse);
+                        const isOrdered = !!(acqMilestone?.isOrdered ?? ticket.isOrdered ?? (ticket.status === '3. RMA Number Issued'));
+                        const trackNum = acqMilestone?.trackingNumber || ticket.trackingNumber || ticket.returnTrackingNumber;
+                        const neededBy = acqMilestone?.neededByDate || ticket.neededByDate;
+
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                isShipped
+                                  ? 'bg-sky-100 text-sky-950 border-sky-300'
+                                  : isArrived
+                                  ? 'bg-teal-100 text-teal-950 border-teal-300'
+                                  : isOrdered
+                                  ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
+                                  : 'bg-emerald-50 text-emerald-950 border-emerald-300'
+                              }`}
+                            >
+                              <Package className="w-3 h-3 text-emerald-700" />
+                              <span>
+                                Acquisition Portal:{' '}
+                                {isShipped
+                                  ? 'Shipped'
+                                  : isArrived
+                                  ? 'Arrived to Warehouse'
+                                  : isOrdered
+                                  ? 'Ordered'
+                                  : 'In Intake Queue'}
+                              </span>
+                              {isShipped && trackNum && (
+                                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300">
+                                  Track: {trackNum}
+                                </span>
+                              )}
+                            </span>
+                            {neededBy && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-950 border border-amber-300">
+                                <Calendar className="w-3 h-3 text-amber-600" />
+                                <span>Needed by: {neededBy}</span>
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {ticket.lockFinishConfig && (
                         <div className="space-y-1.5 pt-0.5">

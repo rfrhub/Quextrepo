@@ -736,6 +736,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   const [activeLockFinishBomItem, setActiveLockFinishBomItem] = useState<BOMItem | null>(null);
   const [acquisitionModalBomItem, setAcquisitionModalBomItem] = useState<BOMItem | null>(null);
   const [acquisitionConfirmedQty, setAcquisitionConfirmedQty] = useState<number>(1);
+  const [acquisitionModalNeededByDate, setAcquisitionModalNeededByDate] = useState<string>('');
   const [acquisitionNotes, setAcquisitionNotes] = useState<string>('');
   const [lastSentSubmission, setLastSentSubmission] = useState<BOMAcquisitionSubmission | null>(null);
 
@@ -759,6 +760,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   const handleOpenPropertyBomAcquisitionModal = (item: BOMItem) => {
     setAcquisitionModalBomItem(item);
     setAcquisitionConfirmedQty(Math.max(1, item.quantity));
+    setAcquisitionModalNeededByDate('');
     setAcquisitionNotes('');
   };
 
@@ -795,6 +797,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
       totalCost: Number((qtyToSend * uPrice).toFixed(2)),
       thermostatBrand: resolvedBrand,
       lockFinishConfig: latestItem.lockFinishConfig,
+      neededByDate: acquisitionModalNeededByDate.trim() || undefined,
       notes: acquisitionNotes.trim() || undefined,
       sourceWorkspace: 'Property',
       sourceSectionLabel: 'Smart Community Bill of Materials (BOM)',
@@ -1929,6 +1932,60 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                           🎨 {item.lockFinishConfig ? 'Edit Finish' : '+ Finish Options'}
                         </button>
                       </div>
+
+                      {/* Acquisition Status & Milestones */}
+                      {(() => {
+                        const acqSub = (property.bomAcquisitionSubmissions || []).find(
+                          (s) => s.bomItemId === item.id
+                        );
+                        if (!acqSub) return null;
+                        const acqUid = `bom::${property.id}::${acqSub.id}`;
+                        const acqMilestone = property.acquisitionMilestones?.[acqUid];
+                        const isShipped = !!(acqMilestone?.isShipped ?? acqSub.isShipped ?? (acqSub.fulfillmentStatus === 'In Transit / Shipped'));
+                        const isArrived = !!(acqMilestone?.isArrivedToWarehouse ?? acqSub.isArrivedToWarehouse);
+                        const isOrdered = !!(acqMilestone?.isOrdered ?? acqSub.isOrdered ?? (acqSub.fulfillmentStatus === 'PO Submitted / Ordered'));
+                        const trackNum = acqMilestone?.trackingNumber || acqSub.trackingNumber || acqSub.poOrTrackingNumber;
+                        const neededBy = acqMilestone?.neededByDate || acqSub.neededByDate;
+
+                        return (
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5 animate-fadeIn">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                isShipped
+                                  ? 'bg-sky-100 text-sky-950 border-sky-300'
+                                  : isArrived
+                                  ? 'bg-teal-100 text-teal-950 border-teal-300'
+                                  : isOrdered
+                                  ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
+                                  : 'bg-emerald-50 text-emerald-950 border-emerald-300'
+                              }`}
+                            >
+                              <Package className="w-3 h-3 text-emerald-700" />
+                              <span>
+                                Acquisition Portal:{' '}
+                                {isShipped
+                                  ? 'Shipped'
+                                  : isArrived
+                                  ? 'Arrived to Warehouse'
+                                  : isOrdered
+                                  ? 'Ordered'
+                                  : 'In Queue'}
+                              </span>
+                              {isShipped && trackNum && (
+                                <span className="font-mono font-bold bg-white px-1.5 py-0.2 rounded text-[10px] text-sky-900 border border-sky-300">
+                                  Track: {trackNum}
+                                </span>
+                              )}
+                            </span>
+                            {neededBy && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-950 border border-amber-300">
+                                <Calendar className="w-3 h-3 text-amber-600" />
+                                <span>Needed by: {neededBy}</span>
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-semibold text-slate-800">{item.category}</div>
@@ -2238,6 +2295,23 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                         </button>
                       </div>
                     )}
+                  </div>
+
+                  {/* Date Picker: When is this product needed by? */}
+                  <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-300 space-y-1.5">
+                    <label className="block text-xs font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                      <span>When is this product needed by? *</span>
+                    </label>
+                    <p className="text-[11px] text-amber-900">
+                      Set the required on-site or delivery date so the Product Acquisition team can prioritize procurement and tracking.
+                    </p>
+                    <input
+                      type="date"
+                      value={acquisitionModalNeededByDate}
+                      onChange={(e) => setAcquisitionModalNeededByDate(e.target.value)}
+                      className="w-full sm:w-64 px-3 py-2 text-xs font-semibold bg-white border border-amber-400 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
                   </div>
 
                   <div>

@@ -236,6 +236,9 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
             } else if (notif.category === 'milestone_update') {
               inferredSection = 'milestones';
               inferredTargetId = inferredTargetId || 'pm-financial-milestones';
+            } else if (notif.category === 'acquisition_update') {
+              inferredSection = notif.section || 'bom';
+              inferredTargetId = inferredTargetId || 'pm-bom-table';
             }
           }
 
@@ -737,6 +740,8 @@ export const RightNotificationsDock: React.FC<RightNotificationsDockProps> = ({
         return 'bg-orange-100 text-orange-800 border-orange-300';
       case 'milestone_update':
         return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      case 'acquisition_update':
+        return 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold';
       case 'pm_update':
       default:
         return 'bg-slate-100 text-slate-800 border-slate-300';
