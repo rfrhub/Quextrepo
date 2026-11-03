@@ -1338,6 +1338,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
           properties={handoffProperties}
           initialProperty={sowTargetProperty}
           currentUserName={currentUserName}
+          onUpdateProperty={onUpdateProject}
         />
       </>
     );
@@ -1868,6 +1869,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
         properties={handoffProperties}
         initialProperty={sowTargetProperty}
         currentUserName={currentUserName}
+        onUpdateProperty={onUpdateProject}
       />
     </div>
   );
@@ -3094,15 +3096,6 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             >
               <FileText className="w-4 h-4" />
               <span>Create SOW</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsCustomerCommsOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 border border-white/20 cursor-pointer transition-colors shadow-sm"
-              title="Open Customer Communications & Portfolio Updates for this property"
-            >
-              <Mail className="w-4 h-4 text-[#01C38D]" />
-              <span>Customer Comms &amp; Portfolio Updates</span>
             </button>
             <ManualLinkPropertyToProjectPanel
               property={property}

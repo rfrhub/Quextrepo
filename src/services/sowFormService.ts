@@ -282,6 +282,11 @@ export const buildPartnerVendorPlainTextEmail = (
     `2. Work Site Address: ${submission.workSiteAddress}`,
     `3. Date Prepared: ${submission.datePrepared}`,
     `4. Requested Install / Visit Date: ${submission.installDate || 'TBD'}`,
+    `Integrator Partner / Installers: ${
+      submission.integratorPartners && submission.integratorPartners.length > 0
+        ? submission.integratorPartners.join(', ')
+        : 'Quext Certified Field Operations / Not Assigned'
+    }`,
     '',
     'SITE POINT OF CONTACT (POC):',
     `5. POC Name: ${submission.pocName}`,

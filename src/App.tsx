@@ -2207,6 +2207,7 @@ export default function App() {
         onNavigateToProject={handleGoToOperationsProject}
         properties={projects}
         currentUserName={signedInUser?.name || 'Raul Recalde'}
+        onUpdateProperty={handleUpdateProject}
       />
 
       {isPMTutorialOpen && (

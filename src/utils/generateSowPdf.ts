@@ -136,6 +136,13 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
     { label: 'Community / Site Name:', value: submission.communityName || '—' },
     { label: 'Work Site Address:', value: submission.workSiteAddress || '—' },
     { label: 'Install Date:', value: submission.installDate || 'TBD - Per Tech Dispatch' },
+    {
+      label: 'Integrator Partner / Installers:',
+      value:
+        submission.integratorPartners && submission.integratorPartners.length > 0
+          ? submission.integratorPartners.join(', ')
+          : 'Quext Certified Field Operations',
+    },
     { label: 'Product / Equipment:', value: products.join(', ') },
   ];
   y = drawTwoColumnTable(y, siteRows, 140);

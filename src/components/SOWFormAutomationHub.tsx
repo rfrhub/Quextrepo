@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { OperationProject } from '../types';
+import { OperationProject, isDiyPartner } from '../types';
+import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { GoogleFormSubmission, FieldTechContact } from '../types/sowForm';
 import {
   loadSubmissions,
@@ -46,6 +47,7 @@ interface SOWFormAutomationHubProps {
   properties?: OperationProject[];
   initialProperty?: OperationProject | null;
   currentUserName?: string;
+  onUpdateProperty?: (property: OperationProject) => void;
 }
 
 export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
@@ -54,6 +56,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
   properties = [],
   initialProperty = null,
   currentUserName = 'Quext Customer Success',
+  onUpdateProperty,
 }) => {
   const [submissions, setSubmissions] = useState<GoogleFormSubmission[]>([]);
   const [activeTab, setActiveTab] = useState<'create' | 'submissions'>('create');
@@ -140,6 +143,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
   const [q2WorkSiteAddress, setQ2WorkSiteAddress] = useState<string>('');
   const [q3DatePrepared, setQ3DatePrepared] = useState<string>(todayIso);
   const [q4InstallDate, setQ4InstallDate] = useState<string>('');
+  const [integratorPartners, setIntegratorPartners] = useState<string[]>([]);
 
   // Q5 - Q9: Point of Contact (POC)
   const [q5PocName, setQ5PocName] = useState<string>('');
@@ -178,6 +182,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
       setQ2WorkSiteAddress('');
       setQ3DatePrepared(todayIso);
       setQ4InstallDate('');
+      setIntegratorPartners([]);
       setQ5PocName('');
       setQ6PocTitle('');
       setQ7PocPhone('');
@@ -191,6 +196,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     const fullAddr = [prop.address, prop.city, prop.state].filter(Boolean).join(', ');
     setQ2WorkSiteAddress(fullAddr);
     setQ3DatePrepared(todayIso);
+    setIntegratorPartners(prop.integratorPartners ? [...prop.integratorPartners] : []);
 
     const intake = prop.customerIntake;
     const primaryStaff = intake?.staffRoles?.[0];
@@ -308,6 +314,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
       workSiteAddress: q2WorkSiteAddress.trim() || 'Address on file',
       datePrepared: q3DatePrepared || todayIso,
       installDate: q4InstallDate || 'TBD',
+      integratorPartners: integratorPartners.length > 0 ? integratorPartners : undefined,
       pocName: q5PocName.trim() || 'Site POC',
       pocTitle: q6PocTitle.trim() || 'Community Contact',
       pocPhone: q7PocPhone.trim() || '—',
@@ -745,6 +752,53 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                         onChange={(e) => setQ4InstallDate(e.target.value)}
                         className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-teal-600"
                       />
+                    </div>
+
+                    {/* Integrator Partner / Installers */}
+                    <div className="md:col-span-2 pt-1">
+                      <div className="bg-slate-50/90 rounded-xl border border-slate-200 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <span className="font-bold text-slate-800 text-xs block">
+                              Integrator Partner / Installers
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              Assign the Official Channel Partner (OCP) or certified installer responsible for this SOW onsite execution.
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          <IntegratorPartnerSelector
+                            assignedPartners={integratorPartners}
+                            projectName={q1CommunityName.trim() || selectedProperty?.propertyName || 'SOW Work Order'}
+                            label="Integrator Partner / Installers:"
+                            onChange={(updatedPartners) => {
+                              setIntegratorPartners(updatedPartners);
+                              if (selectedProperty && onUpdateProperty) {
+                                onUpdateProperty({
+                                  ...selectedProperty,
+                                  integratorPartners: updatedPartners,
+                                  isDiyInstallation: updatedPartners.some(isDiyPartner),
+                                  lastUpdated: new Date().toISOString(),
+                                });
+                              }
+                              if (updatedPartners.length > 0) {
+                                const partnerName = updatedPartners[0];
+                                const matched = DEFAULT_FIELD_TECHS.find((t) =>
+                                  t.name.toLowerCase().includes(partnerName.toLowerCase())
+                                );
+                                if (matched) {
+                                  setSelectedTech(matched);
+                                  setCustomRecipientName(matched.name);
+                                  if (matched.email) setCustomTechEmail(matched.email);
+                                } else {
+                                  setCustomRecipientName(`${partnerName} (Partner Integrator)`);
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1230,6 +1284,12 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                               <UserCheck className="w-3.5 h-3.5 text-slate-400" />
                               POC: {sub.pocName} ({sub.pocTitle || 'Site Contact'}) • {sub.pocPhone}
                             </span>
+                            {sub.integratorPartners && sub.integratorPartners.length > 0 && (
+                              <span className="flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                <Wrench className="w-3.5 h-3.5 text-emerald-600" />
+                                Integrator: {sub.integratorPartners.join(', ')}
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1.5 pt-1">
@@ -1392,6 +1452,22 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                   >
                     ✕
                   </button>
+                </div>
+              )}
+
+              {/* Assigned Integrator Partner(s) Banner */}
+              {selectedSubForDispatch.integratorPartners && selectedSubForDispatch.integratorPartners.length > 0 && (
+                <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-teal-600" />
+                    <span className="font-bold">Assigned SOW Integrator Partner / Installers:</span>
+                    <span className="font-extrabold text-teal-950">
+                      {selectedSubForDispatch.integratorPartners.join(', ')}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-teal-700 font-semibold bg-teal-100/70 px-2 py-0.5 rounded border border-teal-200">
+                    Included in SOW &amp; Work Order
+                  </span>
                 </div>
               )}
 
@@ -1685,12 +1761,22 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                         {selectedSubForPreview.workSiteAddress}
                       </div>
                     </div>
-                    <div className="grid grid-cols-12">
+                    <div className="grid grid-cols-12 border-b border-[#BCCADB]">
                       <div className="col-span-4 bg-[#E0E9F3] p-1.5 font-bold text-[#1B365D] text-[10px] border-r border-[#BCCADB]">
                         4. Install Date:
                       </div>
                       <div className="col-span-8 p-1.5 font-bold text-[10px] text-teal-700">
                         {selectedSubForPreview.installDate || 'TBD'}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-12">
+                      <div className="col-span-4 bg-[#E0E9F3] p-1.5 font-bold text-[#1B365D] text-[10px] border-r border-[#BCCADB]">
+                        Integrator Partner / Installers:
+                      </div>
+                      <div className="col-span-8 p-1.5 font-bold text-[10px] text-slate-800">
+                        {selectedSubForPreview.integratorPartners && selectedSubForPreview.integratorPartners.length > 0
+                          ? selectedSubForPreview.integratorPartners.join(', ')
+                          : 'Quext Certified Field Operations'}
                       </div>
                     </div>
                   </div>

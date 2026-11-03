@@ -9,6 +9,7 @@ export interface GoogleFormSubmission {
   workSiteAddress: string;
   datePrepared: string;
   installDate: string;
+  integratorPartners?: string[];
   preparedBy?: string;
   sowReferenceNumber: string;
 
