@@ -39,8 +39,9 @@ import {
   CSMTrainingAttendee,
   CSMTrainingAttendeeRole,
   CSMTrainingStatus,
+  CSMContractThoroughnessLevel,
 } from '../types';
-import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
+import { scrubContractDocumentWithAI, dataUrlToFile } from '../services/contractScrubberService';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
@@ -97,6 +98,7 @@ import {
   Eye,
   GraduationCap,
   ChevronRight,
+  RefreshCw,
 } from 'lucide-react';
 
 interface CustomerSuccessPortalProps {
@@ -2004,7 +2006,15 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   // 1. CONTRACT UPLOAD & AI SCRUBBER STATE
   // ==========================================================================
   const contractFileInputRef = useRef<HTMLInputElement | null>(null);
+  const rescanFileInputRef = useRef<HTMLInputElement | null>(null);
+  const contractFilesCache = useRef<Map<string, File>>(new Map());
   const [isScrubbingContract, setIsScrubbingContract] = useState(false);
+  const [rescanningContractId, setRescanningContractId] = useState<string | null>(null);
+  const [rescanThoroughnessSelectorId, setRescanThoroughnessSelectorId] = useState<string | null>(null);
+  const [rescanPendingContract, setRescanPendingContract] = useState<{
+    contract: CSMContractScrubbedAnalysis;
+    level: CSMContractThoroughnessLevel;
+  } | null>(null);
   const [scrubError, setScrubError] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [contractEditDraft, setContractEditDraft] = useState<CSMContractScrubbedAnalysis | null>(
@@ -2122,6 +2132,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
           property,
           currentUserName || property.assignedCSM || 'Customer Success Team'
         );
+        contractFilesCache.current.set(scrubbed.id, file);
         newScrubbedList.push(scrubbed);
       }
 
@@ -2145,6 +2156,138 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
       setScrubbingProgress(null);
       if (contractFileInputRef.current) {
         contractFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRescanContract = async (
+    targetContract: CSMContractScrubbedAnalysis,
+    chosenLevel?: CSMContractThoroughnessLevel
+  ) => {
+    if (!canEdit || isScrubbingContract) return;
+
+    const currentPass = targetContract.rescanCount || 1;
+    const nextPass = currentPass + 1;
+    const nextLevel: CSMContractThoroughnessLevel =
+      chosenLevel ||
+      (currentPass >= 2 ? 'Exhaustive Multi-Pass' : 'Deep Forensic');
+
+    // Attempt to locate file: cache first, then dataUrl converted to file
+    let fileToScan = contractFilesCache.current.get(targetContract.id);
+    if (!fileToScan && targetContract.fileDataUrl) {
+      try {
+        fileToScan = dataUrlToFile(
+          targetContract.fileDataUrl,
+          targetContract.fileName,
+          targetContract.fileType || 'application/pdf'
+        );
+        contractFilesCache.current.set(targetContract.id, fileToScan);
+      } catch (err) {
+        console.warn('Could not reconstruct file from dataUrl:', err);
+      }
+    }
+
+    if (!fileToScan) {
+      // File not in memory or dataUrl; prompt user to re-select file for deep rescan
+      setRescanPendingContract({ contract: targetContract, level: nextLevel });
+      if (rescanFileInputRef.current) {
+        rescanFileInputRef.current.value = '';
+        rescanFileInputRef.current.click();
+      }
+      return;
+    }
+
+    setRescanningContractId(targetContract.id);
+    setIsScrubbingContract(true);
+    setScrubError(null);
+    setRescanThoroughnessSelectorId(null);
+
+    try {
+      const rescanned = await scrubContractDocumentWithAI(
+        fileToScan,
+        property,
+        currentUserName || property.assignedCSM || 'Customer Success Team',
+        {
+          thoroughnessLevel: nextLevel,
+          rescanPass: nextPass,
+          existingContractId: targetContract.id,
+          originalUploadedAt: targetContract.uploadedAt,
+        }
+      );
+
+      // Preserve file cache under contract id
+      contractFilesCache.current.set(rescanned.id, fileToScan);
+
+      const updatedContracts = contracts.map((c) =>
+        c.id === targetContract.id ? rescanned : c
+      );
+
+      onUpdateProperty({
+        ...property,
+        csmPortalData: {
+          ...portalData,
+          contracts: updatedContracts,
+          lastUpdatedAt: new Date().toISOString(),
+        },
+        lastUpdated: new Date().toISOString(),
+      });
+      setSelectedContractId(rescanned.id);
+    } catch (err: any) {
+      setScrubError(err?.message || 'Failed to rescan contract document.');
+    } finally {
+      setIsScrubbingContract(false);
+      setRescanningContractId(null);
+    }
+  };
+
+  const handleRescanFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !rescanPendingContract) return;
+
+    const { contract: targetContract, level } = rescanPendingContract;
+    const currentPass = targetContract.rescanCount || 1;
+    const nextPass = currentPass + 1;
+
+    setRescanningContractId(targetContract.id);
+    setIsScrubbingContract(true);
+    setScrubError(null);
+    setRescanPendingContract(null);
+
+    try {
+      contractFilesCache.current.set(targetContract.id, file);
+      const rescanned = await scrubContractDocumentWithAI(
+        file,
+        property,
+        currentUserName || property.assignedCSM || 'Customer Success Team',
+        {
+          thoroughnessLevel: level,
+          rescanPass: nextPass,
+          existingContractId: targetContract.id,
+          originalUploadedAt: targetContract.uploadedAt,
+        }
+      );
+
+      const updatedContracts = contracts.map((c) =>
+        c.id === targetContract.id ? rescanned : c
+      );
+
+      onUpdateProperty({
+        ...property,
+        csmPortalData: {
+          ...portalData,
+          contracts: updatedContracts,
+          lastUpdatedAt: new Date().toISOString(),
+        },
+        lastUpdated: new Date().toISOString(),
+      });
+      setSelectedContractId(rescanned.id);
+    } catch (err: any) {
+      setScrubError(err?.message || 'Failed to rescan contract document.');
+    } finally {
+      setIsScrubbingContract(false);
+      setRescanningContractId(null);
+      if (rescanFileInputRef.current) {
+        rescanFileInputRef.current.value = '';
       }
     }
   };
@@ -4786,6 +4929,13 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               onChange={handleContractFileUpload}
               className="hidden"
             />
+            <input
+              ref={rescanFileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.md,.rtf"
+              onChange={handleRescanFileSelected}
+              className="hidden"
+            />
             <button
               type="button"
               disabled={isScrubbingContract}
@@ -4980,6 +5130,95 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                           <span>Download File</span>
                         </a>
                       )}
+
+                      {/* Rescan Document with Command Thoroughness */}
+                      <div className="relative inline-flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleRescanContract(contract)}
+                          disabled={isScrubbingContract}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg text-xs font-bold transition-all cursor-pointer shadow-2xs border ${
+                            rescanningContractId === contract.id
+                              ? 'bg-purple-600 text-white border-purple-600'
+                              : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
+                          }`}
+                          title="Rescan document with deeper AI thoroughness to extract signatures and clauses"
+                        >
+                          <RefreshCw
+                            className={`w-3.5 h-3.5 ${
+                              rescanningContractId === contract.id ? 'animate-spin' : ''
+                            }`}
+                          />
+                          <span>
+                            {rescanningContractId === contract.id
+                              ? 'Rescanning...'
+                              : contract.rescanCount && contract.rescanCount > 1
+                              ? `Rescan Deeper (Pass #${(contract.rescanCount || 1) + 1})`
+                              : 'Rescan Document'}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRescanThoroughnessSelectorId(
+                              rescanThoroughnessSelectorId === contract.id ? null : contract.id
+                            )
+                          }
+                          disabled={isScrubbingContract}
+                          className="px-2 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 border-y border-r border-purple-200 rounded-r-lg text-xs font-bold cursor-pointer transition-colors"
+                          title="Choose specific thoroughness command for rescan"
+                        >
+                          ▾
+                        </button>
+
+                        {/* Dropdown Menu for Commanding Scrubber Thoroughness */}
+                        {rescanThoroughnessSelectorId === contract.id && (
+                          <div className="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-30 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                            <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                              Command Scrubber Thoroughness
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRescanContract(contract, 'Standard')}
+                              className="w-full text-left p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group"
+                            >
+                              <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700">
+                                Level 1: Standard AI Inspection
+                              </div>
+                              <div className="text-[11px] text-slate-500">
+                                Fast baseline review of dates, parties, and core terms.
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRescanContract(contract, 'Deep Forensic')}
+                              className="w-full text-left p-2 rounded-lg hover:bg-purple-50 transition-colors cursor-pointer group"
+                            >
+                              <div className="text-xs font-bold text-purple-900 flex items-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                                <span>Level 2: Deep Forensic Signature Audit</span>
+                              </div>
+                              <div className="text-[11px] text-purple-700">
+                                Intensive scan of execution pages, DocuSign lines, and signers.
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRescanContract(contract, 'Exhaustive Multi-Pass')}
+                              className="w-full text-left p-2 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer group"
+                            >
+                              <div className="text-xs font-bold text-indigo-900 flex items-center gap-1">
+                                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>Level 3: Exhaustive Legal Multi-Pass</span>
+                              </div>
+                              <div className="text-[11px] text-indigo-700">
+                                Full scrutiny across all exhibits, covenants, and addenda.
+                              </div>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       {!isEditing ? (
                         <button
                           type="button"
@@ -5027,16 +5266,34 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                   </div>
 
                   {/* Distinct Summary Callout for this specific contract */}
-                  <div className="p-3 bg-purple-50/90 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-950">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>
-                        <strong>AI Contract Summary for &ldquo;{contract.fileName}&rdquo;:</strong> Verified timeline, signatories, and party obligations extracted specifically from this file.
+                  <div className="p-3.5 bg-gradient-to-r from-purple-50/95 via-indigo-50/90 to-slate-50 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-purple-950">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+                        <span>
+                          <strong>AI Contract Summary for &ldquo;{contract.fileName}&rdquo;:</strong> Verified timeline, signatories, and party obligations extracted specifically from this file.
+                        </span>
+                      </div>
+                      {contract.signatureConfidenceNote && (
+                        <div className="text-[11px] text-purple-800 flex items-center gap-1.5 pl-6 font-medium">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{contract.signatureConfidenceNote}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
+                      {contract.thoroughnessLevel && (
+                        <span className="text-[10px] font-bold bg-purple-100 text-purple-900 px-2 py-0.5 rounded border border-purple-300">
+                          {contract.thoroughnessLevel}
+                          {contract.rescanCount && contract.rescanCount > 1 ? ` (Pass #${contract.rescanCount})` : ''}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-purple-800 bg-white px-2 py-0.5 rounded border border-purple-200">
+                        {contract.lastRescannedAt
+                          ? `Rescanned ${new Date(contract.lastRescannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                          : `Scrubbed ${contract.aiScrubbedAt ? new Date(contract.aiScrubbedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Live'}`}
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-purple-800 bg-white px-2 py-0.5 rounded border border-purple-200 shrink-0 self-start sm:self-auto">
-                      Scrubbed {contract.aiScrubbedAt || 'Live'}
-                    </span>
                   </div>
 
                   {isEditing && contractEditDraft ? (
@@ -5337,8 +5594,25 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="p-4 rounded-xl bg-white border border-emerald-200 space-y-1.5 shadow-2xs">
-                            <div className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
-                              Signed Party 1 • Quext Signatory ({contract.fileName})
+                            <div className="flex items-center justify-between">
+                              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                                Signed Party 1 • Quext Signatory ({contract.fileName})
+                              </div>
+                              {contract.quextSignatory.signerName &&
+                              contract.quextSignatory.signerName !== 'Not specified in document' ? (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <span>Verified Signer</span>
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRescanContract(contract, 'Deep Forensic')}
+                                  className="text-[10px] font-bold text-purple-600 hover:text-purple-800 hover:underline cursor-pointer"
+                                >
+                                  Deep Rescan Signatures ↻
+                                </button>
+                              )}
                             </div>
                             <div className="text-sm font-extrabold text-slate-900">
                               {contract.quextSignatory.entityName}
@@ -5356,8 +5630,25 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                           </div>
 
                           <div className="p-4 rounded-xl bg-white border border-indigo-200 space-y-1.5 shadow-2xs">
-                            <div className="text-[10px] font-black uppercase tracking-wider text-indigo-700">
-                              Signed Party 2 • Customer / Owner Signatory ({contract.fileName})
+                            <div className="flex items-center justify-between">
+                              <div className="text-[10px] font-black uppercase tracking-wider text-indigo-700">
+                                Signed Party 2 • Customer / Owner Signatory ({contract.fileName})
+                              </div>
+                              {contract.customerSignatory.signerName &&
+                              contract.customerSignatory.signerName !== 'Not specified in document' ? (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300">
+                                  <Check className="w-3 h-3 text-indigo-600" />
+                                  <span>Verified Signer</span>
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRescanContract(contract, 'Deep Forensic')}
+                                  className="text-[10px] font-bold text-purple-600 hover:text-purple-800 hover:underline cursor-pointer"
+                                >
+                                  Deep Rescan Signatures ↻
+                                </button>
+                              )}
                             </div>
                             <div className="text-sm font-extrabold text-slate-900">
                               {contract.customerSignatory.entityName}

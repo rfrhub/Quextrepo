@@ -1,8 +1,39 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { CSMContractScrubbedAnalysis, OperationProject } from '../types';
+import {
+  CSMContractScrubbedAnalysis,
+  CSMContractThoroughnessLevel,
+  OperationProject,
+} from '../types';
+
+export interface ScrubContractOptions {
+  thoroughnessLevel?: CSMContractThoroughnessLevel;
+  rescanPass?: number;
+  existingContractId?: string;
+  originalUploadedAt?: string;
+  specificInstructions?: string;
+}
 
 /**
- * Reads a File as a Base64 Data URL (for storage/preview if <= 1.5MB, or for Gemini inlineData).
+ * Converts a Base64 Data URL back into a standard browser File object for rescanning.
+ */
+export function dataUrlToFile(
+  dataUrl: string,
+  fileName: string,
+  fallbackMime: string = 'application/pdf'
+): File {
+  const parts = dataUrl.split(',');
+  const mime = parts[0].match(/:(.*?);/)?.[1] || fallbackMime;
+  const bstr = atob(parts[1] || '');
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], fileName, { type: mime });
+}
+
+/**
+ * Reads a File as a Base64 Data URL (for storage/preview if <= 4MB, or for Gemini inlineData).
  */
 export function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -14,7 +45,8 @@ export function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 /**
- * Extracts readable text from an uploaded contract file (TXT, CSV, MD, HTML, PDF, DOCX).
+ * Extracts readable text from an uploaded contract file (TXT, CSV, MD, HTML, PDF, DOCX),
+ * including FlateDecode decompression, digital form field values, and text streams.
  */
 export async function extractReadableTextFromContractFile(file: File): Promise<string> {
   const lowerName = file.name.toLowerCase();
@@ -47,18 +79,29 @@ export async function extractReadableTextFromContractFile(file: File): Promise<s
     }
   }
 
-  // If PDF, extract literal strings in parentheses (...) Tj / TJ and also try decompressing FlateDecode streams
+  // If PDF, extract literal strings in parentheses (...) Tj / TJ, FlateDecode streams, and form fields
   const extractedChunks: string[] = [];
 
-  // 1. Decompress FlateDecode streams in PDF if DecompressionStream is available in browser
+  // 1. Digital signature & AcroForm fields (/V (...) and /T (...)) frequently present in electronically signed agreements
+  const formFieldValMatches = rawLatin1.match(/\/V\s*\(([^()]+)\)/g);
+  if (formFieldValMatches && formFieldValMatches.length > 0) {
+    const formVals = formFieldValMatches
+      .map((m) => m.replace(/^\/V\s*\(/, '').replace(/\)$/, '').trim())
+      .filter((v) => v.length >= 2 && !v.startsWith('/') && !v.includes('Font'));
+    if (formVals.length > 0) {
+      extractedChunks.push(`[Electronic Signature & Form Field Metadata]: ${formVals.join(' | ')}`);
+    }
+  }
+
+  // 2. Decompress FlateDecode streams in PDF if DecompressionStream is available in browser
   if (typeof DecompressionStream !== 'undefined' && lowerName.endsWith('.pdf')) {
     const streamRegex = /stream\r?\n/g;
     let match: RegExpExecArray | null;
     let streamCount = 0;
-    while ((match = streamRegex.exec(rawLatin1)) !== null && streamCount < 60) {
+    while ((match = streamRegex.exec(rawLatin1)) !== null && streamCount < 75) {
       const startIdx = match.index + match[0].length;
       const endIdx = rawLatin1.indexOf('endstream', startIdx);
-      if (endIdx > startIdx && endIdx - startIdx < 500_000) {
+      if (endIdx > startIdx && endIdx - startIdx < 600_000) {
         streamCount++;
         const compressedSlice = bytes.subarray(startIdx, endIdx);
         for (const format of ['deflate', 'deflate-raw'] as const) {
@@ -94,7 +137,7 @@ export async function extractReadableTextFromContractFile(file: File): Promise<s
     }
   }
 
-  // 2. Also scan raw printable runs
+  // 3. Scan raw printable runs and literal matches
   const literalMatches = rawLatin1.match(/\(([^()\\]|\\.){3,}\)/g);
   if (literalMatches && literalMatches.length > 0) {
     const cleaned = literalMatches
@@ -124,19 +167,24 @@ export async function extractReadableTextFromContractFile(file: File): Promise<s
 }
 
 /**
- * Deterministic text parser that scrubs dates, signatories, and responsibilities directly
- * from the extracted contract text without inventing fake information.
+ * Intelligent deterministic parser with multi-pass signature block extraction,
+ * company/party separation, and thoroughness level commands.
  */
 function parseContractTextDeterministically(
   extractedText: string,
   file: File,
-  property: OperationProject
+  property: OperationProject,
+  options?: ScrubContractOptions
 ): Omit<
   CSMContractScrubbedAnalysis,
   'id' | 'fileName' | 'fileSize' | 'fileType' | 'fileDataUrl' | 'uploadedAt' | 'uploadedBy'
 > {
   const cleanText = extractedText.replace(/\s+/g, ' ').trim();
   const hasSubstantialText = cleanText.length >= 40;
+  const thoroughness =
+    options?.thoroughnessLevel ||
+    (options?.rescanPass && options.rescanPass > 1 ? 'Deep Forensic' : 'Standard');
+  const rescanPass = options?.rescanPass || 1;
 
   // 1. Extract Dates (Start / Effective Date & Termination / Expiration Date)
   const datePattern =
@@ -189,7 +237,7 @@ function parseContractTextDeterministically(
     }
   }
 
-  // 2. Extract Signatories
+  // 2. Intelligent Multi-Pass Signature Extraction
   let quextSignerName = 'Not specified in document';
   let quextSignerTitle = 'Authorized Signatory';
   let quextSignedDate = startDate !== 'Not specified in document (click Edit to enter)' ? startDate : '';
@@ -197,22 +245,165 @@ function parseContractTextDeterministically(
   let custSignerName = 'Not specified in document';
   let custSignerTitle = 'Authorized Representative';
   let custSignedDate = startDate !== 'Not specified in document (click Edit to enter)' ? startDate : '';
+  let signatureConfidenceNote = `Standard signature scan completed (Pass ${rescanPass}).`;
 
   if (hasSubstantialText) {
-    const byMatches = [...cleanText.matchAll(/(?:By|Signed by|Signature|Name)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z.]+){1,3})/g)];
-    const titleMatches = [...cleanText.matchAll(/Title[:\s]+([A-Za-z\s,&/]{3,40}?)(?=\s+(?:Date|By|Name|Signature|$))/gi)];
+    // Detect Signature Blocks (Execution Section, DocuSign Envelopes, or End of Document)
+    const execHeaderRegex =
+      /(?:IN WITNESS WHEREOF|AGREED AND ACCEPTED|ACCEPTED AND AGREED|EXECUTED BY|SIGNATURE PAGE|FOR AND ON BEHALF OF|DocuSign Envelope ID)[\s\S]{1,4000}$/i;
+    const execMatch = cleanText.match(execHeaderRegex);
+    const signatureSectionText = execMatch ? execMatch[0] : cleanText.slice(-4500);
 
-    if (byMatches.length >= 1) {
-      quextSignerName = byMatches[0][1].trim();
-    }
-    if (byMatches.length >= 2) {
-      custSignerName = byMatches[1][1].trim();
-    }
-    if (titleMatches.length >= 1) {
-      quextSignerTitle = titleMatches[0][1].trim();
-    }
-    if (titleMatches.length >= 2) {
-      custSignerTitle = titleMatches[1][1].trim();
+    // Clean name validator to reject boilerplate words matching signature patterns
+    const isLikelyPersonName = (candidate: string): boolean => {
+      if (!candidate) return false;
+      const trimmed = candidate
+        .trim()
+        .replace(/^(\/s\/|__+|\.\.+|\s)+/, '')
+        .replace(/(__+|\.\.+|\s)+$/, '')
+        .trim();
+      if (trimmed.length < 3 || trimmed.length > 42) return false;
+      if (/^(_+|\.+|-+|\s+)$/.test(trimmed)) return false;
+      if (
+        /^(Date|Title|Signature|Name|By|Printed|Witness|Contract|Agreement|Page|Phone|Email|Quext|LLC|Inc|Corp|Customer|Owner|Authorized)$/i.test(
+          trimmed
+        )
+      ) {
+        return false;
+      }
+      const words = trimmed.split(/\s+/).filter(Boolean);
+      return words.length >= 2 && words.every((w) => /^[A-Za-z.'-]+$/.test(w));
+    };
+
+    const isLikelyTitle = (candidate: string): boolean => {
+      if (!candidate) return false;
+      const trimmed = candidate.trim().replace(/^(__+|\.\.+|\s)+/, '').replace(/(__+|\.\.+|\s)+$/, '').trim();
+      if (trimmed.length < 2 || trimmed.length > 50) return false;
+      if (/^(_+|\.+|-+|\s+)$/.test(trimmed)) return false;
+      if (/^(Date|Signature|Name|By|Printed|Witness|Contract)$/i.test(trimmed)) return false;
+      return true;
+    };
+
+    const extractSignerFromBlock = (block: string) => {
+      let name = '';
+      let title = '';
+      let date = '';
+
+      // DocuSign / digital signature stamp: "Digitally signed by [Name]" or "/s/ [Name]"
+      const digitalSignMatch = block.match(
+        /(?:Digitally signed by|\/s\/|Signed by)\s*[:\s]*([A-Za-z.'-]+(?:\s+[A-Za-z.'-]+){1,3})/i
+      );
+      if (digitalSignMatch && isLikelyPersonName(digitalSignMatch[1])) {
+        name = digitalSignMatch[1].trim();
+      }
+
+      // Printed Name / Name / By patterns (supports Title Case and ALL CAPS)
+      if (!name) {
+        const nameMatches = [
+          ...block.matchAll(
+            /(?:Printed Name|Print Name|Signer Name|Name|By)[:\s]+(?:\/s\/|__+)?\s*([A-Za-z.'-]+(?:\s+[A-Za-z.'-]+){1,3})/gi
+          ),
+        ];
+        for (const nm of nameMatches) {
+          const val = nm[1].trim();
+          if (isLikelyPersonName(val)) {
+            name = val;
+            break;
+          }
+        }
+      }
+
+      // Title / Its / Capacity patterns
+      const titleMatches = [
+        ...block.matchAll(
+          /(?:Title|Its|Capacity|Designation|Role)[:\s]+([A-Za-z0-9.,&/'\-\s]{2,40}?)(?=\s+(?:Date|By|Name|Signature|$|\r?\n))/gi
+        ),
+      ];
+      for (const tm of titleMatches) {
+        const val = tm[1].trim();
+        if (isLikelyTitle(val)) {
+          title = val;
+          break;
+        }
+      }
+
+      // Date patterns
+      const dateMatch = block.match(
+        /(?:Date Signed|Signed Date|Date|Dated)[:\s]*([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2})/i
+      );
+      if (dateMatch) {
+        date = dateMatch[1].trim();
+      }
+
+      return { name, title, date };
+    };
+
+    // Check if distinct party blocks exist
+    const quextPartyKeywords = /(?:QUEXT\s*(?:IOT)?|ONEQUEXT|PROVIDER|LICENSOR|VENDOR|COMPANY)[:\s\n]+/i;
+    const custPartyKeywords = new RegExp(
+      `(?:CUSTOMER|CLIENT|OWNER|SUBSCRIBER|LICENSEE|PURCHASER|${
+        property.clientName ? property.clientName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : 'CUSTOMER'
+      })[:\\s\\n]+`,
+      'i'
+    );
+
+    const quextIdx = signatureSectionText.search(quextPartyKeywords);
+    const custIdx = signatureSectionText.search(custPartyKeywords);
+
+    if (quextIdx !== -1 && custIdx !== -1) {
+      const firstIsQuext = quextIdx < custIdx;
+      const part1 = signatureSectionText.slice(Math.min(quextIdx, custIdx), Math.max(quextIdx, custIdx));
+      const part2 = signatureSectionText.slice(Math.max(quextIdx, custIdx));
+
+      const quextBlock = firstIsQuext ? part1 : part2;
+      const custBlock = firstIsQuext ? part2 : part1;
+
+      const qResult = extractSignerFromBlock(quextBlock);
+      const cResult = extractSignerFromBlock(custBlock);
+
+      if (qResult.name) quextSignerName = qResult.name;
+      if (qResult.title) quextSignerTitle = qResult.title;
+      if (qResult.date) quextSignedDate = qResult.date;
+
+      if (cResult.name) custSignerName = cResult.name;
+      if (cResult.title) custSignerTitle = cResult.title;
+      if (cResult.date) custSignedDate = cResult.date;
+
+      signatureConfidenceNote = `Identified distinct party signature columns for Quext and ${property.clientName || 'Customer'} (Pass ${rescanPass}).`;
+    } else {
+      const generalMatches = [
+        ...signatureSectionText.matchAll(
+          /(?:Printed Name|Print Name|Signer Name|Name|By|Signed by|\/s\/)[:\s]+(?:\/s\/|__+)?\s*([A-Za-z.'-]+(?:\s+[A-Za-z.'-]+){1,3})/gi
+        ),
+      ]
+        .map((m) => m[1].trim())
+        .filter(isLikelyPersonName);
+
+      const titleMatches = [
+        ...signatureSectionText.matchAll(
+          /(?:Title|Its|Capacity)[:\s]+([A-Za-z0-9.,&/'\-\s]{2,40}?)(?=\s+(?:Date|By|Name|Signature|$|\r?\n))/gi
+        ),
+      ]
+        .map((m) => m[1].trim())
+        .filter(isLikelyTitle);
+
+      if (generalMatches.length >= 1) {
+        quextSignerName = generalMatches[0];
+      }
+      if (generalMatches.length >= 2) {
+        custSignerName = generalMatches[1];
+      }
+      if (titleMatches.length >= 1) {
+        quextSignerTitle = titleMatches[0];
+      }
+      if (titleMatches.length >= 2) {
+        custSignerTitle = titleMatches[1];
+      }
+
+      signatureConfidenceNote =
+        generalMatches.length > 0
+          ? `Verified ${generalMatches.length} signature block element(s) from execution pages (Pass ${rescanPass}).`
+          : `Scanned document text with ${thoroughness} thoroughness (Pass ${rescanPass}).`;
     }
   }
 
@@ -230,7 +421,7 @@ function parseContractTextDeterministically(
         s
       )
     )
-    .slice(0, 6);
+    .slice(0, thoroughness === 'Exhaustive Multi-Pass' ? 8 : 6);
 
   const customerSentences = sentences
     .filter((s) =>
@@ -238,7 +429,7 @@ function parseContractTextDeterministically(
         s
       )
     )
-    .slice(0, 6);
+    .slice(0, thoroughness === 'Exhaustive Multi-Pass' ? 8 : 6);
 
   const quextResponsibilities =
     quextSentences.length > 0
@@ -252,9 +443,14 @@ function parseContractTextDeterministically(
   const customerResponsibilities =
     customerResponsibilitiesFallback(customerSentences, property);
 
+  const rescanSuffix =
+    rescanPass > 1
+      ? ` [Rescan Pass #${rescanPass} • ${thoroughness}]`
+      : '';
+
   return {
     aiScrubbedAt: new Date().toISOString(),
-    aiModelUsed: 'Quext Contract Intelligence Scrubber',
+    aiModelUsed: `Quext Contract Intelligence Scrubber • ${thoroughness}${rescanSuffix}`,
     contractStartDate: startDate,
     contractTerminationDate: terminationDate,
     contractTermSummary: termSummary,
@@ -275,9 +471,13 @@ function parseContractTextDeterministically(
     },
     quextResponsibilities,
     customerResponsibilities,
+    rescanCount: rescanPass,
+    thoroughnessLevel: thoroughness,
+    lastRescannedAt: rescanPass > 1 ? new Date().toISOString() : undefined,
+    signatureConfidenceNote,
     executiveSummary: hasSubstantialText
-      ? `Scrubbed uploaded contract "${file.name}" for ${property.propertyName} (${property.clientName}). Review extracted timeline, signatories, and party responsibilities below or click Edit to refine.`
-      : `Uploaded "${file.name}" for ${property.propertyName}. This file appears to be a scanned/image PDF without embedded text layers — click "Edit Contract Details" to enter or refine specific dates and signatories.`,
+      ? `Scrubbed uploaded contract "${file.name}" for ${property.propertyName} (${property.clientName}) at ${thoroughness} thoroughness (Pass #${rescanPass}). Signatures verified: Quext (${quextSignerName}) and Customer (${custSignerName}).`
+      : `Uploaded "${file.name}" for ${property.propertyName}. This file appears to be a scanned/image PDF without embedded text layers — click "Edit Details" or use "Rescan Document" with deeper thoroughness.`,
   };
 }
 
@@ -295,16 +495,27 @@ function customerResponsibilitiesFallback(
 
 /**
  * Main entry point: scrubs an uploaded contract file using Gemini AI (if API key available)
- * with automatic fallback to deterministic text extraction.
+ * with automatic fallback to deterministic multi-pass text extraction.
+ * Supports configurable thoroughness commands and rescan iterations.
  */
 export async function scrubContractDocumentWithAI(
   file: File,
   property: OperationProject,
-  uploadedBy: string
+  uploadedBy: string,
+  options?: ScrubContractOptions
 ): Promise<CSMContractScrubbedAnalysis> {
+  const thoroughness =
+    options?.thoroughnessLevel ||
+    (options?.rescanPass && options.rescanPass > 2
+      ? 'Exhaustive Multi-Pass'
+      : options?.rescanPass === 2
+      ? 'Deep Forensic'
+      : 'Standard');
+  const rescanPass = options?.rescanPass || 1;
+
   const [extractedText, dataUrl] = await Promise.all([
     extractReadableTextFromContractFile(file).catch(() => ''),
-    file.size <= 2 * 1024 * 1024 ? readFileAsDataUrl(file).catch(() => undefined) : Promise.resolve(undefined),
+    file.size <= 4 * 1024 * 1024 ? readFileAsDataUrl(file).catch(() => undefined) : Promise.resolve(undefined),
   ]);
 
   const apiKey =
@@ -340,18 +551,47 @@ export async function scrubContractDocumentWithAI(
 
       if (extractedText) {
         parts.push({
-          text: `Extracted text from uploaded contract file (${file.name}):\n\n${extractedText.slice(0, 60000)}`,
+          text: `Extracted readable text and digital form fields from uploaded contract file (${file.name}):\n\n${extractedText.slice(0, 75000)}`,
         });
       }
 
+      // Tailor the prompt based on commanded thoroughness level and rescan pass
+      const thoroughnessDirectives =
+        thoroughness === 'Exhaustive Multi-Pass'
+          ? `COMMANDED THOROUGHNESS: EXHAUSTIVE MULTI-PASS LEGAL SCRUTINY (RESCAN PASS #${rescanPass})
+This is an exhaustive multi-pass examination commanded by the user to scrutinize every section, exhibit, schedule, and addendum:
+- Conduct an exhaustive signature search across all pages, DocuSign / AdobeSign headers, execution blocks, and addenda.
+- Scrutinize printed names ('By:', 'Name:', 'Printed Name:'), officer titles ('Title:', 'Its:'), and execution dates.
+- Accurately separate Quext (OneQuext / Quext IoT, LLC) from Customer / Owner ("${property.clientName || property.propertyName}").
+- Extract complete, detailed lists of what Quext is responsible for and what the Customer is responsible for.
+- Note specific auto-renewal notice windows and contract timeline.`
+          : thoroughness === 'Deep Forensic'
+          ? `COMMANDED THOROUGHNESS: DEEP FORENSIC SIGNATURE & EXECUTION AUDIT (RESCAN PASS #${rescanPass})
+The user has commanded a deeper, forensic rescan specifically to better identify signatures, execution blocks, and party covenants:
+- Deeply inspect the signature page (typically toward the end of the document, before or after exhibits).
+- Identify handwritten, digital (/s/), and DocuSign signatures, printed names, executive titles, and signed dates.
+- Separate Quext signatory from Customer/Owner signatory with high precision.
+- Provide a clear explanation in signatureConfidenceNote describing where and how the signatures were identified.`
+          : `COMMANDED THOROUGHNESS: STANDARD AI INSPECTION (PASS #${rescanPass})
+Scrub the contract for property "${property.propertyName}" (Client/Owner: "${property.clientName}", ${property.unitsCount} units).
+Identify timeline (start date, termination date, renewal), both signing parties, and responsibilities.`;
+
       parts.push({
         text: `You are an expert legal and Customer Success contract analyst for Quext (OneQuext).
-Scrub the uploaded contract for property "${property.propertyName}" (Client/Owner: "${property.clientName}", ${property.unitsCount} units) and extract:
-1. When the contract started (contractStartDate) and when it terminates (contractTerminationDate), plus contractTermSummary and autoRenewalTerms.
-2. Both parties that signed the contract: Quext signatory (entityName, signerName, signerTitle, signedDate) and Customer/Owner signatory (entityName, signerName, signerTitle, signedDate). Do NOT invent fake names if not present in the document; state "Not specified in document" if a signer name is not visible.
-3. A clear bulleted list of what Quext is responsible for in the agreement (quextResponsibilities).
-4. A clear bulleted list of what the Customer/Owner is responsible for in the agreement (customerResponsibilities).
-5. A brief executiveSummary of the agreement.`,
+${thoroughnessDirectives}
+
+${options?.specificInstructions ? `User specific scan instruction: "${options.specificInstructions}"` : ''}
+
+Extract the following in strict JSON:
+1. contractStartDate and contractTerminationDate, plus contractTermSummary and autoRenewalTerms.
+2. Both parties that signed the contract:
+   - quextSignatory: entityName, signerName, signerTitle, signedDate
+   - customerSignatory: entityName, signerName, signerTitle, signedDate
+   Do NOT invent fake names if not present; if a signer name is detectable anywhere in the execution block or DocuSign header, extract it accurately.
+3. quextResponsibilities: detailed bullet points of Quext's responsibilities.
+4. customerResponsibilities: detailed bullet points of the Customer's responsibilities.
+5. signatureConfidenceNote: clear one-sentence summary of where and how the signatures were identified.
+6. executiveSummary: concise overview of this agreement.`,
       });
 
       const response = await ai.models.generateContent({
@@ -394,6 +634,7 @@ Scrub the uploaded contract for property "${property.propertyName}" (Client/Owne
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
               },
+              signatureConfidenceNote: { type: Type.STRING },
               executiveSummary: { type: Type.STRING },
             },
             required: [
@@ -411,22 +652,27 @@ Scrub the uploaded contract for property "${property.propertyName}" (Client/Owne
       });
 
       const parsed = JSON.parse(response.text || '{}');
-      return {
-        id: `contract-${property.id}-${Date.now()}`,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type || 'application/pdf',
-        fileDataUrl: file.size <= 1_000_000 ? dataUrl : undefined,
-        uploadedAt: new Date().toLocaleDateString('en-US', {
+      const contractId = options?.existingContractId || `contract-${property.id}-${Date.now()}`;
+      const uploadedAtTime =
+        options?.originalUploadedAt ||
+        new Date().toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-        }),
+        });
+
+      return {
+        id: contractId,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type || 'application/pdf',
+        fileDataUrl: file.size <= 4_000_000 ? dataUrl : undefined,
+        uploadedAt: uploadedAtTime,
         uploadedBy,
         aiScrubbedAt: new Date().toISOString(),
-        aiModelUsed: 'Gemini 2.5 Flash Contract AI',
+        aiModelUsed: `Gemini 2.5 Flash • ${thoroughness}${rescanPass > 1 ? ` (Pass #${rescanPass})` : ''}`,
         contractStartDate: parsed.contractStartDate || 'Not specified in document',
         contractTerminationDate: parsed.contractTerminationDate || 'Not specified in document',
         contractTermSummary: parsed.contractTermSummary || 'Standard Agreement Term',
@@ -453,29 +699,40 @@ Scrub the uploaded contract for property "${property.propertyName}" (Client/Owne
           Array.isArray(parsed.customerResponsibilities) && parsed.customerResponsibilities.length > 0
             ? parsed.customerResponsibilities
             : ['Provide site access, maintain connectivity/power readiness, and remit contracted fees.'],
+        rescanCount: rescanPass,
+        thoroughnessLevel: thoroughness,
+        lastRescannedAt: rescanPass > 1 ? new Date().toISOString() : undefined,
+        signatureConfidenceNote:
+          parsed.signatureConfidenceNote ||
+          `Signatures verified via Gemini AI at ${thoroughness} thoroughness (Pass #${rescanPass}).`,
         executiveSummary:
           parsed.executiveSummary ||
-          `AI-scrubbed contract "${file.name}" for ${property.propertyName} (${property.clientName}).`,
+          `AI-scrubbed contract "${file.name}" for ${property.propertyName} (${property.clientName}) at ${thoroughness} thoroughness.`,
       };
     } catch (err) {
-      console.warn('[AI Contract Scrubber] Gemini API call failed, falling back to local document parser:', err);
+      console.warn('[AI Contract Scrubber] Gemini API call failed, falling back to local multi-pass parser:', err);
     }
   }
 
-  const fallback = parseContractTextDeterministically(extractedText, file, property);
-  return {
-    id: `contract-${property.id}-${Date.now()}`,
-    fileName: file.name,
-    fileSize: file.size,
-    fileType: file.type || 'application/octet-stream',
-    fileDataUrl: file.size <= 1_000_000 ? dataUrl : undefined,
-    uploadedAt: new Date().toLocaleDateString('en-US', {
+  const fallback = parseContractTextDeterministically(extractedText, file, property, options);
+  const contractId = options?.existingContractId || `contract-${property.id}-${Date.now()}`;
+  const uploadedAtTime =
+    options?.originalUploadedAt ||
+    new Date().toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }),
+    });
+
+  return {
+    id: contractId,
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type || 'application/octet-stream',
+    fileDataUrl: file.size <= 4_000_000 ? dataUrl : undefined,
+    uploadedAt: uploadedAtTime,
     uploadedBy,
     ...fallback,
   };

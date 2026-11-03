@@ -1662,6 +1662,8 @@ export interface CSMContractPartySignature {
   signedDate: string;
 }
 
+export type CSMContractThoroughnessLevel = 'Standard' | 'Deep Forensic' | 'Exhaustive Multi-Pass';
+
 export interface CSMContractScrubbedAnalysis {
   id: string;
   fileName: string;
@@ -1681,6 +1683,10 @@ export interface CSMContractScrubbedAnalysis {
   quextResponsibilities: string[];
   customerResponsibilities: string[];
   executiveSummary?: string;
+  rescanCount?: number;
+  thoroughnessLevel?: CSMContractThoroughnessLevel;
+  lastRescannedAt?: string;
+  signatureConfidenceNote?: string;
 }
 
 export interface CSMResolutionPlan {
