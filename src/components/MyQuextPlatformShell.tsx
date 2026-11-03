@@ -475,7 +475,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectTopTab('salesHub')}
-                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-all duration-150 ease-in-out active:scale-95 cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                   activeTopTab === 'salesHub'
                     ? 'bg-blue-50 text-blue-600 font-semibold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
@@ -496,7 +496,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                     onGoToOperationsDashboard();
                   }
                 }}
-                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-all duration-150 ease-in-out active:scale-95 cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                   activeTopTab === 'operations'
                     ? 'bg-blue-50 text-blue-600 font-semibold ring-1 ring-blue-200'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
@@ -517,7 +517,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectTopTab('customerSuccess')}
-                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-all duration-150 ease-in-out active:scale-95 cursor-pointer whitespace-nowrap shrink-0 ${
                   activeTopTab === 'customerSuccess'
                     ? 'bg-blue-50 text-blue-600 font-semibold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
@@ -529,7 +529,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectTopTab('productAcquisition')}
-                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-all duration-150 ease-in-out active:scale-95 cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                   activeTopTab === 'productAcquisition'
                     ? 'bg-emerald-50 text-emerald-700 font-semibold ring-1 ring-emerald-200'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
@@ -550,7 +550,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectTopTab('reports')}
-                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-all duration-150 ease-in-out active:scale-95 cursor-pointer whitespace-nowrap shrink-0 ${
                   activeTopTab === 'reports'
                     ? 'bg-blue-50 text-blue-600 font-semibold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
@@ -563,7 +563,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                 type="button"
                 data-tutorial-id="top-nav-product-catalog"
                 onClick={() => onSelectTopTab('productCatalog')}
-                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs lg:text-[13px] transition-all duration-150 ease-in-out active:scale-95 cursor-pointer whitespace-nowrap shrink-0 ${
                   activeTopTab === 'productCatalog'
                     ? 'bg-blue-50 text-blue-600 font-semibold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'

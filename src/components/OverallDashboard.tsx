@@ -555,7 +555,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               type="button"
               data-tutorial-id="dashboard-export-all-projects-btn"
               onClick={() => exportAllProjects(projects)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 rounded-lg shadow-2xs hover:shadow-xs transition-all duration-200 ease-in-out active:scale-[0.98] cursor-pointer"
               title="Export complete site backup of all active projects (BOM with finishes, install logs with photos, notes, milestones) to JSON file"
             >
               <Download className="w-3.5 h-3.5 text-sky-600" />
@@ -565,7 +565,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               type="button"
               data-tutorial-id="dashboard-import-restore-btn"
               onClick={openImportModal}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 rounded-lg shadow-2xs hover:shadow-xs transition-all duration-200 ease-in-out active:scale-[0.98] cursor-pointer"
               title="Import projects from spreadsheet or restore a full JSON backup"
             >
               <Upload className="w-3.5 h-3.5 text-emerald-600" />
@@ -573,7 +573,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             </button>
             <button
               onClick={() => onGoToAllProjects()}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition-all shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] rounded-lg shadow-xs hover:shadow-md transition-all duration-200 ease-in-out shrink-0 cursor-pointer"
             >
               <Layers className="w-4 h-4" />
               <span>View All Active Projects Directory</span>
@@ -739,7 +739,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           {/* 1. Active Implementation Projects */}
           <div
             onClick={() => setLifecycleFilter(lifecycleFilter === 'active' ? 'all' : 'active')}
-            className={`p-4 rounded-xl border transition-all cursor-pointer overflow-hidden ${
+            className={`p-4 rounded-xl border transition-all duration-200 ease-in-out hover:shadow-sm hover:border-slate-300 active:scale-[0.99] cursor-pointer overflow-hidden ${
               lifecycleFilter === 'active'
                 ? 'bg-sky-50 border-sky-400 ring-2 ring-sky-400/30 shadow-xs'
                 : 'bg-slate-50 hover:bg-slate-100/70 border-slate-200'
@@ -766,7 +766,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           {/* 2. Requirement: Total Completed Projects */}
           <div
             onClick={() => setLifecycleFilter(lifecycleFilter === 'completed' ? 'all' : 'completed')}
-            className={`p-4 rounded-xl border transition-all cursor-pointer overflow-hidden ${
+            className={`p-4 rounded-xl border transition-all duration-200 ease-in-out hover:shadow-sm hover:border-slate-300 active:scale-[0.99] cursor-pointer overflow-hidden ${
               lifecycleFilter === 'completed'
                 ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/30 shadow-xs'
                 : 'bg-slate-50 hover:bg-slate-100/70 border-slate-200'
@@ -793,7 +793,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           {/* 3. Requirement: Total New Projects (Not Started a Milestone) */}
           <div
             onClick={() => setLifecycleFilter(lifecycleFilter === 'not_started' ? 'all' : 'not_started')}
-            className={`p-4 rounded-xl border transition-all cursor-pointer overflow-hidden ${
+            className={`p-4 rounded-xl border transition-all duration-200 ease-in-out hover:shadow-sm hover:border-slate-300 active:scale-[0.99] cursor-pointer overflow-hidden ${
               lifecycleFilter === 'not_started'
                 ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-400/30 shadow-xs'
                 : 'bg-slate-50 hover:bg-slate-100/70 border-slate-200'
@@ -824,7 +824,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           </div>
 
           {/* 4. BOM Total Units Installed */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden transition-all duration-200 ease-in-out hover:shadow-sm hover:border-slate-300">
             <div className="text-xs text-slate-600 font-medium flex items-center justify-between gap-2">
               <span className="truncate font-semibold text-slate-800">Total Hardware Installed</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -845,7 +845,7 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
             onClick={() =>
               setUpcomingCardMode((prev) => (prev === 'go_lives' ? 'installs' : 'go_lives'))
             }
-            className="p-4 bg-sky-50/70 hover:bg-sky-100/70 rounded-xl border border-sky-200 cursor-pointer transition-all overflow-hidden"
+            className="p-4 bg-sky-50/70 hover:bg-sky-100/70 rounded-xl border border-sky-200 hover:border-sky-300 cursor-pointer transition-all duration-200 ease-in-out hover:shadow-sm active:scale-[0.99] overflow-hidden"
             title="Click to toggle between Upcoming Go Lives (CSM Handoff) and Upcoming Installs (Implementation)"
           >
             <div className="text-xs text-sky-900 font-bold flex items-center justify-between gap-2">

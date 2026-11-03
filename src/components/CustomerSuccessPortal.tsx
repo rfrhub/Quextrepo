@@ -1385,7 +1385,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
             <button
               type="button"
               onClick={() => setCsmViewMode('overview')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-150 ease-in-out active:scale-95 cursor-pointer ${
                 csmViewMode === 'overview'
                   ? 'bg-white text-emerald-800 shadow-2xs border border-slate-200/80 font-extrabold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -1398,7 +1398,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
             <button
               type="button"
               onClick={() => setCsmViewMode('properties')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-150 ease-in-out active:scale-95 cursor-pointer ${
                 csmViewMode === 'properties'
                   ? 'bg-white text-emerald-800 shadow-2xs border border-slate-200/80 font-extrabold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -1411,7 +1411,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
             <button
               type="button"
               onClick={() => setCsmViewMode('activity_hub')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-150 ease-in-out active:scale-95 cursor-pointer ${
                 csmViewMode === 'activity_hub'
                   ? 'bg-white text-emerald-800 shadow-2xs border border-slate-200/80 font-extrabold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
