@@ -968,6 +968,22 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     });
   };
 
+  const handleEditNote = (updatedNote: ProjectNote) => {
+    onUpdateProject({
+      ...project,
+      notes: project.notes.map((n) => (n.id === updatedNote.id ? updatedNote : n)),
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleTogglePinNote = (noteId: string) => {
+    onUpdateProject({
+      ...project,
+      notes: project.notes.map((n) => (n.id === noteId ? { ...n, isPinned: !n.isPinned } : n)),
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
   const handleToggleMilestone = (milestoneId: string) => {
     let enteredCsmHandoff = false;
     let enteredCsmIntro = false;
@@ -3984,6 +4000,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               notes={project.notes}
               milestones={project.milestones}
               onAddNote={handleAddNote}
+              onEditNote={handleEditNote}
+              onTogglePinNote={handleTogglePinNote}
               onDeleteNote={handleDeleteNote}
               onToggleMilestone={handleToggleMilestone}
             />

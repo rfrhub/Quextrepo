@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { ProjectNote, ProjectMilestone } from '../types';
-import { MessageSquare, Plus, Pin, CheckCircle2, Clock, Calendar, ShieldCheck } from 'lucide-react';
+import { MessageSquare, Plus, Pin, Pencil, Check, Trash2, X } from 'lucide-react';
 
 interface ProjectNotesSectionProps {
   notes: ProjectNote[];
   milestones: ProjectMilestone[];
   onAddNote: (newNote: Omit<ProjectNote, 'id'>) => void;
+  onEditNote?: (updatedNote: ProjectNote) => void;
+  onTogglePinNote?: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
   onToggleMilestone?: (milestoneId: string) => void;
 }
@@ -14,6 +16,8 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
   notes,
   milestones,
   onAddNote,
+  onEditNote,
+  onTogglePinNote,
   onDeleteNote,
   onToggleMilestone,
 }) => {
@@ -22,6 +26,13 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
   const [category, setCategory] = useState<ProjectNote['category']>('General Context');
   const [text, setText] = useState<string>('');
   const [isPinned, setIsPinned] = useState<boolean>(false);
+
+  // Inline editing state
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editText, setEditText] = useState<string>('');
+  const [editAuthor, setEditAuthor] = useState<string>('');
+  const [editCategory, setEditCategory] = useState<ProjectNote['category']>('General Context');
+  const [editIsPinned, setEditIsPinned] = useState<boolean>(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +62,62 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
     setShowAddForm(false);
   };
 
+  const handleTogglePin = (note: ProjectNote) => {
+    if (onTogglePinNote) {
+      onTogglePinNote(note.id);
+    } else if (onEditNote) {
+      onEditNote({
+        ...note,
+        isPinned: !note.isPinned,
+      });
+    }
+  };
+
+  const startEditingNote = (note: ProjectNote) => {
+    setEditingNoteId(note.id);
+    setEditText(note.text);
+    setEditAuthor(note.author);
+    setEditCategory(note.category);
+    setEditIsPinned(Boolean(note.isPinned));
+  };
+
+  const cancelEditingNote = () => {
+    setEditingNoteId(null);
+    setEditText('');
+    setEditAuthor('');
+  };
+
+  const handleSaveEdit = (noteId: string) => {
+    if (!editText.trim()) return;
+    const original = notes.find((n) => n.id === noteId);
+    if (!original) return;
+
+    const hasContentChanged =
+      editText.trim() !== original.text ||
+      editCategory !== original.category ||
+      editAuthor.trim() !== original.author ||
+      editIsPinned !== original.isPinned;
+
+    let timestamp = original.timestamp;
+    if (hasContentChanged && !timestamp.includes('(edited)')) {
+      timestamp = `${timestamp} (edited)`;
+    }
+
+    const updated: ProjectNote = {
+      ...original,
+      author: editAuthor.trim() || original.author,
+      category: editCategory,
+      text: editText.trim(),
+      isPinned: editIsPinned,
+      timestamp,
+    };
+
+    if (onEditNote) {
+      onEditNote(updated);
+    }
+    setEditingNoteId(null);
+  };
+
   const getCategoryColor = (cat: ProjectNote['category']) => {
     switch (cat) {
       case 'General Context':
@@ -68,6 +135,13 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
     }
   };
 
+  // Sort notes: pinned notes first, then chronological
+  const sortedNotes = [...notes].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return 0;
+  });
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
       <div className="flex items-center justify-between pb-4 border-b border-slate-200">
@@ -84,7 +158,7 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
         <button
           type="button"
           onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 text-sky-600" />
           <span>{showAddForm ? 'Cancel' : 'Add Note'}</span>
@@ -129,7 +203,9 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                   onChange={(e) => setIsPinned(e.target.checked)}
                   className="w-4 h-4 rounded text-sky-600 bg-white border-slate-300 focus:ring-0"
                 />
-                <span>Pin as Priority Alert</span>
+                <span className="flex items-center gap-1 font-semibold text-amber-900">
+                  <Pin className="w-3.5 h-3.5 rotate-45" /> Pin as Priority Alert
+                </span>
               </label>
             </div>
           </div>
@@ -150,13 +226,13 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900"
+              className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-lg transition-colors shadow-xs"
+              className="px-4 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-lg transition-colors shadow-xs cursor-pointer"
             >
               Post Note
             </button>
@@ -166,12 +242,12 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
 
       {/* Notes Feed */}
       <div className="mt-4 space-y-3">
-        {notes.length === 0 ? (
+        {sortedNotes.length === 0 ? (
           <div className="text-center py-8 text-slate-500 text-xs">
             No notes recorded for this project yet. Add notes to keep installers and management in sync.
           </div>
         ) : (
-          notes.map((note) => (
+          sortedNotes.map((note) => (
             <div
               key={note.id}
               className={`p-3.5 rounded-lg border transition-all ${
@@ -180,19 +256,39 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                   : 'bg-white border-slate-200 hover:border-slate-300'
               }`}
             >
-              <div className="flex items-center justify-between text-xs mb-1.5">
+              {/* Note Header */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
                 <div className="flex items-center gap-2">
-                  {note.isPinned && (
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-amber-800">
-                      <Pin className="w-3 h-3 rotate-45" /> Pinned
-                    </span>
+                  {note.isPinned ? (
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePin(note)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded px-2 py-0.5 transition-all shadow-2xs cursor-pointer group"
+                      title="Click to unpin this note"
+                    >
+                      <Pin className="w-3 h-3 text-amber-700 fill-amber-700 rotate-45 group-hover:scale-110 transition-transform" />
+                      <span>Pinned</span>
+                      <span className="text-[10px] text-amber-700 font-normal underline decoration-dotted ml-0.5">
+                        (Click to unpin)
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePin(note)}
+                      className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-500 hover:text-amber-800 hover:bg-amber-50 border border-transparent hover:border-amber-300 rounded px-1.5 py-0.5 transition-all cursor-pointer group"
+                      title="Pin note as priority alert"
+                    >
+                      <Pin className="w-3 h-3 text-slate-400 group-hover:text-amber-600 rotate-45" />
+                      <span className="hidden sm:inline">Pin</span>
+                    </button>
                   )}
                   <span className="font-bold text-slate-900">{note.author}</span>
                   <span className="text-slate-300">·</span>
                   <span className="font-mono text-slate-500 text-[11px]">{note.timestamp}</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span
                     className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${getCategoryColor(
                       note.category
@@ -200,18 +296,108 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                   >
                     {note.category}
                   </span>
+                  {editingNoteId !== note.id && (
+                    <button
+                      type="button"
+                      onClick={() => startEditingNote(note)}
+                      className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded transition-colors cursor-pointer"
+                      title="Edit note"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => onDeleteNote(note.id)}
-                    className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
                     title="Delete note"
                   >
-                    &times;
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-700 leading-relaxed pl-0.5">{note.text}</p>
+              {/* Note Body or Inline Edit Form */}
+              {editingNoteId === note.id ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSaveEdit(note.id);
+                  }}
+                  className="mt-2 p-3 bg-white border border-sky-300 rounded-lg space-y-3 shadow-xs"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Author</label>
+                      <input
+                        type="text"
+                        required
+                        value={editAuthor}
+                        onChange={(e) => setEditAuthor(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Category</label>
+                      <select
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value as ProjectNote['category'])}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
+                      >
+                        <option value="General Context">General Context</option>
+                        <option value="Site Access & Keys">Site Access & Keys</option>
+                        <option value="Hardware Delivery">Hardware Delivery</option>
+                        <option value="Inspection & Commissioning">Inspection & Commissioning</option>
+                        <option value="Resident Notice">Resident Notice</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer font-medium">
+                        <input
+                          type="checkbox"
+                          checked={editIsPinned}
+                          onChange={(e) => setEditIsPinned(e.target.checked)}
+                          className="w-4 h-4 rounded text-amber-600 bg-white border-slate-300 focus:ring-0"
+                        />
+                        <span className="flex items-center gap-1 font-semibold text-amber-900">
+                          <Pin className="w-3 h-3 rotate-45" /> Pinned as Priority
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1 text-xs">Note Context & Details</label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={cancelEditingNote}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Cancel</span>
+                    </button>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] rounded-lg transition-colors shadow-xs cursor-pointer"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Save Changes</span>
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <p className="text-xs text-slate-700 leading-relaxed pl-0.5 whitespace-pre-wrap">{note.text}</p>
+              )}
             </div>
           ))
         )}
@@ -219,4 +405,3 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
     </div>
   );
 };
-
