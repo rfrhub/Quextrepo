@@ -21,7 +21,7 @@ import {
 import { PostItWindow } from './PostItWindow';
 import { LockFinishModal } from './LockFinishModal';
 import { BOMOverrideModal } from './BOMOverrideModal';
-import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal, Trash2, X, Wrench, Package, Send, ExternalLink, CheckCircle2, Calendar, Truck } from 'lucide-react';
+import { KeyRound, Thermometer, Radio, ShieldAlert, Wifi, Zap, Plus, Minus, Check, StickyNote, ChevronDown, ChevronUp, MapPin, User, Tag, AlertTriangle, SlidersHorizontal, Trash2, X, Wrench, Package, Send, ExternalLink, CheckCircle2, Calendar, Truck, Pencil } from 'lucide-react';
 
 interface BOMTableProps {
   items: BOMItem[];
@@ -30,6 +30,7 @@ interface BOMTableProps {
   projectIntegratorPartners?: string[];
   onUpdateInstalledCount: (itemId: string, newCount: number) => void;
   onSaveRowLog: (itemId: string, newLog: Omit<InstallLogEntry, 'id'>, autoIncrementBOM: boolean) => void;
+  onEditRowLog?: (itemId: string, updatedLog: InstallLogEntry, previousLog?: InstallLogEntry) => void;
   onUpdateThermostatBrand?: (itemId: string, brand: ThermostatBrand) => void;
   onUpdateLockFinishConfig?: (itemId: string, config?: LockFinishConfig) => void;
   onToggleSparesDelivered?: (itemId: string) => void;
@@ -52,6 +53,7 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   projectIntegratorPartners,
   onUpdateInstalledCount,
   onSaveRowLog,
+  onEditRowLog,
   onUpdateThermostatBrand,
   onUpdateLockFinishConfig,
   onToggleSparesDelivered,
@@ -71,6 +73,8 @@ export const BOMTable: React.FC<BOMTableProps> = ({
   
   // Post-it window state
   const [activePostItItem, setActivePostItItem] = useState<BOMItem | null>(null);
+  const [editingPostItLogId, setEditingPostItLogId] = useState<string | undefined>(undefined);
+  const [confirmDeleteDrawerLogId, setConfirmDeleteDrawerLogId] = useState<string | null>(null);
   // Lock finish modal state
   const [activeLockFinishItem, setActiveLockFinishItem] = useState<BOMItem | null>(null);
   // Row inline drawer expansion state
@@ -1327,9 +1331,60 @@ export const BOMTable: React.FC<BOMTableProps> = ({
                                   <MapPin className="w-3 h-3 text-amber-700" />
                                   <span className="truncate">{log.locationCompleted}</span>
                                 </div>
-                                <p className="text-amber-950 text-xs leading-relaxed bg-white/60 p-2 rounded border border-yellow-200">
+                                <p className="text-amber-950 text-xs leading-relaxed bg-white/60 p-2 rounded border border-yellow-200 whitespace-pre-wrap">
                                   {log.notes}
                                 </p>
+
+                                {confirmDeleteDrawerLogId === log.id ? (
+                                  <div className="flex items-center justify-between gap-1.5 p-1.5 bg-rose-50 border border-rose-200 rounded mt-2">
+                                    <span className="text-[11px] font-semibold text-rose-800">Delete note?</span>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (onDeleteLog) onDeleteLog(log.id);
+                                          setConfirmDeleteDrawerLogId(null);
+                                        }}
+                                        className="px-2 py-0.5 text-[10px] font-bold text-white bg-rose-600 hover:bg-rose-700 rounded shadow-2xs cursor-pointer"
+                                      >
+                                        Yes
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setConfirmDeleteDrawerLogId(null)}
+                                        className="px-1.5 py-0.5 text-[10px] text-slate-600 hover:text-slate-900 cursor-pointer"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-end gap-1.5 pt-1.5 mt-1 border-t border-yellow-200/70">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActivePostItItem(item);
+                                        setEditingPostItLogId(log.id);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold text-amber-900 bg-amber-200/70 hover:bg-amber-300 border border-amber-300 rounded cursor-pointer transition-colors shadow-2xs"
+                                      title="Edit post-it note"
+                                    >
+                                      <Pencil className="w-3 h-3 text-amber-800" />
+                                      <span>Edit</span>
+                                    </button>
+                                    {onDeleteLog && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setConfirmDeleteDrawerLogId(log.id)}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold text-rose-700 bg-white/70 hover:bg-rose-100 border border-rose-200 rounded cursor-pointer transition-colors"
+                                        title="Delete post-it note"
+                                      >
+                                        <Trash2 className="w-3 h-3 text-rose-600" />
+                                        <span>Delete</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1379,11 +1434,20 @@ export const BOMTable: React.FC<BOMTableProps> = ({
           existingLogs={getLogsForItem(activePostItItem.id)}
           commonAreaDoors={commonAreaDoors}
           projectIntegratorPartners={projectIntegratorPartners}
+          initialEditingLogId={editingPostItLogId}
           onSaveLog={(newLog, autoIncrementBOM) => {
             onSaveRowLog(activePostItItem.id, newLog, autoIncrementBOM);
           }}
+          onEditLog={(updatedLog, prevLog) => {
+            if (onEditRowLog) {
+              onEditRowLog(activePostItItem.id, updatedLog, prevLog);
+            }
+          }}
           onDeleteLog={onDeleteLog}
-          onClose={() => setActivePostItItem(null)}
+          onClose={() => {
+            setActivePostItItem(null);
+            setEditingPostItLogId(undefined);
+          }}
         />
       )}
 

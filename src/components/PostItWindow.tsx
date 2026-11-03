@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BOMItem, InstallLogEntry, CommonAreaDoor } from '../types';
-import { X, Pin, Save, Trash2, StickyNote, AlertTriangle, Check, MapPin } from 'lucide-react';
+import { X, Pin, Save, Trash2, StickyNote, AlertTriangle, Check, MapPin, Pencil } from 'lucide-react';
 
 interface PostItWindowProps {
   item: BOMItem;
   existingLogs: InstallLogEntry[];
   commonAreaDoors?: CommonAreaDoor[];
   projectIntegratorPartners?: string[];
+  initialEditingLogId?: string;
   onSaveLog: (newLog: Omit<InstallLogEntry, 'id'>, autoIncrementBOM: boolean) => void;
+  onEditLog?: (updatedLog: InstallLogEntry, previousLog?: InstallLogEntry) => void;
   onDeleteLog?: (logId: string) => void;
   onClose: () => void;
 }
@@ -17,12 +19,23 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
   existingLogs,
   commonAreaDoors = [],
   projectIntegratorPartners,
+  initialEditingLogId,
   onSaveLog,
+  onEditLog,
   onDeleteLog,
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
   const [selectedColor, setSelectedColor] = useState<'yellow' | 'cyan' | 'emerald' | 'amber'>('yellow');
+
+  // Currently editing log
+  const [editingLog, setEditingLog] = useState<InstallLogEntry | null>(() => {
+    if (initialEditingLogId) {
+      return existingLogs.find((l) => l.id === initialEditingLogId) || null;
+    }
+    return null;
+  });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Form fields
   const now = new Date();
@@ -42,6 +55,21 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
   const [statusCheck, setStatusCheck] = useState<InstallLogEntry['statusCheck']>('Verified & Online');
   const [notes, setNotes] = useState<string>('');
   const [autoIncrementBOM, setAutoIncrementBOM] = useState<boolean>(true);
+
+  // Synchronize initialEditingLogId or when editingLog changes
+  useEffect(() => {
+    if (editingLog) {
+      setNotes(editingLog.notes || '');
+      setInstallerName(editingLog.installerName || 'Project Manager');
+      setQuantityCompleted(editingLog.quantityCompleted ?? 0);
+      setLocationCompleted(editingLog.locationCompleted || item.location);
+      setStatusCheck(editingLog.statusCheck || 'Verified & Online');
+      if (editingLog.color && ['yellow', 'cyan', 'emerald', 'amber'].includes(editingLog.color)) {
+        setSelectedColor(editingLog.color as any);
+      }
+      setActiveTab('create');
+    }
+  }, [editingLog, item.location]);
 
   // Toggle ALL option
   const handleToggleAll = (checked: boolean) => {
@@ -115,6 +143,27 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
           minute: '2-digit',
         })}`;
 
+    if (editingLog) {
+      if (onEditLog) {
+        onEditLog(
+          {
+            ...editingLog,
+            timestamp: formattedTimestamp,
+            installerName: installerName.trim() || editingLog.installerName || 'Project Manager',
+            quantityCompleted: Number(quantityCompleted) || 0,
+            locationCompleted: locationCompleted.trim() || item.location,
+            statusCheck,
+            notes: notes.trim() || 'Field batch installed and verified.',
+            color: selectedColor,
+          },
+          editingLog
+        );
+      }
+      setEditingLog(null);
+      setActiveTab('history');
+      return;
+    }
+
     onSaveLog(
       {
         projectId: '',
@@ -132,6 +181,26 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
     );
 
     onClose();
+  };
+
+  const cancelEditingLog = () => {
+    setEditingLog(null);
+    setNotes('');
+    setQuantityCompleted(Math.min(10, Math.max(1, item.quantity - item.installedCount)));
+    setActiveTab('history');
+  };
+
+  const startEditingLog = (log: InstallLogEntry) => {
+    setEditingLog(log);
+    setNotes(log.notes || '');
+    setInstallerName(log.installerName || 'Project Manager');
+    setQuantityCompleted(log.quantityCompleted ?? 0);
+    setLocationCompleted(log.locationCompleted || item.location);
+    setStatusCheck(log.statusCheck || 'Verified & Online');
+    if (log.color && ['yellow', 'cyan', 'emerald', 'amber'].includes(log.color)) {
+      setSelectedColor(log.color as any);
+    }
+    setActiveTab('create');
   };
 
   const itemLogs = existingLogs.filter((l) => l.itemId === item.id);
@@ -167,9 +236,9 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-[11px] font-bold uppercase tracking-wider text-amber-950 flex items-center gap-2">
-                <span>Installer Post-It Note</span>
-                <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-300/60 text-amber-900">
-                  Row Attachment
+                <span>{editingLog ? 'Edit Post-It Note' : 'Installer Post-It Note'}</span>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${editingLog ? 'bg-amber-400 text-amber-950 font-bold' : 'bg-amber-300/60 text-amber-900'}`}>
+                  {editingLog ? 'Editing Note' : 'Row Attachment'}
                 </span>
               </div>
               <div className="text-xs font-bold text-amber-950 truncate max-w-[260px] sm:max-w-[320px]">
@@ -183,14 +252,31 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
               <div className="flex rounded-md bg-amber-200/50 p-0.5 text-[11px] font-semibold text-amber-950">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('create')}
-                  className={`px-2 py-0.5 rounded cursor-pointer ${activeTab === 'create' ? 'bg-white shadow-xs font-bold' : 'opacity-70'}`}
+                  onClick={() => {
+                    setEditingLog(null);
+                    setNotes('');
+                    setActiveTab('create');
+                  }}
+                  className={`px-2 py-0.5 rounded cursor-pointer ${activeTab === 'create' && !editingLog ? 'bg-white shadow-xs font-bold' : 'opacity-70'}`}
                 >
                   New Note
                 </button>
+                {editingLog && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('create')}
+                    className="px-2 py-0.5 rounded cursor-pointer bg-amber-400 text-amber-950 font-bold shadow-xs flex items-center gap-1"
+                  >
+                    <Pencil className="w-3 h-3 text-amber-900" />
+                    <span>Editing</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setActiveTab('history')}
+                  onClick={() => {
+                    if (editingLog) cancelEditingLog();
+                    else setActiveTab('history');
+                  }}
                   className={`px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer ${activeTab === 'history' ? 'bg-white shadow-xs font-bold' : 'opacity-70'}`}
                 >
                   <StickyNote className="w-3 h-3" />
@@ -213,6 +299,21 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
         {/* Content Area */}
         {activeTab === 'create' ? (
           <form onSubmit={handleSave} className="p-4 sm:p-5 space-y-3.5 text-xs">
+            {editingLog && (
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-200/80 border border-amber-300 text-amber-950 text-xs shadow-2xs">
+                <span className="flex items-center gap-1.5 font-bold">
+                  <Pencil className="w-3.5 h-3.5 text-amber-800" />
+                  <span>Editing Post-It Note ({editingLog.timestamp})</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={cancelEditingLog}
+                  className="text-[11px] font-semibold text-amber-900 hover:text-amber-950 underline cursor-pointer"
+                >
+                  Cancel Edit
+                </button>
+              </div>
+            )}
             {/* Post-It Note Tone Selector (Fixed spelling from Tone -> Note) */}
             <div className="flex items-center justify-between pb-2 border-b border-amber-200/80">
               <span className={`text-[11px] font-bold ${style.subtext}`}>
@@ -315,12 +416,12 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   required
                   value={quantityCompleted}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value, 10) || 1;
-                    setQuantityCompleted(val);
+                    const val = parseInt(e.target.value, 10);
+                    setQuantityCompleted(isNaN(val) ? 0 : Math.max(0, val));
                     if (val !== item.quantity) {
                       setIsAllQuantity(false);
                     }
@@ -466,18 +567,30 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
             <div className="pt-2 flex items-center justify-between">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  if (editingLog) cancelEditingLog();
+                  else onClose();
+                }}
                 className="px-3.5 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-200/60 rounded-lg transition-colors cursor-pointer"
               >
-                Cancel
+                {editingLog ? 'Cancel Edit' : 'Cancel'}
               </button>
 
               <button
                 type="submit"
                 className={`px-5 py-2 rounded-lg font-bold text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${style.btn}`}
               >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save & Store in Row</span>
+                {editingLog ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Save Changes</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save & Store in Row</span>
+                  </>
+                )}
               </button>
             </div>
           </form>
@@ -488,7 +601,11 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
               <span>Attached Post-It Notes ({itemLogs.length})</span>
               <button
                 type="button"
-                onClick={() => setActiveTab('create')}
+                onClick={() => {
+                  setEditingLog(null);
+                  setNotes('');
+                  setActiveTab('create');
+                }}
                 className="text-[11px] text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
               >
                 + Add Another Note
@@ -510,18 +627,55 @@ export const PostItWindow: React.FC<PostItWindowProps> = ({
                   <span>·</span>
                   <span>{log.installerName}</span>
                 </div>
-                <p className="text-slate-900 bg-amber-50/60 p-2 rounded border border-amber-100 text-xs leading-relaxed">
+                <p className="text-slate-900 bg-amber-50/60 p-2 rounded border border-amber-100 text-xs leading-relaxed whitespace-pre-wrap">
                   {log.notes}
                 </p>
-                {onDeleteLog && (
-                  <div className="flex justify-end pt-1">
+
+                {confirmDeleteId === log.id ? (
+                  <div className="flex items-center justify-between gap-2 p-2 bg-rose-50 border border-rose-200 rounded mt-2">
+                    <span className="text-xs font-semibold text-rose-800">Delete this post-it note?</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onDeleteLog) onDeleteLog(log.id);
+                          setConfirmDeleteId(null);
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded shadow-2xs cursor-pointer"
+                      >
+                        Yes, Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 text-xs text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-100">
                     <button
                       type="button"
-                      onClick={() => onDeleteLog(log.id)}
-                      className="text-[11px] text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                      onClick={() => startEditingLog(log)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded cursor-pointer transition-colors shadow-2xs"
+                      title="Edit this post-it note"
                     >
-                      <Trash2 className="w-3 h-3" /> Remove Log
+                      <Pencil className="w-3 h-3 text-amber-700" />
+                      <span>Edit Note</span>
                     </button>
+                    {onDeleteLog && (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(log.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded cursor-pointer transition-colors"
+                        title="Delete this post-it note"
+                      >
+                        <Trash2 className="w-3 h-3 text-rose-600" />
+                        <span>Delete</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

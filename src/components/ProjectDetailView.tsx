@@ -271,6 +271,48 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     setShowMitigationPlan(false);
   }, [project.id]);
 
+  // Synchronize any post-it notes stored on BOM items into General Project Notes & Operations Context
+  useEffect(() => {
+    const existingPostItIds = new Set(
+      (project.notes || [])
+        .map((n) => n.postItLogId || (n.id.startsWith('note-postit-') ? n.id.replace('note-postit-', '') : null))
+        .filter(Boolean)
+    );
+
+    const missingNotes: ProjectNote[] = [];
+
+    (project.bomItems || []).forEach((item) => {
+      (item.postItLogs || []).forEach((log) => {
+        if (!existingPostItIds.has(log.id)) {
+          existingPostItIds.add(log.id);
+          missingNotes.push({
+            id: `note-postit-${log.id}`,
+            postItLogId: log.id,
+            isPostIt: true,
+            projectId: project.id,
+            author: log.installerName || 'Project Manager',
+            timestamp: log.timestamp || 'Recorded Note',
+            category: 'Inspection & Commissioning',
+            text: `📌 Post-It Note [${log.itemName || item.name}]: ${log.notes || 'Note recorded'}${
+              log.quantityCompleted > 0
+                ? ` (+${log.quantityCompleted} units @ ${log.locationCompleted || item.location})`
+                : ''
+            }`,
+            isPinned: false,
+          });
+        }
+      });
+    });
+
+    if (missingNotes.length > 0) {
+      onUpdateProject({
+        ...project,
+        notes: [...missingNotes, ...(project.notes || [])],
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+  }, [project.id]);
+
   // Common Area Door Quick Add state
   const [isAddingDoor, setIsAddingDoor] = useState<boolean>(false);
   const [newDoorName, setNewDoorName] = useState<string>('');
@@ -688,11 +730,112 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
       updatedPending = [pendingChange, ...updatedPending];
     }
 
+    // Mirror to General Project Notes & Operations Context (#pm-project-notes)
+    const postItNote: ProjectNote = {
+      id: `note-postit-${logId}`,
+      postItLogId: logId,
+      isPostIt: true,
+      projectId: project.id,
+      author: logEntry.installerName || 'Project Manager',
+      timestamp: logEntry.timestamp || new Date().toLocaleString(),
+      category: 'Inspection & Commissioning',
+      text: `📌 Post-It Note [${logEntry.itemName}]: ${logEntry.notes}${
+        logEntry.quantityCompleted > 0
+          ? ` (+${logEntry.quantityCompleted} units @ ${logEntry.locationCompleted})`
+          : ''
+      }`,
+      isPinned: false,
+    };
+
     onUpdateProject({
       ...project,
       bomItems: updatedBOM,
       installLogs: [logEntry, ...project.installLogs],
+      notes: [postItNote, ...(project.notes || [])],
       pendingInstallationChanges: updatedPending,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  // Handle editing an existing post-it log attached directly to a BOM row
+  const handleEditRowLog = (
+    itemId: string,
+    updatedLog: InstallLogEntry,
+    previousLog?: InstallLogEntry
+  ) => {
+    const qtyDiff =
+      (updatedLog.quantityCompleted || 0) - (previousLog?.quantityCompleted || 0);
+
+    const updatedBOM = project.bomItems.map((item) => {
+      const hasLog = (item.postItLogs || []).some((l) => l.id === updatedLog.id);
+      if (item.id === itemId || hasLog) {
+        const nextLogs = (item.postItLogs || []).map((l) =>
+          l.id === updatedLog.id ? updatedLog : l
+        );
+        const newCount =
+          qtyDiff !== 0 ? Math.max(0, item.installedCount + qtyDiff) : item.installedCount;
+        return {
+          ...item,
+          installedCount: newCount,
+          postItLogs: nextLogs,
+        };
+      }
+      return item;
+    });
+
+    const updatedInstallLogs = project.installLogs.map((l) =>
+      l.id === updatedLog.id ? updatedLog : l
+    );
+
+    // Mirror edits into General Project Notes & Operations Context
+    let foundNote = false;
+    const currentNotes = project.notes || [];
+    const updatedNotes = currentNotes.map((n) => {
+      if (n.postItLogId === updatedLog.id || n.id === `note-postit-${updatedLog.id}`) {
+        foundNote = true;
+        const currentTs = n.timestamp.includes('(edited)')
+          ? n.timestamp
+          : `${n.timestamp} (edited)`;
+        return {
+          ...n,
+          author: updatedLog.installerName || n.author,
+          timestamp: currentTs,
+          text: `📌 Post-It Note [${updatedLog.itemName}]: ${updatedLog.notes}${
+            updatedLog.quantityCompleted > 0
+              ? ` (+${updatedLog.quantityCompleted} units @ ${updatedLog.locationCompleted})`
+              : ''
+          }`,
+        };
+      }
+      return n;
+    });
+
+    const finalNotes = foundNote
+      ? updatedNotes
+      : [
+          {
+            id: `note-postit-${updatedLog.id}`,
+            postItLogId: updatedLog.id,
+            isPostIt: true,
+            projectId: project.id,
+            author: updatedLog.installerName || 'Project Manager',
+            timestamp: `${updatedLog.timestamp || new Date().toLocaleString()} (edited)`,
+            category: 'Inspection & Commissioning' as const,
+            text: `📌 Post-It Note [${updatedLog.itemName}]: ${updatedLog.notes}${
+              updatedLog.quantityCompleted > 0
+                ? ` (+${updatedLog.quantityCompleted} units @ ${updatedLog.locationCompleted})`
+                : ''
+            }`,
+            isPinned: false,
+          },
+          ...updatedNotes,
+        ];
+
+    onUpdateProject({
+      ...project,
+      bomItems: updatedBOM,
+      installLogs: updatedInstallLogs,
+      notes: finalNotes,
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -932,15 +1075,25 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   };
 
   const handleDeleteLog = (logId: string) => {
-    const updatedBOM = project.bomItems.map((item) => ({
-      ...item,
-      postItLogs: (item.postItLogs || []).filter((l) => l.id !== logId),
-    }));
+    const updatedBOM = project.bomItems.map((item) => {
+      const targetLog = (item.postItLogs || []).find((l) => l.id === logId);
+      const newCount = targetLog
+        ? Math.max(0, item.installedCount - (targetLog.quantityCompleted || 0))
+        : item.installedCount;
+      return {
+        ...item,
+        installedCount: newCount,
+        postItLogs: (item.postItLogs || []).filter((l) => l.id !== logId),
+      };
+    });
 
     onUpdateProject({
       ...project,
       bomItems: updatedBOM,
-      installLogs: project.installLogs.filter((l) => l.id !== logId),
+      installLogs: (project.installLogs || []).filter((l) => l.id !== logId),
+      notes: (project.notes || []).filter(
+        (n) => n.id !== `note-postit-${logId}` && n.postItLogId !== logId
+      ),
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -955,23 +1108,86 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
     onUpdateProject({
       ...project,
-      notes: [noteEntry, ...project.notes],
+      notes: [noteEntry, ...(project.notes || [])],
       lastUpdated: new Date().toISOString(),
     });
   };
 
   const handleDeleteNote = (noteId: string) => {
+    const targetNote = (project.notes || []).find((n) => n.id === noteId);
+    const linkedLogId =
+      targetNote?.postItLogId ||
+      (noteId.startsWith('note-postit-') ? noteId.replace('note-postit-', '') : null);
+
+    const updatedBOM = linkedLogId
+      ? project.bomItems.map((item) => {
+          const targetLog = (item.postItLogs || []).find((l) => l.id === linkedLogId);
+          const newCount = targetLog
+            ? Math.max(0, item.installedCount - (targetLog.quantityCompleted || 0))
+            : item.installedCount;
+          return {
+            ...item,
+            installedCount: newCount,
+            postItLogs: (item.postItLogs || []).filter((l) => l.id !== linkedLogId),
+          };
+        })
+      : project.bomItems;
+
+    const updatedInstallLogs = linkedLogId
+      ? (project.installLogs || []).filter((l) => l.id !== linkedLogId)
+      : project.installLogs;
+
     onUpdateProject({
       ...project,
-      notes: project.notes.filter((n) => n.id !== noteId),
+      bomItems: updatedBOM,
+      installLogs: updatedInstallLogs,
+      notes: (project.notes || []).filter((n) => n.id !== noteId),
       lastUpdated: new Date().toISOString(),
     });
   };
 
   const handleEditNote = (updatedNote: ProjectNote) => {
+    const linkedLogId =
+      updatedNote.postItLogId ||
+      (updatedNote.id.startsWith('note-postit-')
+        ? updatedNote.id.replace('note-postit-', '')
+        : null);
+
+    let updatedBOM = project.bomItems;
+    let updatedInstallLogs = project.installLogs;
+
+    if (linkedLogId) {
+      const cleanNoteText = updatedNote.text.replace(/^📌 Post-It Note.*?:\s*/i, '');
+      updatedBOM = project.bomItems.map((item) => ({
+        ...item,
+        postItLogs: (item.postItLogs || []).map((l) => {
+          if (l.id === linkedLogId) {
+            return {
+              ...l,
+              notes: cleanNoteText,
+              installerName: updatedNote.author || l.installerName,
+            };
+          }
+          return l;
+        }),
+      }));
+      updatedInstallLogs = (project.installLogs || []).map((l) => {
+        if (l.id === linkedLogId) {
+          return {
+            ...l,
+            notes: cleanNoteText,
+            installerName: updatedNote.author || l.installerName,
+          };
+        }
+        return l;
+      });
+    }
+
     onUpdateProject({
       ...project,
-      notes: project.notes.map((n) => (n.id === updatedNote.id ? updatedNote : n)),
+      bomItems: updatedBOM,
+      installLogs: updatedInstallLogs,
+      notes: (project.notes || []).map((n) => (n.id === updatedNote.id ? updatedNote : n)),
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -3710,6 +3926,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               projectIntegratorPartners={getProjectIntegratorPartners(project)}
               onUpdateInstalledCount={handleUpdateInstalledCount}
               onSaveRowLog={handleSaveRowLog}
+              onEditRowLog={handleEditRowLog}
               onUpdateThermostatBrand={handleUpdateThermostatBrand}
               onUpdateLockFinishConfig={handleUpdateLockFinishConfig}
               onToggleSparesDelivered={handleToggleSparesDelivered}

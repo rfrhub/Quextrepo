@@ -140,6 +140,8 @@ export interface ProjectNote {
   category: 'General Context' | 'Site Access & Keys' | 'Hardware Delivery' | 'Inspection & Commissioning' | 'Resident Notice';
   text: string;
   isPinned?: boolean;
+  postItLogId?: string;
+  isPostIt?: boolean;
 }
 
 export type OperationMilestoneTitle =

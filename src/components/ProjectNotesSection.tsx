@@ -271,6 +271,12 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
         ) : (
           sortedNotes.map((note) => {
             const isNotePinned = Boolean(note.isPinned);
+            const isPostItNote = Boolean(
+              note.isPostIt ||
+              note.postItLogId ||
+              note.id.startsWith('note-postit-') ||
+              note.text.startsWith('📌 Post-It Note')
+            );
 
             return (
               <div
@@ -316,6 +322,11 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5">
+                    {isPostItNote && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                        <span>📌 BOM Post-It</span>
+                      </span>
+                    )}
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${getCategoryColor(
                         note.category

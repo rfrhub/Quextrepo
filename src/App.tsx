@@ -764,7 +764,7 @@ export default function App() {
           installerNotif,
           ...(enrichedProject.activityNotifications || []),
         ];
-        if (!triggeredNotif || loggedInFieldTech || isPartnerLog) {
+        if ((nextLen > prevLen && !triggeredNotif) || loggedInFieldTech || isPartnerLog) {
           triggeredNotif = installerNotif;
         }
       } else {
