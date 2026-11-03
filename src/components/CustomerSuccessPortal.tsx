@@ -47,7 +47,7 @@ import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
 import { SOWFormAutomationHub } from './SOWFormAutomationHub';
 import { GoogleFormSubmission } from '../types/sowForm';
-import { loadSubmissions, deleteSubmission } from '../services/sowFormService';
+import { loadSubmissions, deleteSubmission, updateSubmission } from '../services/sowFormService';
 import { downloadSowPdf } from '../utils/generateSowPdf';
 import { LockFinishModal } from './LockFinishModal';
 import { ManualLinkPropertyToProjectPanel } from './ManualLinkPropertyToProjectPanel';
@@ -2059,6 +2059,68 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
       (a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
     );
   }, [property, sowVersion]);
+
+  const handleUpdateSowStatus = (
+    sow: GoogleFormSubmission,
+    newStatus: 'Scheduled' | 'In Progress' | 'Completed' | 'Draft'
+  ) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const scheduledDate =
+      newStatus === 'Scheduled'
+        ? sow.scheduledDate || (sow.installDate && sow.installDate !== 'TBD' ? sow.installDate : todayStr)
+        : sow.scheduledDate;
+
+    const updates: Partial<GoogleFormSubmission> = {
+      orderStatus: newStatus,
+      ...(newStatus === 'Scheduled' ? { scheduledDate, installDate: scheduledDate } : {}),
+    };
+
+    updateSubmission(sow.id, updates);
+
+    const currentSows = property.sowSubmissions ? [...property.sowSubmissions] : [];
+    const existingIdx = currentSows.findIndex((s) => s.id === sow.id);
+    let updatedSows: GoogleFormSubmission[];
+    if (existingIdx !== -1) {
+      updatedSows = [...currentSows];
+      updatedSows[existingIdx] = { ...updatedSows[existingIdx], ...updates };
+    } else {
+      updatedSows = [{ ...sow, ...updates }, ...currentSows];
+    }
+
+    onUpdateProperty({
+      ...property,
+      sowSubmissions: updatedSows,
+      lastUpdated: new Date().toISOString(),
+    });
+    setSowVersion((v) => v + 1);
+  };
+
+  const handleUpdateSowScheduledDate = (sow: GoogleFormSubmission, newDate: string) => {
+    const updates: Partial<GoogleFormSubmission> = {
+      orderStatus: 'Scheduled',
+      scheduledDate: newDate,
+      installDate: newDate,
+    };
+
+    updateSubmission(sow.id, updates);
+
+    const currentSows = property.sowSubmissions ? [...property.sowSubmissions] : [];
+    const existingIdx = currentSows.findIndex((s) => s.id === sow.id);
+    let updatedSows: GoogleFormSubmission[];
+    if (existingIdx !== -1) {
+      updatedSows = [...currentSows];
+      updatedSows[existingIdx] = { ...updatedSows[existingIdx], ...updates };
+    } else {
+      updatedSows = [{ ...sow, ...updates }, ...currentSows];
+    }
+
+    onUpdateProperty({
+      ...property,
+      sowSubmissions: updatedSows,
+      lastUpdated: new Date().toISOString(),
+    });
+    setSowVersion((v) => v + 1);
+  };
 
   // ==========================================================================
   // 1. CONTRACT UPLOAD & AI SCRUBBER STATE
@@ -5920,6 +5982,50 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                       <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-300">
                         {sow.sowReferenceNumber}
                       </span>
+
+                      {/* Order Execution Status Selector (Scheduled, In Progress, Completed) */}
+                      <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-1.5">
+                          Status:
+                        </span>
+                        <select
+                          value={sow.orderStatus || (sow.installDate && sow.installDate !== 'TBD' ? 'Scheduled' : 'Draft')}
+                          onChange={(e) => handleUpdateSowStatus(sow, e.target.value as any)}
+                          className={`text-xs font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer outline-none ${
+                            sow.orderStatus === 'Completed'
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              : sow.orderStatus === 'In Progress'
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : sow.orderStatus === 'Scheduled' || (!sow.orderStatus && sow.installDate && sow.installDate !== 'TBD')
+                              ? 'bg-sky-100 text-sky-900 border-sky-300'
+                              : 'bg-white text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          <option value="Draft">Draft</option>
+                          <option value="Scheduled">Scheduled</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+
+                        {/* Date Picker appears when Scheduled */}
+                        {(sow.orderStatus === 'Scheduled' ||
+                          (!sow.orderStatus && sow.installDate && sow.installDate !== 'TBD')) && (
+                          <div className="flex items-center gap-1.5 pl-2 pr-1.5 py-0.5 bg-white border border-sky-300 rounded-lg shadow-2xs">
+                            <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span className="text-[10px] font-bold text-sky-800 uppercase tracking-wider hidden sm:inline">
+                              Date:
+                            </span>
+                            <input
+                              type="date"
+                              value={sow.scheduledDate || (sow.installDate !== 'TBD' ? sow.installDate : '')}
+                              onChange={(e) => handleUpdateSowScheduledDate(sow, e.target.value)}
+                              className="text-xs font-bold text-slate-800 bg-transparent border-none focus:ring-0 focus:outline-none cursor-pointer"
+                              title="Pick scheduled onsite date"
+                            />
+                          </div>
+                        )}
+                      </div>
+
                       <span
                         className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
                           sow.status === 'sent_to_tech'
@@ -5935,7 +6041,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                         ) : (
                           <>
                             <Clock className="w-3 h-3 text-teal-600" />
-                            Ready to Email Partner / Vendor
+                            Ready to Email Partner
                           </>
                         )}
                       </span>
@@ -6010,8 +6116,24 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                       <span className="font-semibold text-slate-800 block">
                         {sow.workSiteAddress}
                       </span>
-                      <span className="text-slate-500 text-[11px]">
-                        Install Date: <strong className="text-teal-700">{sow.installDate || 'TBD'}</strong>
+                      <span className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5 flex-wrap">
+                        <span>Onsite Date:</span>
+                        <strong className="text-teal-700">
+                          {sow.scheduledDate || sow.installDate || 'TBD'}
+                        </strong>
+                        {sow.orderStatus && (
+                          <span
+                            className={`ml-1 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border ${
+                              sow.orderStatus === 'Completed'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : sow.orderStatus === 'In Progress'
+                                ? 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
+                                : 'bg-sky-100 text-sky-800 border-sky-300'
+                            }`}
+                          >
+                            {sow.orderStatus}
+                          </span>
+                        )}
                       </span>
                     </div>
 

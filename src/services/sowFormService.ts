@@ -116,6 +116,8 @@ export const SEED_SOW_21_PEARL: GoogleFormSubmission = {
   submittedAt: '2026-11-01T14:30:00.000Z',
   source: 'simulator',
   status: 'pdf_generated',
+  orderStatus: 'Scheduled',
+  scheduledDate: '2026-11-15',
   propertyId: 'proj-21-pearl',
   communityName: '21 Pearl',
   workSiteAddress: '21 Pearl St, Austin, TX 78705',

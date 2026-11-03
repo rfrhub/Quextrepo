@@ -1,8 +1,12 @@
+export type SOWOrderStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Draft';
+
 export interface GoogleFormSubmission {
   id: string;
   submittedAt: string;
   source: 'google_form' | 'webhook' | 'simulator';
   status: 'new' | 'pdf_generated' | 'sent_to_tech';
+  orderStatus?: SOWOrderStatus | string;
+  scheduledDate?: string;
   propertyId?: string;
   
   // Site & Project Identification

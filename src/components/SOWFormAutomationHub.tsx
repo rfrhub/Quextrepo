@@ -593,6 +593,76 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     }
   };
 
+  const handleUpdateSowStatus = (
+    sub: GoogleFormSubmission,
+    newStatus: 'Scheduled' | 'In Progress' | 'Completed' | 'Draft'
+  ) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const scheduledDate =
+      newStatus === 'Scheduled'
+        ? sub.scheduledDate || (sub.installDate && sub.installDate !== 'TBD' ? sub.installDate : todayStr)
+        : sub.scheduledDate;
+
+    const updates: Partial<GoogleFormSubmission> = {
+      orderStatus: newStatus,
+      ...(newStatus === 'Scheduled' ? { scheduledDate, installDate: scheduledDate } : {}),
+    };
+
+    updateSubmission(sub.id, updates);
+    refreshSubmissions();
+
+    if (sub.propertyId && onUpdateProperty) {
+      const targetProp = properties.find((p) => p.id === sub.propertyId);
+      if (targetProp) {
+        const currentSows = targetProp.sowSubmissions ? [...targetProp.sowSubmissions] : [];
+        const existingIdx = currentSows.findIndex((s) => s.id === sub.id);
+        let updatedSows: GoogleFormSubmission[];
+        if (existingIdx !== -1) {
+          updatedSows = [...currentSows];
+          updatedSows[existingIdx] = { ...updatedSows[existingIdx], ...updates };
+        } else {
+          updatedSows = [{ ...sub, ...updates }, ...currentSows];
+        }
+        onUpdateProperty({
+          ...targetProp,
+          sowSubmissions: updatedSows,
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    }
+  };
+
+  const handleUpdateSowScheduledDate = (sub: GoogleFormSubmission, newDate: string) => {
+    const updates: Partial<GoogleFormSubmission> = {
+      orderStatus: 'Scheduled',
+      scheduledDate: newDate,
+      installDate: newDate,
+    };
+
+    updateSubmission(sub.id, updates);
+    refreshSubmissions();
+
+    if (sub.propertyId && onUpdateProperty) {
+      const targetProp = properties.find((p) => p.id === sub.propertyId);
+      if (targetProp) {
+        const currentSows = targetProp.sowSubmissions ? [...targetProp.sowSubmissions] : [];
+        const existingIdx = currentSows.findIndex((s) => s.id === sub.id);
+        let updatedSows: GoogleFormSubmission[];
+        if (existingIdx !== -1) {
+          updatedSows = [...currentSows];
+          updatedSows[existingIdx] = { ...updatedSows[existingIdx], ...updates };
+        } else {
+          updatedSows = [{ ...sub, ...updates }, ...currentSows];
+        }
+        onUpdateProperty({
+          ...targetProp,
+          sowSubmissions: updatedSows,
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    }
+  };
+
   const handleDispatch = async () => {
     if (!selectedSubForDispatch) return;
     setIsDispatching(true);
@@ -1540,6 +1610,49 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                             <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                               {sub.sowReferenceNumber}
                             </span>
+
+                            {/* Order Execution Status Selector (Scheduled, In Progress, Completed) */}
+                            <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-1.5">
+                                Status:
+                              </span>
+                              <select
+                                value={sub.orderStatus || (sub.installDate && sub.installDate !== 'TBD' ? 'Scheduled' : 'Draft')}
+                                onChange={(e) => handleUpdateSowStatus(sub, e.target.value as any)}
+                                className={`text-xs font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer outline-none ${
+                                  sub.orderStatus === 'Completed'
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                    : sub.orderStatus === 'In Progress'
+                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                    : sub.orderStatus === 'Scheduled' || (!sub.orderStatus && sub.installDate && sub.installDate !== 'TBD')
+                                    ? 'bg-sky-100 text-sky-900 border-sky-300'
+                                    : 'bg-white text-slate-700 border-slate-300'
+                                }`}
+                              >
+                                <option value="Draft">Draft</option>
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                              </select>
+
+                              {/* Date Picker appears when Scheduled */}
+                              {(sub.orderStatus === 'Scheduled' ||
+                                (!sub.orderStatus && sub.installDate && sub.installDate !== 'TBD')) && (
+                                <div className="flex items-center gap-1.5 pl-2 pr-1.5 py-0.5 bg-white border border-sky-300 rounded-lg shadow-2xs">
+                                  <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                  <span className="text-[10px] font-bold text-sky-800 uppercase tracking-wider hidden sm:inline">
+                                    Date:
+                                  </span>
+                                  <input
+                                    type="date"
+                                    value={sub.scheduledDate || (sub.installDate !== 'TBD' ? sub.installDate : '')}
+                                    onChange={(e) => handleUpdateSowScheduledDate(sub, e.target.value)}
+                                    className="text-xs font-bold text-slate-800 bg-transparent border-none focus:ring-0 focus:outline-none cursor-pointer"
+                                    title="Pick scheduled onsite date"
+                                  />
+                                </div>
+                              )}
+                            </div>
                             <span
                               className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                                 sub.status === 'sent_to_tech'
@@ -1575,7 +1688,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                             </span>
                             <span className="flex items-center gap-1 font-semibold text-slate-700">
                               <Calendar className="w-3.5 h-3.5 text-teal-600" />
-                              Install Date: {sub.installDate || 'TBD'}
+                              Onsite Date: {sub.scheduledDate || sub.installDate || 'TBD'}
                             </span>
                             <span className="flex items-center gap-1">
                               <UserCheck className="w-3.5 h-3.5 text-slate-400" />
