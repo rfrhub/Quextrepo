@@ -649,37 +649,6 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
               </div>
             )}
           </div>
-
-          {/* Quick Action Card (Hidden when a CSM is logged in) */}
-          {!isCustomerSuccessManager(currentUserName) && (
-            <div className="bg-gradient-to-br from-emerald-900 to-slate-950 rounded-2xl border border-emerald-500/30 p-5 text-white space-y-3 shadow-md">
-              <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Customer Success Quick Actions</span>
-              </div>
-              <p className="text-xs text-slate-200 leading-relaxed">
-                Create an automated SOW form with vendor routing, view live telemetry in the Activity Hub, or explore property contracts.
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => onOpenCreateSow()}
-                  className="px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>+ Create SOW Form</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onNavigateToActivityHub}
-                  className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors border border-white/20"
-                >
-                  <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Open Live Activity Hub</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
