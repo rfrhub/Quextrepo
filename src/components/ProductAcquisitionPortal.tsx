@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   OperationProject,
   LockFinishConfig,
@@ -177,10 +177,29 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
   const [workspaceFilter, setWorkspaceFilter] = useState<'ALL' | 'Project' | 'Property'>('ALL');
   const [sectionTypeFilter, setSectionTypeFilter] = useState<'ALL' | ProductAcquisitionSourceSection>('ALL');
   const [propertyFilter, setPropertyFilter] = useState<string>('ALL');
+  const [propertySearchQuery, setPropertySearchQuery] = useState<string>('');
+  const [isPropertyDropdownOpen, setIsPropertyDropdownOpen] = useState<boolean>(false);
+  const propertySearchContainerRef = useRef<HTMLDivElement>(null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | ProductAcquisitionFulfillmentStatus>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedFinishUids, setExpandedFinishUids] = useState<Record<string, boolean>>({});
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
+
+  // Close property dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        propertySearchContainerRef.current &&
+        !propertySearchContainerRef.current.contains(e.target as Node)
+      ) {
+        setIsPropertyDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Local draft states for tracking numbers being edited per order UID
   const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
@@ -516,14 +535,50 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     return counts;
   }, [allIntakeItems]);
 
+  // Matching projects for the property search bar popover
+  const matchingProjectsForSearch = useMemo(() => {
+    const q = propertySearchQuery.trim().toLowerCase();
+    if (!q) {
+      // Sort projects by order count descending, then alphabetical
+      return [...projects].sort((a, b) => {
+        const countA = projectOrderCounts[a.id] || 0;
+        const countB = projectOrderCounts[b.id] || 0;
+        if (countA !== countB) return countB - countA;
+        return a.propertyName.localeCompare(b.propertyName);
+      });
+    }
+    return projects.filter((p) => {
+      return (
+        p.propertyName.toLowerCase().includes(q) ||
+        (p.quoteNumber && p.quoteNumber.toLowerCase().includes(q)) ||
+        (p.clientName && p.clientName.toLowerCase().includes(q)) ||
+        (p.city && p.city.toLowerCase().includes(q)) ||
+        (p.state && p.state.toLowerCase().includes(q))
+      );
+    });
+  }, [projects, propertySearchQuery, projectOrderCounts]);
+
   // Filtered Intake Items
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const propQ = propertySearchQuery.trim().toLowerCase();
     return allIntakeItems.filter((item) => {
       if (workspaceFilter !== 'ALL' && item.sourceWorkspace !== workspaceFilter) return false;
       if (sectionTypeFilter !== 'ALL' && item.sourceSection !== sectionTypeFilter) return false;
-      if (propertyFilter !== 'ALL' && item.projectId !== propertyFilter) return false;
       if (statusFilter !== 'ALL' && item.fulfillmentStatus !== statusFilter) return false;
+
+      // Property / Project filter logic
+      if (propertyFilter !== 'ALL') {
+        if (item.projectId !== propertyFilter) return false;
+      } else if (propQ) {
+        const matchesProp =
+          item.propertyName.toLowerCase().includes(propQ) ||
+          item.projectId.toLowerCase().includes(propQ) ||
+          (item.quoteNumber && item.quoteNumber.toLowerCase().includes(propQ)) ||
+          (item.clientName && item.clientName.toLowerCase().includes(propQ));
+        if (!matchesProp) return false;
+      }
+
       if (!q) return true;
       const finishText = getLockFinishSummaryTag(item.lockFinishConfig) || '';
       return (
@@ -539,7 +594,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         finishText.toLowerCase().includes(q)
       );
     });
-  }, [allIntakeItems, workspaceFilter, sectionTypeFilter, propertyFilter, statusFilter, searchQuery]);
+  }, [allIntakeItems, workspaceFilter, sectionTypeFilter, propertyFilter, propertySearchQuery, statusFilter, searchQuery]);
 
   // Selected project object for the project filter banner
   const selectedProjectObj = useMemo(() => {
@@ -1455,7 +1510,10 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
               </div>
               <button
                 type="button"
-                onClick={() => setPropertyFilter('ALL')}
+                onClick={() => {
+                  setPropertyFilter('ALL');
+                  setPropertySearchQuery('');
+                }}
                 className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all flex items-center gap-1.5"
               >
                 <X className="w-4 h-4 text-slate-700" />
@@ -1508,25 +1566,132 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
               />
             </div>
 
-            {/* Filter by Property / Project Selector */}
-            <div className="relative flex items-center bg-slate-50 border border-slate-300 rounded-xl px-2 py-1">
-              <Building2 className="w-3.5 h-3.5 text-slate-500 mr-1.5 shrink-0" />
-              <select
-                value={propertyFilter}
-                onChange={(e) => setPropertyFilter(e.target.value)}
-                className="text-xs bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer pr-1"
-                title="Filter all orders by a specific Property/Project"
-              >
-                <option value="ALL">All Properties &amp; Projects ({projects.length})</option>
-                {projects.map((p) => {
-                  const orderCount = projectOrderCounts[p.id] || 0;
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {p.propertyName} ({p.quoteNumber}) — {orderCount} {orderCount === 1 ? 'order' : 'orders'}
-                    </option>
-                  );
-                })}
-              </select>
+            {/* Property / Project Search Bar (Replacing previous static dropdown) */}
+            <div className="relative" ref={propertySearchContainerRef}>
+              <div className="relative flex items-center">
+                <Building2 className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={propertySearchQuery}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPropertySearchQuery(val);
+                    setIsPropertyDropdownOpen(true);
+                    if (!val.trim()) {
+                      setPropertyFilter('ALL');
+                    }
+                  }}
+                  onFocus={() => setIsPropertyDropdownOpen(true)}
+                  placeholder="Search properties & projects..."
+                  className="pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 w-52 sm:w-64 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all font-medium placeholder-slate-400"
+                />
+                {(propertySearchQuery || propertyFilter !== 'ALL') ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPropertySearchQuery('');
+                      setPropertyFilter('ALL');
+                      setIsPropertyDropdownOpen(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200 cursor-pointer"
+                    title="Clear property search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                )}
+              </div>
+
+              {/* Autocomplete / Suggested Properties Popover */}
+              {isPropertyDropdownOpen && (
+                <div className="absolute left-0 mt-1.5 w-72 sm:w-80 max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 divide-y divide-slate-100">
+                  <div className="p-2 bg-slate-50 flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                    <span>Select Property / Project</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPropertyFilter('ALL');
+                        setPropertySearchQuery('');
+                        setIsPropertyDropdownOpen(false);
+                      }}
+                      className="text-emerald-700 hover:text-emerald-900 font-bold cursor-pointer"
+                    >
+                      Show All ({projects.length})
+                    </button>
+                  </div>
+
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPropertyFilter('ALL');
+                        setPropertySearchQuery('');
+                        setIsPropertyDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
+                        propertyFilter === 'ALL' && !propertySearchQuery ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                        <span>All Properties &amp; Projects</span>
+                      </span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        {allIntakeItems.length} orders
+                      </span>
+                    </button>
+
+                    {matchingProjectsForSearch.length === 0 ? (
+                      <div className="px-3 py-4 text-center text-xs text-slate-500">
+                        No properties found matching &ldquo;{propertySearchQuery}&rdquo;
+                      </div>
+                    ) : (
+                      matchingProjectsForSearch.slice(0, 25).map((p) => {
+                        const orderCount = projectOrderCounts[p.id] || 0;
+                        const isSelected = propertyFilter === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setPropertyFilter(p.id);
+                              setPropertySearchQuery(p.propertyName);
+                              setIsPropertyDropdownOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-emerald-50/60 cursor-pointer transition-colors ${
+                              isSelected ? 'bg-emerald-50 text-emerald-950 font-bold' : 'text-slate-800'
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="truncate font-semibold text-slate-900 flex items-center gap-1.5">
+                                <span>{p.propertyName}</span>
+                                {p.quoteNumber && (
+                                  <span className="text-[10px] font-mono text-slate-500 font-normal">
+                                    #{p.quoteNumber}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {p.clientName} {p.city ? `• ${p.city}, ${p.state}` : ''}
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full shrink-0 font-bold ${
+                                orderCount > 0
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : 'bg-slate-100 text-slate-500'
+                              }`}
+                            >
+                              {orderCount} {orderCount === 1 ? 'order' : 'orders'}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <select
@@ -1581,10 +1746,13 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             <strong>Send to Acquisition</strong> on any line item in the{' '}
             <strong>Smart Community Bill of Materials (BOM)</strong>.
           </p>
-          {propertyFilter !== 'ALL' && (
+          {(propertyFilter !== 'ALL' || propertySearchQuery.trim()) && (
             <button
               type="button"
-              onClick={() => setPropertyFilter('ALL')}
+              onClick={() => {
+                setPropertyFilter('ALL');
+                setPropertySearchQuery('');
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
@@ -1650,9 +1818,15 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                     {/* Filter by this project button */}
                     <button
                       type="button"
-                      onClick={() =>
-                        setPropertyFilter(propertyFilter === item.projectId ? 'ALL' : item.projectId)
-                      }
+                      onClick={() => {
+                        if (propertyFilter === item.projectId) {
+                          setPropertyFilter('ALL');
+                          setPropertySearchQuery('');
+                        } else {
+                          setPropertyFilter(item.projectId);
+                          setPropertySearchQuery(item.propertyName);
+                        }
+                      }}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer border transition-colors ${
                         propertyFilter === item.projectId
                           ? 'bg-emerald-600 text-white border-emerald-500'
