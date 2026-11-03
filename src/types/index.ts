@@ -1111,6 +1111,23 @@ export interface ManualLinkQuoteHistory {
   notes?: string;
 }
 
+export interface ManualLinkProjectHistory {
+  id: string;
+  linkedAt: string;
+  linkedBy: string;
+  targetProjectId: string;
+  targetProjectName: string;
+  targetProjectNumber?: string;
+  decision: 'Adopted Project BOM' | 'Kept Property BOM' | 'Custom Sync';
+  previousBOMSnapshot?: {
+    itemId: string;
+    name: string;
+    previousQuantity: number;
+    newQuantity: number;
+  }[];
+  notes?: string;
+}
+
 export interface CommunityKickoffDetails {
   pmsSystem: 'Yardi Voyager' | 'RealPage' | 'Entrata' | 'MRI Software' | 'ResMan';
   projectType: 'Retrofit / Occupied' | 'New Construction' | 'Full Phased Turnkey';
@@ -1236,6 +1253,10 @@ export interface OperationProject {
   isDiyInstallation?: boolean; // Customer is doing the installation themselves
   originalQuoteBOM?: BOMItem[];
   manualLinkHistory?: ManualLinkQuoteHistory[];
+  linkedProjectId?: string; // Manually linked Operations Project ID (from Property detail view)
+  linkedProjectName?: string; // Manually linked Operations Project Name
+  linkedProjectNumber?: string; // Manually linked Operations Project Number
+  manualLinkProjectHistory?: ManualLinkProjectHistory[]; // History of linking Property to Operations Project
   teamAssists?: TeamAssistEntry[];
   financialMilestones?: FinancialMilestones;
   partnerCourseBundle?: PrePackagedProjectCourseBundle;

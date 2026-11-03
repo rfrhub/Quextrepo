@@ -42,6 +42,7 @@ import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
 import { SOWFormAutomationHub } from './SOWFormAutomationHub';
 import { LockFinishModal } from './LockFinishModal';
+import { ManualLinkPropertyToProjectPanel } from './ManualLinkPropertyToProjectPanel';
 import {
   Building2,
   Wrench,
@@ -68,6 +69,7 @@ import {
   Trash2,
   Check,
   X,
+  Link2,
   Download,
   ExternalLink,
   Package,
@@ -633,34 +635,36 @@ export const CSMOverviewDashboardView: React.FC<CSMOverviewDashboardViewProps> =
             )}
           </div>
 
-          {/* Quick Action Card */}
-          <div className="bg-gradient-to-br from-emerald-900 to-slate-950 rounded-2xl border border-emerald-500/30 p-5 text-white space-y-3 shadow-md">
-            <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Customer Success Quick Actions</span>
+          {/* Quick Action Card (Hidden when a CSM is logged in) */}
+          {!isCustomerSuccessManager(currentUserName) && (
+            <div className="bg-gradient-to-br from-emerald-900 to-slate-950 rounded-2xl border border-emerald-500/30 p-5 text-white space-y-3 shadow-md">
+              <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Customer Success Quick Actions</span>
+              </div>
+              <p className="text-xs text-slate-200 leading-relaxed">
+                Create an automated SOW form with vendor routing, view live telemetry in the Activity Hub, or explore property contracts.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onOpenCreateSow()}
+                  className="px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>+ Create SOW Form</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onNavigateToActivityHub}
+                  className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors border border-white/20"
+                >
+                  <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Open Live Activity Hub</span>
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-slate-200 leading-relaxed">
-              Create an automated SOW form with vendor routing, view live telemetry in the Activity Hub, or explore property contracts.
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => onOpenCreateSow()}
-                className="px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>+ Create SOW Form</span>
-              </button>
-              <button
-                type="button"
-                onClick={onNavigateToActivityHub}
-                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors border border-white/20"
-              >
-                <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Open Live Activity Hub</span>
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -699,10 +703,47 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
   onOpenCreateSow,
   currentUserName = 'Customer Success Manager',
 }) => {
+  const userIsCsm = isCustomerSuccessManager(currentUserName);
+  const matchedCsm = useMemo(() => {
+    if (!currentUserName) return null;
+    const lower = currentUserName.toLowerCase().trim();
+    return (
+      AVAILABLE_CSMS.find(
+        (csm) =>
+          lower.includes(csm.toLowerCase()) ||
+          lower.includes(csm.split(' ')[0].toLowerCase())
+      ) || (userIsCsm ? 'Nicole Franklin' : null)
+    );
+  }, [currentUserName, userIsCsm]);
+
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState<string>('all');
-  const [selectedCsmFilter, setSelectedCsmFilter] = useState<string>('all');
+  const [selectedCsmFilter, setSelectedCsmFilter] = useState<string>(() => {
+    return userIsCsm && matchedCsm ? matchedCsm : 'all';
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Scoped properties for filter and display
+  const displayedProperties = useMemo(() => {
+    if (selectedCsmFilter === 'all') return properties;
+    return properties.filter(
+      (p) => (p.assignedCSM || 'Nicole Franklin').toLowerCase() === selectedCsmFilter.toLowerCase()
+    );
+  }, [properties, selectedCsmFilter]);
+
+  const handleCsmFilterChange = (newCsm: string) => {
+    setSelectedCsmFilter(newCsm);
+    if (selectedPropertyFilter !== 'all') {
+      const match = properties.find((p) => p.id === selectedPropertyFilter);
+      if (
+        match &&
+        newCsm !== 'all' &&
+        (match.assignedCSM || 'Nicole Franklin').toLowerCase() !== newCsm.toLowerCase()
+      ) {
+        setSelectedPropertyFilter('all');
+      }
+    }
+  };
 
   // Collect and compile events across all properties in Customer Success
   const allEvents = useMemo<CSMLiveActivityItem[]>(() => {
@@ -854,6 +895,57 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Logged-In CSM Assigned View Banner */}
+      {userIsCsm && matchedCsm && (
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-md">
+                  Assigned CSM View
+                </span>
+                <span className="text-xs font-black text-slate-900">
+                  {matchedCsm}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {selectedCsmFilter.toLowerCase() === matchedCsm.toLowerCase() ? (
+                  <>
+                    Reflective of your <strong>{displayedProperties.length}</strong> assigned properties. Real-time updates for your active portfolio.
+                  </>
+                ) : (
+                  <>
+                    Currently showing all Customer Success properties ({properties.length} total).
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {selectedCsmFilter.toLowerCase() === matchedCsm.toLowerCase() ? (
+              <button
+                type="button"
+                onClick={() => handleCsmFilterChange('all')}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300 shadow-2xs cursor-pointer transition-colors"
+              >
+                Show All CSMs ({properties.length} Props)
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleCsmFilterChange(matchedCsm)}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-2xs cursor-pointer transition-colors"
+              >
+                Filter to My Properties ({properties.filter((p) => (p.assignedCSM || 'Nicole Franklin').toLowerCase() === matchedCsm.toLowerCase()).length})
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Live Activity Top Controls Bar */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -894,8 +986,12 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
               onChange={(e) => setSelectedPropertyFilter(e.target.value)}
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500"
             >
-              <option value="all">All CSM Properties ({properties.length})</option>
-              {properties.map((p) => (
+              <option value="all">
+                {selectedCsmFilter !== 'all'
+                  ? `All Assigned Properties (${displayedProperties.length})`
+                  : `All CSM Properties (${properties.length})`}
+              </option>
+              {displayedProperties.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.propertyName} ({p.city}, {p.state})
                 </option>
@@ -906,7 +1002,7 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
           <div className="sm:col-span-3">
             <select
               value={selectedCsmFilter}
-              onChange={(e) => setSelectedCsmFilter(e.target.value)}
+              onChange={(e) => handleCsmFilterChange(e.target.value)}
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500"
             >
               <option value="all">All CSMs ({AVAILABLE_CSMS.length})</option>
@@ -1047,7 +1143,7 @@ export const CSMLiveActivityHubView: React.FC<CSMLiveActivityHubViewProps> = ({
                   <button
                     key={csm}
                     type="button"
-                    onClick={() => setSelectedCsmFilter(csm)}
+                    onClick={() => handleCsmFilterChange(csm)}
                     className={`w-full p-2.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-left ${
                       selectedCsmFilter === csm
                         ? 'bg-emerald-50 border-emerald-300 ring-1 ring-emerald-400'
@@ -1213,6 +1309,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
       <>
         <CustomerSuccessPropertyDetailView
           property={selectedProperty}
+          allProjects={projects}
           onBack={() => setSelectedPropertyId(null)}
           onUpdateProperty={onUpdateProject}
           onOpenInOperations={() => onOpenProjectInOperations(selectedProperty.id)}
@@ -1772,6 +1869,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
 
 interface CustomerSuccessPropertyDetailViewProps {
   property: OperationProject;
+  allProjects?: OperationProject[];
   onBack: () => void;
   onUpdateProperty: (updated: OperationProject) => void;
   onOpenInOperations: () => void;
@@ -1781,6 +1879,7 @@ interface CustomerSuccessPropertyDetailViewProps {
 
 const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailViewProps> = ({
   property,
+  allProjects = [],
   onBack,
   onUpdateProperty,
   onOpenInOperations,
@@ -2406,6 +2505,17 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/10 text-slate-200">
                 {property.unitsCount} Residential Units
               </span>
+              {property.linkedProjectId && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1.5">
+                  <Link2 className="w-3 h-3 text-emerald-400" />
+                  <span>
+                    Linked to Project:{' '}
+                    <strong className="text-white">
+                      {property.linkedProjectName || property.linkedProjectId}
+                    </strong>
+                  </span>
+                </span>
+              )}
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
@@ -2439,6 +2549,13 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               <FileText className="w-4 h-4" />
               <span>Create SOW</span>
             </button>
+            <ManualLinkPropertyToProjectPanel
+              property={property}
+              projectsList={allProjects}
+              onUpdateProperty={onUpdateProperty}
+              currentUserName={currentUserName}
+              onOpenProjectInOperations={onOpenInOperations}
+            />
             <div className="px-3.5 py-2 rounded-xl bg-white/10 border border-white/15 text-xs">
               <div className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">
                 Assigned CSM
@@ -5952,6 +6069,17 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             </div>
           )}
         </div>
+      </div>
+
+      {/* BOTTOM-LEFT: Manual Link Project Dropdown Button & History */}
+      <div className="pt-4 border-t border-slate-200">
+        <ManualLinkPropertyToProjectPanel
+          property={property}
+          projectsList={allProjects}
+          onUpdateProperty={onUpdateProperty}
+          currentUserName={currentUserName}
+          onOpenProjectInOperations={onOpenInOperations}
+        />
       </div>
     </div>
   );
