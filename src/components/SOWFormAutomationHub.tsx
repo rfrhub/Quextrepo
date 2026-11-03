@@ -1128,6 +1128,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                         <div className="flex items-center">
                           <IntegratorPartnerSelector
                             assignedPartners={integratorPartners}
+                            allProjects={properties}
                             projectName={q1CommunityName.trim() || selectedProperty?.propertyName || 'SOW Work Order'}
                             label="Integrator Partner / Installers:"
                             onChange={(updatedPartners) => {
@@ -1912,6 +1913,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                 <div className="p-2.5 border border-slate-300 bg-white rounded-xl flex items-center justify-between flex-wrap gap-2 shadow-2xs">
                   <IntegratorPartnerSelector
                     assignedPartners={selectedSubForDispatch.integratorPartners || []}
+                    allProjects={properties}
                     projectName={selectedSubForDispatch.communityName || 'SOW Work Order'}
                     label="Integrator Partner / Installers:"
                     onChange={handleDispatchPartnersChange}
