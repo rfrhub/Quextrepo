@@ -1902,6 +1902,18 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   };
 
   const contracts = portalData.contracts || [];
+  const [selectedContractId, setSelectedContractId] = useState<string>('all');
+  const [scrubbingProgress, setScrubbingProgress] = useState<{
+    current: number;
+    total: number;
+    currentFileName?: string;
+  } | null>(null);
+
+  const displayedContracts = useMemo(() => {
+    if (selectedContractId === 'all') return contracts;
+    const match = contracts.find((c) => c.id === selectedContractId);
+    return match ? [match] : contracts;
+  }, [contracts, selectedContractId]);
   const csmNotes = portalData.csmNotes || [];
   const riskGroups = portalData.riskGroups || [];
 
@@ -2016,17 +2028,30 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
 
   const handleContractFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!canEdit) return;
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     setScrubError(null);
     setIsScrubbingContract(true);
+    setScrubbingProgress({ current: 0, total: files.length });
+
     try {
-      const scrubbed = await scrubContractDocumentWithAI(
-        file,
-        property,
-        currentUserName || property.assignedCSM || 'Customer Success Team'
-      );
-      const updatedContracts = [scrubbed, ...contracts];
+      const newScrubbedList: CSMContractScrubbedAnalysis[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setScrubbingProgress({
+          current: i + 1,
+          total: files.length,
+          currentFileName: file.name,
+        });
+        const scrubbed = await scrubContractDocumentWithAI(
+          file,
+          property,
+          currentUserName || property.assignedCSM || 'Customer Success Team'
+        );
+        newScrubbedList.push(scrubbed);
+      }
+
+      const updatedContracts = [...newScrubbedList, ...contracts];
       onUpdateProperty({
         ...property,
         csmPortalData: {
@@ -2036,10 +2061,14 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
         },
         lastUpdated: new Date().toISOString(),
       });
+      if (newScrubbedList.length > 0) {
+        setSelectedContractId(newScrubbedList[0].id);
+      }
     } catch (err: any) {
-      setScrubError(err?.message || 'Failed to scrub contract document.');
+      setScrubError(err?.message || 'Failed to scrub contract document(s).');
     } finally {
       setIsScrubbingContract(false);
+      setScrubbingProgress(null);
       if (contractFileInputRef.current) {
         contractFileInputRef.current.value = '';
       }
@@ -2075,6 +2104,9 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
       },
       lastUpdated: new Date().toISOString(),
     });
+    if (selectedContractId === contractId) {
+      setSelectedContractId(updatedContracts[0]?.id || 'all');
+    }
   };
 
   // ==========================================================================
@@ -4377,10 +4409,11 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             </p>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
             <input
               ref={contractFileInputRef}
               type="file"
+              multiple
               accept=".pdf,.doc,.docx,.txt,.md,.rtf"
               onChange={handleContractFileUpload}
               className="hidden"
@@ -4393,15 +4426,124 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             >
               <Upload className="w-4 h-4" />
               <span>
-                {isScrubbingContract ? 'AI Scrubbing Contract...' : 'Upload & Scrub Contract'}
+                {isScrubbingContract
+                  ? scrubbingProgress
+                    ? `Scrubbing File ${scrubbingProgress.current} of ${scrubbingProgress.total}...`
+                    : 'AI Scrubbing Contract...'
+                  : contracts.length > 0
+                  ? 'Upload Additional Contracts'
+                  : 'Upload & Scrub Contracts'}
               </span>
             </button>
           </div>
         </div>
 
+        {/* Multi-File Upload & Scrubbing Progress Banner */}
+        {isScrubbingContract && (
+          <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-900 animate-pulse">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-600 animate-spin shrink-0" />
+              <span>
+                {scrubbingProgress ? (
+                  <>
+                    Analyzing contract <strong>{scrubbingProgress.current}</strong> of{' '}
+                    <strong>{scrubbingProgress.total}</strong>
+                    {scrubbingProgress.currentFileName && (
+                      <span className="font-mono text-[11px] ml-1 opacity-90">
+                        (&ldquo;{scrubbingProgress.currentFileName}&rdquo;)
+                      </span>
+                    )}
+                    ... extracting timeline, obligations, and signatories.
+                  </>
+                ) : (
+                  'Analyzing contract timeline, signatories, and party obligations...'
+                )}
+              </span>
+            </div>
+            {scrubbingProgress && (
+              <span className="font-mono text-[11px] font-bold shrink-0 bg-white/80 px-2.5 py-0.5 rounded border border-purple-300">
+                {Math.round((scrubbingProgress.current / scrubbingProgress.total) * 100)}%
+              </span>
+            )}
+          </div>
+        )}
+
         {scrubError && (
           <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-semibold">
             {scrubError}
+          </div>
+        )}
+
+        {/* Multi-File Navigation Tabs Strip */}
+        {contracts.length > 0 && (
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <FileSignature className="w-4 h-4 text-purple-600" />
+                  <span>Executed Contracts &amp; Agreements ({contracts.length})</span>
+                </span>
+                <span className="text-[11px] text-slate-500 hidden sm:inline">
+                  • Click a document to view its dedicated summary or inspect all:
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => contractFileInputRef.current?.click()}
+                disabled={isScrubbingContract}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 hover:text-purple-900 cursor-pointer self-start sm:self-auto shrink-0 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Upload Another Contract</span>
+              </button>
+            </div>
+
+            {/* Document Tabs */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedContractId('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedContractId === 'all'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                }`}
+              >
+                <span>All Documents ({contracts.length})</span>
+              </button>
+
+              {contracts.map((c, idx) => {
+                const isSelected = selectedContractId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelectedContractId(c.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      isSelected
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800 font-bold'
+                      }`}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span className="truncate max-w-[180px] sm:max-w-[240px]">{c.fileName}</span>
+                    <span
+                      className={`text-[10px] font-mono px-1 rounded ${
+                        isSelected ? 'bg-white/20 text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      {Math.max(1, Math.round(c.fileSize / 1024))}KB
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -4416,22 +4558,23 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
             <div className="text-sm font-bold text-slate-900">
               {isScrubbingContract
                 ? 'Analyzing contract timeline, signatories, and party obligations...'
-                : 'No Contract Uploaded Yet — Click to Upload Executed Agreement'}
+                : 'No Contracts Uploaded Yet — Click to Upload Executed Agreements'}
             </div>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Supports PDF, Word (.docx), or text contracts. The AI scrubber extracts the start date, termination date, Quext responsibilities, Customer responsibilities, and both signing parties.
+              Supports multiple files (PDF, Word, or text). The AI scrubber extracts the start date, termination date, Quext responsibilities, Customer responsibilities, and both signing parties separately for each document.
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
-            {contracts.map((contract) => {
+          <div className="space-y-6">
+            {displayedContracts.map((contract) => {
               const isEditing =
                 editingContractId === contract.id && contractEditDraft !== null;
+              const docIndex = contracts.findIndex((c) => c.id === contract.id) + 1;
 
               return (
                 <div
                   key={contract.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden space-y-4 p-5"
+                  className="rounded-2xl border-2 border-purple-200/90 bg-white overflow-hidden space-y-4 p-5 shadow-xs"
                 >
                   {/* Contract File Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
@@ -4441,6 +4584,9 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-700 text-white uppercase tracking-wider">
+                            Document {docIndex} of {contracts.length}
+                          </span>
                           <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
                             {contract.fileName}
                           </h3>
@@ -4460,7 +4606,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                         <a
                           href={contract.fileDataUrl}
                           download={contract.fileName}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Download File</span>
@@ -4476,7 +4622,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold cursor-pointer"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
-                          <span>Edit Contract Details</span>
+                          <span>Edit Details</span>
                         </button>
                       ) : (
                         <>
@@ -4505,11 +4651,24 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                         type="button"
                         onClick={() => handleDeleteContract(contract.id)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                        title="Delete contract"
+                        title={`Delete ${contract.fileName}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Distinct Summary Callout for this specific contract */}
+                  <div className="p-3 bg-purple-50/90 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-950">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>
+                        <strong>AI Contract Summary for &ldquo;{contract.fileName}&rdquo;:</strong> Verified timeline, signatories, and party obligations extracted specifically from this file.
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-purple-800 bg-white px-2 py-0.5 rounded border border-purple-200 shrink-0 self-start sm:self-auto">
+                      Scrubbed {contract.aiScrubbedAt || 'Live'}
+                    </span>
                   </div>
 
                   {isEditing && contractEditDraft ? (
@@ -4747,124 +4906,142 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                   ) : (
                     <>
                       {/* 1. Timeline of the Contract (Start & Termination) */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-start gap-3">
-                          <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 shrink-0">
-                            <Calendar className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                              Contract Start Date
-                            </div>
-                            <div className="text-sm font-black text-slate-900 mt-0.5">
-                              {contract.contractStartDate}
-                            </div>
-                          </div>
+                      <div className="space-y-2">
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Timeline & Effective Period • {contract.fileName}</span>
                         </div>
-
-                        <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-start gap-3">
-                          <div className="p-2 rounded-lg bg-rose-50 text-rose-700 shrink-0">
-                            <Clock className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                              Contract Termination Date
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 shrink-0">
+                              <Calendar className="w-4 h-4" />
                             </div>
-                            <div className="text-sm font-black text-slate-900 mt-0.5">
-                              {contract.contractTerminationDate}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-start gap-3">
-                          <div className="p-2 rounded-lg bg-purple-50 text-purple-700 shrink-0">
-                            <FileText className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                              Term &amp; Renewal Timeline
-                            </div>
-                            <div className="text-xs font-bold text-slate-900 mt-0.5">
-                              {contract.contractTermSummary}
-                            </div>
-                            {contract.autoRenewalTerms && (
-                              <div className="text-[11px] text-slate-500 mt-0.5">
-                                {contract.autoRenewalTerms}
+                            <div>
+                              <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                Contract Start Date
                               </div>
-                            )}
+                              <div className="text-sm font-black text-slate-900 mt-0.5">
+                                {contract.contractStartDate}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-rose-50 text-rose-700 shrink-0">
+                              <Clock className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                Contract Termination Date
+                              </div>
+                              <div className="text-sm font-black text-slate-900 mt-0.5">
+                                {contract.contractTerminationDate}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-purple-50 text-purple-700 shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                Term &amp; Renewal Timeline
+                              </div>
+                              <div className="text-xs font-bold text-slate-900 mt-0.5">
+                                {contract.contractTermSummary}
+                              </div>
+                              {contract.autoRenewalTerms && (
+                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                  {contract.autoRenewalTerms}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* 2. Both Parties That Signed the Contract */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl bg-white border border-emerald-200 space-y-1.5">
-                          <div className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
-                            Signed Party 1 • Quext Signatory
-                          </div>
-                          <div className="text-sm font-extrabold text-slate-900">
-                            {contract.quextSignatory.entityName}
-                          </div>
-                          <div className="text-xs text-slate-700">
-                            Signed By:{' '}
-                            <strong className="text-slate-900">
-                              {contract.quextSignatory.signerName}
-                            </strong>{' '}
-                            ({contract.quextSignatory.signerTitle})
-                          </div>
-                          <div className="text-[11px] text-slate-500">
-                            Date Signed: {contract.quextSignatory.signedDate}
-                          </div>
+                      <div className="space-y-2">
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Signatory Parties • {contract.fileName}</span>
                         </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 rounded-xl bg-white border border-emerald-200 space-y-1.5 shadow-2xs">
+                            <div className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                              Signed Party 1 • Quext Signatory ({contract.fileName})
+                            </div>
+                            <div className="text-sm font-extrabold text-slate-900">
+                              {contract.quextSignatory.entityName}
+                            </div>
+                            <div className="text-xs text-slate-700">
+                              Signed By:{' '}
+                              <strong className="text-slate-900">
+                                {contract.quextSignatory.signerName}
+                              </strong>{' '}
+                              ({contract.quextSignatory.signerTitle})
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              Date Signed: {contract.quextSignatory.signedDate}
+                            </div>
+                          </div>
 
-                        <div className="p-4 rounded-xl bg-white border border-indigo-200 space-y-1.5">
-                          <div className="text-[10px] font-black uppercase tracking-wider text-indigo-700">
-                            Signed Party 2 • Customer / Owner Signatory
-                          </div>
-                          <div className="text-sm font-extrabold text-slate-900">
-                            {contract.customerSignatory.entityName}
-                          </div>
-                          <div className="text-xs text-slate-700">
-                            Signed By:{' '}
-                            <strong className="text-slate-900">
-                              {contract.customerSignatory.signerName}
-                            </strong>{' '}
-                            ({contract.customerSignatory.signerTitle})
-                          </div>
-                          <div className="text-[11px] text-slate-500">
-                            Date Signed: {contract.customerSignatory.signedDate}
+                          <div className="p-4 rounded-xl bg-white border border-indigo-200 space-y-1.5 shadow-2xs">
+                            <div className="text-[10px] font-black uppercase tracking-wider text-indigo-700">
+                              Signed Party 2 • Customer / Owner Signatory ({contract.fileName})
+                            </div>
+                            <div className="text-sm font-extrabold text-slate-900">
+                              {contract.customerSignatory.entityName}
+                            </div>
+                            <div className="text-xs text-slate-700">
+                              Signed By:{' '}
+                              <strong className="text-slate-900">
+                                {contract.customerSignatory.signerName}
+                              </strong>{' '}
+                              ({contract.customerSignatory.signerTitle})
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              Date Signed: {contract.customerSignatory.signedDate}
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* 3. Quext Responsibilities & Customer Responsibilities */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2">
-                          <div className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                            <span>What Quext Is Responsible For in the Agreement</span>
-                          </div>
-                          <ul className="space-y-1.5 text-xs text-slate-700 list-disc list-inside">
-                            {contract.quextResponsibilities.map((resp, idx) => (
-                              <li key={idx} className="leading-relaxed">
-                                {resp}
-                              </li>
-                            ))}
-                          </ul>
+                      <div className="space-y-2">
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Obligations &amp; Responsibilities • {contract.fileName}</span>
                         </div>
-
-                        <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2">
-                          <div className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                            <Building2 className="w-4 h-4 text-indigo-600" />
-                            <span>What the Customer Is Responsible For in the Agreement</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 shadow-2xs">
+                            <div className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                              <span>What Quext Is Responsible For in &ldquo;{contract.fileName}&rdquo;</span>
+                            </div>
+                            <ul className="space-y-1.5 text-xs text-slate-700 list-disc list-inside">
+                              {contract.quextResponsibilities.map((resp, idx) => (
+                                <li key={idx} className="leading-relaxed">
+                                  {resp}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <ul className="space-y-1.5 text-xs text-slate-700 list-disc list-inside">
-                            {contract.customerResponsibilities.map((resp, idx) => (
-                              <li key={idx} className="leading-relaxed">
-                                {resp}
-                              </li>
-                            ))}
-                          </ul>
+
+                          <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 shadow-2xs">
+                            <div className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                              <Building2 className="w-4 h-4 text-indigo-600" />
+                              <span>What the Customer Is Responsible For in &ldquo;{contract.fileName}&rdquo;</span>
+                            </div>
+                            <ul className="space-y-1.5 text-xs text-slate-700 list-disc list-inside">
+                              {contract.customerResponsibilities.map((resp, idx) => (
+                                <li key={idx} className="leading-relaxed">
+                                  {resp}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       </div>
                     </>
