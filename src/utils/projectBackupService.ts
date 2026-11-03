@@ -154,7 +154,7 @@ export function parseAndValidateProjectBackup(jsonStr: string): BackupParseResul
       };
     }
 
-    // Sanitize each project to ensure required arrays exist
+    // Sanitize each project to ensure all required fields and arrays exist losslessly
     const sanitizedProjects: OperationProject[] = projects.map((p, idx) => {
       const id = p.id || `proj_restored_${Date.now()}_${idx}`;
       return {
@@ -164,9 +164,11 @@ export function parseAndValidateProjectBackup(jsonStr: string): BackupParseResul
         quoteNumber: p.quoteNumber || `RESTORED-${idx + 1}`,
         propertyName: p.propertyName || `Restored Property ${idx + 1}`,
         clientName: p.clientName || 'Quext Customer',
+        propertyManagementCompany: p.propertyManagementCompany || undefined,
         address: p.address || '',
         city: p.city || '',
         state: p.state || '',
+        zipCode: p.zipCode || undefined,
         unitsCount: typeof p.unitsCount === 'number' ? p.unitsCount : 0,
         heroImage: p.heroImage || '/src/assets/images/property_grand_horizon_1792605840266.jpg',
         assignedPM: p.assignedPM || {
@@ -174,7 +176,12 @@ export function parseAndValidateProjectBackup(jsonStr: string): BackupParseResul
           email: 'raul.recalde@onequext.com',
           role: 'Director of Implementation',
         },
+        assignedCSM: p.assignedCSM,
+        assignedFieldTech: p.assignedFieldTech,
+        integratorPartners: Array.isArray(p.integratorPartners) ? p.integratorPartners : undefined,
         statusTag: p.statusTag || 'On Track',
+        platform: p.platform,
+        statusReason: p.statusReason,
         startDate: p.startDate || new Date().toISOString().split('T')[0],
         targetCompletionDate:
           p.targetCompletionDate ||
@@ -183,6 +190,42 @@ export function parseAndValidateProjectBackup(jsonStr: string): BackupParseResul
         installLogs: Array.isArray(p.installLogs) ? p.installLogs : [],
         notes: Array.isArray(p.notes) ? p.notes : [],
         milestones: Array.isArray(p.milestones) ? p.milestones : [],
+        communityDetails: p.communityDetails,
+        customerIntake: p.customerIntake,
+        customerCommsLogs: Array.isArray(p.customerCommsLogs) ? p.customerCommsLogs : [],
+        emailOverviewCadence: p.emailOverviewCadence,
+        emailCadenceStartDate: p.emailCadenceStartDate,
+        additionalCustomerEmails: Array.isArray(p.additionalCustomerEmails) ? p.additionalCustomerEmails : undefined,
+        sowForecastCadenceEnabled: p.sowForecastCadenceEnabled,
+        useNfcWallet: p.useNfcWallet,
+        useQrIntercom: p.useQrIntercom,
+        csmHandoffEnteredAt: p.csmHandoffEnteredAt,
+        sowForecastItems: Array.isArray(p.sowForecastItems) ? p.sowForecastItems : [],
+        shippingDockItems: Array.isArray(p.shippingDockItems) ? p.shippingDockItems : [],
+        productAcceptanceSubmission: p.productAcceptanceSubmission,
+        activityNotifications: Array.isArray(p.activityNotifications) ? p.activityNotifications : [],
+        pendingInstallationChanges: Array.isArray(p.pendingInstallationChanges) ? p.pendingInstallationChanges : [],
+        kickoffCompleted: p.kickoffCompleted,
+        isManuallyCreated: p.isManuallyCreated,
+        isBomLocked: p.isBomLocked,
+        isBomOverridden: p.isBomOverridden,
+        isDiyInstallation: p.isDiyInstallation,
+        originalQuoteBOM: Array.isArray(p.originalQuoteBOM) ? p.originalQuoteBOM : undefined,
+        manualLinkHistory: Array.isArray(p.manualLinkHistory) ? p.manualLinkHistory : [],
+        linkedProjectId: p.linkedProjectId,
+        linkedProjectName: p.linkedProjectName,
+        linkedProjectNumber: p.linkedProjectNumber,
+        manualLinkProjectHistory: Array.isArray(p.manualLinkProjectHistory) ? p.manualLinkProjectHistory : [],
+        teamAssists: Array.isArray(p.teamAssists) ? p.teamAssists : [],
+        financialMilestones: p.financialMilestones,
+        partnerCourseBundle: p.partnerCourseBundle,
+        pmpMitigationPlan: p.pmpMitigationPlan,
+        csmPortalData: p.csmPortalData,
+        rmaTickets: Array.isArray(p.rmaTickets) ? p.rmaTickets : [],
+        changeOrders: Array.isArray(p.changeOrders) ? p.changeOrders : [],
+        bomAcquisitionSubmissions: Array.isArray(p.bomAcquisitionSubmissions) ? p.bomAcquisitionSubmissions : [],
+        acquisitionStatusOverrides: p.acquisitionStatusOverrides || {},
+        acquisitionMilestones: p.acquisitionMilestones || {},
         lastUpdated: p.lastUpdated || new Date().toISOString(),
       };
     });
@@ -232,9 +275,16 @@ export function upsertProjects(
     if (existingIndex >= 0) {
       // Update existing project in place with the complete restored backup data
       const prev = result[existingIndex];
+      // Strip undefined fields from incoming project so existing data isn't overwritten by missing keys
+      const cleanInc: Record<string, any> = {};
+      for (const [k, v] of Object.entries(inc)) {
+        if (v !== undefined) {
+          cleanInc[k] = v;
+        }
+      }
       result[existingIndex] = {
         ...prev,
-        ...inc,
+        ...cleanInc,
         // Ensure ID matches the existing project so active navigation links remain stable
         id: prev.id,
       };

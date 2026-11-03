@@ -1814,15 +1814,6 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-center">
                   <button
                     type="button"
-                    onClick={() => exportSingleProject(project, currentUserName)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-800 text-white font-bold text-xs shadow-xs cursor-pointer transition-all"
-                    title="Export complete project backup to JSON"
-                  >
-                    <Download className="w-3.5 h-3.5 text-sky-200" />
-                    <span>Export Backup</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={openImportModal}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs shadow-xs cursor-pointer transition-all"
                     title="Restore project from JSON backup or spreadsheet"

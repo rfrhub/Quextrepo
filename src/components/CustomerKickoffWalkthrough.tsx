@@ -28,7 +28,6 @@ import {
   Radio,
   Sliders,
   Mail,
-  FileCheck,
   Calendar,
   KeyRound,
   Download,
@@ -745,7 +744,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
     { id: 'staff', label: '5. Staff Permissions' },
     { id: 'hardware', label: '6. Hardware Ecosystem' },
     { id: 'timeline', label: '7. Milestones' },
-    { id: 'communication', label: '8. Resident Kit & Submit' },
+    { id: 'communication', label: '8. Review & Submit' },
   ];
 
   // Standard 7 operations milestones (Design milestone removed)
@@ -2508,7 +2507,7 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
                 onClick={() => setActiveStep(7)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg shadow-xs transition-colors cursor-pointer text-xs"
               >
-                <span>Continue: Resident Kit & Submit</span>
+                <span>Continue: Review & Submit</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -2523,80 +2522,16 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
       {/* ========================================================================= */}
       {(viewMode === 'full-document' || activeStep === 7) && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-          <div>
+          <div className="border-b border-slate-100 pb-5">
             <span className="px-2.5 py-0.5 text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-300 rounded uppercase tracking-wider">
-              Turnkey Resident Adoption
+              Review &amp; Final Sign-Off
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-['Plus_Jakarta_Sans'] mt-2">
-              Resident Communication & Onboarding Kit
+              Kickoff Submission &amp; Deployment Updates
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Ready-to-use digital templates and digital print-ready materials sent by our team for your on-site management team to print.
+              Review your kickoff configuration, subscribe for automated deployment updates, and submit your project details to your assigned Project Manager.
             </p>
-          </div>
-
-          {/* Featured Resident Onboarding Email Layout Template Card */}
-          <div className="p-5 bg-gradient-to-br from-emerald-50 via-white to-sky-50 border-2 border-emerald-300 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-                <Mail className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-black uppercase tracking-wider">
-                  Ready-to-Send Google Email Layout Template
-                </div>
-                <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-                  Resident Onboarding
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-                  An official Quext email template you can insert directly into your emails to easily send onboarding instructions and smart home setup steps to your residents.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <a
-                href="https://docs.google.com/email-layouts/d/1BSKZsB_enu8fZRPO8Prf6ueTt_B2gliWiQ-SwpJFbPg/edit?usp=sharing"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
-              >
-                <Mail className="w-3.5 h-3.5" />
-                <span>Resident Onboarding</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-              <div className="font-bold text-slate-900 flex items-center justify-between gap-1.5">
-                <span className="flex items-center gap-1.5">
-                  <Mail className="w-4 h-4 text-sky-600" />
-                  <span>Automated Email Templates</span>
-                </span>
-              </div>
-              <ul className="space-y-1.5 text-slate-600 text-[11px]">
-                <li>• 7-Day Advance Product Notice (Scheduled date window)</li>
-                <li>• Quext Mobile App Download badge for iOS & Android</li>
-                <li>• Password Creation & Apple Wallet digital key generation</li>
-              </ul>
-            </div>
-
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-              <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                <FileCheck className="w-4 h-4 text-emerald-600" />
-                <span>Digital Print Materials & Welcome Collateral</span>
-              </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Our team sends your property digital, print-ready materials and collateral files for your team to print on-site:
-              </p>
-              <ul className="space-y-1.5 text-slate-600 text-[11px]">
-                <li>• Digital Quick Start Guide sent by our team for your team to print</li>
-                <li>• Digital door hanger & welcome collateral files ready for your team to print</li>
-                <li>• Digital emergency maintenance master protocol sheet sent for on-site printing</li>
-              </ul>
-            </div>
           </div>
 
           {/* Requirement: Blue Banner Message at Bottom for Email Updates on Weekly or Biweekly Basis */}
