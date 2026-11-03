@@ -723,7 +723,18 @@ export const CSMTrainingPortal: React.FC<CSMTrainingPortalProps> = ({
         </motion.div>
 
         <LiveGmailConfirmModal
-          payload={gmailModalPayload}
+          payload={
+            gmailModalPayload
+              ? {
+                  ...gmailModalPayload,
+                  currentProject: project,
+                  emailType:
+                    gmailModalPayload.title.includes('Booking')
+                      ? 'csm_calendar'
+                      : 'csm',
+                }
+              : null
+          }
           onClose={() => setGmailModalPayload(null)}
         />
       </div>

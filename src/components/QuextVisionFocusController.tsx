@@ -797,6 +797,7 @@ export const QuextVisionFocusController: React.FC<QuextVisionFocusControllerProp
             key={project.id}
             project={project}
             quotesList={quotesList}
+            allProjects={projects}
             onUpdateProject={handleTrackedUpdateProject}
             // Omit onBackToDashboard and onViewQuoteAnalysis so irrelevant external links are removed!
           />

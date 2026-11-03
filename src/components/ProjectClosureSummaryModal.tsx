@@ -372,7 +372,14 @@ ${pmEmail}`;
       </div>
 
       <LiveGmailConfirmModal
-        payload={gmailModalPayload}
+        payload={
+          gmailModalPayload
+            ? {
+                ...gmailModalPayload,
+                currentProject: project,
+              }
+            : null
+        }
         onClose={() => setGmailModalPayload(null)}
       />
     </div>

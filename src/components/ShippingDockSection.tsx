@@ -3097,7 +3097,15 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
       />
 
       <LiveGmailConfirmModal
-        payload={gmailModalPayload}
+        payload={
+          gmailModalPayload
+            ? {
+                ...gmailModalPayload,
+                currentProject: project,
+                emailType: 'shipping',
+              }
+            : null
+        }
         onClose={() => setGmailModalPayload(null)}
       />
     </div>

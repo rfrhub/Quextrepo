@@ -43,6 +43,8 @@ import { ChangeOrderSection } from './ChangeOrderSection';
 import { SOWFormAutomationHub } from './SOWFormAutomationHub';
 import { LockFinishModal } from './LockFinishModal';
 import { ManualLinkPropertyToProjectPanel } from './ManualLinkPropertyToProjectPanel';
+import { CustomerCommsControlPanel } from './CustomerCommsControlPanel';
+import { detectPortfolioContacts } from '../services/portfolioEmailService';
 import {
   Building2,
   Wrench,
@@ -1931,6 +1933,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   const [acquisitionModalNeededByDate, setAcquisitionModalNeededByDate] = useState<string>('');
   const [acquisitionNotes, setAcquisitionNotes] = useState<string>('');
   const [lastSentSubmission, setLastSentSubmission] = useState<BOMAcquisitionSubmission | null>(null);
+  const [isCustomerCommsOpen, setIsCustomerCommsOpen] = useState<boolean>(false);
 
   const handleUpdatePropertyBomLockFinish = (itemId: string, config?: LockFinishConfig) => {
     const updatedBomItems = property.bomItems.map((i) =>
@@ -2549,6 +2552,15 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               <FileText className="w-4 h-4" />
               <span>Create SOW</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setIsCustomerCommsOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 border border-white/20 cursor-pointer transition-colors shadow-sm"
+              title="Open Customer Communications & Portfolio Updates for this property"
+            >
+              <Mail className="w-4 h-4 text-[#01C38D]" />
+              <span>Customer Comms &amp; Portfolio Updates</span>
+            </button>
             <ManualLinkPropertyToProjectPanel
               property={property}
               projectsList={allProjects}
@@ -2816,7 +2828,25 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                           {staff.permissionLevel}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3.5 text-sky-700 font-medium">{staff.email}</td>
+                      <td className="py-2.5 px-3.5 text-sky-700 font-medium">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{staff.email}</span>
+                          {(() => {
+                            if (!staff.email) return null;
+                            const tiedProps = detectPortfolioContacts(staff.email, property.id, allProjects).allTiedProjects;
+                            if (tiedProps.length === 0) return null;
+                            return (
+                              <span
+                                className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-teal-50 text-teal-800 border border-teal-200 flex items-center gap-1"
+                                title={`Portfolio Contact: Also tied with ${tiedProps.map((p) => p.propertyName).join(', ')}`}
+                              >
+                                <Layers className="w-2.5 h-2.5 text-teal-600" />
+                                <span>Portfolio ({tiedProps.length} other)</span>
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </td>
                       <td className="py-2.5 px-3.5 text-slate-700">{staff.phoneNumber || '—'}</td>
                       <td className="py-2.5 px-3.5 text-slate-500">
                         {staff.doorsAccessRequested || 'All authorized community doors'}
@@ -6081,6 +6111,45 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
           onOpenProjectInOperations={onOpenInOperations}
         />
       </div>
+
+      {/* Customer Comms & Portfolio Updates Modal for CSMs & PMs */}
+      {isCustomerCommsOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-5xl w-full border border-slate-200 shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-100">
+            <div className="p-4 bg-[#191E29] text-white flex items-center justify-between border-b border-[#01C38D]/40">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#01C38D] text-slate-950 flex items-center justify-center">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">
+                    Customer Communications &amp; Portfolio Updates — {property.propertyName}
+                  </h3>
+                  <p className="text-[11px] text-slate-300">
+                    Dispatch customer digests, kickoff walkthroughs, CSM booking invites, or multi-property portfolio updates
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCustomerCommsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-2 sm:p-4 bg-slate-50/50">
+              <CustomerCommsControlPanel
+                project={property}
+                allProjects={allProjects}
+                onUpdateProject={onUpdateProperty}
+                onOpenKickoffWalkthrough={() => {}}
+                onOpenCSMPortal={() => {}}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

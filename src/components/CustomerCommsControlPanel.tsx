@@ -40,10 +40,23 @@ import {
   Plus,
   Trash2,
   Zap,
+  Layers,
+  Building2,
+  CheckSquare,
+  Square,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
+import { loadStoredProjects } from '../data/initialData';
+import {
+  detectPortfolioContacts,
+  buildPortfolioUpdateEmailContent,
+  logPortfolioDispatchAcrossProjects,
+} from '../services/portfolioEmailService';
 
 interface CustomerCommsControlPanelProps {
   project: OperationProject;
+  allProjects?: OperationProject[];
   onUpdateProject: (project: OperationProject) => void;
   onOpenKickoffWalkthrough: () => void;
   onOpenCSMPortal: (mode?: 'csm-intro-booking' | 'csm-handoff') => void;
@@ -51,6 +64,7 @@ interface CustomerCommsControlPanelProps {
 
 export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps> = ({
   project,
+  allProjects,
   onUpdateProject,
   onOpenKickoffWalkthrough,
   onOpenCSMPortal,
@@ -68,6 +82,34 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   const [modalRecipientInput, setModalRecipientInput] = useState<string>('');
   const [isSendingLiveEmail, setIsSendingLiveEmail] = useState<boolean>(false);
   const [sendErrorMessage, setSendErrorMessage] = useState<string | null>(null);
+
+  // Portfolio Contact & Single-Email Consolidation State
+  const [includePortfolioUpdate, setIncludePortfolioUpdate] = useState<boolean>(true);
+  const [selectedPortfolioProjectIds, setSelectedPortfolioProjectIds] = useState<string[]>([]);
+  const [showPortfolioPropertyList, setShowPortfolioPropertyList] = useState<boolean>(false);
+
+  const projectsPool = useMemo(() => {
+    if (allProjects && allProjects.length > 0) return allProjects;
+    return loadStoredProjects();
+  }, [allProjects]);
+
+  const portfolioDetection = useMemo(() => {
+    if (!modalRecipientInput.trim()) {
+      return { hasMatches: false, matchedContacts: [], allTiedProjects: [] };
+    }
+    return detectPortfolioContacts(modalRecipientInput, project.id, projectsPool);
+  }, [modalRecipientInput, project.id, projectsPool]);
+
+  // When portfolio matches are detected upon opening preview modal, pre-select all properties
+  useEffect(() => {
+    if (portfolioDetection.hasMatches) {
+      const allIds = [project.id, ...portfolioDetection.allTiedProjects.map((p) => p.id)];
+      setSelectedPortfolioProjectIds(allIds);
+      setIncludePortfolioUpdate(true);
+    } else {
+      setSelectedPortfolioProjectIds([project.id]);
+    }
+  }, [portfolioDetection.hasMatches, project.id]);
 
   useEffect(() => {
     const unsub = subscribeToGmailAuth(({ user, needsAuth: reqAuth }) => {
@@ -547,11 +589,49 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     return { subject, summary, htmlBody, logType: 'csm_handoff_email' };
   };
 
+  const effectivePortfolioProjects = useMemo(() => {
+    if (!includePortfolioUpdate || !portfolioDetection.hasMatches) {
+      return [project];
+    }
+    const pool = [project, ...portfolioDetection.allTiedProjects];
+    return pool.filter((p) => selectedPortfolioProjectIds.includes(p.id));
+  }, [
+    project,
+    includePortfolioUpdate,
+    portfolioDetection.hasMatches,
+    portfolioDetection.allTiedProjects,
+    selectedPortfolioProjectIds,
+  ]);
+
+  const getActiveEmailContent = (
+    modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | 'stress_test'
+  ) => {
+    const singleContent = buildEmailContent(modalType);
+    if (
+      includePortfolioUpdate &&
+      portfolioDetection.hasMatches &&
+      effectivePortfolioProjects.length > 1
+    ) {
+      return buildPortfolioUpdateEmailContent({
+        primaryProject: project,
+        includedProjects: effectivePortfolioProjects,
+        matchedContacts: portfolioDetection.matchedContacts,
+        communicationType: modalType,
+        originalSubject: singleContent.subject,
+        originalSummary: singleContent.summary,
+        cadence,
+        senderName: gmailUserEmail || project.assignedPM.name,
+        senderEmail: gmailUserEmail || project.assignedPM.email,
+      });
+    }
+    return singleContent;
+  };
+
   const handleConfirmAndSendEmail = async () => {
     if (!showEmailPreviewModal) return;
     setSendErrorMessage(null);
 
-    const { subject, summary, htmlBody, logType } = buildEmailContent(showEmailPreviewModal);
+    const { subject, summary, htmlBody, logType } = getActiveEmailContent(showEmailPreviewModal);
     const recipientsList = modalRecipientInput
       .split(/[,;]+/)
       .map((r) => r.trim())
@@ -588,28 +668,48 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         minute: '2-digit',
       });
 
-      const newLog: CustomerCommsLog = {
-        id: `comm-${Date.now()}`,
-        projectId: project.id,
-        timestamp: nowStr,
-        type: logType,
-        recipientEmail: gmailResult.recipients.join(', '),
-        subject,
-        summary: `${summary} [Live Gmail ID: ${gmailResult.id}]`,
-        sentBy: gmailUserEmail || project.assignedPM.name,
-        cadence,
-        status: 'Delivered',
-      };
+      if (
+        includePortfolioUpdate &&
+        portfolioDetection.hasMatches &&
+        effectivePortfolioProjects.length > 1
+      ) {
+        logPortfolioDispatchAcrossProjects({
+          includedProjects: effectivePortfolioProjects,
+          primaryProject: project,
+          recipients: gmailResult.recipients,
+          subject,
+          summary: `${summary} [Live Gmail ID: ${gmailResult.id}]`,
+          logType,
+          sentBy: gmailUserEmail || project.assignedPM.name,
+          cadence,
+          onUpdateProject,
+        });
+      } else {
+        const newLog: CustomerCommsLog = {
+          id: `comm-${Date.now()}`,
+          projectId: project.id,
+          timestamp: nowStr,
+          type: logType,
+          recipientEmail: gmailResult.recipients.join(', '),
+          subject,
+          summary: `${summary} [Live Gmail ID: ${gmailResult.id}]`,
+          sentBy: gmailUserEmail || project.assignedPM.name,
+          cadence,
+          status: 'Delivered',
+        };
 
-      onUpdateProject({
-        ...project,
-        customerCommsLogs: [newLog, ...logs],
-        lastUpdated: new Date().toISOString(),
-      });
+        onUpdateProject({
+          ...project,
+          customerCommsLogs: [newLog, ...logs],
+          lastUpdated: new Date().toISOString(),
+        });
+      }
 
       setShowEmailPreviewModal(null);
       triggerToast(
-        `Real email delivered via Gmail to ${gmailResult.recipients.join(', ')} (Message ID: ${gmailResult.id})!`
+        includePortfolioUpdate && effectivePortfolioProjects.length > 1
+          ? `Real Portfolio Update delivered via Gmail covering ${effectivePortfolioProjects.length} properties to ${gmailResult.recipients.join(', ')}!`
+          : `Real email delivered via Gmail to ${gmailResult.recipients.join(', ')} (Message ID: ${gmailResult.id})!`
       );
     } catch (err: any) {
       if (err?.message === 'NOT_AUTHENTICATED') {
@@ -627,7 +727,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
 
   const handleLogAndCompleteWithoutApi = (viaComposeTab: boolean) => {
     if (!showEmailPreviewModal) return;
-    const { subject, summary, logType } = buildEmailContent(showEmailPreviewModal);
+    const { subject, summary, logType } = getActiveEmailContent(showEmailPreviewModal);
     const recipientsList = modalRecipientInput
       .split(/[,;]+/)
       .map((r) => r.trim())
@@ -642,24 +742,42 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
       minute: '2-digit',
     });
 
-    const newLog: CustomerCommsLog = {
-      id: `comm-${Date.now()}`,
-      projectId: project.id,
-      timestamp: nowStr,
-      type: logType,
-      recipientEmail: finalRecipients.join(', '),
-      subject,
-      summary: viaComposeTab ? `${summary} [Opened in Gmail Web Compose]` : summary,
-      sentBy: gmailUserEmail || project.assignedPM.name,
-      cadence,
-      status: 'Delivered',
-    };
+    if (
+      includePortfolioUpdate &&
+      portfolioDetection.hasMatches &&
+      effectivePortfolioProjects.length > 1
+    ) {
+      logPortfolioDispatchAcrossProjects({
+        includedProjects: effectivePortfolioProjects,
+        primaryProject: project,
+        recipients: finalRecipients,
+        subject,
+        summary: viaComposeTab ? `${summary} [Opened in Gmail Web Compose]` : summary,
+        logType,
+        sentBy: gmailUserEmail || project.assignedPM.name,
+        cadence,
+        onUpdateProject,
+      });
+    } else {
+      const newLog: CustomerCommsLog = {
+        id: `comm-${Date.now()}`,
+        projectId: project.id,
+        timestamp: nowStr,
+        type: logType,
+        recipientEmail: finalRecipients.join(', '),
+        subject,
+        summary: viaComposeTab ? `${summary} [Opened in Gmail Web Compose]` : summary,
+        sentBy: gmailUserEmail || project.assignedPM.name,
+        cadence,
+        status: 'Delivered',
+      };
 
-    onUpdateProject({
-      ...project,
-      customerCommsLogs: [newLog, ...logs],
-      lastUpdated: new Date().toISOString(),
-    });
+      onUpdateProject({
+        ...project,
+        customerCommsLogs: [newLog, ...logs],
+        lastUpdated: new Date().toISOString(),
+      });
+    }
 
     setShowEmailPreviewModal(null);
     triggerToast(
@@ -906,50 +1024,86 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         {/* Recipient Badges / Chips */}
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
           {/* Primary Contact */}
-          {primaryRecipientEmail && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-              <span className="font-semibold text-slate-800">{primaryRecipientEmail}</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                Primary
-              </span>
-            </div>
-          )}
+          {primaryRecipientEmail && (() => {
+            const tiedProps = detectPortfolioContacts(primaryRecipientEmail, project.id, projectsPool).allTiedProjects;
+            return (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                <span className="font-semibold text-slate-800">{primaryRecipientEmail}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                  Primary
+                </span>
+                {tiedProps.length > 0 && (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-teal-50 text-teal-800 border border-teal-200 flex items-center gap-1"
+                    title={`Portfolio Contact: Also tied with ${tiedProps.map((p) => p.propertyName).join(', ')}`}
+                  >
+                    <Layers className="w-2.5 h-2.5 text-teal-600" />
+                    <span>Portfolio ({tiedProps.length} other)</span>
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Onsite Staff Roles */}
           {staffRecipients
             .filter((e) => e.toLowerCase() !== primaryRecipientEmail.toLowerCase())
-            .map((email) => (
-              <div key={email} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                <span className="font-semibold text-slate-800">{email}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                  Staff Role
-                </span>
-              </div>
-            ))}
+            .map((email) => {
+              const tiedProps = detectPortfolioContacts(email, project.id, projectsPool).allTiedProjects;
+              return (
+                <div key={email} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                  <span className="font-semibold text-slate-800">{email}</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                    Staff Role
+                  </span>
+                  {tiedProps.length > 0 && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-teal-50 text-teal-800 border border-teal-200 flex items-center gap-1"
+                      title={`Portfolio Contact: Also tied with ${tiedProps.map((p) => p.propertyName).join(', ')}`}
+                    >
+                      <Layers className="w-2.5 h-2.5 text-teal-600" />
+                      <span>Portfolio ({tiedProps.length} other)</span>
+                    </span>
+                  )}
+                </div>
+              );
+            })}
 
           {/* Manually Added Additional Customer Emails */}
-          {additionalCustomerEmails.map((email) => (
-            <div
-              key={email}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs shadow-2xs group transition-all"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-              <span className="font-semibold text-emerald-950">{email}</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Added by PM
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemoveCustomerEmail(email)}
-                title={`Remove ${email} from customer distribution`}
-                className="ml-1 p-0.5 rounded text-emerald-700 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+          {additionalCustomerEmails.map((email) => {
+            const tiedProps = detectPortfolioContacts(email, project.id, projectsPool).allTiedProjects;
+            return (
+              <div
+                key={email}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs shadow-2xs group transition-all"
               >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="font-semibold text-emerald-950">{email}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Added by PM
+                </span>
+                {tiedProps.length > 0 && (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-teal-100 text-teal-900 border border-teal-300 flex items-center gap-1"
+                    title={`Portfolio Contact: Also tied with ${tiedProps.map((p) => p.propertyName).join(', ')}`}
+                  >
+                    <Layers className="w-2.5 h-2.5 text-teal-700" />
+                    <span>Portfolio ({tiedProps.length} other)</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCustomerEmail(email)}
+                  title={`Remove ${email} from customer distribution`}
+                  className="ml-1 p-0.5 rounded text-emerald-700 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            );
+          })}
 
           {allConfiguredCustomerRecipients.length === 0 && (
             <span className="text-xs text-slate-400 italic">No customer recipients configured yet. Add one below.</span>
@@ -1428,19 +1582,26 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
             <div className="bg-[#191E29] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
                 <Mail className="w-5 h-5 text-[#01C38D]" />
-                <h3 className="font-bold text-base">
-                  {showEmailPreviewModal === 'kickoff' &&
-                    'Confirm & Dispatch Customer Kickoff Walkthrough Packet'}
-                  {showEmailPreviewModal === 'digest' &&
-                    'Confirm & Dispatch Automated Milestone Progress Digest'}
-                  {showEmailPreviewModal === 'sow_forecast' &&
-                    'Confirm & Dispatch SOW Forecaster Overview'}
-                  {showEmailPreviewModal === 'csm_calendar' &&
-                    'Confirm & Dispatch CSM Calendar Booking Link (Pre-Implementation)'}
-                  {showEmailPreviewModal === 'csm' &&
-                    'Confirm & Dispatch CSM Handoff Introduction'}
-                  {showEmailPreviewModal === 'stress_test' &&
-                    'Confirm & Send Live Inbox Stress-Test Email'}
+                <h3 className="font-bold text-base flex items-center gap-1.5 flex-wrap">
+                  {includePortfolioUpdate && portfolioDetection.hasMatches && effectivePortfolioProjects.length > 1 && (
+                    <span className="text-[#01C38D] text-xs font-black uppercase tracking-wider bg-[#01C38D]/20 border border-[#01C38D]/40 px-2 py-0.5 rounded-md">
+                      Portfolio Update
+                    </span>
+                  )}
+                  <span>
+                    {showEmailPreviewModal === 'kickoff' &&
+                      'Confirm & Dispatch Customer Kickoff Walkthrough Packet'}
+                    {showEmailPreviewModal === 'digest' &&
+                      'Confirm & Dispatch Automated Milestone Progress Digest'}
+                    {showEmailPreviewModal === 'sow_forecast' &&
+                      'Confirm & Dispatch SOW Forecaster Overview'}
+                    {showEmailPreviewModal === 'csm_calendar' &&
+                      'Confirm & Dispatch CSM Calendar Booking Link (Pre-Implementation)'}
+                    {showEmailPreviewModal === 'csm' &&
+                      'Confirm & Dispatch CSM Handoff Introduction'}
+                    {showEmailPreviewModal === 'stress_test' &&
+                      'Confirm & Send Live Inbox Stress-Test Email'}
+                  </span>
                 </h3>
               </div>
               <button
@@ -1452,6 +1613,121 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
             </div>
 
             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Portfolio Contact Detection Prompt */}
+              {portfolioDetection.hasMatches && (
+                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 shadow-sm space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md">
+                          Portfolio Contact Detected
+                        </span>
+                        <span className="font-bold text-slate-900 text-xs">
+                          {portfolioDetection.matchedContacts.map((c) => c.email).join(', ')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 mt-1 leading-relaxed">
+                        {portfolioDetection.matchedContacts[0]?.contactName ? (
+                          <strong>{portfolioDetection.matchedContacts[0].contactName} </strong>
+                        ) : (
+                          'This contact '
+                        )}
+                        is registered as a Community Site Contact / Staff Member across{' '}
+                        <strong>{portfolioDetection.allTiedProjects.length} other properties</strong> in your portfolio ({portfolioDetection.allTiedProjects.map((p) => p.propertyName).join(', ')}).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Portfolio Toggle & Properties Preview */}
+                  <div className="pt-2 border-t border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <label className="flex items-center gap-2.5 cursor-pointer font-bold text-slate-900 select-none">
+                      <input
+                        type="checkbox"
+                        checked={includePortfolioUpdate}
+                        onChange={(e) => setIncludePortfolioUpdate(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded border-emerald-400 focus:ring-emerald-500 cursor-pointer"
+                      />
+                      <span>
+                        Provide a consolidated &ldquo;Portfolio Update&rdquo; covering all tied properties on this single email
+                      </span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPortfolioPropertyList(!showPortfolioPropertyList)}
+                      className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 self-start sm:self-auto cursor-pointer underline"
+                    >
+                      <span>
+                        {showPortfolioPropertyList ? 'Hide Property List' : `View ${effectivePortfolioProjects.length} Properties`}
+                      </span>
+                      {showPortfolioPropertyList ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Expandable Property Checklist */}
+                  {showPortfolioPropertyList && (
+                    <div className="pt-2 space-y-1.5 border-t border-emerald-200/80">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        Select properties to include in this consolidated email:
+                      </div>
+                      {[project, ...portfolioDetection.allTiedProjects].map((proj) => {
+                        const isPrimary = proj.id === project.id;
+                        const isChecked = selectedPortfolioProjectIds.includes(proj.id);
+                        return (
+                          <div
+                            key={proj.id}
+                            onClick={() => {
+                              if (isPrimary) return;
+                              setSelectedPortfolioProjectIds((prev) =>
+                                prev.includes(proj.id)
+                                  ? prev.filter((pId) => pId !== proj.id)
+                                  : [...prev, proj.id]
+                              );
+                            }}
+                            className={`p-2 rounded-xl border flex items-center justify-between transition-colors cursor-pointer text-xs ${
+                              isChecked
+                                ? 'bg-white border-emerald-300'
+                                : 'bg-slate-50 border-slate-200 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isChecked ? (
+                                <CheckSquare className="w-4 h-4 text-emerald-600" />
+                              ) : (
+                                <Square className="w-4 h-4 text-slate-400" />
+                              )}
+                              <div>
+                                <span className="font-bold text-slate-900">
+                                  {proj.propertyName}
+                                </span>
+                                {isPrimary && (
+                                  <span className="ml-1.5 text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    Current
+                                  </span>
+                                )}
+                                <span className="text-[11px] text-slate-500 ml-2">
+                                  ({proj.city}, {proj.state} • {proj.unitsCount} Units)
+                                </span>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">
+                              {proj.statusTag}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Gmail Auth Status Banner inside Confirmation Modal */}
               <div
                 className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
@@ -1514,16 +1790,16 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
                 <div className="flex">
                   <span className="w-20 font-bold text-slate-500">Subject:</span>
                   <span className="font-bold text-slate-900">
-                    {buildEmailContent(showEmailPreviewModal).subject}
+                    {getActiveEmailContent(showEmailPreviewModal).subject}
                   </span>
                 </div>
               </div>
 
               {/* Rendered HTML Email Body Preview */}
               <div
-                className="border border-slate-200 rounded-xl p-4 bg-white text-xs text-slate-700 leading-relaxed"
+                className="border border-slate-200 rounded-xl p-4 bg-white text-xs text-slate-700 leading-relaxed max-h-72 overflow-y-auto shadow-inner"
                 dangerouslySetInnerHTML={{
-                  __html: buildEmailContent(showEmailPreviewModal).htmlBody,
+                  __html: getActiveEmailContent(showEmailPreviewModal).htmlBody,
                 }}
               />
 
@@ -1541,8 +1817,8 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
                   <a
                     href={buildGmailWebComposeUrl({
                       to: modalRecipientInput || primaryRecipientEmail,
-                      subject: buildEmailContent(showEmailPreviewModal).subject,
-                      htmlBody: buildEmailContent(showEmailPreviewModal).htmlBody,
+                      subject: getActiveEmailContent(showEmailPreviewModal).subject,
+                      htmlBody: getActiveEmailContent(showEmailPreviewModal).htmlBody,
                     })}
                     target="_blank"
                     rel="noopener noreferrer"

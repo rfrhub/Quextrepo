@@ -457,6 +457,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
             key={selectedProject.id}
             project={selectedProject}
             quotesList={quotesList}
+            allProjects={projects}
             onUpdateProject={onUpdateProject}
             onDeleteProject={onDeleteProject}
             onBackToDashboard={() => onSelectSubTab('dashboard')}

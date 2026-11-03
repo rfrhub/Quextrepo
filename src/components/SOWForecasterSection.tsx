@@ -1646,7 +1646,15 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
       </div>
 
       <LiveGmailConfirmModal
-        payload={gmailModalPayload}
+        payload={
+          gmailModalPayload
+            ? {
+                ...gmailModalPayload,
+                currentProject: project,
+                emailType: 'sow_forecast',
+              }
+            : null
+        }
         onClose={() => setGmailModalPayload(null)}
       />
     </div>

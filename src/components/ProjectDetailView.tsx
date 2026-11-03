@@ -117,6 +117,7 @@ import {
 interface ProjectDetailViewProps {
   project: OperationProject;
   quotesList?: Quote[];
+  allProjects?: OperationProject[];
   onUpdateProject: (updated: OperationProject) => void;
   onDeleteProject?: (projectId: string) => void;
   onBackToDashboard?: () => void;
@@ -131,6 +132,7 @@ interface ProjectDetailViewProps {
 export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   project,
   quotesList = [],
+  allProjects = [],
   onUpdateProject,
   onDeleteProject,
   onBackToDashboard,
@@ -3229,6 +3231,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         <div data-tutorial-id="customer-comms-panel">
           <CustomerCommsControlPanel
             project={project}
+            allProjects={allProjects}
             onUpdateProject={onUpdateProject}
             onOpenKickoffWalkthrough={() => setActiveTab('customer-kickoff')}
             onOpenCSMPortal={(mode) => {
@@ -4379,7 +4382,15 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
       {/* Real Gmail Confirmation Modal for dispatches from ProjectDetailView */}
       <LiveGmailConfirmModal
-        payload={gmailModalPayload}
+        payload={
+          gmailModalPayload
+            ? {
+                ...gmailModalPayload,
+                currentProject: gmailModalPayload.currentProject || project,
+                allProjects: gmailModalPayload.allProjects || allProjects,
+              }
+            : null
+        }
         onClose={() => setGmailModalPayload(null)}
       />
 
