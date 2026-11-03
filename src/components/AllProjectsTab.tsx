@@ -31,10 +31,10 @@ import {
   ChevronUp,
   LayoutGrid,
   List,
-  Download,
-  Upload,
+  FileDown,
+  Loader2,
 } from 'lucide-react';
-import { exportAllProjects, openImportModal } from '../utils/projectBackupService';
+import { downloadOmarDashboardPdf } from '../utils/generateOmarDashboardPdf';
 import {
   getProjectPartnerCourseCompletion,
   loadPartnerAcademyUsers,
@@ -63,6 +63,20 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
   const [fieldTechFilter, setFieldTechFilter] = useState<string>('all');
   const [integratorFilter, setIntegratorFilter] = useState<string>('all');
   const [areProjectCardsMinimized, setAreProjectCardsMinimized] = useState<boolean>(true);
+  const [isGeneratingOmarPdf, setIsGeneratingOmarPdf] = useState<boolean>(false);
+
+  const handleDownloadOmarReport = () => {
+    setIsGeneratingOmarPdf(true);
+    setTimeout(() => {
+      try {
+        downloadOmarDashboardPdf(projects);
+      } catch (err) {
+        console.error('Failed to generate Omar Report PDF:', err);
+      } finally {
+        setIsGeneratingOmarPdf(false);
+      }
+    }, 50);
+  };
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
 
   useEffect(() => {
@@ -150,23 +164,26 @@ export const AllProjectsTab: React.FC<AllProjectsTabProps> = ({
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
             <button
               type="button"
-              data-tutorial-id="all-projects-export-btn"
-              onClick={() => exportAllProjects(projects)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
-              title="Export complete site backup of all active projects (BOM with finishes, install logs with photos, notes, milestones) to JSON file"
+              data-tutorial-id="all-projects-omar-button"
+              onClick={handleDownloadOmarReport}
+              disabled={isGeneratingOmarPdf}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] border border-slate-700 hover:border-slate-600 rounded-lg shadow-xs hover:shadow-md transition-all duration-200 ease-in-out cursor-pointer disabled:opacity-75 disabled:cursor-wait"
+              title="Generate and download the 2026 Master Projects Dashboard Executive PDF Report (Omar Report)"
             >
-              <Download className="w-3.5 h-3.5 text-sky-600" />
-              <span>Export All Projects</span>
-            </button>
-            <button
-              type="button"
-              data-tutorial-id="all-projects-import-restore-btn"
-              onClick={openImportModal}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
-              title="Import projects from spreadsheet or restore a full JSON backup"
-            >
-              <Upload className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Import / Restore</span>
+              {isGeneratingOmarPdf ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
+                  <span>Generating Omar PDF...</span>
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Omar Button</span>
+                  <span className="px-1.5 py-0.2 text-[9.5px] font-black bg-sky-500/20 text-sky-300 rounded border border-sky-400/30 uppercase tracking-wider">
+                    PDF
+                  </span>
+                </>
+              )}
             </button>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Active Projects:</span>
