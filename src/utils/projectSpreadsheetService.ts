@@ -203,7 +203,8 @@ function normalizeHeaderKey(header: string): string {
     clean.includes('owner') ||
     clean.includes('company') ||
     clean.includes('customer') ||
-    clean.includes('management')
+    clean.includes('management') ||
+    clean.includes('portfolio')
   ) {
     return 'clientName';
   }
@@ -411,31 +412,64 @@ export function parseProjectSpreadsheet(
     throw new Error(`Unable to read worksheet "${sheetName}".`);
   }
 
-  // Convert to array of records
-  const rawRows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+  // Convert sheet to array-of-arrays to dynamically detect the header row
+  const rawAoa = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '' });
 
+  // Locate the header row by searching for "Project Name" or "Property Name"
+  let headerRowIdx = 0;
+  for (let i = 0; i < Math.min(25, rawAoa.length); i++) {
+    const row = rawAoa[i] || [];
+    if (
+      row.some((cell: any) => {
+        const s = String(cell || '').toLowerCase().replace(/[^a-z]/g, '');
+        return (
+          s === 'projectname' ||
+          s === 'propertyname' ||
+          (s.includes('project') && s.includes('name')) ||
+          (s.includes('property') && s.includes('name'))
+        );
+      })
+    ) {
+      headerRowIdx = i;
+      break;
+    }
+  }
+
+  const rawHeaders = (rawAoa[headerRowIdx] || []).map((h: any) => String(h || '').trim());
   const parsedRows: ParsedProjectRow[] = [];
 
-  rawRows.forEach((row, idx) => {
-    const rowNum = idx + 2; // Row 1 is header
+  for (let r = headerRowIdx + 1; r < rawAoa.length; r++) {
+    const row = rawAoa[r];
+    if (!row || row.every((c: any) => !c || String(c).trim() === '')) continue;
+
+    const rowNum = r + 1;
     const normalizedRow: Record<string, any> = {};
 
-    Object.entries(row).forEach(([colHeader, val]) => {
+    rawHeaders.forEach((colHeader, cIdx) => {
+      if (!colHeader) return;
       const canonicalKey = normalizeHeaderKey(colHeader);
-      normalizedRow[canonicalKey] = val;
+      normalizedRow[canonicalKey] = row[cIdx] ?? '';
     });
 
     const errors: string[] = [];
     const warnings: string[] = [];
 
     // 1. Property Name (Required)
-    const rawProp = String(normalizedRow['propertyName'] || '').trim();
+    let rawProp = String(normalizedRow['propertyName'] || '').trim();
+    let rawClient = String(normalizedRow['clientName'] || '').trim();
+
+    // Handle swap where Portfolio column holds Property Name and Project Name column holds Management Co
+    if (rawProp.toLowerCase().includes('enclave property management') && rawClient) {
+      const temp = rawProp;
+      rawProp = rawClient;
+      rawClient = temp;
+    }
+
     if (!rawProp) {
       errors.push('Missing Property Name (Required)');
     }
 
     // 2. Client Name (Required)
-    const rawClient = String(normalizedRow['clientName'] || '').trim();
     if (!rawClient) {
       warnings.push('Client Name was missing; defaulted to "Quext Client Portfolio"');
     }
@@ -509,7 +543,7 @@ export function parseProjectSpreadsheet(
       notes,
       raw: row,
     });
-  });
+  }
 
   const totalCount = parsedRows.length;
   const validCount = parsedRows.filter((r) => r.isValid && r.warnings.length === 0).length;

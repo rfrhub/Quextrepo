@@ -19,6 +19,7 @@ import {
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
 import { SEED_SOW_21_PEARL } from '../services/sowFormService';
+import { MASTER_TRACKER_PROJECTS } from './masterTrackerData';
 
 export const INITIAL_QUOTES: Quote[] = MYQUEXT_QUOTES;
 
@@ -804,7 +805,7 @@ export const PROJECT_21_PEARL: OperationProject = {
   sowSubmissions: [SEED_SOW_21_PEARL],
 };
 
-export const INITIAL_PROJECTS: OperationProject[] = [PROJECT_21_PEARL, ...MYQUEXT_PROJECTS];
+export const INITIAL_PROJECTS: OperationProject[] = MASTER_TRACKER_PROJECTS;
 
 export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
   {
@@ -2134,6 +2135,15 @@ export function loadStoredProjects(): OperationProject[] {
           pearlProj.sowSubmissions = [SEED_SOW_21_PEARL];
         }
       }
+
+      // Merge any new Master Tracker projects that haven't yet been cached locally
+      const existingIds = new Set(sanitizedList.map((p) => p.id));
+      INITIAL_PROJECTS.forEach((initProj) => {
+        if (!existingIds.has(initProj.id) && !archivedIds.has(initProj.id)) {
+          sanitizedList.push(sanitizeProjectRealTeamOnly(enrichProjectDefaults(initProj)));
+          existingIds.add(initProj.id);
+        }
+      });
 
       if (!isAlreadyPurged) {
         localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitizedList));
