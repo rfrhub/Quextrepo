@@ -18,6 +18,7 @@ import {
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
+import { SEED_SOW_21_PEARL } from '../services/sowFormService';
 
 export const INITIAL_QUOTES: Quote[] = MYQUEXT_QUOTES;
 
@@ -698,7 +699,112 @@ export const LEGACY_SAMPLE_QUOTES: Quote[] = [
   },
 ];
 
-export const INITIAL_PROJECTS: OperationProject[] = MYQUEXT_PROJECTS;
+export const PROJECT_21_PEARL: OperationProject = {
+  id: 'proj-21-pearl',
+  quoteId: 'quote-21-pearl',
+  quoteNumber: 'QXT-2026-21PL',
+  propertyName: '21 Pearl',
+  clientName: 'Greystar Real Estate Partners',
+  propertyManagementCompany: 'Greystar Property Management',
+  address: '21 Pearl St',
+  city: 'Austin',
+  state: 'TX',
+  zipCode: '78705',
+  unitsCount: 182,
+  heroImage: '/src/assets/images/property_grand_horizon_1792605840266.jpg',
+  assignedPM: {
+    name: 'Raul Recalde',
+    email: 'raul.recalde@onequext.com',
+    role: 'Director of Implementation',
+  },
+  assignedCSM: 'Nicole Franklin',
+  assignedFieldTech: 'Sean Gates',
+  integratorPartners: ['Spirit Security'],
+  statusTag: 'On Track',
+  statusReason: 'Phase 2 IoT Deadbolts & Mesh Gateways active.',
+  startDate: '2026-10-01',
+  targetCompletionDate: '2026-11-20',
+  lastUpdated: new Date().toISOString(),
+  bomItems: [],
+  installLogs: [],
+  notes: [],
+  milestones: [
+    {
+      id: 'm-21pl-1',
+      title: 'Project kickoff',
+      status: 'Completed',
+      targetDate: '2026-10-05',
+    },
+    {
+      id: 'm-21pl-2',
+      title: 'Portal Buildout',
+      status: 'Completed',
+      targetDate: '2026-10-12',
+    },
+    {
+      id: 'm-21pl-3',
+      title: 'Product Acquisition',
+      status: 'Completed',
+      targetDate: '2026-10-18',
+    },
+    {
+      id: 'm-21pl-4',
+      title: 'CSM Intro - Pre-implementation',
+      status: 'Completed',
+      targetDate: '2026-10-25',
+    },
+    {
+      id: 'm-21pl-5',
+      title: 'Implementation',
+      status: 'In Progress',
+      targetDate: '2026-11-15',
+    },
+    {
+      id: 'm-21pl-6',
+      title: 'CSM Handoff',
+      status: 'Upcoming',
+      targetDate: '2026-11-18',
+    },
+    {
+      id: 'm-21pl-7',
+      title: 'Project Closed',
+      status: 'Upcoming',
+      targetDate: '2026-11-20',
+    },
+  ],
+  customerIntake: {
+    submittedBy: 'Marcus Vance',
+    sitePhoneNumber: '(512) 472-2100',
+    communityEmail: 'marcus.vance@21pearlapts.com',
+    subscriberEmail: 'marcus.vance@21pearlapts.com',
+    propertyManagementCompany: 'Greystar Property Management',
+    pmsSoftware: 'Yardi',
+    commonAreaDoors: [],
+    staffRoles: [
+      {
+        id: 'staff-21pl-1',
+        firstName: 'Marcus',
+        lastName: 'Vance',
+        roleOrTitle: 'Community Director',
+        permissionLevel: 'Manager',
+        phoneNumber: '(512) 472-2100',
+        email: 'marcus.vance@21pearlapts.com',
+      },
+      {
+        id: 'staff-21pl-2',
+        firstName: 'Elena',
+        lastName: 'Ruiz',
+        roleOrTitle: 'Maintenance Supervisor',
+        permissionLevel: 'Staff',
+        phoneNumber: '(512) 472-2105',
+        email: 'elena.ruiz@21pearlapts.com',
+      },
+    ],
+  },
+  sowSubmissions: [SEED_SOW_21_PEARL],
+};
+
+export const INITIAL_PROJECTS: OperationProject[] = [PROJECT_21_PEARL, ...MYQUEXT_PROJECTS];
 
 export const LEGACY_SAMPLE_PROJECTS: OperationProject[] = [
   {
@@ -2013,6 +2119,21 @@ export function loadStoredProjects(): OperationProject[] {
           const enriched = enrichProjectDefaults(p);
           return sanitizeProjectRealTeamOnly(enriched);
         });
+
+      // Ensure 21 Pearl is present in stored projects list if missing
+      const has21Pearl = sanitizedList.some(
+        (p) => (p.propertyName || '').trim().toLowerCase() === '21 pearl' || p.id === 'proj-21-pearl'
+      );
+      if (!has21Pearl) {
+        sanitizedList.unshift(sanitizeProjectRealTeamOnly(enrichProjectDefaults(PROJECT_21_PEARL)));
+      } else {
+        const pearlProj = sanitizedList.find(
+          (p) => (p.propertyName || '').trim().toLowerCase() === '21 pearl' || p.id === 'proj-21-pearl'
+        );
+        if (pearlProj && (!pearlProj.sowSubmissions || pearlProj.sowSubmissions.length === 0)) {
+          pearlProj.sowSubmissions = [SEED_SOW_21_PEARL];
+        }
+      }
 
       if (!isAlreadyPurged) {
         localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitizedList));

@@ -3,6 +3,7 @@ export interface GoogleFormSubmission {
   submittedAt: string;
   source: 'google_form' | 'webhook' | 'simulator';
   status: 'new' | 'pdf_generated' | 'sent_to_tech';
+  propertyId?: string;
   
   // Site & Project Identification
   communityName: string;

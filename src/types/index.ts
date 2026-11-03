@@ -1,4 +1,5 @@
 import type { PrePackagedProjectCourseBundle } from '../partner-academy/utils/projectCoursePackager';
+import type { GoogleFormSubmission } from './sowForm';
 
 export type DealStage = 
   | 'Prospect'
@@ -1330,6 +1331,7 @@ export interface OperationProject {
   communityDetails?: CommunityKickoffDetails;
   customerIntake?: KickoffCustomerIntake;
   customerCommsLogs?: CustomerCommsLog[];
+  sowSubmissions?: GoogleFormSubmission[];
   emailOverviewCadence?: CustomerEmailCadence;
   emailCadenceStartDate?: string; // Fillable start date for weekly/biweekly overview cadence
   additionalCustomerEmails?: string[]; // PM manually added customer emails for automated digests & manual dispatches

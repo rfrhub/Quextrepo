@@ -111,21 +111,82 @@ export const DEFAULT_FIELD_TECHS: FieldTechContact[] = [
   },
 ];
 
+export const SEED_SOW_21_PEARL: GoogleFormSubmission = {
+  id: 'sow-21-pearl-master',
+  submittedAt: '2026-11-01T14:30:00.000Z',
+  source: 'simulator',
+  status: 'pdf_generated',
+  propertyId: 'proj-21-pearl',
+  communityName: '21 Pearl',
+  workSiteAddress: '21 Pearl St, Austin, TX 78705',
+  datePrepared: '2026-11-01',
+  installDate: '2026-11-15',
+  preparedBy: 'Raul Recalde',
+  sowReferenceNumber: 'SOW-2026-21PL-QXT',
+  pocName: 'Marcus Vance',
+  pocTitle: 'Lead Community Director',
+  pocPhone: '(512) 472-2100',
+  pocEmail: 'marcus.vance@21pearlapts.com',
+  alternateContact: 'Elena Ruiz (Maintenance Supervisor) (512) 472-2105',
+  unitLocksIssue:
+    'Building B Floors 2 & 3: 14 Smart Locksets experiencing BLE gateway desynchronization following power cycle. Re-pairing and firmware flash required.',
+  accessControlIssue:
+    'Main Courtyard Perimeter Pedestrian Gate: Magnetic shear lock not releasing on keyfob scan. Reader telemetry operational, relay needs replacement.',
+  camerasIssue: 'North Parking Garage Level 1: Dome camera #04 offline due to PoE injector reset.',
+  residentWifiIssue:
+    'Clubhouse Resident Lounge: AP-02 channel interference with leasing office router.',
+  communityWifiIssue: '',
+  staffWifiIssue: 'Leasing office management AP running on default mesh; needs VLAN separation.',
+  thermostatsIssue:
+    'Units 204, 208, 312: EcoBee thermostats lost cloud pairing after Wi-Fi credential update.',
+  leakSensorsIssue: 'Water heater closet sensors #08 and #11 reported low battery warnings.',
+  equipmentNeedsShipping: 'Yes',
+  equipmentToShip:
+    '14x BLE Deadbolt modules, 1x 12V 5A Relay Board, 2x PoE+ Injectors, 6x CR123A Lithium Batteries',
+  equipmentQuantityAndLocation:
+    '14 Locksets (Bldg B), 1 Relay (Courtyard Gate), 2 Injectors (Garage L1)',
+  shippingRecipient: 'Marcus Vance (Site POC)',
+  shippingPhone: '(512) 472-2100',
+  shippingEmail: 'marcus.vance@21pearlapts.com',
+  shippingMethod: '2 Day',
+  primaryContactMethod: 'Cell Phone & Text/SMS',
+  backupContactMethod: 'Email to Site POC',
+  checkInFrequency: 'Upon site arrival and before leaving site',
+  escalationContact: 'Quext Customer Success & Field Operations',
+  integratorPartners: ['Spirit Security'],
+};
+
 export const loadSubmissions = (): GoogleFormSubmission[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return [];
+    let parsed: GoogleFormSubmission[] = [];
+    if (raw) {
+      const json = JSON.parse(raw);
+      if (Array.isArray(json)) {
+        parsed = json.filter(
+          (s) => s && s.id !== 'sub-sample-1' && s.id !== 'sub-sample-2'
+        );
+      }
     }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // Filter out any legacy fake sample submissions
-    return parsed.filter(
-      (s) => s && s.id !== 'sub-sample-1' && s.id !== 'sub-sample-2'
+    // Ensure 21 Pearl SOW is always present
+    const has21Pearl = parsed.some(
+      (s) =>
+        (s.communityName || '').trim().toLowerCase() === '21 pearl' ||
+        (s.sowReferenceNumber || '').includes('21PL') ||
+        s.id === 'sow-21-pearl-master'
     );
+    if (!has21Pearl) {
+      parsed.unshift(SEED_SOW_21_PEARL);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      } catch {
+        // ignore
+      }
+    }
+    return parsed;
   } catch (err) {
     console.error('Failed to load SOW submissions from localStorage:', err);
-    return [];
+    return [SEED_SOW_21_PEARL];
   }
 };
 

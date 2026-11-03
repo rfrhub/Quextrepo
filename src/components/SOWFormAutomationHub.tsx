@@ -6,6 +6,7 @@ import {
   loadSubmissions,
   saveSubmissions,
   addSubmission,
+  updateSubmission,
   deleteSubmission,
   DEFAULT_FIELD_TECHS,
   dispatchSowEmailToTech,
@@ -38,6 +39,8 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  Pencil,
+  Edit3,
 } from 'lucide-react';
 
 interface SOWFormAutomationHubProps {
@@ -46,6 +49,7 @@ interface SOWFormAutomationHubProps {
   onNavigateToProject?: (projectId: string) => void;
   properties?: OperationProject[];
   initialProperty?: OperationProject | null;
+  initialEditingSowId?: string | null;
   currentUserName?: string;
   onUpdateProperty?: (property: OperationProject) => void;
 }
@@ -55,6 +59,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
   onClose,
   properties = [],
   initialProperty = null,
+  initialEditingSowId = null,
   currentUserName = 'Quext Customer Success',
   onUpdateProperty,
 }) => {
@@ -253,15 +258,99 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      refreshSubmissions();
-      setActiveTab('create');
-      if (initialProperty) {
-        applyPropertyToForm(initialProperty);
+  const [editingSowId, setEditingSowId] = useState<string | null>(null);
+
+  const editingSub = useMemo(() => {
+    if (!editingSowId) return null;
+    return submissions.find((s) => s.id === editingSowId) || null;
+  }, [editingSowId, submissions]);
+
+  const startEditingSow = (sub: GoogleFormSubmission) => {
+    setEditingSowId(sub.id);
+    setQ1CommunityName(sub.communityName || '');
+    setQ2WorkSiteAddress(sub.workSiteAddress || '');
+    setQ3DatePrepared(sub.datePrepared || todayIso);
+    setQ4InstallDate(sub.installDate || '');
+    setIntegratorPartners(sub.integratorPartners ? [...sub.integratorPartners] : []);
+    setQ5PocName(sub.pocName || '');
+    setQ6PocTitle(sub.pocTitle || '');
+    setQ7PocPhone(sub.pocPhone || '');
+    setQ8PocEmail(sub.pocEmail || '');
+    setQ9AlternateContact(sub.alternateContact || '');
+    setQ10UnitLocksIssue(sub.unitLocksIssue || '');
+    setQ11AccessControlIssue(sub.accessControlIssue || '');
+    setQ12CamerasIssue(sub.camerasIssue || '');
+    setQ13ResidentWifiIssue(sub.residentWifiIssue || '');
+    setQ14CommunityWifiIssue(sub.communityWifiIssue || '');
+    setQ15StaffWifiIssue(sub.staffWifiIssue || '');
+    setQ16ThermostatsIssue(sub.thermostatsIssue || '');
+    setQ17LeakSensorsIssue(sub.leakSensorsIssue || '');
+    setQ18NeedsShipping(sub.equipmentNeedsShipping === 'Yes' ? 'Yes' : 'No');
+    setQ19EquipmentQtyAndLocation(sub.equipmentQuantityAndLocation || sub.equipmentToShip || '');
+    setQ20ShippingRecipient(sub.shippingRecipient || '');
+    setQ21ShippingPhone(sub.shippingPhone || '');
+    setQ22ShippingEmail(sub.shippingEmail || '');
+    setQ23ShippingMethod((sub.shippingMethod as any) || 'Ground');
+
+    if (sub.propertyId) {
+      setSelectedPropertyId(sub.propertyId);
+    } else {
+      const matched = properties.find(
+        (p) => (p.propertyName || '').trim().toLowerCase() === (sub.communityName || '').trim().toLowerCase()
+      );
+      if (matched) {
+        setSelectedPropertyId(matched.id);
       }
     }
-  }, [isOpen, initialProperty]);
+
+    if (sub.integratorPartners && sub.integratorPartners.length > 0) {
+      const partnerName = sub.integratorPartners[0];
+      const matched = DEFAULT_FIELD_TECHS.find((t) =>
+        t.name.toLowerCase().includes(partnerName.toLowerCase())
+      );
+      if (matched) {
+        setSelectedTech(matched);
+        setCustomRecipientName(matched.name);
+        if (matched.email) setCustomTechEmail(matched.email);
+      } else {
+        setCustomRecipientName(`${partnerName} (Partner Integrator)`);
+      }
+    }
+
+    setActiveTab('create');
+  };
+
+  const cancelEditingSow = () => {
+    setEditingSowId(null);
+    if (initialProperty) {
+      applyPropertyToForm(initialProperty);
+    } else {
+      applyPropertyToForm(null);
+      resetIssueFields();
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      const all = loadSubmissions();
+      setSubmissions(all);
+      setActiveTab('create');
+      if (initialEditingSowId) {
+        const target = all.find((s) => s.id === initialEditingSowId);
+        if (target) {
+          startEditingSow(target);
+          return;
+        }
+      }
+      if (initialProperty) {
+        applyPropertyToForm(initialProperty);
+      } else {
+        setEditingSowId(null);
+      }
+    } else {
+      setEditingSowId(null);
+    }
+  }, [isOpen, initialEditingSowId, initialProperty]);
 
   const refreshSubmissions = () => {
     const local = loadSubmissions();
@@ -307,52 +396,143 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     e.preventDefault();
     if (!q1CommunityName.trim()) return;
 
-    const created = addSubmission({
-      source: 'simulator',
-      preparedBy: currentUserName,
-      communityName: q1CommunityName.trim(),
-      workSiteAddress: q2WorkSiteAddress.trim() || 'Address on file',
-      datePrepared: q3DatePrepared || todayIso,
-      installDate: q4InstallDate || 'TBD',
-      integratorPartners: integratorPartners.length > 0 ? integratorPartners : undefined,
-      pocName: q5PocName.trim() || 'Site POC',
-      pocTitle: q6PocTitle.trim() || 'Community Contact',
-      pocPhone: q7PocPhone.trim() || '—',
-      pocEmail: q8PocEmail.trim() || '—',
-      alternateContact: q9AlternateContact.trim(),
-      unitLocksIssue: q10UnitLocksIssue.trim(),
-      accessControlIssue: q11AccessControlIssue.trim(),
-      camerasIssue: q12CamerasIssue.trim(),
-      residentWifiIssue: q13ResidentWifiIssue.trim(),
-      communityWifiIssue: q14CommunityWifiIssue.trim(),
-      staffWifiIssue: q15StaffWifiIssue.trim(),
-      thermostatsIssue: q16ThermostatsIssue.trim(),
-      leakSensorsIssue: q17LeakSensorsIssue.trim(),
-      equipmentNeedsShipping: q18NeedsShipping,
-      equipmentToShip:
-        q18NeedsShipping === 'Yes' ? q19EquipmentQtyAndLocation.trim() : '',
-      equipmentQuantityAndLocation:
-        q18NeedsShipping === 'Yes' ? q19EquipmentQtyAndLocation.trim() : '',
-      shippingRecipient:
-        q18NeedsShipping === 'Yes'
-          ? q20ShippingRecipient.trim() || q5PocName.trim()
-          : '',
-      shippingPhone:
-        q18NeedsShipping === 'Yes'
-          ? q21ShippingPhone.trim() || q7PocPhone.trim()
-          : '',
-      shippingEmail:
-        q18NeedsShipping === 'Yes'
-          ? q22ShippingEmail.trim() || q8PocEmail.trim()
-          : '',
-      shippingMethod: q18NeedsShipping === 'Yes' ? q23ShippingMethod : 'Ground',
-    });
+    if (editingSowId) {
+      const updated = updateSubmission(editingSowId, {
+        communityName: q1CommunityName.trim(),
+        workSiteAddress: q2WorkSiteAddress.trim() || 'Address on file',
+        datePrepared: q3DatePrepared || todayIso,
+        installDate: q4InstallDate || 'TBD',
+        integratorPartners: integratorPartners.length > 0 ? integratorPartners : undefined,
+        propertyId: selectedPropertyId || undefined,
+        pocName: q5PocName.trim() || 'Site POC',
+        pocTitle: q6PocTitle.trim() || 'Community Contact',
+        pocPhone: q7PocPhone.trim() || '—',
+        pocEmail: q8PocEmail.trim() || '—',
+        alternateContact: q9AlternateContact.trim(),
+        unitLocksIssue: q10UnitLocksIssue.trim(),
+        accessControlIssue: q11AccessControlIssue.trim(),
+        camerasIssue: q12CamerasIssue.trim(),
+        residentWifiIssue: q13ResidentWifiIssue.trim(),
+        communityWifiIssue: q14CommunityWifiIssue.trim(),
+        staffWifiIssue: q15StaffWifiIssue.trim(),
+        thermostatsIssue: q16ThermostatsIssue.trim(),
+        leakSensorsIssue: q17LeakSensorsIssue.trim(),
+        equipmentNeedsShipping: q18NeedsShipping,
+        equipmentToShip: q18NeedsShipping === 'Yes' ? q19EquipmentQtyAndLocation.trim() : '',
+        equipmentQuantityAndLocation:
+          q18NeedsShipping === 'Yes' ? q19EquipmentQtyAndLocation.trim() : '',
+        shippingRecipient:
+          q18NeedsShipping === 'Yes'
+            ? q20ShippingRecipient.trim() || q5PocName.trim()
+            : '',
+        shippingPhone:
+          q18NeedsShipping === 'Yes'
+            ? q21ShippingPhone.trim() || q7PocPhone.trim()
+            : '',
+        shippingEmail:
+          q18NeedsShipping === 'Yes'
+            ? q22ShippingEmail.trim() || q8PocEmail.trim()
+            : '',
+        shippingMethod: q18NeedsShipping === 'Yes' ? q23ShippingMethod : 'Ground',
+      });
 
-    refreshSubmissions();
-    resetIssueFields();
-    setDispatchSuccessMsg(null);
-    // Immediately open the Ready-to-Use SOW & Partner Email modal for the newly created SOW
-    setSelectedSubForDispatch(created);
+      if (updated) {
+        // Save/Sync directly to Property
+        const targetProp =
+          selectedProperty ||
+          properties.find(
+            (p) =>
+              p.id === updated.propertyId ||
+              (p.propertyName || '').trim().toLowerCase() === updated.communityName.trim().toLowerCase()
+          );
+        if (targetProp && onUpdateProperty) {
+          const currentSows = targetProp.sowSubmissions ? [...targetProp.sowSubmissions] : [];
+          const idx = currentSows.findIndex((s) => s.id === updated.id);
+          if (idx >= 0) {
+            currentSows[idx] = updated;
+          } else {
+            currentSows.unshift(updated);
+          }
+          onUpdateProperty({
+            ...targetProp,
+            sowSubmissions: currentSows,
+            lastUpdated: new Date().toISOString(),
+          });
+        }
+
+        refreshSubmissions();
+        setEditingSowId(null);
+        resetIssueFields();
+        setDispatchSuccessMsg(null);
+        setSelectedSubForDispatch(updated);
+      }
+    } else {
+      const created = addSubmission({
+        source: 'simulator',
+        preparedBy: currentUserName,
+        propertyId: selectedPropertyId || undefined,
+        communityName: q1CommunityName.trim(),
+        workSiteAddress: q2WorkSiteAddress.trim() || 'Address on file',
+        datePrepared: q3DatePrepared || todayIso,
+        installDate: q4InstallDate || 'TBD',
+        integratorPartners: integratorPartners.length > 0 ? integratorPartners : undefined,
+        pocName: q5PocName.trim() || 'Site POC',
+        pocTitle: q6PocTitle.trim() || 'Community Contact',
+        pocPhone: q7PocPhone.trim() || '—',
+        pocEmail: q8PocEmail.trim() || '—',
+        alternateContact: q9AlternateContact.trim(),
+        unitLocksIssue: q10UnitLocksIssue.trim(),
+        accessControlIssue: q11AccessControlIssue.trim(),
+        camerasIssue: q12CamerasIssue.trim(),
+        residentWifiIssue: q13ResidentWifiIssue.trim(),
+        communityWifiIssue: q14CommunityWifiIssue.trim(),
+        staffWifiIssue: q15StaffWifiIssue.trim(),
+        thermostatsIssue: q16ThermostatsIssue.trim(),
+        leakSensorsIssue: q17LeakSensorsIssue.trim(),
+        equipmentNeedsShipping: q18NeedsShipping,
+        equipmentToShip:
+          q18NeedsShipping === 'Yes' ? q19EquipmentQtyAndLocation.trim() : '',
+        equipmentQuantityAndLocation:
+          q18NeedsShipping === 'Yes' ? q19EquipmentQtyAndLocation.trim() : '',
+        shippingRecipient:
+          q18NeedsShipping === 'Yes'
+            ? q20ShippingRecipient.trim() || q5PocName.trim()
+            : '',
+        shippingPhone:
+          q18NeedsShipping === 'Yes'
+            ? q21ShippingPhone.trim() || q7PocPhone.trim()
+            : '',
+        shippingEmail:
+          q18NeedsShipping === 'Yes'
+            ? q22ShippingEmail.trim() || q8PocEmail.trim()
+            : '',
+        shippingMethod: q18NeedsShipping === 'Yes' ? q23ShippingMethod : 'Ground',
+      });
+
+      // Save/Sync directly to Property
+      const targetProp =
+        selectedProperty ||
+        properties.find(
+          (p) =>
+            p.id === created.propertyId ||
+            (p.propertyName || '').trim().toLowerCase() === created.communityName.trim().toLowerCase()
+        );
+      if (targetProp && onUpdateProperty) {
+        const currentSows = targetProp.sowSubmissions ? [...targetProp.sowSubmissions] : [];
+        currentSows.unshift(created);
+        onUpdateProperty({
+          ...targetProp,
+          sowSubmissions: currentSows,
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+
+      refreshSubmissions();
+      resetIssueFields();
+      setDispatchSuccessMsg(null);
+      // Immediately open the Ready-to-Use SOW & Partner Email modal for the newly created SOW
+      setSelectedSubForDispatch(created);
+    }
   };
 
   const handleDispatch = async () => {
@@ -458,12 +638,25 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
               onClick={() => setActiveTab('create')}
               className={`py-3 px-4 text-xs font-bold border-b-2 transition flex items-center gap-2 cursor-pointer ${
                 activeTab === 'create'
-                  ? 'border-teal-600 text-teal-700 bg-white shadow-xs'
+                  ? editingSowId
+                    ? 'border-amber-600 text-amber-900 bg-amber-50/80 shadow-xs'
+                    : 'border-teal-600 text-teal-700 bg-white shadow-xs'
                   : 'border-transparent text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Plus className="w-4 h-4" />
-              1. Fill Out SOW Information Form (23 Questions)
+              {editingSowId ? (
+                <>
+                  <Pencil className="w-4 h-4 text-amber-600" />
+                  <span>
+                    1. Edit SOW Work Order ({editingSub?.sowReferenceNumber || 'In Progress'})
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>1. Fill Out SOW Information Form (23 Questions)</span>
+                </>
+              )}
             </button>
 
             <button
@@ -503,6 +696,40 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
           ================================================================= */}
           {activeTab === 'create' && (
             <form onSubmit={handleCreateSowSubmit} className="max-w-4xl mx-auto space-y-6">
+              {/* Editing Mode Alert Banner */}
+              {editingSowId && editingSub && (
+                <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                      <Pencil className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-amber-950 flex items-center gap-2 flex-wrap text-sm">
+                        <span>Editing SOW Work Order:</span>
+                        <span className="font-mono bg-amber-200/90 text-amber-950 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-amber-300">
+                          {editingSub.sowReferenceNumber}
+                        </span>
+                        <span className="text-amber-800 font-semibold text-xs">
+                          • {editingSub.communityName}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 mt-0.5">
+                        Any updates you make will save to this SOW work order and sync directly to the property record.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={cancelEditingSow}
+                      className="px-3 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-amber-900 font-bold transition cursor-pointer text-xs shadow-2xs"
+                    >
+                      Cancel Editing / Create New SOW
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Top Form Banner + Optional Property Quick-Fill */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -1167,8 +1394,17 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                       type="submit"
                       className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black shadow-md transition cursor-pointer"
                     >
-                      <Sparkles className="w-4 h-4" />
-                      Generate Ready-to-Use SOW &amp; Partner Email
+                      {editingSowId ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Save Changes &amp; Update SOW
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Generate Ready-to-Use SOW &amp; Partner Email
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1320,6 +1556,16 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                         <div className="flex items-center gap-2 self-start md:self-center shrink-0">
                           <button
                             type="button"
+                            onClick={() => startEditingSow(sub)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-900 hover:bg-amber-100 transition shadow-xs cursor-pointer"
+                            title="Edit this SOW Work Order"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-amber-600" />
+                            Edit SOW
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => setSelectedSubForPreview(sub)}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-xs cursor-pointer"
                           >
@@ -1351,8 +1597,27 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              deleteSubmission(sub.id);
-                              refreshSubmissions();
+                              if (window.confirm(`Are you sure you want to delete SOW "${sub.sowReferenceNumber}" for ${sub.communityName}?`)) {
+                                deleteSubmission(sub.id);
+                                if (onUpdateProperty) {
+                                  const targetProp = properties.find(
+                                    (p) =>
+                                      p.id === sub.propertyId ||
+                                      (p.propertyName || '').trim().toLowerCase() === (sub.communityName || '').trim().toLowerCase()
+                                  );
+                                  if (targetProp && targetProp.sowSubmissions) {
+                                    onUpdateProperty({
+                                      ...targetProp,
+                                      sowSubmissions: targetProp.sowSubmissions.filter((s) => s.id !== sub.id),
+                                      lastUpdated: new Date().toISOString(),
+                                    });
+                                  }
+                                }
+                                refreshSubmissions();
+                                if (editingSowId === sub.id) {
+                                  cancelEditingSow();
+                                }
+                              }
                             }}
                             className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
                             title="Delete SOW"
@@ -1405,6 +1670,18 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const toEdit = selectedSubForDispatch;
+                    setSelectedSubForDispatch(null);
+                    startEditingSow(toEdit);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition cursor-pointer shadow-xs"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit SOW
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -1665,6 +1942,18 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const toEdit = selectedSubForPreview;
+                    setSelectedSubForPreview(null);
+                    startEditingSow(toEdit);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition cursor-pointer shadow-xs"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit SOW
+                </button>
                 <button
                   type="button"
                   onClick={() => downloadSowPdf(selectedSubForPreview)}
