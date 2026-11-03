@@ -1706,6 +1706,7 @@ export interface CSMPropertyNote {
   riskGroupId?: string;
   resolutionPlan?: CSMResolutionPlan;
   transferredFromProjectNoteId?: string;
+  syncedTrainingId?: string;
 }
 
 export interface CSMRiskGroup {
@@ -1720,10 +1721,44 @@ export interface CSMRiskGroup {
   resolutionPlan: CSMResolutionPlan;
 }
 
+export type CSMTrainingAttendeeRole = 'Onsite Staff' | 'Owner' | 'Maintenance';
+
+export interface CSMTrainingAttendee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role?: CSMTrainingAttendeeRole | '';
+  phone?: string;
+}
+
+export type CSMTrainingStatus =
+  | 'Completed'
+  | 'Cancelled'
+  | 'No Show'
+  | 'Rescheduled';
+
+export interface CSMPropertyTraining {
+  id: string;
+  propertyId: string;
+  title: string;
+  trainingType: string;
+  trainer: string;
+  dateTime: string;
+  status: CSMTrainingStatus;
+  rescheduledDateTime?: string;
+  attendees: CSMTrainingAttendee[];
+  notes?: string;
+  syncedNoteId?: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt?: string;
+}
+
 export interface CSMPropertyPortalData {
   contracts: CSMContractScrubbedAnalysis[];
   csmNotes: CSMPropertyNote[];
   riskGroups: CSMRiskGroup[];
+  trainings?: CSMPropertyTraining[];
   lastUpdatedAt?: string;
 }
 

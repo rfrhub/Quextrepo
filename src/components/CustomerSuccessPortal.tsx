@@ -35,6 +35,10 @@ import {
   CSM_CALENDAR_BOOKING_DIRECTORY,
   QUEXT_TRAINING_HELP_ARTICLE_URL,
   CSMCalendarBookingProfile,
+  CSMPropertyTraining,
+  CSMTrainingAttendee,
+  CSMTrainingAttendeeRole,
+  CSMTrainingStatus,
 } from '../types';
 import { scrubContractDocumentWithAI } from '../services/contractScrubberService';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
@@ -91,6 +95,8 @@ import {
   Filter,
   Flame,
   Eye,
+  GraduationCap,
+  ChevronRight,
 } from 'lucide-react';
 
 interface CustomerSuccessPortalProps {
@@ -1899,6 +1905,7 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
     contracts: [],
     csmNotes: [],
     riskGroups: [],
+    trainings: [],
   };
 
   const contracts = portalData.contracts || [];
@@ -1916,6 +1923,73 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
   }, [contracts, selectedContractId]);
   const csmNotes = portalData.csmNotes || [];
   const riskGroups = portalData.riskGroups || [];
+
+  const trainings: CSMPropertyTraining[] = useMemo(() => {
+    if (portalData.trainings !== undefined) {
+      return portalData.trainings;
+    }
+    // Seed realistic conducted trainings for CSM properties if none logged yet
+    return [
+      {
+        id: `training-${property.id}-1`,
+        propertyId: property.id,
+        title: 'Onsite Staff Portal & Mobile App Onboarding',
+        trainingType: 'Staff Onboarding & Portal Access',
+        trainer: property.assignedCSM || 'Nicole Franklin',
+        dateTime: '2026-10-24T14:00',
+        status: 'Completed',
+        attendees: [
+          {
+            id: 'att-sample-1',
+            firstName: 'Sarah',
+            lastName: 'Miller',
+            role: 'Onsite Staff',
+            phone: '(555) 234-5678',
+          },
+          {
+            id: 'att-sample-2',
+            firstName: 'Marcus',
+            lastName: 'Vance',
+            role: 'Maintenance',
+            phone: '(555) 876-5432',
+          },
+        ],
+        notes:
+          'Covered Quext staff portal navigation, resident key issuance, and access badge provisioning. Staff successfully logged into their accounts.',
+        createdAt: '2026-10-24T15:00:00.000Z',
+        createdBy: property.assignedCSM || 'Nicole Franklin',
+      },
+      {
+        id: `training-${property.id}-2`,
+        propertyId: property.id,
+        title: 'Smart Lock Battery & Hardware Maintenance Review',
+        trainingType: 'Smart Lock & Hardware Maintenance',
+        trainer: property.assignedCSM || 'Nicole Franklin',
+        dateTime: '2026-10-28T10:30',
+        status: 'Completed',
+        attendees: [
+          {
+            id: 'att-sample-3',
+            firstName: 'Marcus',
+            lastName: 'Vance',
+            role: 'Maintenance',
+            phone: '(555) 876-5432',
+          },
+          {
+            id: 'att-sample-4',
+            firstName: 'Elena',
+            lastName: 'Rostova',
+            role: 'Owner',
+            phone: '(555) 432-1098',
+          },
+        ],
+        notes:
+          'Trained maintenance on cylinder replacement, battery swap procedures, and emergency door unlock protocols.',
+        createdAt: '2026-10-28T11:45:00.000Z',
+        createdBy: property.assignedCSM || 'Nicole Franklin',
+      },
+    ];
+  }, [portalData.trainings, property.id, property.assignedCSM]);
 
   // BOM Installed vs Original Totals
   const totalOriginalBomQty = property.bomItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -2107,6 +2181,300 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
     if (selectedContractId === contractId) {
       setSelectedContractId(updatedContracts[0]?.id || 'all');
     }
+  };
+
+  // ==========================================================================
+  // CONDUCTED PROPERTY TRAININGS STATE & HANDLERS
+  // ==========================================================================
+  const getNowDateTimeLocal = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
+
+  const formatForDateTimeInput = (val: string) => {
+    if (!val) return getNowDateTimeLocal();
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+      return val.slice(0, 16);
+    }
+    try {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+      }
+    } catch {
+      // fallback
+    }
+    return getNowDateTimeLocal();
+  };
+
+  const formatTrainingDateTime = (isoOrStr: string): string => {
+    if (!isoOrStr) return 'Date not specified';
+    try {
+      const d = new Date(isoOrStr);
+      if (isNaN(d.getTime())) return isoOrStr;
+      return d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return isoOrStr;
+    }
+  };
+
+  const [isTrainingModalOpen, setIsTrainingModalOpen] = useState(false);
+  const [editingTrainingId, setEditingTrainingId] = useState<string | null>(null);
+  const [trainingDraft, setTrainingDraft] = useState<{
+    id?: string;
+    title: string;
+    trainingType: string;
+    trainer: string;
+    dateTime: string;
+    status: CSMTrainingStatus;
+    rescheduledDateTime: string;
+    attendees: CSMTrainingAttendee[];
+    notes: string;
+    syncedNoteId?: string;
+  }>({
+    title: '',
+    trainingType: 'Staff Onboarding & Portal Access',
+    trainer: property.assignedCSM || currentUserName || 'Customer Success Manager',
+    dateTime: getNowDateTimeLocal(),
+    status: 'Completed',
+    rescheduledDateTime: '',
+    attendees: [
+      {
+        id: `att-${Date.now()}-1`,
+        firstName: '',
+        lastName: '',
+        role: '',
+        phone: '',
+      },
+    ],
+    notes: '',
+  });
+
+  const handleOpenCreateTraining = () => {
+    setEditingTrainingId(null);
+    setTrainingDraft({
+      title: '',
+      trainingType: 'Staff Onboarding & Portal Access',
+      trainer: property.assignedCSM || currentUserName || 'Customer Success Manager',
+      dateTime: getNowDateTimeLocal(),
+      status: 'Completed',
+      rescheduledDateTime: '',
+      attendees: [
+        {
+          id: `att-${Date.now()}-1`,
+          firstName: '',
+          lastName: '',
+          role: '',
+          phone: '',
+        },
+      ],
+      notes: '',
+    });
+    setIsTrainingModalOpen(true);
+  };
+
+  const handleOpenViewTraining = (training: CSMPropertyTraining) => {
+    setEditingTrainingId(training.id);
+    setTrainingDraft({
+      id: training.id,
+      title: training.title,
+      trainingType: training.trainingType,
+      trainer: training.trainer,
+      dateTime: formatForDateTimeInput(training.dateTime),
+      status: training.status || 'Completed',
+      rescheduledDateTime: training.rescheduledDateTime
+        ? formatForDateTimeInput(training.rescheduledDateTime)
+        : '',
+      attendees:
+        training.attendees && training.attendees.length > 0
+          ? JSON.parse(JSON.stringify(training.attendees))
+          : [
+              {
+                id: `att-${Date.now()}-1`,
+                firstName: '',
+                lastName: '',
+                role: '',
+                phone: '',
+              },
+            ],
+      notes: training.notes || '',
+      syncedNoteId: training.syncedNoteId,
+    });
+    setIsTrainingModalOpen(true);
+  };
+
+  const handleAddAttendee = () => {
+    setTrainingDraft((prev) => ({
+      ...prev,
+      attendees: [
+        ...prev.attendees,
+        {
+          id: `att-${Date.now()}-${prev.attendees.length + 1}`,
+          firstName: '',
+          lastName: '',
+          role: '',
+          phone: '',
+        },
+      ],
+    }));
+  };
+
+  const handleUpdateAttendee = (id: string, updates: Partial<CSMTrainingAttendee>) => {
+    setTrainingDraft((prev) => ({
+      ...prev,
+      attendees: prev.attendees.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+    }));
+  };
+
+  const handleRemoveAttendee = (id: string) => {
+    setTrainingDraft((prev) => ({
+      ...prev,
+      attendees: prev.attendees.filter((a) => a.id !== id),
+    }));
+  };
+
+  const handleSaveTraining = () => {
+    if (!canEdit) return;
+    const trimmedTitle = trainingDraft.title.trim() || `${trainingDraft.trainingType} Session`;
+    const trainingId = editingTrainingId || `training-${Date.now()}`;
+
+    // Clean attendees
+    const validAttendees = trainingDraft.attendees.filter(
+      (a) => a.firstName.trim() || a.lastName.trim() || a.phone?.trim()
+    );
+
+    const attendeesSummaryText =
+      validAttendees.length > 0
+        ? validAttendees
+            .map((a) => {
+              const fullName = `${a.firstName} ${a.lastName}`.trim();
+              const rolePart = a.role ? ` (${a.role})` : '';
+              const phonePart = a.phone ? ` - ${a.phone}` : '';
+              return `${fullName}${rolePart}${phonePart}`;
+            })
+            .join(', ')
+        : 'None recorded';
+
+    const formattedDT = formatTrainingDateTime(trainingDraft.dateTime);
+
+    // Formatted note text that reflects this training session
+    const talkbackNoteText = [
+      `[Conducted Training: ${trimmedTitle}]`,
+      `• Type: ${trainingDraft.trainingType}`,
+      `• Trainer: ${trainingDraft.trainer}`,
+      `• Date & Time: ${formattedDT}`,
+      `• Status: ${trainingDraft.status}${
+        trainingDraft.status === 'Rescheduled' && trainingDraft.rescheduledDateTime
+          ? ` (Rescheduled to ${formatTrainingDateTime(trainingDraft.rescheduledDateTime)})`
+          : ''
+      }`,
+      `• Attendees (${validAttendees.length}): ${attendeesSummaryText}`,
+      trainingDraft.notes.trim() ? `\nTraining Notes:\n${trainingDraft.notes.trim()}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    let updatedSyncedNoteId = trainingDraft.syncedNoteId;
+    let updatedNotes = [...csmNotes];
+
+    if (trainingDraft.notes.trim() || validAttendees.length > 0) {
+      if (updatedSyncedNoteId && updatedNotes.some((n) => n.id === updatedSyncedNoteId)) {
+        updatedNotes = updatedNotes.map((n) =>
+          n.id === updatedSyncedNoteId
+            ? {
+                ...n,
+                text: talkbackNoteText,
+                updatedAt: new Date().toISOString(),
+              }
+            : n
+        );
+      } else {
+        const newNoteId = `csm-note-training-${Date.now()}`;
+        updatedSyncedNoteId = newNoteId;
+        const newNote: CSMPropertyNote = {
+          id: newNoteId,
+          propertyId: property.id,
+          author: trainingDraft.trainer || currentUserName || 'Customer Success Team',
+          createdAt: new Date().toISOString(),
+          text: talkbackNoteText,
+          riskTier: 'Tier 3 - Low Risk',
+          tags: ['Staff Training'],
+          syncedTrainingId: trainingId,
+        };
+        updatedNotes = [newNote, ...updatedNotes];
+      }
+    }
+
+    const newOrUpdatedTraining: CSMPropertyTraining = {
+      id: trainingId,
+      propertyId: property.id,
+      title: trimmedTitle,
+      trainingType: trainingDraft.trainingType,
+      trainer: trainingDraft.trainer,
+      dateTime: trainingDraft.dateTime,
+      status: trainingDraft.status,
+      rescheduledDateTime:
+        trainingDraft.status === 'Rescheduled' ? trainingDraft.rescheduledDateTime : undefined,
+      attendees: validAttendees,
+      notes: trainingDraft.notes,
+      syncedNoteId: updatedSyncedNoteId,
+      createdAt: editingTrainingId
+        ? trainings.find((t) => t.id === editingTrainingId)?.createdAt || new Date().toISOString()
+        : new Date().toISOString(),
+      createdBy: currentUserName || 'CSM',
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedTrainings = editingTrainingId
+      ? trainings.map((t) => (t.id === editingTrainingId ? newOrUpdatedTraining : t))
+      : [newOrUpdatedTraining, ...trainings];
+
+    onUpdateProperty({
+      ...property,
+      csmPortalData: {
+        ...portalData,
+        trainings: updatedTrainings,
+        csmNotes: updatedNotes,
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      lastUpdated: new Date().toISOString(),
+    });
+
+    setIsTrainingModalOpen(false);
+    setEditingTrainingId(null);
+  };
+
+  const handleDeleteTraining = (trainingId: string) => {
+    if (!canEdit) return;
+    const target = trainings.find((t) => t.id === trainingId);
+    const updatedTrainings = trainings.filter((t) => t.id !== trainingId);
+    let updatedNotes = csmNotes;
+    if (target?.syncedNoteId) {
+      updatedNotes = updatedNotes.filter(
+        (n) => n.id !== target.syncedNoteId && n.syncedTrainingId !== trainingId
+      );
+    }
+    onUpdateProperty({
+      ...property,
+      csmPortalData: {
+        ...portalData,
+        trainings: updatedTrainings,
+        csmNotes: updatedNotes,
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      lastUpdated: new Date().toISOString(),
+    });
+    setIsTrainingModalOpen(false);
+    setEditingTrainingId(null);
   };
 
   // ==========================================================================
@@ -5054,7 +5422,90 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
       </div>
 
       {/* =====================================================================
-          SECTION 4: CSM NOTE-TAKING ENGINE, RISK TIERS, MULTI-TAGS, RISK GROUPS & RESOLUTION PLANS
+          SECTION 4: CONDUCTED PROPERTY TRAININGS (LIST VIEW)
+      ===================================================================== */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-purple-900 bg-purple-100 border border-purple-300 px-2.5 py-0.5 rounded-md">
+              <GraduationCap className="w-3.5 h-3.5 text-purple-700" />
+              <span>Conducted Property Trainings</span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 mt-1">
+              Conducted Property Trainings
+            </h2>
+            <p className="text-xs text-slate-500">
+              Conducted and scheduled training sessions for this property. Click any training in the list to view its complete details or log a new training event.
+            </p>
+          </div>
+
+          <div className="shrink-0">
+            <button
+              type="button"
+              onClick={handleOpenCreateTraining}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Log Training Event</span>
+            </button>
+          </div>
+        </div>
+
+        {trainings.length === 0 ? (
+          <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl space-y-3">
+            <div className="w-12 h-12 mx-auto rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+            <div className="text-sm font-bold text-slate-900">
+              No Trainings Conducted Yet
+            </div>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              No training sessions have been logged for this property. Use the button below to log the event, capture attendees with roles and phone numbers, and sync training notes.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenCreateTraining}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Log First Training Event</span>
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+            {trainings.map((t) => (
+              <div
+                key={t.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleOpenViewTraining(t)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenViewTraining(t);
+                  }
+                }}
+                className="flex items-center justify-between p-4 hover:bg-purple-50/50 transition-colors cursor-pointer group"
+                title="Click to view training details"
+              >
+                <div className="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors">
+                  {t.title}
+                </div>
+                <div className="text-xs font-medium text-slate-500 shrink-0 ml-4 flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600 transition-colors" />
+                    <span>{formatTrainingDateTime(t.dateTime)}</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 transition-colors" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* =====================================================================
+          SECTION 5: CSM NOTE-TAKING ENGINE, RISK TIERS, MULTI-TAGS, RISK GROUPS & RESOLUTION PLANS
       ===================================================================== */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
@@ -6323,6 +6774,385 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
                 onOpenKickoffWalkthrough={() => {}}
                 onOpenCSMPortal={() => {}}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING TRAINING MODAL (FOR LOGGING NEW EVENTS OR VIEWING/EDITING CONDUCTED TRAININGS) */}
+      {isTrainingModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between border-b border-purple-500/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-400/30 flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                      {editingTrainingId ? 'Training Details & Review' : 'Log Training Event'}
+                    </span>
+                    <span className="text-[11px] text-slate-300">
+                      • {property.propertyName}
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-base sm:text-lg text-white mt-0.5">
+                    {editingTrainingId
+                      ? trainingDraft.title || 'Property Training Details'
+                      : 'Capture Property Training Event'}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTrainingModalOpen(false);
+                  setEditingTrainingId(null);
+                }}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-5 bg-slate-50/50">
+              {/* Training Title */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Training Title / Subject <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Onsite Staff Management & Portal Training"
+                  value={trainingDraft.title}
+                  onChange={(e) =>
+                    setTrainingDraft({ ...trainingDraft, title: e.target.value })
+                  }
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Training Type & Trainer */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Training Type <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={trainingDraft.trainingType}
+                    onChange={(e) =>
+                      setTrainingDraft({
+                        ...trainingDraft,
+                        trainingType: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="Staff Onboarding & Portal Access">Staff Onboarding &amp; Portal Access</option>
+                    <option value="Smart Lock & Hardware Maintenance">Smart Lock &amp; Hardware Maintenance</option>
+                    <option value="Thermostat & Energy Management">Thermostat &amp; Energy Management</option>
+                    <option value="Resident Mobile App & Credentialing">Resident Mobile App &amp; Credentialing</option>
+                    <option value="Access Control & Common Doors">Access Control &amp; Common Doors</option>
+                    <option value="Troubleshooting & RMA Workflow">Troubleshooting &amp; RMA Workflow</option>
+                    <option value="Ownership / Executive Overview">Ownership / Executive Overview</option>
+                    <option value="Refresher & Supplemental Session">Refresher &amp; Supplemental Session</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Trainer <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Trainer Name"
+                    value={trainingDraft.trainer}
+                    onChange={(e) =>
+                      setTrainingDraft({ ...trainingDraft, trainer: e.target.value })
+                    }
+                    className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-purple-600" />
+                  <span>Date and Time <span className="text-rose-500">*</span></span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={trainingDraft.dateTime}
+                  onChange={(e) =>
+                    setTrainingDraft({ ...trainingDraft, dateTime: e.target.value })
+                  }
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Attendees Section */}
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-indigo-600" />
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                      Attendees
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {trainingDraft.attendees.length}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddAttendee}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Attendee</span>
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {trainingDraft.attendees.map((attendee, idx) => {
+                    const isNameFilled =
+                      attendee.firstName.trim().length > 0 ||
+                      attendee.lastName.trim().length > 0;
+                    const isRoleSelected = Boolean(attendee.role);
+
+                    return (
+                      <div
+                        key={attendee.id}
+                        className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl space-y-3 transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Attendee {idx + 1}
+                          </span>
+                          {trainingDraft.attendees.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAttendee(attendee.id)}
+                              className="text-[11px] font-bold text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        {/* First Name & Last Name */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              First Name
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Sarah"
+                              value={attendee.firstName}
+                              onChange={(e) =>
+                                handleUpdateAttendee(attendee.id, {
+                                  firstName: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Last Name
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Jenkins"
+                              value={attendee.lastName}
+                              onChange={(e) =>
+                                handleUpdateAttendee(attendee.id, {
+                                  lastName: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Pop-up Role Picker (pops up when name is filled in) */}
+                        {isNameFilled && (
+                          <div className="pt-2 border-t border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <label className="block text-[11px] font-bold text-indigo-900 mb-1.5">
+                              Role <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {(['Onsite Staff', 'Owner', 'Maintenance'] as const).map(
+                                (roleOption) => {
+                                  const isSelected = attendee.role === roleOption;
+                                  return (
+                                    <button
+                                      key={roleOption}
+                                      type="button"
+                                      onClick={() =>
+                                        handleUpdateAttendee(attendee.id, {
+                                          role: roleOption,
+                                        })
+                                      }
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer ${
+                                        isSelected
+                                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs ring-2 ring-indigo-200'
+                                          : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50'
+                                      }`}
+                                    >
+                                      {roleOption}
+                                    </button>
+                                  );
+                                }
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Phone Number Field (appears once role is selected) */}
+                        {isNameFilled && isRoleSelected && (
+                          <div className="pt-2 border-t border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <label className="block text-[11px] font-bold text-emerald-900 mb-1">
+                              Phone Number ({attendee.role})
+                            </label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <Phone className="w-3.5 h-3.5" />
+                              </div>
+                              <input
+                                type="tel"
+                                placeholder="(555) 000-0000"
+                                value={attendee.phone || ''}
+                                onChange={(e) =>
+                                  handleUpdateAttendee(attendee.id, {
+                                    phone: e.target.value,
+                                  })
+                                }
+                                className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status Dropdown Picker with Rescheduled Date Picker */}
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Training Status / Outcome <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={trainingDraft.status}
+                      onChange={(e) =>
+                        setTrainingDraft({
+                          ...trainingDraft,
+                          status: e.target.value as CSMTrainingStatus,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="Completed">Completed / Conducted</option>
+                      <option value="Cancelled">Cancelled</option>
+                      <option value="No Show">No Show</option>
+                      <option value="Rescheduled">Rescheduled</option>
+                    </select>
+                  </div>
+
+                  {trainingDraft.status === 'Rescheduled' && (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                      <label className="block text-xs font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>When will this be rescheduled? <span className="text-rose-500">*</span></span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={trainingDraft.rescheduledDateTime}
+                        onChange={(e) =>
+                          setTrainingDraft({
+                            ...trainingDraft,
+                            rescheduledDateTime: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-amber-50/50 border border-amber-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Notes Field (Talk back to property notes section) */}
+              <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Training Notes
+                  </label>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 flex items-center gap-1">
+                    <FileText className="w-3 h-3" />
+                    <span>Talks back to Property Notes</span>
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  placeholder="Record summary of training, topics covered, attendee feedback, staff questions, or follow-up items..."
+                  value={trainingDraft.notes}
+                  onChange={(e) =>
+                    setTrainingDraft({ ...trainingDraft, notes: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Notes entered here will talk back to the property&apos;s main CSM Note Engine under the &ldquo;Staff Training&rdquo; category.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                {editingTrainingId && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTraining(editingTrainingId)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Training</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTrainingModalOpen(false);
+                    setEditingTrainingId(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveTraining}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>
+                    {editingTrainingId ? 'Save Training Changes' : 'Log Training Event'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
