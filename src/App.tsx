@@ -793,7 +793,7 @@ export default function App() {
             }))
           );
         const notesChanged =
-          JSON.stringify(prevProject.notes || []) !== JSON.stringify(updated.notes || []);
+          (updated.notes || []).length > (prevProject.notes || []).length;
         const milestonesChanged =
           JSON.stringify(prevProject.milestones || []) !==
           JSON.stringify(updated.milestones || []);

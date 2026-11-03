@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProjectNote, ProjectMilestone } from '../types';
-import { MessageSquare, Plus, Pin, Pencil, Check, Trash2, X } from 'lucide-react';
+import { MessageSquare, Plus, Pin, PinOff, Pencil, Check, Trash2, X } from 'lucide-react';
 
 interface ProjectNotesSectionProps {
   notes: ProjectNote[];
   milestones: ProjectMilestone[];
   onAddNote: (newNote: Omit<ProjectNote, 'id'>) => void;
   onEditNote?: (updatedNote: ProjectNote) => void;
-  onTogglePinNote?: (noteId: string) => void;
+  onTogglePinNote?: (noteId: string, targetPinned?: boolean) => void;
   onDeleteNote: (noteId: string) => void;
   onToggleMilestone?: (milestoneId: string) => void;
 }
@@ -26,6 +26,13 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
   const [category, setCategory] = useState<ProjectNote['category']>('General Context');
   const [text, setText] = useState<string>('');
   const [isPinned, setIsPinned] = useState<boolean>(false);
+
+  // Optimistic local state for immediate 0ms responsiveness
+  const [localNotes, setLocalNotes] = useState<ProjectNote[]>(notes);
+
+  useEffect(() => {
+    setLocalNotes(notes);
+  }, [notes]);
 
   // Inline editing state
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -62,13 +69,23 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
     setShowAddForm(false);
   };
 
-  const handleTogglePin = (note: ProjectNote) => {
+  const handleTogglePin = (e: React.MouseEvent, note: ProjectNote) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const nextPinned = !Boolean(note.isPinned);
+
+    // 1. Optimistic update in local state for instantaneous feedback
+    setLocalNotes((prev) =>
+      prev.map((n) => (n.id === note.id ? { ...n, isPinned: nextPinned } : n))
+    );
+
+    // 2. Propagate to parent state & backend
     if (onTogglePinNote) {
-      onTogglePinNote(note.id);
+      onTogglePinNote(note.id, nextPinned);
     } else if (onEditNote) {
       onEditNote({
         ...note,
-        isPinned: !note.isPinned,
+        isPinned: nextPinned,
       });
     }
   };
@@ -89,14 +106,14 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
 
   const handleSaveEdit = (noteId: string) => {
     if (!editText.trim()) return;
-    const original = notes.find((n) => n.id === noteId);
+    const original = localNotes.find((n) => n.id === noteId);
     if (!original) return;
 
     const hasContentChanged =
       editText.trim() !== original.text ||
       editCategory !== original.category ||
       editAuthor.trim() !== original.author ||
-      editIsPinned !== original.isPinned;
+      Boolean(editIsPinned) !== Boolean(original.isPinned);
 
     let timestamp = original.timestamp;
     if (hasContentChanged && !timestamp.includes('(edited)')) {
@@ -111,6 +128,9 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
       isPinned: editIsPinned,
       timestamp,
     };
+
+    // Optimistic local update
+    setLocalNotes((prev) => prev.map((n) => (n.id === noteId ? updated : n)));
 
     if (onEditNote) {
       onEditNote(updated);
@@ -136,9 +156,11 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
   };
 
   // Sort notes: pinned notes first, then chronological
-  const sortedNotes = [...notes].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
+  const sortedNotes = [...localNotes].sort((a, b) => {
+    const aPinned = Boolean(a.isPinned);
+    const bPinned = Boolean(b.isPinned);
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
     return 0;
   });
 
@@ -247,159 +269,190 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
             No notes recorded for this project yet. Add notes to keep installers and management in sync.
           </div>
         ) : (
-          sortedNotes.map((note) => (
-            <div
-              key={note.id}
-              className={`p-3.5 rounded-lg border transition-all ${
-                note.isPinned
-                  ? 'bg-amber-50/70 border-amber-300 shadow-xs'
-                  : 'bg-white border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              {/* Note Header */}
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
-                <div className="flex items-center gap-2">
-                  {note.isPinned ? (
+          sortedNotes.map((note) => {
+            const isNotePinned = Boolean(note.isPinned);
+
+            return (
+              <div
+                key={note.id}
+                className={`p-3.5 rounded-lg border transition-all ${
+                  isNotePinned
+                    ? 'bg-amber-50/70 border-amber-300 shadow-xs'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                {/* Note Header */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
+                  <div className="flex items-center gap-2">
+                    {/* Primary Interactive Pin/Unpin Status Badge */}
+                    {isNotePinned ? (
+                      <button
+                        type="button"
+                        onClick={(e) => handleTogglePin(e, note)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 border border-amber-300 rounded-md transition-all shadow-2xs cursor-pointer group"
+                        title="Click to unpin this note"
+                      >
+                        <Pin className="w-3.5 h-3.5 text-amber-700 fill-amber-700 rotate-45 group-hover:scale-110 transition-transform" />
+                        <span>Pinned Priority</span>
+                        <span className="text-[10px] font-semibold text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded border border-amber-300/60 ml-0.5 group-hover:bg-amber-300 transition-colors">
+                          Unpin
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => handleTogglePin(e, note)}
+                        className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-500 hover:text-amber-800 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded px-2 py-0.5 transition-all cursor-pointer group"
+                        title="Pin note as priority alert"
+                      >
+                        <Pin className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 rotate-45" />
+                        <span>Pin</span>
+                      </button>
+                    )}
+
+                    <span className="font-bold text-slate-900">{note.author}</span>
+                    <span className="text-slate-300">·</span>
+                    <span className="font-mono text-slate-500 text-[11px]">{note.timestamp}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${getCategoryColor(
+                        note.category
+                      )}`}
+                    >
+                      {note.category}
+                    </span>
+
+                    {/* Dedicated Unpin / Pin Action Button */}
                     <button
                       type="button"
-                      onClick={() => handleTogglePin(note)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded px-2 py-0.5 transition-all shadow-2xs cursor-pointer group"
-                      title="Click to unpin this note"
+                      onClick={(e) => handleTogglePin(e, note)}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all cursor-pointer ${
+                        isNotePinned
+                          ? 'text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300'
+                          : 'text-slate-500 hover:text-amber-800 hover:bg-amber-50 border border-slate-200'
+                      }`}
+                      title={isNotePinned ? 'Unpin note' : 'Pin note as priority alert'}
                     >
-                      <Pin className="w-3 h-3 text-amber-700 fill-amber-700 rotate-45 group-hover:scale-110 transition-transform" />
-                      <span>Pinned</span>
-                      <span className="text-[10px] text-amber-700 font-normal underline decoration-dotted ml-0.5">
-                        (Click to unpin)
-                      </span>
+                      {isNotePinned ? (
+                        <>
+                          <PinOff className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Unpin</span>
+                        </>
+                      ) : (
+                        <>
+                          <Pin className="w-3.5 h-3.5 text-slate-400 rotate-45" />
+                          <span>Pin</span>
+                        </>
+                      )}
                     </button>
-                  ) : (
+
+                    {editingNoteId !== note.id && (
+                      <button
+                        type="button"
+                        onClick={() => startEditingNote(note)}
+                        className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded transition-colors cursor-pointer"
+                        title="Edit note"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => handleTogglePin(note)}
-                      className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-500 hover:text-amber-800 hover:bg-amber-50 border border-transparent hover:border-amber-300 rounded px-1.5 py-0.5 transition-all cursor-pointer group"
-                      title="Pin note as priority alert"
+                      onClick={() => onDeleteNote(note.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                      title="Delete note"
                     >
-                      <Pin className="w-3 h-3 text-slate-400 group-hover:text-amber-600 rotate-45" />
-                      <span className="hidden sm:inline">Pin</span>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                  <span className="font-bold text-slate-900">{note.author}</span>
-                  <span className="text-slate-300">·</span>
-                  <span className="font-mono text-slate-500 text-[11px]">{note.timestamp}</span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${getCategoryColor(
-                      note.category
-                    )}`}
+                {/* Note Body or Inline Edit Form */}
+                {editingNoteId === note.id ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSaveEdit(note.id);
+                    }}
+                    className="mt-2 p-3 bg-white border border-sky-300 rounded-lg space-y-3 shadow-xs"
                   >
-                    {note.category}
-                  </span>
-                  {editingNoteId !== note.id && (
-                    <button
-                      type="button"
-                      onClick={() => startEditingNote(note)}
-                      className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded transition-colors cursor-pointer"
-                      title="Edit note"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => onDeleteNote(note.id)}
-                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
-                    title="Delete note"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Author</label>
+                        <input
+                          type="text"
+                          required
+                          value={editAuthor}
+                          onChange={(e) => setEditAuthor(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1">Category</label>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value as ProjectNote['category'])}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
+                        >
+                          <option value="General Context">General Context</option>
+                          <option value="Site Access & Keys">Site Access & Keys</option>
+                          <option value="Hardware Delivery">Hardware Delivery</option>
+                          <option value="Inspection & Commissioning">Inspection & Commissioning</option>
+                          <option value="Resident Notice">Resident Notice</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end pb-1">
+                        <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer font-medium">
+                          <input
+                            type="checkbox"
+                            checked={editIsPinned}
+                            onChange={(e) => setEditIsPinned(e.target.checked)}
+                            className="w-4 h-4 rounded text-amber-600 bg-white border-slate-300 focus:ring-0"
+                          />
+                          <span className="flex items-center gap-1 font-semibold text-amber-900">
+                            <Pin className="w-3.5 h-3.5 rotate-45" /> Pinned as Priority
+                          </span>
+                        </label>
+                      </div>
+                    </div>
 
-              {/* Note Body or Inline Edit Form */}
-              {editingNoteId === note.id ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSaveEdit(note.id);
-                  }}
-                  className="mt-2 p-3 bg-white border border-sky-300 rounded-lg space-y-3 shadow-xs"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
                     <div>
-                      <label className="block text-slate-700 font-semibold mb-1">Author</label>
-                      <input
-                        type="text"
+                      <label className="block text-slate-700 font-semibold mb-1 text-xs">Note Context & Details</label>
+                      <textarea
+                        rows={3}
                         required
-                        value={editAuthor}
-                        onChange={(e) => setEditAuthor(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
                       />
                     </div>
-                    <div>
-                      <label className="block text-slate-700 font-semibold mb-1">Category</label>
-                      <select
-                        value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value as ProjectNote['category'])}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={cancelEditingNote}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                       >
-                        <option value="General Context">General Context</option>
-                        <option value="Site Access & Keys">Site Access & Keys</option>
-                        <option value="Hardware Delivery">Hardware Delivery</option>
-                        <option value="Inspection & Commissioning">Inspection & Commissioning</option>
-                        <option value="Resident Notice">Resident Notice</option>
-                      </select>
+                        <X className="w-3.5 h-3.5" />
+                        <span>Cancel</span>
+                      </button>
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] rounded-lg transition-colors shadow-xs cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save Changes</span>
+                      </button>
                     </div>
-                    <div className="flex items-end pb-1">
-                      <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer font-medium">
-                        <input
-                          type="checkbox"
-                          checked={editIsPinned}
-                          onChange={(e) => setEditIsPinned(e.target.checked)}
-                          className="w-4 h-4 rounded text-amber-600 bg-white border-slate-300 focus:ring-0"
-                        />
-                        <span className="flex items-center gap-1 font-semibold text-amber-900">
-                          <Pin className="w-3 h-3 rotate-45" /> Pinned as Priority
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1 text-xs">Note Context & Details</label>
-                    <textarea
-                      rows={3}
-                      required
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-sky-500"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={cancelEditingNote}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Cancel</span>
-                    </button>
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] rounded-lg transition-colors shadow-xs cursor-pointer"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Save Changes</span>
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <p className="text-xs text-slate-700 leading-relaxed pl-0.5 whitespace-pre-wrap">{note.text}</p>
-              )}
-            </div>
-          ))
+                  </form>
+                ) : (
+                  <p className="text-xs text-slate-700 leading-relaxed pl-0.5 whitespace-pre-wrap">{note.text}</p>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>
