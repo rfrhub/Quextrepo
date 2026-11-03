@@ -630,6 +630,100 @@ export interface UsedIntegratorHistoryEntry {
 
 export const STORAGE_KEY_CUSTOM_INTEGRATORS = 'quext_custom_integrator_partners';
 export const STORAGE_KEY_USED_INTEGRATORS_HISTORY = 'quext_used_integrators_history_v1';
+export const STORAGE_KEY_CUSTOM_OCP_PARTNERS = 'quext_custom_ocp_partners_v1';
+
+export function loadOfficialChannelPartners(): string[] {
+  const ocpList: string[] = [...OFFICIAL_CHANNEL_PARTNERS];
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY_CUSTOM_OCP_PARTNERS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((p: any) => {
+            if (typeof p === 'string' && p.trim()) {
+              const clean = p.trim();
+              if (!ocpList.some((item) => item.toLowerCase() === clean.toLowerCase())) {
+                ocpList.push(clean);
+              }
+            }
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load custom official channel partners:', err);
+  }
+  return ocpList;
+}
+
+export function saveOfficialChannelPartner(partnerName: string): string[] {
+  const trimmed = partnerName.trim();
+  if (!trimmed) return loadOfficialChannelPartners();
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const customOnly: string[] = [];
+      const stored = localStorage.getItem(STORAGE_KEY_CUSTOM_OCP_PARTNERS);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) customOnly.push(...parsed);
+        } catch {
+          // ignore
+        }
+      }
+      if (
+        !customOnly.some((p) => p.toLowerCase() === trimmed.toLowerCase()) &&
+        !OFFICIAL_CHANNEL_PARTNERS.some((p) => p.toLowerCase() === trimmed.toLowerCase())
+      ) {
+        customOnly.push(trimmed);
+        localStorage.setItem(STORAGE_KEY_CUSTOM_OCP_PARTNERS, JSON.stringify(customOnly));
+      }
+    }
+  } catch (err) {
+    console.error('Failed to save official channel partner:', err);
+  }
+  return loadOfficialChannelPartners();
+}
+
+export function removeOfficialChannelPartner(partnerName: string): string[] {
+  const trimmed = partnerName.trim().toLowerCase();
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY_CUSTOM_OCP_PARTNERS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((p: string) => p.toLowerCase() !== trimmed);
+          localStorage.setItem(STORAGE_KEY_CUSTOM_OCP_PARTNERS, JSON.stringify(filtered));
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to remove custom official channel partner:', err);
+  }
+  return loadOfficialChannelPartners();
+}
+
+export function isCustomOfficialChannelPartner(partnerName: string): boolean {
+  if (!partnerName) return false;
+  const trimmed = partnerName.trim().toLowerCase();
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY_CUSTOM_OCP_PARTNERS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.some((p: string) => p.toLowerCase() === trimmed);
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
 
 export function isOfficialChannelPartner(name: string): boolean {
   if (!name) return false;
@@ -652,7 +746,9 @@ export function isOfficialChannelPartner(name: string): boolean {
     'customer self-install',
     'self-install',
   ];
-  return ocpMatches.includes(normalized) || OFFICIAL_CHANNEL_PARTNERS.some((p) => p.toLowerCase() === normalized);
+  if (ocpMatches.includes(normalized)) return true;
+  if (OFFICIAL_CHANNEL_PARTNERS.some((p) => p.toLowerCase() === normalized)) return true;
+  return loadOfficialChannelPartners().some((p) => p.toLowerCase() === normalized);
 }
 
 export function isDiyPartner(partner?: string | null): boolean {
@@ -824,9 +920,9 @@ export function saveCustomIntegratorPartner(partner: string, projectName?: strin
   saveUsedIntegratorToHistory(partner, projectName);
 }
 
-// Official Channel Partners (OCP) list: strictly returns only the official channel partners list (does NOT include manually typed integrators)
+// Official Channel Partners (OCP) list: returns all official channel partners (including custom PM-added OCP partners)
 export function getAllIntegratorPartners(_projects?: { integratorPartners?: string[] }[]): string[] {
-  return [...OFFICIAL_CHANNEL_PARTNERS];
+  return loadOfficialChannelPartners();
 }
 
 export function getProjectIntegratorPartners(project?: Partial<OperationProject>): string[] {

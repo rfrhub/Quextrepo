@@ -6,6 +6,10 @@ import {
   UsedIntegratorHistoryEntry,
   isOfficialChannelPartner,
   isMainIntegratorPartner,
+  loadOfficialChannelPartners,
+  saveOfficialChannelPartner,
+  removeOfficialChannelPartner,
+  isCustomOfficialChannelPartner,
   loadUsedIntegratorHistory,
   saveUsedIntegratorToHistory,
   removeUsedIntegratorFromHistory,
@@ -68,9 +72,10 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
     setFloatingPosition({ top, left });
   }, []);
 
-  // Sync history & position when floating hub opens
+  // Sync OCP list, history & position when floating hub opens
   useEffect(() => {
     if (isOpen) {
+      setOcpPartners(loadOfficialChannelPartners());
       setUsedHistory(loadUsedIntegratorHistory(allProjects));
       updateFloatingPosition();
       window.addEventListener('scroll', updateFloatingPosition, true);
@@ -102,9 +107,10 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Official Channel Partners (OCP) list — strictly the official OCP list only (never includes manual entries)
-  const ocpPartners: readonly string[] = OFFICIAL_CHANNEL_PARTNERS;
-  const mainPartners: readonly string[] = ocpPartners;
+  // Official Channel Partners (OCP) list — includes default directory and PM-added partners
+  const [ocpPartners, setOcpPartners] = useState<string[]>(() => loadOfficialChannelPartners());
+  const [markAsOcp, setMarkAsOcp] = useState<boolean>(false);
+  const mainPartners: string[] = ocpPartners;
 
   // Toggle partner assignment on the current project
   const handleTogglePartner = (partnerName: string, isFromHistory?: boolean) => {
@@ -129,8 +135,9 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
     onChange(updated);
   };
 
-  // Manual entry of custom integrator partner:
-  // Assigns to project AND saves to History of Used Integrators (excluded from Main List)
+  // Manual entry of integrator partner:
+  // Can be marked as Official Channel Partner (OCP) to add to the OCP list,
+  // or left unmarked to save to History of Used Integrators.
   const handleAddCustomPartner = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = customPartnerInput.trim();
@@ -139,14 +146,31 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
       return;
     }
 
-    // Check if user typed a main partner name (case-insensitive)
-    const matchedMain = mainPartners.find((p) => p.toLowerCase() === trimmed.toLowerCase());
+    // Check if user typed an existing OCP partner name (case-insensitive)
+    const matchedMain = ocpPartners.find((p) => p.toLowerCase() === trimmed.toLowerCase());
     const finalName = matchedMain || trimmed;
 
-    if (!matchedMain) {
-      // Save to persistent History of Used Integrators (NOT the main list)
-      const updatedHistory = saveUsedIntegratorToHistory(finalName, projectName);
-      setUsedHistory(updatedHistory);
+    if (markAsOcp) {
+      // Save as Official Channel Partner (OCP)
+      const updatedOcp = saveOfficialChannelPartner(finalName);
+      setOcpPartners(updatedOcp);
+
+      // Clean from history if it was previously in history
+      const updatedHist = removeUsedIntegratorFromHistory(finalName);
+      setUsedHistory(updatedHist);
+
+      setFeedbackMessage(`Added "${finalName}" as an Official Channel Partner (OCP) & assigned to project!`);
+    } else {
+      if (!matchedMain) {
+        // Save to persistent History of Used Integrators (NOT the main list)
+        const updatedHistory = saveUsedIntegratorToHistory(finalName, projectName);
+        setUsedHistory(updatedHistory);
+      }
+      setFeedbackMessage(
+        matchedMain
+          ? `Assigned "${finalName}" to project.`
+          : `Assigned "${finalName}" to project & saved to History of Used Integrators.`
+      );
     }
 
     // Assign to this project if not already assigned
@@ -155,12 +179,16 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
     }
 
     setCustomPartnerInput('');
+    setMarkAsOcp(false);
     setErrorMessage('');
-    setFeedbackMessage(
-      matchedMain
-        ? `Assigned "${finalName}" to project.`
-        : `Assigned "${finalName}" to project & saved to History of Used Integrators.`
-    );
+    setTimeout(() => setFeedbackMessage(''), 3500);
+  };
+
+  const handleDeleteCustomOcp = (partnerName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = removeOfficialChannelPartner(partnerName);
+    setOcpPartners(updated);
+    setFeedbackMessage(`Removed "${partnerName}" from Official Channel Partners list.`);
     setTimeout(() => setFeedbackMessage(''), 3500);
   };
 
@@ -304,41 +332,82 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
               </button>
             </div>
 
-            {/* Manual Type-In Entry Form (Assigns to project & saves to History of Used Integrators, NOT main list) */}
-            <div className="p-3 bg-purple-50/60 border border-purple-200 rounded-xl mb-3 shrink-0">
-              <div className="text-[11px] font-bold text-purple-950 mb-1 flex items-center justify-between">
+            {/* Manual Type-In Entry Form (Can be marked as OCP to add to the OCP Directory, or saved to History) */}
+            <div
+              className={`p-3 border rounded-xl mb-3 shrink-0 transition-all ${
+                markAsOcp
+                  ? 'bg-sky-50/70 border-sky-300 ring-1 ring-sky-200'
+                  : 'bg-purple-50/60 border-purple-200'
+              }`}
+            >
+              <div className="text-[11px] font-bold mb-1 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Type In Manual Integrator Partner</span>
+                  <Sparkles
+                    className={`w-3.5 h-3.5 ${markAsOcp ? 'text-sky-600' : 'text-purple-600'}`}
+                  />
+                  <span className={markAsOcp ? 'text-sky-950 font-extrabold' : 'text-purple-950'}>
+                    {markAsOcp ? 'Add Official Channel Partner (OCP)' : 'Type In Integrator Partner'}
+                  </span>
                 </span>
-                <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded">
-                  Saved to History Only
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border transition-colors ${
+                    markAsOcp
+                      ? 'bg-sky-100 text-sky-900 border-sky-300'
+                      : 'bg-purple-100 text-purple-700 border-purple-200'
+                  }`}
+                >
+                  {markAsOcp ? 'Marked as OCP' : 'Saved to History Only'}
                 </span>
               </div>
-              <p className="text-[10px] text-purple-800/90 mb-2">
-                Manually typed integrators are assigned to this project and kept in your{' '}
-                <strong>History of Used Integrators</strong> (not added to the main list).
+              <p className="text-[10px] text-slate-600 mb-2 leading-tight">
+                {markAsOcp
+                  ? 'Marking as an OCP will add this partner to the Official Channel Partners directory across the site and assign them to this project.'
+                  : 'Manually typed integrators are assigned to this project and kept in your History of Used Integrators.'}
               </p>
 
-              <form onSubmit={handleAddCustomPartner} className="flex gap-1.5">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Type integrator name (e.g. Apex Tech, Lone Star IoT)..."
-                  value={customPartnerInput}
-                  onChange={(e) => {
-                    setCustomPartnerInput(e.target.value);
-                    if (errorMessage) setErrorMessage('');
-                  }}
-                  className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-purple-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600"
-                />
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1 shadow-2xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Assign</span>
-                </button>
+              <form onSubmit={handleAddCustomPartner} className="space-y-2">
+                <div className="flex gap-1.5">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Type partner name (e.g. Apex Tech, Lone Star IoT)..."
+                    value={customPartnerInput}
+                    onChange={(e) => {
+                      setCustomPartnerInput(e.target.value);
+                      if (errorMessage) setErrorMessage('');
+                    }}
+                    className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-600"
+                  />
+                  <button
+                    type="submit"
+                    className={`px-3 py-1.5 text-xs font-bold text-white rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1 shadow-2xs ${
+                      markAsOcp
+                        ? 'bg-sky-600 hover:bg-sky-700'
+                        : 'bg-purple-600 hover:bg-purple-700'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{markAsOcp ? 'Add as OCP' : 'Assign'}</span>
+                  </button>
+                </div>
+
+                {/* Option to mark as Official Channel Partner (OCP) */}
+                <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/70">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800 select-none">
+                    <input
+                      type="checkbox"
+                      checked={markAsOcp}
+                      onChange={(e) => setMarkAsOcp(e.target.checked)}
+                      className="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500 cursor-pointer"
+                    />
+                    <span className="flex items-center gap-1.5">
+                      <span>Mark as an Official Channel Partner (OCP)</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300">
+                        + OCP List
+                      </span>
+                    </span>
+                  </label>
+                </div>
               </form>
 
               {errorMessage && (
@@ -398,15 +467,15 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                     <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider">
                       Official Channel Partners (OCP)
                     </span>
-                    <span className="text-[10px] text-slate-400">Verified Directory</span>
+                    <span className="text-[10px] text-slate-400">Verified Directory ({mainPartners.length})</span>
                   </div>
 
                   {mainPartners.map((partner) => {
                     const isChecked = assignedPartners.includes(partner);
+                    const isCustomOcp = isCustomOfficialChannelPartner(partner);
 
                     return (
-                      <button
-                        type="button"
+                      <div
                         key={partner}
                         onClick={() => handleTogglePartner(partner, false)}
                         className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg border transition-all cursor-pointer text-left ${
@@ -415,23 +484,40 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                             : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
                         }`}
                       >
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           {isChecked ? (
                             <CheckSquare className="w-4 h-4 text-sky-600 shrink-0" />
                           ) : (
                             <Square className="w-4 h-4 text-slate-400 shrink-0" />
                           )}
-                          <span className="font-bold">{partner}</span>
-                          <span className="text-[10px] font-bold text-sky-800 bg-sky-100 border border-sky-300 px-1.5 py-0.2 rounded">
+                          <span className="font-bold truncate">{partner}</span>
+                          <span className="text-[10px] font-bold text-sky-800 bg-sky-100 border border-sky-300 px-1.5 py-0.2 rounded shrink-0">
                             OCP
                           </span>
+                          {isCustomOcp && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-sky-700 bg-white border border-sky-200 px-1.5 py-0.2 rounded shrink-0">
+                              PM Added
+                            </span>
+                          )}
                         </div>
-                        {isChecked && (
-                          <span className="text-[11px] text-sky-700 font-bold bg-sky-100 px-2 py-0.5 rounded">
-                            Assigned
-                          </span>
-                        )}
-                      </button>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {isChecked && (
+                            <span className="text-[11px] text-sky-700 font-bold bg-sky-100 px-2 py-0.5 rounded">
+                              Assigned
+                            </span>
+                          )}
+                          {isCustomOcp && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteCustomOcp(partner, e)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                              title={`Remove "${partner}" from Official Channel Partners list`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
