@@ -375,6 +375,25 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     setEmailBodyText(built.body);
   }, [selectedSubForDispatch, customRecipientName, selectedTech, customNotes]);
 
+  // When opening a submission for dispatch, initialize recipient details from its assigned Integrator Partners
+  useEffect(() => {
+    if (!selectedSubForDispatch) return;
+    const partners = selectedSubForDispatch.integratorPartners || [];
+    if (partners.length > 0) {
+      const partnerName = partners[0];
+      const matched = DEFAULT_FIELD_TECHS.find((t) =>
+        t.name.toLowerCase().includes(partnerName.toLowerCase())
+      );
+      if (matched) {
+        setSelectedTech(matched);
+        setCustomRecipientName(matched.name);
+        if (matched.email) setCustomTechEmail(matched.email);
+      } else {
+        setCustomRecipientName(`${partnerName} (Partner Integrator)`);
+      }
+    }
+  }, [selectedSubForDispatch?.id]);
+
   const resetIssueFields = () => {
     setQ10UnitLocksIssue('');
     setQ11AccessControlIssue('');
@@ -532,6 +551,45 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
       setDispatchSuccessMsg(null);
       // Immediately open the Ready-to-Use SOW & Partner Email modal for the newly created SOW
       setSelectedSubForDispatch(created);
+    }
+  };
+
+  const handleDispatchPartnersChange = (updatedPartners: string[]) => {
+    if (!selectedSubForDispatch) return;
+    const updatedSub: GoogleFormSubmission = {
+      ...selectedSubForDispatch,
+      integratorPartners: updatedPartners,
+    };
+    updateSubmission(selectedSubForDispatch.id, {
+      integratorPartners: updatedPartners,
+    });
+    setSelectedSubForDispatch(updatedSub);
+    refreshSubmissions();
+
+    if (selectedSubForDispatch.propertyId && onUpdateProperty) {
+      const targetProp = properties.find((p) => p.id === selectedSubForDispatch.propertyId);
+      if (targetProp) {
+        onUpdateProperty({
+          ...targetProp,
+          integratorPartners: updatedPartners,
+          isDiyInstallation: updatedPartners.some(isDiyPartner),
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (updatedPartners.length > 0) {
+      const partnerName = updatedPartners[0];
+      const matched = DEFAULT_FIELD_TECHS.find((t) =>
+        t.name.toLowerCase().includes(partnerName.toLowerCase())
+      );
+      if (matched) {
+        setSelectedTech(matched);
+        setCustomRecipientName(matched.name);
+        if (matched.email) setCustomTechEmail(matched.email);
+      } else {
+        setCustomRecipientName(`${partnerName} (Partner Integrator)`);
+      }
     }
   };
 
@@ -1735,75 +1793,50 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                 </div>
               )}
 
-              {/* Assigned Integrator Partner(s) Banner */}
-              {selectedSubForDispatch.integratorPartners && selectedSubForDispatch.integratorPartners.length > 0 && (
-                <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-teal-600" />
-                    <span className="font-bold">Assigned SOW Integrator Partner / Installers:</span>
-                    <span className="font-extrabold text-teal-950">
-                      {selectedSubForDispatch.integratorPartners.join(', ')}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-teal-700 font-semibold bg-teal-100/70 px-2 py-0.5 rounded border border-teal-200">
+              {/* Recipient Selection & Partner Assignment Row */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3.5">
+                {/* Integrator Partner / Installers */}
+                <div className="p-2.5 border border-slate-300 bg-white rounded-xl flex items-center justify-between flex-wrap gap-2 shadow-2xs">
+                  <IntegratorPartnerSelector
+                    assignedPartners={selectedSubForDispatch.integratorPartners || []}
+                    projectName={selectedSubForDispatch.communityName || 'SOW Work Order'}
+                    label="Integrator Partner / Installers:"
+                    onChange={handleDispatchPartnersChange}
+                  />
+                  <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                     Included in SOW &amp; Work Order
                   </span>
                 </div>
-              )}
 
-              {/* Recipient Selection Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">
-                    Select Partner Integrator / Vendor / Tech
-                  </label>
-                  <select
-                    value={selectedTech.id}
-                    onChange={(e) => {
-                      const found = DEFAULT_FIELD_TECHS.find((t) => t.id === e.target.value);
-                      if (found) {
-                        setSelectedTech(found);
-                        setCustomRecipientName(found.name);
-                        if (found.email) setCustomTechEmail(found.email);
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-slate-800 font-semibold focus:outline-teal-600"
-                  >
-                    {DEFAULT_FIELD_TECHS.map((tech) => (
-                      <option key={tech.id} value={tech.id}>
-                        {tech.name} {tech.email ? `(${tech.email})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Partner Integrator / Vendor Name
+                    </label>
+                    <input
+                      type="text"
+                      value={customRecipientName}
+                      onChange={(e) => setCustomRecipientName(e.target.value)}
+                      placeholder="e.g., SKBM / Partner Integrator Team"
+                      className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-slate-800 focus:outline-teal-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Partner Integrator / Vendor Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={customTechEmail}
+                      onChange={(e) => setCustomTechEmail(e.target.value)}
+                      placeholder="dispatch@partnerintegrator.com"
+                      className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-slate-800 focus:outline-teal-600"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-800 mb-1">
-                    Partner Integrator / Vendor Name
-                  </label>
-                  <input
-                    type="text"
-                    value={customRecipientName}
-                    onChange={(e) => setCustomRecipientName(e.target.value)}
-                    placeholder="e.g., SKBM / Partner Integrator Team"
-                    className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-slate-800 focus:outline-teal-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">
-                    Partner Integrator / Vendor Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={customTechEmail}
-                    onChange={(e) => setCustomTechEmail(e.target.value)}
-                    placeholder="dispatch@partnerintegrator.com"
-                    className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-slate-800 focus:outline-teal-600"
-                  />
-                </div>
-
-                <div className="md:col-span-3">
                   <label className="block font-bold text-slate-700 mb-1">
                     Additional CSM Instructions / Dispatch Notes (Automatically inserted into SOW Email)
                   </label>
