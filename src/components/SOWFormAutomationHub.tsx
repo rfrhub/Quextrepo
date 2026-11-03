@@ -585,6 +585,9 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
   };
 
   const handleOpenMailClient = () => {
+    if (selectedSubForDispatch) {
+      downloadSowPdf(selectedSubForDispatch);
+    }
     const mailto = `mailto:${encodeURIComponent(customTechEmail.trim())}?subject=${encodeURIComponent(
       emailSubject
     )}&body=${encodeURIComponent(emailBodyText)}`;
@@ -1850,6 +1853,30 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                   </div>
                 </div>
 
+                {/* SOW PDF Attachment Notice */}
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-950">Attached Technical SOW PDF: </span>
+                      <span className="font-mono text-emerald-800 text-[11px]">
+                        {`OneQuext_SOW_${selectedSubForDispatch.communityName.replace(/[^a-zA-Z0-9_-]/g, '_')}_${selectedSubForDispatch.installDate || 'Visit'}.pdf`}
+                      </span>
+                      <span className="text-emerald-700 block sm:inline sm:ml-2 text-[11px]">
+                        (Complete 2-page OneQuext technical specifications, hardware, locations &amp; sign-off blocks)
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => downloadSowPdf(selectedSubForDispatch)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-emerald-300 text-emerald-800 font-bold hover:bg-emerald-100 transition cursor-pointer text-[11px] shrink-0 ml-2"
+                  >
+                    <Download className="w-3 h-3 text-emerald-600" />
+                    Download Copy
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
                     Email Subject Line:
@@ -1864,10 +1891,10 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    Email Body (Populated with all 23 SOW Form Fields):
+                    Cover Message / Email Body (Clean Executive Summary with Attached SOW PDF):
                   </label>
                   <textarea
-                    rows={14}
+                    rows={7}
                     value={emailBodyText}
                     onChange={(e) => setEmailBodyText(e.target.value)}
                     className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-slate-900 font-mono text-xs leading-relaxed focus:outline-teal-600"

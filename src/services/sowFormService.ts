@@ -274,99 +274,36 @@ export const buildPartnerVendorPlainTextEmail = (
   recipientName: string,
   customNotes?: string
 ): { subject: string; body: string } => {
-  const subject = `[OneQuext SOW Work Order] ${submission.communityName} — Onsite Visit & Scope of Work (${submission.sowReferenceNumber})`;
-
-  const scopeLines: string[] = [];
-  if (submission.unitLocksIssue) {
-    scopeLines.push(`• Unit Locks (Devices & Issue): ${submission.unitLocksIssue}`);
-  }
-  if (submission.accessControlIssue) {
-    scopeLines.push(`• Access Control (Devices & Issue): ${submission.accessControlIssue}`);
-  }
-  if (submission.camerasIssue) {
-    scopeLines.push(`• Cameras (Devices & Issue): ${submission.camerasIssue}`);
-  }
-  if (submission.residentWifiIssue) {
-    scopeLines.push(`• Resident Wi-Fi (Devices & Issue): ${submission.residentWifiIssue}`);
-  }
-  if (submission.communityWifiIssue) {
-    scopeLines.push(`• Community Wi-Fi (Devices & Issue): ${submission.communityWifiIssue}`);
-  }
-  if (submission.staffWifiIssue) {
-    scopeLines.push(`• Staff Wi-Fi (Devices & Issue): ${submission.staffWifiIssue}`);
-  }
-  if (submission.thermostatsIssue) {
-    scopeLines.push(`• Thermostats (Devices & Issue): ${submission.thermostatsIssue}`);
-  }
-  if (submission.leakSensorsIssue) {
-    scopeLines.push(`• Leak Sensors (Devices & Issue): ${submission.leakSensorsIssue}`);
-  }
-  if (scopeLines.length === 0) {
-    scopeLines.push('• General Onsite Diagnostics & System Verification');
-  }
-
-  const shippingBlock =
-    submission.equipmentNeedsShipping === 'Yes'
-      ? [
-          '',
-          'EQUIPMENT TO BE SHIPPED:',
-          `• Equipment Needed, Quantity & Install Location: ${
-            submission.equipmentQuantityAndLocation || submission.equipmentToShip || 'See attached SOW'
-          }`,
-          `• Shipping Recipient Name: ${
-            submission.shippingRecipient || `${submission.pocName} (Same as Site POC)`
-          }`,
-          `• Shipping Phone Number: ${
-            submission.shippingPhone || `${submission.pocPhone} (Same as Site POC)`
-          }`,
-          `• Shipping Email Address: ${
-            submission.shippingEmail || `${submission.pocEmail} (Same as Site POC)`
-          }`,
-          `• Shipping Method: ${submission.shippingMethod || 'Ground'}`,
-        ].join('\n')
-      : '\nEQUIPMENT TO BE SHIPPED:\n• No additional equipment shipment required.';
+  const subject = `[OneQuext SOW Work Order] ${submission.communityName} — Technical SOW PDF Attached (${submission.sowReferenceNumber})`;
 
   const notesBlock = customNotes?.trim()
-    ? `\nADDITIONAL DISPATCH NOTES / INSTRUCTIONS:\n${customNotes.trim()}\n`
+    ? `\nDISPATCH / ONSITE NOTES:\n${customNotes.trim()}\n`
     : '';
 
   const body = [
     `Hello ${recipientName || 'Partner Integrator / Vendor Team'},`,
     '',
-    `Please find below the official OneQuext Scope of Work (SOW) and onsite visit scheduling details for ${submission.communityName}. The formatted 2-page SOW PDF work order is also generated and ready for your technician's onsite visit.`,
-    notesBlock,
-    '==================================================',
-    'ONEQUEXT SCOPE OF WORK (SOW) & ONSITE VISIT DETAILS',
-    '==================================================',
-    `SOW Reference #: ${submission.sowReferenceNumber}`,
-    `1. Community / Site Name: ${submission.communityName}`,
-    `2. Work Site Address: ${submission.workSiteAddress}`,
-    `3. Date Prepared: ${submission.datePrepared}`,
-    `4. Requested Install / Visit Date: ${submission.installDate || 'TBD'}`,
-    `Integrator Partner / Installers: ${
+    `Please find attached the official OneQuext Scope of Work (SOW) Work Order PDF for ${submission.communityName}.`,
+    '',
+    'ONSITE VISIT DETAILS:',
+    `• Community / Property: ${submission.communityName}`,
+    `• Work Site Address: ${submission.workSiteAddress}`,
+    `• Requested Install / Visit Date: ${submission.installDate || 'TBD'}`,
+    `• SOW Reference Number: ${submission.sowReferenceNumber}`,
+    `• Site Point of Contact: ${submission.pocName} (${submission.pocTitle || 'Site Contact'}) — Phone: ${submission.pocPhone}${submission.pocEmail ? ` | Email: ${submission.pocEmail}` : ''}`,
+    `• Assigned Integrator / Installer: ${
       submission.integratorPartners && submission.integratorPartners.length > 0
         ? submission.integratorPartners.join(', ')
-        : 'Quext Certified Field Operations / Not Assigned'
+        : 'Quext Certified Field Operations'
     }`,
-    '',
-    'SITE POINT OF CONTACT (POC):',
-    `5. POC Name: ${submission.pocName}`,
-    `6. POC Title / Role: ${submission.pocTitle || 'Site Contact'}`,
-    `7. POC Phone Number: ${submission.pocPhone}`,
-    `8. POC Email Address: ${submission.pocEmail}`,
-    `9. Alternate Contact: ${submission.alternateContact || 'None provided'}`,
-    '',
-    'DEVICE NAMES & ISSUE DESCRIPTIONS (SCOPE OF WORK):',
-    ...scopeLines,
-    shippingBlock,
-    '',
-    'ONSITE DOCUMENTATION & SIGN-OFF REQUIREMENTS:',
-    '1. Check in with the Site POC upon arrival and prior to departure.',
-    '2. Capture pre- and post-service photos and record any replaced serial/MAC numbers.',
-    '3. Verify online telemetry in the Quext portal and obtain POC walkthrough sign-off.',
+    notesBlock,
+    '--------------------------------------------------',
+    'ATTACHED WORK ORDER PDF:',
+    `Please refer to the attached "${submission.sowReferenceNumber}.pdf" document for complete technical specifications, reported device issue locations, hardware shipping status, and onsite customer sign-off requirements.`,
+    '--------------------------------------------------',
     '',
     'Thank you,',
-    `${submission.preparedBy || 'Quext Customer Success Team'}`,
+    `${submission.preparedBy || 'Quext Customer Success & Field Operations'}`,
   ]
     .filter((line) => line !== undefined)
     .join('\n');
@@ -379,134 +316,82 @@ export const buildFieldTechEmailHtml = (
   tech: FieldTechContact,
   customNotes?: string
 ): string => {
-  const scopeRowsHtml: string[] = [];
-  const addRow = (label: string, val?: string) => {
-    if (!val || !val.trim()) return;
-    scopeRowsHtml.push(`
-      <tr>
-        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; background-color: #f1f5f9; font-weight: 700; color: #1b365d; width: 210px; vertical-align: top;">${label}</td>
-        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; white-space: pre-wrap;">${val}</td>
-      </tr>
-    `);
-  };
-
-  addRow('10. Unit Locks Issue & Devices', submission.unitLocksIssue);
-  addRow('11. Access Control Issue & Devices', submission.accessControlIssue);
-  addRow('12. Cameras Issue & Devices', submission.camerasIssue);
-  addRow('13. Resident Wi-Fi Issue & Devices', submission.residentWifiIssue);
-  addRow('14. Community Wi-Fi Issue & Devices', submission.communityWifiIssue);
-  addRow('15. Staff Wi-Fi Issue & Devices', submission.staffWifiIssue);
-  addRow('16. Thermostats Issue & Devices', submission.thermostatsIssue);
-  addRow('17. Leak Sensors Issue & Devices', submission.leakSensorsIssue);
+  const pdfFilename = `OneQuext_SOW_${submission.communityName.replace(/[^a-zA-Z0-9_-]/g, '_')}_${submission.installDate || 'Visit'}.pdf`;
 
   return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 720px;">
-      <div style="background-color: #1b365d; color: #ffffff; padding: 18px 22px; border-radius: 10px 10px 0 0;">
-        <h2 style="margin: 0; font-size: 18px;">OneQuext Scope of Work (SOW) — Partner / Vendor Work Order</h2>
-        <p style="margin: 4px 0 0 0; color: #cbd5e1; font-size: 13px;">Reference: <strong>${submission.sowReferenceNumber}</strong> • Prepared: ${submission.datePrepared}</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 640px; margin: 0 auto;">
+      <div style="background-color: #1b365d; color: #ffffff; padding: 20px 24px; border-radius: 10px 10px 0 0;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 700;">OneQuext Scope of Work (SOW) Work Order</h2>
+        <p style="margin: 6px 0 0 0; color: #93c5fd; font-size: 13px;">Reference: <strong>${submission.sowReferenceNumber}</strong> • Prepared: ${submission.datePrepared}</p>
       </div>
 
-      <div style="border: 1px solid #e2e8f0; border-top: none; padding: 20px 22px; border-radius: 0 0 10px 10px; background-color: #ffffff;">
-        <p style="margin-top: 0;">Hello <strong>${tech.name || 'Partner Integrator / Vendor Team'}</strong>,</p>
-        <p>Please find below the complete <strong>Onsite Visit Scheduling and Scope of Work (SOW)</strong> for <strong>${submission.communityName}</strong>. The official 2-page OneQuext SOW PDF is also attached to this email.</p>
+      <div style="border: 1px solid #e2e8f0; border-top: none; padding: 24px; border-radius: 0 0 10px 10px; background-color: #ffffff;">
+        <p style="margin-top: 0; font-size: 14px;">Hello <strong>${tech.name || 'Partner Integrator / Vendor Team'}</strong>,</p>
+        <p style="font-size: 14px; color: #334155;">
+          Please find attached the official <strong>OneQuext Scope of Work (SOW) Work Order PDF</strong> for <strong>${submission.communityName}</strong>.
+        </p>
+
+        <!-- Attached PDF Banner -->
+        <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 14px 18px; margin: 18px 0;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">📎</span>
+            <div>
+              <div style="font-weight: 700; color: #166534; font-size: 13px;">Attached Work Order Document:</div>
+              <div style="font-family: monospace; font-size: 12px; color: #14532d; font-weight: 600; margin-top: 2px;">${pdfFilename}</div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #15803d; margin-top: 6px; padding-left: 30px;">
+            Full 2-Page Technical SOW, Device Diagnostic Specs, Shipping Manifest &amp; Sign-Off Sheet attached as PDF.
+          </div>
+        </div>
 
         ${
-          customNotes
+          customNotes?.trim()
             ? `
-          <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
-            <strong style="color: #065f46;">Additional CSM / Dispatch Notes:</strong>
-            <div style="margin-top: 4px; font-size: 14px; color: #064e3b; white-space: pre-wrap;">${customNotes}</div>
+          <div style="background-color: #f8fafc; border-left: 4px solid #0284c7; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+            <strong style="color: #0369a1; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">CSM / Dispatch Notes:</strong>
+            <div style="margin-top: 4px; font-size: 13px; color: #0f172a; white-space: pre-wrap;">${customNotes.trim()}</div>
           </div>
         `
             : ''
         }
 
-        <h4 style="margin: 18px 0 8px 0; color: #1b365d; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #1b365d; padding-bottom: 4px;">1. Site &amp; Point of Contact (POC) Information</h4>
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px;">
+        <h4 style="margin: 20px 0 10px 0; color: #1b365d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #1b365d; padding-bottom: 4px;">Onsite Visit Summary</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
           <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700; width: 210px;">1. Community / Site Name</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: 700;">${submission.communityName}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: 700; width: 180px; color: #475569;">Community / Site</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 700; color: #0f172a;">${submission.communityName}</td>
           </tr>
           <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">2. Work Site Address</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.workSiteAddress}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: 700; color: #475569;">Work Site Address</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #0f172a;">${submission.workSiteAddress}</td>
           </tr>
           <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">3. Date Prepared</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.datePrepared}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: 700; color: #475569;">Scheduled Visit Date</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 700; color: #0f766e;">${submission.installDate || 'TBD'}</td>
           </tr>
           <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">4. Install / Visit Date</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: 700; color: #0f766e;">${submission.installDate || 'TBD'}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: 700; color: #475569;">Site Point of Contact</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #0f172a;">${submission.pocName} (${submission.pocTitle || 'Site Contact'}) • ${submission.pocPhone}</td>
           </tr>
           <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">5. POC Name</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.pocName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">6. POC Title / Role</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.pocTitle || 'Site Contact'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">7. POC Phone Number</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.pocPhone}</td>
-          </tr>
-          <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">8. POC Email Address</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.pocEmail}</td>
-          </tr>
-          <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">9. Alternate Contact</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.alternateContact || 'None provided'}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: 700; color: #475569;">Assigned Integrator</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 700; color: #1e293b;">${
+              submission.integratorPartners && submission.integratorPartners.length > 0
+                ? submission.integratorPartners.join(', ')
+                : 'Quext Certified Field Operations'
+            }</td>
           </tr>
         </table>
 
-        <h4 style="margin: 18px 0 8px 0; color: #1b365d; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #1b365d; padding-bottom: 4px;">2. Scope of Work — Device Names &amp; Issue Descriptions</h4>
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px;">
-          ${
-            scopeRowsHtml.length > 0
-              ? scopeRowsHtml.join('')
-              : `<tr><td style="padding: 10px; border: 1px solid #cbd5e1;">Standard onsite system diagnostics and verification.</td></tr>`
-          }
-        </table>
-
-        <h4 style="margin: 18px 0 8px 0; color: #1b365d; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #1b365d; padding-bottom: 4px;">3. Equipment Shipping Details</h4>
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px;">
-          <tr>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700; width: 210px;">18. Equipment Needs Shipping?</td>
-            <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: 700;">${submission.equipmentNeedsShipping}</td>
-          </tr>
-          ${
-            submission.equipmentNeedsShipping === 'Yes'
-              ? `
-            <tr>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">19. Equipment, Qty &amp; Location</td>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1; white-space: pre-wrap;">${submission.equipmentQuantityAndLocation || submission.equipmentToShip || '—'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">20. Shipping Recipient Name</td>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.shippingRecipient || `${submission.pocName} (Same as Site POC)`}</td>
-            </tr>
-            <tr>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">21. Shipping Phone Number</td>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.shippingPhone || `${submission.pocPhone} (Same as Site POC)`}</td>
-            </tr>
-            <tr>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">22. Shipping Email Address</td>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1;">${submission.shippingEmail || `${submission.pocEmail} (Same as Site POC)`}</td>
-            </tr>
-            <tr>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-weight: 700;">23. Shipping Method</td>
-              <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: 700;">${submission.shippingMethod || 'Ground'}</td>
-            </tr>
-          `
-              : ''
-          }
-        </table>
-
-        <p style="font-size: 13px; color: #334155; margin-top: 16px;">
-          📎 <strong>Attached:</strong> Official 2-Page <strong>OneQuext Scope of Work (SOW) PDF</strong> with onsite communication protocols, documentation requirements, and walkthrough sign-off blocks.
+        <p style="font-size: 13px; color: #475569; margin-top: 16px;">
+          Please open and review the attached <strong>OneQuext Scope of Work (SOW) PDF</strong> for the comprehensive hardware list, reported device issues, shipping tracking, and onsite sign-off block.
         </p>
+
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
+          <strong>OneQuext Customer Success &amp; Field Operations</strong><br />
+          Prepared by: ${submission.preparedBy || 'Quext Field Operations'}
+        </div>
       </div>
     </div>
   `;
