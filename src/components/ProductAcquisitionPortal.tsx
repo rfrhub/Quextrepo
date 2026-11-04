@@ -51,7 +51,40 @@ import {
   ShieldAlert,
   Lock,
   Link2,
+  Kanban,
+  List,
+  Warehouse,
+  ShoppingCart,
+  Inbox,
+  Sliders,
+  MoveRight,
+  MoveLeft,
 } from 'lucide-react';
+
+export type AcquisitionKanbanColumnId =
+  | 'Incoming'
+  | 'Ordered'
+  | 'Arrived at Warehouse'
+  | 'Shipped'
+  | 'Delivered';
+
+export function getKanbanColumnForItem(
+  item: UnifiedAcquisitionIntakeItem
+): AcquisitionKanbanColumnId {
+  if (item.isDelivered) {
+    return 'Delivered';
+  }
+  if (item.isShipped) {
+    return 'Shipped';
+  }
+  if (item.isArrivedToWarehouse) {
+    return 'Arrived at Warehouse';
+  }
+  if (item.isOrdered) {
+    return 'Ordered';
+  }
+  return 'Incoming';
+}
 
 export interface UnifiedAcquisitionIntakeItem {
   uid: string;
@@ -114,6 +147,8 @@ export interface UnifiedAcquisitionIntakeItem {
   arrivedAt?: string;
   isShipped?: boolean;
   shippedAt?: string;
+  isDelivered?: boolean;
+  deliveredAt?: string;
   trackingNumber?: string;
   tiedShippingDockId?: string;
   tiedShippingDockBatch?: string;
@@ -201,6 +236,11 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     };
   }, []);
 
+  // View mode: 'kanban' (default) or 'list'
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [draggedItemUid, setDraggedItemUid] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<AcquisitionKanbanColumnId | null>(null);
+
   // Local draft states for tracking numbers being edited per order UID
   const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
   const [selectedDockItemForUid, setSelectedDockItemForUid] = useState<Record<string, string>>({});
@@ -234,13 +274,14 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
 
         const itemMilestone = milestones[uid];
         const isOrd = !!(itemMilestone?.isOrdered ?? ticket.isOrdered ?? (ticket.status === '3. RMA Number Issued'));
-        const isArr = !!(itemMilestone?.isArrivedToWarehouse ?? ticket.isArrivedToWarehouse ?? (ticket.status === '5. Replacement Received / Closed'));
+        const isArr = !!(itemMilestone?.isArrivedToWarehouse ?? ticket.isArrivedToWarehouse);
         const isShip = !!(itemMilestone?.isShipped ?? ticket.isShipped ?? (ticket.status === '4. Packaged & Shipped'));
+        const isDeliv = !!(itemMilestone?.isDelivered ?? (ticket as any).isDelivered ?? (ticket.status === '5. Replacement Received / Closed'));
         const track = itemMilestone?.trackingNumber || ticket.trackingNumber || ticket.returnTrackingNumber || '';
         const needed = itemMilestone?.neededByDate || ticket.neededByDate || '';
 
         const defaultFulfillment: ProductAcquisitionFulfillmentStatus =
-          isArr || ticket.status === '5. Replacement Received / Closed'
+          isDeliv || ticket.status === '5. Replacement Received / Closed'
             ? 'Delivered / Fulfilled'
             : isShip || ticket.status === '4. Packaged & Shipped'
             ? 'In Transit / Shipped'
@@ -308,6 +349,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: itemMilestone?.arrivedAt || ticket.arrivedAt,
           isShipped: isShip,
           shippedAt: itemMilestone?.shippedAt || ticket.shippedAt,
+          isDelivered: isDeliv,
+          deliveredAt: itemMilestone?.deliveredAt || (ticket as any).deliveredAt,
           trackingNumber: track,
           tiedShippingDockId: itemMilestone?.tiedShippingDockId || ticket.tiedShippingDockId,
           tiedShippingDockBatch: itemMilestone?.tiedShippingDockBatch || ticket.tiedShippingDockBatch,
@@ -336,12 +379,13 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
 
           const isOrd = !!(itemMilestone?.isOrdered ?? co.isOrdered ?? (co.status === 'Approved'));
           const isArr = !!(itemMilestone?.isArrivedToWarehouse ?? co.isArrivedToWarehouse);
-          const isShip = !!(itemMilestone?.isShipped ?? co.isShipped ?? (co.status === 'In Fulfillment / Installed'));
+          const isShip = !!(itemMilestone?.isShipped ?? co.isShipped);
+          const isDeliv = !!(itemMilestone?.isDelivered ?? (co as any).isDelivered ?? (co.status === 'In Fulfillment / Installed' || item.installedCount >= item.quantity));
           const track = itemMilestone?.trackingNumber || co.trackingNumber || '';
           const needed = itemMilestone?.neededByDate || co.neededByDate || '';
 
           const defaultFulfillment: ProductAcquisitionFulfillmentStatus =
-            isArr || co.status === 'In Fulfillment / Installed' || item.installedCount >= item.quantity
+            isDeliv || co.status === 'In Fulfillment / Installed' || item.installedCount >= item.quantity
               ? 'Delivered / Fulfilled'
               : isShip
               ? 'In Transit / Shipped'
@@ -400,6 +444,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             arrivedAt: itemMilestone?.arrivedAt || co.arrivedAt,
             isShipped: isShip,
             shippedAt: itemMilestone?.shippedAt || co.shippedAt,
+            isDelivered: isDeliv,
+            deliveredAt: itemMilestone?.deliveredAt || (co as any).deliveredAt,
             trackingNumber: track,
             tiedShippingDockId:
               itemMilestone?.tiedShippingDockId || item.tiedShippingDockId || co.tiedShippingDockId,
@@ -418,8 +464,9 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         const itemMilestone = milestones[uid];
 
         const isOrd = !!(itemMilestone?.isOrdered ?? sub.isOrdered ?? (sub.fulfillmentStatus === 'PO Submitted / Ordered'));
-        const isArr = !!(itemMilestone?.isArrivedToWarehouse ?? sub.isArrivedToWarehouse ?? (sub.fulfillmentStatus === 'Delivered / Fulfilled'));
-        const isShip = !!(itemMilestone?.isShipped ?? sub.isShipped ?? (sub.fulfillmentStatus === 'In Transit / Shipped'));
+        const isArr = !!(itemMilestone?.isArrivedToWarehouse ?? (sub as any).isArrivedToWarehouse);
+        const isShip = !!(itemMilestone?.isShipped ?? (sub as any).isShipped ?? (sub.fulfillmentStatus === 'In Transit / Shipped'));
+        const isDeliv = !!(itemMilestone?.isDelivered ?? (sub as any).isDelivered ?? (sub.fulfillmentStatus === 'Delivered / Fulfilled'));
         const track = itemMilestone?.trackingNumber || sub.trackingNumber || sub.poOrTrackingNumber || '';
         const needed = itemMilestone?.neededByDate || sub.neededByDate || '';
 
@@ -477,6 +524,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: itemMilestone?.arrivedAt || sub.arrivedAt,
           isShipped: isShip,
           shippedAt: itemMilestone?.shippedAt || sub.shippedAt,
+          isDelivered: isDeliv,
+          deliveredAt: itemMilestone?.deliveredAt || (sub as any).deliveredAt,
           trackingNumber: track,
           tiedShippingDockId: itemMilestone?.tiedShippingDockId || sub.tiedShippingDockId,
           tiedShippingDockBatch: itemMilestone?.tiedShippingDockBatch || sub.tiedShippingDockBatch,
@@ -626,6 +675,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       arrivedAt: item.arrivedAt,
       isShipped: item.isShipped,
       shippedAt: item.shippedAt,
+      isDelivered: item.isDelivered,
+      deliveredAt: item.deliveredAt,
       trackingNumber: item.trackingNumber,
       neededByDate: item.neededByDate,
       tiedShippingDockId: item.tiedShippingDockId,
@@ -657,10 +708,12 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
 
     // Derive fulfillment status based on milestones
     let derivedStatus: ProductAcquisitionFulfillmentStatus = 'Pending Acquisition / Review';
-    if (nextMilestone.isShipped) {
+    if (nextMilestone.isDelivered) {
+      derivedStatus = 'Delivered / Fulfilled';
+    } else if (nextMilestone.isShipped) {
       derivedStatus = 'In Transit / Shipped';
     } else if (nextMilestone.isArrivedToWarehouse) {
-      derivedStatus = 'Delivered / Fulfilled';
+      derivedStatus = 'PO Submitted / Ordered';
     } else if (nextMilestone.isOrdered) {
       derivedStatus = 'PO Submitted / Ordered';
     }
@@ -676,10 +729,12 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       nextRmaTickets = (targetProject.rmaTickets || []).map((t) => {
         if (t.id !== item.parentRecordId) return t;
         let newRmaStatus = t.status;
-        if (nextMilestone.isShipped) {
+        if (nextMilestone.isDelivered) {
+          newRmaStatus = '5. Replacement Received / Closed';
+        } else if (nextMilestone.isShipped) {
           newRmaStatus = '4. Packaged & Shipped';
         } else if (nextMilestone.isArrivedToWarehouse) {
-          newRmaStatus = '5. Replacement Received / Closed';
+          newRmaStatus = '4. Packaged & Shipped';
         } else if (nextMilestone.isOrdered && t.status === '1. Tech Support Troubleshooting') {
           newRmaStatus = '3. RMA Number Issued';
         }
@@ -693,6 +748,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
           shippedAt: nextMilestone.shippedAt,
+          isDelivered: nextMilestone.isDelivered,
+          deliveredAt: nextMilestone.deliveredAt,
           trackingNumber: trackingVal,
           returnTrackingNumber: trackingVal,
           tiedShippingDockId: chosenDock?.id || t.tiedShippingDockId,
@@ -744,6 +801,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
           shippedAt: nextMilestone.shippedAt,
+          isDelivered: nextMilestone.isDelivered,
+          deliveredAt: nextMilestone.deliveredAt,
           trackingNumber: trackingVal,
           tiedShippingDockId: chosenDock?.id || co.tiedShippingDockId,
           tiedShippingDockBatch: chosenDock?.shipmentBatchLabel || co.tiedShippingDockBatch,
@@ -770,6 +829,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
           shippedAt: nextMilestone.shippedAt,
+          isDelivered: nextMilestone.isDelivered,
+          deliveredAt: nextMilestone.deliveredAt,
           trackingNumber: trackingVal,
           poOrTrackingNumber: trackingVal,
           tiedShippingDockId: chosenDock?.id || s.tiedShippingDockId,
@@ -885,7 +946,15 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     // 7. Generate high-priority notification to PMs in their Notifications tab
     let changeSummary = 'Order milestones updated in Product Acquisition Portal';
     let badgeLabel = 'Order Updated';
-    if (updates.isShipped !== undefined) {
+    if (updates.isDelivered !== undefined) {
+      if (updates.isDelivered) {
+        changeSummary = 'Order marked as Delivered & Received On-Site.';
+        badgeLabel = 'Delivered';
+      } else {
+        changeSummary = 'Order unmarked as Delivered.';
+        badgeLabel = 'Delivery Update';
+      }
+    } else if (updates.isShipped !== undefined) {
       if (updates.isShipped) {
         changeSummary = updates.trackingNumber
           ? `Order marked as Shipped. Tracking #: ${updates.trackingNumber}`
@@ -964,7 +1033,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
   // Toggle milestone handlers
   const handleToggleMilestone = (
     item: UnifiedAcquisitionIntakeItem,
-    milestoneType: 'Ordered' | 'Arrived' | 'Shipped'
+    milestoneType: 'Ordered' | 'Arrived' | 'Shipped' | 'Delivered'
   ) => {
     if (!canEdit) return;
     const today = new Date().toLocaleDateString('en-US', {
@@ -978,12 +1047,33 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       handleUpdateMilestone(item, {
         isOrdered: nextVal,
         orderedAt: nextVal ? today : undefined,
+        ...(!nextVal
+          ? {
+              isArrivedToWarehouse: false,
+              arrivedAt: undefined,
+              isShipped: false,
+              shippedAt: undefined,
+              isDelivered: false,
+              deliveredAt: undefined,
+            }
+          : {}),
       });
     } else if (milestoneType === 'Arrived') {
       const nextVal = !item.isArrivedToWarehouse;
       handleUpdateMilestone(item, {
         isArrivedToWarehouse: nextVal,
         arrivedAt: nextVal ? today : undefined,
+        ...(nextVal
+          ? {
+              isOrdered: true,
+              orderedAt: item.orderedAt || today,
+            }
+          : {
+              isShipped: false,
+              shippedAt: undefined,
+              isDelivered: false,
+              deliveredAt: undefined,
+            }),
       });
     } else if (milestoneType === 'Shipped') {
       const nextVal = !item.isShipped;
@@ -994,6 +1084,102 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       handleUpdateMilestone(item, {
         isShipped: nextVal,
         shippedAt: nextVal ? today : undefined,
+        ...(nextVal
+          ? {
+              isOrdered: true,
+              orderedAt: item.orderedAt || today,
+              isArrivedToWarehouse: true,
+              arrivedAt: item.arrivedAt || today,
+            }
+          : {
+              isDelivered: false,
+              deliveredAt: undefined,
+            }),
+      });
+    } else if (milestoneType === 'Delivered') {
+      const nextVal = !item.isDelivered;
+      handleUpdateMilestone(item, {
+        isDelivered: nextVal,
+        deliveredAt: nextVal ? today : undefined,
+        ...(nextVal
+          ? {
+              isOrdered: true,
+              orderedAt: item.orderedAt || today,
+              isArrivedToWarehouse: true,
+              arrivedAt: item.arrivedAt || today,
+              isShipped: true,
+              shippedAt: item.shippedAt || today,
+            }
+          : {}),
+      });
+    }
+  };
+
+  const handleMoveItemToColumn = (
+    item: UnifiedAcquisitionIntakeItem,
+    targetCol: AcquisitionKanbanColumnId
+  ) => {
+    if (!canEdit) return;
+    const today = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    if (targetCol === 'Incoming') {
+      handleUpdateMilestone(item, {
+        isOrdered: false,
+        orderedAt: undefined,
+        isArrivedToWarehouse: false,
+        arrivedAt: undefined,
+        isShipped: false,
+        shippedAt: undefined,
+        isDelivered: false,
+        deliveredAt: undefined,
+      });
+    } else if (targetCol === 'Ordered') {
+      handleUpdateMilestone(item, {
+        isOrdered: true,
+        orderedAt: item.orderedAt || today,
+        isArrivedToWarehouse: false,
+        arrivedAt: undefined,
+        isShipped: false,
+        shippedAt: undefined,
+        isDelivered: false,
+        deliveredAt: undefined,
+      });
+    } else if (targetCol === 'Arrived at Warehouse') {
+      handleUpdateMilestone(item, {
+        isOrdered: true,
+        orderedAt: item.orderedAt || today,
+        isArrivedToWarehouse: true,
+        arrivedAt: item.arrivedAt || today,
+        isShipped: false,
+        shippedAt: undefined,
+        isDelivered: false,
+        deliveredAt: undefined,
+      });
+    } else if (targetCol === 'Shipped') {
+      handleUpdateMilestone(item, {
+        isOrdered: true,
+        orderedAt: item.orderedAt || today,
+        isArrivedToWarehouse: true,
+        arrivedAt: item.arrivedAt || today,
+        isShipped: true,
+        shippedAt: item.shippedAt || today,
+        isDelivered: false,
+        deliveredAt: undefined,
+      });
+    } else if (targetCol === 'Delivered') {
+      handleUpdateMilestone(item, {
+        isOrdered: true,
+        orderedAt: item.orderedAt || today,
+        isArrivedToWarehouse: true,
+        arrivedAt: item.arrivedAt || today,
+        isShipped: true,
+        shippedAt: item.shippedAt || today,
+        isDelivered: true,
+        deliveredAt: item.deliveredAt || today,
       });
     }
   };
@@ -1251,6 +1437,94 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         };
     }
   };
+
+  const getSectionShortBadge = (section: ProductAcquisitionSourceSection) => {
+    switch (section) {
+      case 'Hardware RMA Ticketing Workflow':
+        return 'bg-amber-100 text-amber-900 border-amber-300';
+      case 'Product Acquisition and Change Order':
+        return 'bg-indigo-100 text-indigo-900 border-indigo-300';
+      case 'Supplemental Order Catalog':
+        return 'bg-purple-100 text-purple-900 border-purple-300';
+      case 'Smart Community Bill of Materials (BOM)':
+        return 'bg-emerald-100 text-emerald-900 border-emerald-300';
+    }
+  };
+
+  const getSectionShortName = (section: ProductAcquisitionSourceSection) => {
+    switch (section) {
+      case 'Hardware RMA Ticketing Workflow':
+        return 'RMA Claim';
+      case 'Product Acquisition and Change Order':
+        return 'Change Order';
+      case 'Supplemental Order Catalog':
+        return 'Supplemental';
+      case 'Smart Community Bill of Materials (BOM)':
+        return 'BOM Intake';
+    }
+  };
+
+  const KANBAN_COLUMNS: {
+    id: AcquisitionKanbanColumnId;
+    title: string;
+    subtitle: string;
+    badgeColor: string;
+    headerBg: string;
+    borderAccent: string;
+    iconBg: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      id: 'Incoming',
+      title: 'Incoming',
+      subtitle: 'Awaiting Action / Unordered',
+      badgeColor: 'bg-slate-200 text-slate-800 border-slate-300',
+      headerBg: 'bg-slate-50/90 border-slate-200',
+      borderAccent: 'border-t-slate-400',
+      iconBg: 'bg-slate-100 text-slate-700',
+      icon: <Inbox className="w-4 h-4 text-slate-600" />,
+    },
+    {
+      id: 'Ordered',
+      title: 'Ordered',
+      subtitle: 'PO Placed / Vendor Order',
+      badgeColor: 'bg-indigo-100 text-indigo-900 border-indigo-200',
+      headerBg: 'bg-indigo-50/70 border-indigo-200',
+      borderAccent: 'border-t-indigo-500',
+      iconBg: 'bg-indigo-100 text-indigo-700',
+      icon: <ShoppingCart className="w-4 h-4 text-indigo-600" />,
+    },
+    {
+      id: 'Arrived at Warehouse',
+      title: 'Arrived at Warehouse',
+      subtitle: 'Received at Quext Dock',
+      badgeColor: 'bg-teal-100 text-teal-900 border-teal-200',
+      headerBg: 'bg-teal-50/70 border-teal-200',
+      borderAccent: 'border-t-teal-500',
+      iconBg: 'bg-teal-100 text-teal-700',
+      icon: <Warehouse className="w-4 h-4 text-teal-600" />,
+    },
+    {
+      id: 'Shipped',
+      title: 'Shipped',
+      subtitle: 'In Transit to Job Site',
+      badgeColor: 'bg-sky-100 text-sky-900 border-sky-200',
+      headerBg: 'bg-sky-50/70 border-sky-200',
+      borderAccent: 'border-t-sky-500',
+      iconBg: 'bg-sky-100 text-sky-700',
+      icon: <Truck className="w-4 h-4 text-sky-600" />,
+    },
+    {
+      id: 'Delivered',
+      title: 'Delivered',
+      subtitle: 'Received On-Site & Fulfilled',
+      badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+      headerBg: 'bg-emerald-50/70 border-emerald-200',
+      borderAccent: 'border-t-emerald-500',
+      iconBg: 'bg-emerald-100 text-emerald-700',
+      icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
+    },
+  ];
 
   const getFulfillmentBadgeStyle = (status: ProductAcquisitionFulfillmentStatus) => {
     switch (status) {
@@ -1726,11 +2000,41 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                 </option>
               ))}
             </select>
+
+            {/* View Mode Switcher: Kanban Board (Default) vs List View */}
+            <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/90 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'kanban'
+                    ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+                title="Switch to Kanban Board View (Default)"
+              >
+                <Kanban className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Kanban Board</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+                title="Switch to Detailed List View"
+              >
+                <List className="w-3.5 h-3.5 text-slate-500" />
+                <span>List View</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Intake Items List */}
+      {/* Intake Items List or Kanban View */}
       {filteredItems.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto">
@@ -1760,7 +2064,411 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             </button>
           )}
         </div>
+      ) : viewMode === 'kanban' ? (
+        /* ========================================================================= */
+        /* KANBAN BOARD VIEW (DEFAULT)                                               */
+        /* Columns: Incoming, Ordered, Arrived at Warehouse, Shipped, Delivered      */
+        /* ========================================================================= */
+        <div className="space-y-3">
+          {/* Quick Kanban Guide Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-100/90 rounded-xl border border-slate-200 text-[11px] text-slate-600">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-800 flex items-center gap-1">
+                <Kanban className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Default Kanban Board:</span>
+              </span>
+              <span>
+                Checking the <strong>Ordered</strong>, <strong>Warehouse</strong>, <strong>Shipped</strong>, or <strong>Delivered</strong> boxes dictates column placement. Cards can also be dragged between columns.
+              </span>
+            </div>
+            <div className="text-slate-500 font-mono text-[10.5px]">
+              Showing {filteredItems.length} total orders across 5 stages
+            </div>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto pb-6 pt-1 items-start min-h-[640px] scrollbar-thin">
+            {KANBAN_COLUMNS.map((col, colIdx) => {
+              const colItems = filteredItems.filter(
+                (item) => getKanbanColumnForItem(item) === col.id
+              );
+              const totalUnitsInCol = colItems.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
+              const totalCostInCol = colItems.reduce((acc, curr) => acc + (curr.totalCost || 0), 0);
+              const isDragTarget = dragOverCol === col.id;
+
+              return (
+                <div
+                  key={col.id}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDragEnter={() => setDragOverCol(col.id)}
+                  onDragLeave={(e) => {
+                    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                    setDragOverCol(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverCol(null);
+                    const uid = e.dataTransfer.getData('text/plain') || draggedItemUid;
+                    if (uid) {
+                      const it = allIntakeItems.find((x) => x.uid === uid);
+                      if (it) handleMoveItemToColumn(it, col.id);
+                    }
+                  }}
+                  className={`w-[325px] 2xl:w-[350px] shrink-0 rounded-2xl border transition-all duration-200 flex flex-col bg-slate-50/70 shadow-2xs ${
+                    isDragTarget
+                      ? 'ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/40 shadow-md'
+                      : 'border-slate-200'
+                  }`}
+                >
+                  {/* Column Header */}
+                  <div className={`p-3.5 rounded-t-2xl border-b border-slate-200 bg-white border-t-4 ${col.borderAccent}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${col.iconBg}`}>
+                          {col.icon}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-xs font-extrabold text-slate-900 truncate">
+                            {col.title}
+                          </h3>
+                          <p className="text-[10px] text-slate-400 truncate">{col.subtitle}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`font-mono font-bold text-xs px-2 py-0.5 rounded-full border ${col.badgeColor}`}
+                          title={`${colItems.length} orders in this column`}
+                        >
+                          {colItems.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                      <span>{totalUnitsInCol.toLocaleString()} units</span>
+                      {totalCostInCol > 0 && <span>${totalCostInCol.toLocaleString()}</span>}
+                    </div>
+                  </div>
+
+                  {/* Column Card Stack */}
+                  <div className="p-3 space-y-3 min-h-[460px] flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+                    {colItems.length === 0 ? (
+                      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center space-y-2 text-slate-400">
+                        <div className="text-xs font-semibold">No orders in {col.title}</div>
+                        <p className="text-[10.5px] leading-relaxed">
+                          {canEdit
+                            ? `Drag items here or check the milestone box on any card to move to ${col.title}.`
+                            : `Currently no intake orders in ${col.title}.`}
+                        </p>
+                      </div>
+                    ) : (
+                      colItems.map((item) => {
+                        return (
+                          <div
+                            key={item.uid}
+                            draggable={canEdit}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', item.uid);
+                              setDraggedItemUid(item.uid);
+                            }}
+                            onDragEnd={() => setDraggedItemUid(null)}
+                            className={`bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-200 flex flex-col justify-between overflow-hidden text-left ${
+                              draggedItemUid === item.uid ? 'opacity-40 scale-[0.98]' : ''
+                            } ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                          >
+                            {/* Card Top: Badges */}
+                            <div className="px-3 pt-2.5 pb-2 border-b border-slate-100 flex items-center justify-between gap-1.5 text-[10px]">
+                              <div className="flex items-center gap-1 flex-wrap min-w-0">
+                                <span
+                                  className={`px-1.5 py-0.2 rounded font-bold border shrink-0 ${
+                                    item.sourceWorkspace === 'Property'
+                                      ? 'bg-teal-50 text-teal-900 border-teal-200'
+                                      : 'bg-blue-50 text-blue-900 border-blue-200'
+                                  }`}
+                                >
+                                  {item.sourceWorkspace}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.2 rounded font-semibold border truncate max-w-[110px] shrink-0 ${getSectionShortBadge(
+                                    item.sourceSection
+                                  )}`}
+                                  title={item.sourceSection}
+                                >
+                                  {getSectionShortName(item.sourceSection)}
+                                </span>
+                              </div>
+                              <span className="font-mono text-slate-500 font-bold shrink-0">
+                                #{item.referenceNumber}
+                              </span>
+                            </div>
+
+                            {/* Card Main: Product & Property */}
+                            <div className="p-3 space-y-2">
+                              <div>
+                                <div
+                                  className="font-bold text-xs text-slate-900 line-clamp-2 leading-snug"
+                                  title={item.productName}
+                                >
+                                  {item.productName}
+                                </div>
+                                <div className="text-[10px] text-slate-500 flex items-center justify-between gap-1 mt-0.5">
+                                  <span className="truncate max-w-[160px] font-mono">
+                                    {item.modelOrSku || item.category}
+                                  </span>
+                                  <span className="font-mono font-bold text-slate-900 px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 shrink-0">
+                                    Qty: {item.quantity}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Property & Client */}
+                              <div className="p-2 rounded-lg bg-slate-50 border border-slate-200/80 text-[10px] space-y-0.5">
+                                <div className="font-bold text-slate-900 truncate flex items-center gap-1">
+                                  <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <span className="truncate">{item.propertyName}</span>
+                                </div>
+                                <div className="text-slate-500 truncate flex items-center justify-between">
+                                  <span className="truncate">{item.clientName}</span>
+                                  {item.totalCost > 0 && (
+                                    <span className="font-mono font-bold text-slate-700 shrink-0">
+                                      ${item.totalCost.toLocaleString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Needed By Date */}
+                              {item.neededByDate && (
+                                <div className="inline-flex items-center gap-1 text-[9.5px] font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                  <Calendar className="w-3 h-3 text-amber-600 shrink-0" />
+                                  <span>Needed: {item.neededByDate}</span>
+                                </div>
+                              )}
+
+                              {/* Lock Finish Configuration if present */}
+                              {item.lockFinishConfig && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingFinishIntakeItem(item)}
+                                  className="w-full text-left text-[9.5px] font-semibold text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded border border-purple-200 truncate flex items-center justify-between cursor-pointer transition-colors"
+                                  title="Click to view or edit lock finish options"
+                                >
+                                  <span className="truncate">
+                                    Finish: {getLockFinishSummaryTag(item.lockFinishConfig)}
+                                  </span>
+                                  <Sliders className="w-3 h-3 text-purple-600 shrink-0" />
+                                </button>
+                              )}
+
+                              {/* Tracking # Details (Shown if in Shipped, Delivered, or has tracking) */}
+                              {(item.isShipped || item.isDelivered || item.trackingNumber) && (
+                                <div className="text-[10px] p-2 bg-sky-50 rounded-lg border border-sky-200 space-y-1">
+                                  <div className="flex items-center justify-between text-sky-950 font-bold">
+                                    <span className="flex items-center gap-1">
+                                      <Truck className="w-3 h-3 text-sky-700" />
+                                      <span>Tracking #:</span>
+                                    </span>
+                                    {item.trackingNumber ? (
+                                      <span className="font-mono text-sky-900 truncate max-w-[130px]">
+                                        {item.trackingNumber}
+                                      </span>
+                                    ) : (
+                                      <span className="text-sky-600 font-normal italic">None</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Card Bottom: Milestone Checkbox Buttons */}
+                            <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 space-y-1.5">
+                              <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                Stage Checkboxes:
+                              </div>
+                              <div className="grid grid-cols-2 gap-1 text-[10px]">
+                                {/* 1. Ordered */}
+                                <button
+                                  type="button"
+                                  disabled={!canEdit}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleMilestone(item, 'Ordered');
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-1 rounded border font-semibold transition-all ${
+                                    !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                                  } ${
+                                    item.isOrdered
+                                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-2xs'
+                                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                  title="Ordered: Check to move to Ordered column"
+                                >
+                                  <span
+                                    className={`w-3 h-3 rounded flex items-center justify-center border text-[8px] ${
+                                      item.isOrdered ? 'bg-white border-white text-indigo-700' : 'border-slate-400'
+                                    }`}
+                                  >
+                                    {item.isOrdered && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </span>
+                                  <span className="truncate">Ordered</span>
+                                </button>
+
+                                {/* 2. Warehouse */}
+                                <button
+                                  type="button"
+                                  disabled={!canEdit}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleMilestone(item, 'Arrived');
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-1 rounded border font-semibold transition-all ${
+                                    !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                                  } ${
+                                    item.isArrivedToWarehouse
+                                      ? 'bg-teal-600 text-white border-teal-500 shadow-2xs'
+                                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                  title="Arrived at Warehouse: Check to move to Arrived at Warehouse column"
+                                >
+                                  <span
+                                    className={`w-3 h-3 rounded flex items-center justify-center border text-[8px] ${
+                                      item.isArrivedToWarehouse
+                                        ? 'bg-white border-white text-teal-700'
+                                        : 'border-slate-400'
+                                    }`}
+                                  >
+                                    {item.isArrivedToWarehouse && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </span>
+                                  <span className="truncate">Warehouse</span>
+                                </button>
+
+                                {/* 3. Shipped */}
+                                <button
+                                  type="button"
+                                  disabled={!canEdit}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleMilestone(item, 'Shipped');
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-1 rounded border font-semibold transition-all ${
+                                    !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                                  } ${
+                                    item.isShipped
+                                      ? 'bg-sky-600 text-white border-sky-500 shadow-2xs'
+                                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                  title="Shipped: Check to move to Shipped column"
+                                >
+                                  <span
+                                    className={`w-3 h-3 rounded flex items-center justify-center border text-[8px] ${
+                                      item.isShipped ? 'bg-white border-white text-sky-700' : 'border-slate-400'
+                                    }`}
+                                  >
+                                    {item.isShipped && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </span>
+                                  <span className="truncate">Shipped</span>
+                                </button>
+
+                                {/* 4. Delivered */}
+                                <button
+                                  type="button"
+                                  disabled={!canEdit}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleMilestone(item, 'Delivered');
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-1 rounded border font-semibold transition-all ${
+                                    !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                                  } ${
+                                    item.isDelivered
+                                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-2xs'
+                                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                  title="Delivered: Check to move to Delivered column"
+                                >
+                                  <span
+                                    className={`w-3 h-3 rounded flex items-center justify-center border text-[8px] ${
+                                      item.isDelivered ? 'bg-white border-white text-emerald-700' : 'border-slate-400'
+                                    }`}
+                                  >
+                                    {item.isDelivered && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </span>
+                                  <span className="truncate">Delivered</span>
+                                </button>
+                              </div>
+
+                              {/* Bottom Navigation & Actions */}
+                              <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyItemSpecification(item)}
+                                    className="text-slate-500 hover:text-slate-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                                    title="Copy specifications"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                    <span>{copiedUid === item.uid ? 'Copied' : 'Specs'}</span>
+                                  </button>
+
+                                  {/* Quick Step Buttons for moving to previous/next column */}
+                                  {canEdit && colIdx > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveItemToColumn(item, KANBAN_COLUMNS[colIdx - 1].id)}
+                                      className="p-0.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 cursor-pointer"
+                                      title={`Move left to ${KANBAN_COLUMNS[colIdx - 1].title}`}
+                                    >
+                                      <MoveLeft className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                  {canEdit && colIdx < KANBAN_COLUMNS.length - 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveItemToColumn(item, KANBAN_COLUMNS[colIdx + 1].id)}
+                                      className="p-0.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 cursor-pointer"
+                                      title={`Move right to ${KANBAN_COLUMNS[colIdx + 1].title}`}
+                                    >
+                                      <MoveRight className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {item.sourceWorkspace === 'Property' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenPropertyInCustomerSuccess(item.projectId)}
+                                    className="text-teal-700 hover:text-teal-900 font-bold inline-flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <span>Property</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenProjectInOperations(item.projectId)}
+                                    className="text-blue-700 hover:text-blue-900 font-bold inline-flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <span>Project</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : (
+        /* List View */
         <div className="space-y-4">
           {filteredItems.map((item) => {
             const sectionStyle = getSectionBadgeStyle(item.sourceSection);
@@ -2005,6 +2713,37 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                             >
                               PM Notif Suppressed
                             </span>
+                          )}
+                        </button>
+
+                        {/* 4. Delivered Toggle */}
+                        <button
+                          type="button"
+                          disabled={!canEdit}
+                          onClick={() => handleToggleMilestone(item, 'Delivered')}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            !canEdit ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                          } ${
+                            item.isDelivered
+                              ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
+                              : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border-slate-700'
+                          }`}
+                          title={
+                            !canEdit
+                              ? 'View-only: Product Acquisition Users and PMs have edit access'
+                              : 'Click to toggle Delivered milestone'
+                          }
+                        >
+                          <span
+                            className={`w-4 h-4 rounded flex items-center justify-center border ${
+                              item.isDelivered ? 'bg-white border-white text-emerald-700' : 'border-slate-500'
+                            }`}
+                          >
+                            {item.isDelivered && <Check className="w-3 h-3 stroke-[3]" />}
+                          </span>
+                          <span>4. Delivered</span>
+                          {item.isDelivered && item.deliveredAt && (
+                            <span className="text-[10px] opacity-80 font-mono">({item.deliveredAt})</span>
                           )}
                         </button>
                       </div>

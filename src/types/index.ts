@@ -1389,6 +1389,8 @@ export interface AcquisitionOrderMilestones {
   arrivedAt?: string;
   isShipped?: boolean;
   shippedAt?: string;
+  isDelivered?: boolean;
+  deliveredAt?: string;
   trackingNumber?: string;
   // Tie tracking number to Shipping Dock line item
   tiedShippingDockId?: string;

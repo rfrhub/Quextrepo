@@ -555,6 +555,12 @@ export default function App() {
         setMyQuextTopTab('operations');
       } else if (hash.includes('#/catalog') || hash.includes('#catalog')) {
         setMyQuextTopTab('productCatalog');
+      } else if (
+        hash.includes('#/product-acquisition') ||
+        hash.includes('/product-acquisition') ||
+        hash.includes('#product-acquisition')
+      ) {
+        setMyQuextTopTab('productAcquisition');
       } else if (hash.includes('#/timeline') || hash.includes('#timeline')) {
         setMainTab('timeline');
         setMyQuextTopTab('operations');
@@ -1921,7 +1927,9 @@ export default function App() {
           activeTopTab={myQuextTopTab}
           onSelectTopTab={(tab) => {
             setMyQuextTopTab(tab);
-            if (tab === 'operations' && mainTab === 'quotes') {
+            if (tab === 'productAcquisition') {
+              window.location.hash = '#/product-acquisition';
+            } else if (tab === 'operations' && mainTab === 'quotes') {
               setMainTab('operations');
             }
           }}
