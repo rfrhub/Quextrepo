@@ -102,7 +102,14 @@ const MainApp: React.FC<{
   const [activeQuizModule, setActiveQuizModule] = useState<CourseModule | null>(null);
   const [activeQuizMode, setActiveQuizMode] = useState<'practice_quiz' | 'certification_exam'>('certification_exam');
   const [showCertModal, setShowCertModal] = useState<boolean>(false);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(initialShowLoginModal);
+  const [isAuthenticatedSession, setIsAuthenticatedSession] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('quext_partner_portal_authenticated') === 'true';
+  });
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return sessionStorage.getItem('quext_partner_portal_authenticated') !== 'true';
+  });
   const [certTargetUserId, setCertTargetUserId] = useState<string | undefined>(undefined);
 
   // Installers Clip standalone field logging app state
@@ -623,9 +630,20 @@ const MainApp: React.FC<{
         />
       )}
 
-      {/* Login Modal */}
-      {showLoginModal && (
-        <LoginModal onClose={() => setShowLoginModal(false)} />
+      {/* Login Modal: Mandatory landing modal until authenticated with valid code & email */}
+      {(showLoginModal || !isAuthenticatedSession) && (
+        <LoginModal
+          isClosable={isAuthenticatedSession}
+          onLoginSuccess={() => {
+            setIsAuthenticatedSession(true);
+            setShowLoginModal(false);
+          }}
+          onClose={() => {
+            if (isAuthenticatedSession) {
+              setShowLoginModal(false);
+            }
+          }}
+        />
       )}
 
       {/* Installers Clip Standalone In-The-Field App for Integrator Partners */}

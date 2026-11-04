@@ -108,6 +108,75 @@ export function registerNewPartnerSecureCode(
   return cred;
 }
 
+// Full registration flow: creates company in Auth storage, creates admin user, and provisions credentials vault entry
+export function registerNewPartnerFirm(params: {
+  companyName: string;
+  companyCode: string;
+  region?: string;
+  defaultEmail: string;
+}): PartnerSecurityCredential {
+  const companyId = `comp_${Date.now()}`;
+  const cleanCode = params.companyCode.trim().toUpperCase();
+  const partnerShortName = params.companyName.trim().split(' ')[0] || params.companyName.trim();
+  const region = params.region?.trim() || 'National Integration';
+  const email = params.defaultEmail.trim();
+
+  // 1. Register secure credential in security vault
+  const cred = registerNewPartnerSecureCode(
+    companyId,
+    partnerShortName,
+    params.companyName.trim(),
+    cleanCode,
+    email,
+    region
+  );
+
+  // 2. Persist company in quext_academy_companies_v5
+  const STORAGE_KEY_COMPANIES = 'quext_academy_companies_v5';
+  try {
+    const savedCompanies = localStorage.getItem(STORAGE_KEY_COMPANIES);
+    const companiesList = savedCompanies ? JSON.parse(savedCompanies) : [];
+    const newComp = {
+      id: companyId,
+      name: params.companyName.trim(),
+      code: cleanCode,
+      region,
+      tier: 'Authorized Partner',
+      activeTechnicians: 1,
+      contactEmail: email,
+      joinedDate: 'Just now',
+    };
+    localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify([...companiesList, newComp]));
+  } catch (e) {
+    console.error('Failed to save partner company:', e);
+  }
+
+  // 3. Persist admin user in quext_academy_users_v5
+  const STORAGE_KEY_USERS = 'quext_academy_users_v5';
+  try {
+    const savedUsers = localStorage.getItem(STORAGE_KEY_USERS);
+    const usersList = savedUsers ? JSON.parse(savedUsers) : [];
+    const newAdmin = {
+      id: `user_${companyId}_admin`,
+      name: `${params.companyName.trim()} Lead`,
+      email,
+      role: 'partner_admin',
+      companyId,
+      companyName: params.companyName.trim(),
+      fieldIdNumber: `MGR-${Math.floor(1000 + Math.random() * 9000)}`,
+      certifications: [],
+      progress: {},
+      completedLessons: [],
+      quizScores: {},
+    };
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify([...usersList, newAdmin]));
+  } catch (e) {
+    console.error('Failed to save partner admin user:', e);
+  }
+
+  return cred;
+}
+
 // Generate an alphanumeric secure token
 export function generateSecurePartnerCode(prefix = 'QX-PRT'): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // base32 without confusing 0/O/1/I

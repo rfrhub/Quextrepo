@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   KeyRound,
   Copy,
@@ -13,12 +13,16 @@ import {
   MapPin,
   FolderGit2,
   Lock,
+  PlusCircle,
+  Sparkles,
+  Key,
 } from 'lucide-react';
 import { OperationProject, buildPartnerAcademyPortalUrl } from '../types';
 import {
   loadPartnerSecurityCredentials,
-  savePartnerSecurityCredentials,
   rotatePartnerSecureCode,
+  generateCompanyCodeFromName,
+  registerNewPartnerFirm,
   PartnerSecurityCredential,
 } from '../partner-academy/utils/partnerSecurity';
 
@@ -43,10 +47,23 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [rotatingId, setRotatingId] = useState<string | null>(null);
 
+  // Register Partner Firm flow state
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regCode, setRegCode] = useState('');
+  const [regRegion, setRegRegion] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regError, setRegError] = useState('');
+  const [hasManuallyEditedCode, setHasManuallyEditedCode] = useState(false);
+  const [recentlyCreatedCred, setRecentlyCreatedCred] = useState<PartnerSecurityCredential | null>(null);
+  const randomSuffixRef = useRef<string>(Math.floor(1000000 + Math.random() * 9000000).toString());
+
   // Sync credentials on open
   React.useEffect(() => {
     if (isOpen) {
       setCredentials(loadPartnerSecurityCredentials());
+      setShowRegisterForm(false);
+      setRecentlyCreatedCred(null);
     }
   }, [isOpen]);
 
@@ -102,17 +119,63 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
     }, 400);
   };
 
+  const handleCompanyNameChange = (val: string) => {
+    setRegName(val);
+    if (!hasManuallyEditedCode && val.trim().length > 0) {
+      setRegCode(generateCompanyCodeFromName(val, randomSuffixRef.current));
+    } else if (!hasManuallyEditedCode && val.trim().length === 0) {
+      setRegCode('');
+    }
+  };
+
+  const handleGenerateNewCompanyCode = () => {
+    randomSuffixRef.current = Math.floor(1000000 + Math.random() * 9000000).toString();
+    const generated = generateCompanyCodeFromName(regName || 'New Partner', randomSuffixRef.current);
+    setRegCode(generated);
+    setHasManuallyEditedCode(false);
+  };
+
+  const handleSubmitRegisterFirm = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+
+    if (!regName.trim() || !regCode.trim() || !regEmail.trim()) {
+      setRegError('Please provide company name, access code, and technician contact email.');
+      return;
+    }
+
+    try {
+      const newCred = registerNewPartnerFirm({
+        companyName: regName.trim(),
+        companyCode: regCode.trim(),
+        region: regRegion.trim() || 'National Integration',
+        defaultEmail: regEmail.trim(),
+      });
+
+      setCredentials(loadPartnerSecurityCredentials());
+      setRecentlyCreatedCred(newCred);
+      setShowRegisterForm(false);
+      setRegName('');
+      setRegCode('');
+      setRegRegion('');
+      setRegEmail('');
+      setHasManuallyEditedCode(false);
+    } catch (err: any) {
+      setRegError(err?.message || 'Failed to register partner firm.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-[#0b101b] border border-slate-800 rounded-3xl max-w-4xl w-full p-5 sm:p-7 shadow-2xl relative my-6 text-slate-100 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between pb-4 border-b border-slate-800 shrink-0 gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/30 shrink-0">
               <KeyRound className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded-full">
                   Security Vault
                 </span>
@@ -120,47 +183,266 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
                   {credentialsList.length} Registered Partners
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1 truncate">
                 Integrator Partner Access Codes &amp; Logins
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5 truncate">
                 Encrypted high-entropy access credentials and pre-authenticated direct links to supply to integrator contractors.
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 transition-colors cursor-pointer shrink-0"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Register Partner Firm Button for PMs */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowRegisterForm((prev) => !prev);
+                setRecentlyCreatedCred(null);
+                setRegError('');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+                showRegisterForm
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                  : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white shadow-purple-900/30'
+              }`}
+              title="Create a new partner firm access code and pre-authenticated direct link"
+            >
+              {showRegisterForm ? (
+                <>
+                  <X className="w-3.5 h-3.5" />
+                  <span>Cancel Registration</span>
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Register Partner Firm</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 transition-colors cursor-pointer shrink-0"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Search & Overview Alert */}
-        <div className="py-4 space-y-3 shrink-0">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search partner by name, region, access code (e.g. QX-SPR), or technician email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
-            />
-          </div>
+        {/* Recently Created Partner Success Alert */}
+        {recentlyCreatedCred && (
+          <div className="mt-4 p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-xs text-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="truncate">
+                <span className="font-bold text-white block">
+                  ✓ Partner Firm Registered: {recentlyCreatedCred.companyName}
+                </span>
+                <span className="text-emerald-300 font-mono text-[11px]">
+                  Secure Access Code: <strong className="text-white">{recentlyCreatedCred.secureAccessCode}</strong>
+                </span>
+              </div>
+            </div>
 
-          <div className="p-3 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-xs text-indigo-200 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-white">How Partner Authentication Works:</span>{' '}
-              Provide the <strong>Secure Access Code</strong> along with their email, or send the{' '}
-              <strong>Copy Partner Link</strong>. When the contractor accesses the portal, they are automatically authenticated and locked to their organization—user switching and impersonation are permanently disabled in Partner Academy.
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleCopyCode(recentlyCreatedCred)}
+                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                {copiedCodeId === recentlyCreatedCred.companyId ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedCodeId === recentlyCreatedCred.companyId ? 'Copied Code!' : 'Copy Code'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyLink(recentlyCreatedCred)}
+                className="px-2.5 py-1.5 rounded-lg bg-emerald-800/80 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors border border-emerald-600/50"
+              >
+                {copiedLinkId === recentlyCreatedCred.companyId ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedLinkId === recentlyCreatedCred.companyId ? 'Copied Link!' : 'Copy Link'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecentlyCreatedCred(null)}
+                className="p-1 text-emerald-400 hover:text-white rounded cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Register Partner Firm Form (Moved from LoginModal) */}
+        {showRegisterForm ? (
+          <form
+            onSubmit={handleSubmitRegisterFirm}
+            className="my-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-slate-900 to-[#0d1424] border border-purple-500/30 shadow-2xl space-y-4 shrink-0 animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  <span>PM Partner Onboarding Portal</span>
+                </div>
+                <h3 className="text-base sm:text-lg font-extrabold text-white mt-0.5">
+                  Register Partner Firm &amp; Create Access Code
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRegisterForm(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Company / Firm Name <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Horizon Smart Living or Greg and Sons"
+                  value={regName}
+                  onChange={(e) => handleCompanyNameChange(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 transition-colors"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-300 block">
+                    Company Code (Initials + 7 digits) <span className="text-rose-400">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateNewCompanyCode}
+                    className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Generate a new company code"
+                  >
+                    <RefreshCw className="w-3 h-3 text-cyan-400" />
+                    <span>Generate</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <Key className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. GAS-4829103"
+                    value={regCode}
+                    onChange={(e) => {
+                      setRegCode(e.target.value.toUpperCase());
+                      setHasManuallyEditedCode(true);
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-16 py-2 text-xs text-white font-mono uppercase tracking-wider focus:outline-none focus:border-cyan-400 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateNewCompanyCode}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 rounded-md text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    Generate
+                  </button>
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Used by contractors to authenticate into the Partner Portal.
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Lead Admin / Technician Email <span className="text-rose-400">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="operations@partnerfirm.com"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Service Region (Optional)
+                </label>
+                <div className="relative">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Southwest / Arizona or National Integration"
+                    value={regRegion}
+                    onChange={(e) => setRegRegion(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {regError && (
+              <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-xs text-rose-300 flex items-start gap-2">
+                <span className="text-rose-400 font-bold shrink-0">⚠</span>
+                <span>{regError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowRegisterForm(false)}
+                className="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-900/40 cursor-pointer transition-all active:scale-95"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Create Partner Code &amp; Register Firm</span>
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Search & Overview Alert */
+          <div className="py-4 space-y-3 shrink-0">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search partner by name, region, access code (e.g. QX-SPR), or technician email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+              />
+            </div>
+
+            <div className="p-3 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-xs text-indigo-200 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-white">How Partner Authentication Works:</span>{' '}
+                Provide the <strong>Secure Access Code</strong> along with their email, or send the{' '}
+                <strong>Copy Partner Link</strong>. When the contractor accesses the portal, they are prompted by the{' '}
+                <strong>Company &amp; Role Authentication Portal</strong> to enter their code and email to enter.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Credentials List */}
         <div className="flex-1 overflow-y-auto pr-1 space-y-3 scrollbar-thin scrollbar-thumb-slate-700">
@@ -296,7 +578,7 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
         {/* Footer */}
         <div className="pt-4 mt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
           <div>
-            Codes generated using high-entropy SHA-resistant tokens. Legacy 3-digit codes remain supported as fallback.
+            PM Security Controls: Generate codes for contractor firms and deliver direct portal links.
           </div>
           <button
             type="button"
