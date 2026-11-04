@@ -48,6 +48,7 @@ import {
   AlertCircle,
   X,
   Edit2,
+  Pencil,
   ShieldAlert,
   Lock,
   Link2,
@@ -246,6 +247,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
   // Local draft states for tracking numbers and PO numbers being edited per order UID
   const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
   const [poDrafts, setPoDrafts] = useState<Record<string, string>>({});
+  const [editingPoUids, setEditingPoUids] = useState<Record<string, boolean>>({});
+  const [editingTrackingUids, setEditingTrackingUids] = useState<Record<string, boolean>>({});
   const [selectedDockItemForUid, setSelectedDockItemForUid] = useState<Record<string, string>>({});
 
   // Modal state to edit finish options directly from the Product Acquisition Portal
@@ -1240,6 +1243,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       orderedAt: item.orderedAt || today,
       poNumber: cleanPo,
     });
+    setEditingPoUids((prev) => ({ ...prev, [item.uid]: false }));
   };
 
   const handleSaveTracking = (item: UnifiedAcquisitionIntakeItem) => {
@@ -1259,6 +1263,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       trackingNumber: cleanTracking,
       tiedShippingDockId: chosenDockId,
     });
+    setEditingTrackingUids((prev) => ({ ...prev, [item.uid]: false }));
   };
 
   const handleUpdateFulfillmentStatus = (
@@ -2345,52 +2350,99 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                                     )}
                                   </div>
 
-                                  <div className="flex items-center gap-1.5">
-                                    <input
-                                      type="text"
-                                      disabled={!canEdit}
-                                      value={poDrafts[item.uid] ?? item.poNumber ?? ''}
-                                      onChange={(e) =>
-                                        setPoDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
-                                      }
-                                      placeholder="PO # (e.g. PO-84920)..."
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleSavePoNumber(item);
+                                  {editingPoUids[item.uid] ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="text"
+                                        autoFocus
+                                        disabled={!canEdit}
+                                        value={poDrafts[item.uid] ?? item.poNumber ?? ''}
+                                        onChange={(e) =>
+                                          setPoDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
                                         }
-                                      }}
-                                      className="flex-1 bg-slate-800/90 border border-slate-700 focus:border-indigo-400 rounded px-2 py-1 text-[10.5px] font-mono text-white placeholder:text-slate-500 focus:outline-hidden"
-                                    />
-                                    {canEdit && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSavePoNumber(item)}
-                                        className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded transition-colors cursor-pointer shrink-0"
-                                      >
-                                        Save
-                                      </button>
-                                    )}
-                                    {(poDrafts[item.uid] ?? item.poNumber) && (
+                                        placeholder="PO # (e.g. PO-84920)..."
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            handleSavePoNumber(item);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingPoUids((prev) => ({ ...prev, [item.uid]: false }));
+                                          }
+                                        }}
+                                        className="flex-1 bg-slate-800/90 border border-indigo-400 focus:border-indigo-300 rounded px-2 py-1 text-[10.5px] font-mono text-white placeholder:text-slate-500 focus:outline-hidden"
+                                      />
+                                      {canEdit && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSavePoNumber(item)}
+                                          className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded transition-colors cursor-pointer shrink-0"
+                                        >
+                                          Save
+                                        </button>
+                                      )}
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          navigator.clipboard.writeText(
-                                            (poDrafts[item.uid] ?? item.poNumber)!.trim()
-                                          );
-                                          setCopiedUid(item.uid);
-                                          setTimeout(() => setCopiedUid(null), 1500);
+                                          setPoDrafts((prev) => ({ ...prev, [item.uid]: item.poNumber || '' }));
+                                          setEditingPoUids((prev) => ({ ...prev, [item.uid]: false }));
                                         }}
-                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 cursor-pointer shrink-0"
-                                        title="Copy PO Number"
+                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded border border-slate-700 transition-colors cursor-pointer shrink-0"
+                                        title="Cancel editing"
                                       >
-                                        {copiedUid === item.uid ? (
-                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                        ) : (
-                                          <Copy className="w-3.5 h-3.5" />
-                                        )}
+                                        <X className="w-3.5 h-3.5" />
                                       </button>
-                                    )}
-                                  </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between gap-1.5 bg-slate-950/80 px-2 py-1 rounded border border-slate-800">
+                                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                        <span className="text-[10px] text-slate-400 font-mono">PO:</span>
+                                        {item.poNumber ? (
+                                          <span className="text-[11px] font-mono font-bold text-white truncate" title={item.poNumber}>
+                                            {item.poNumber}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] font-mono italic text-slate-500">
+                                            Not entered
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {item.poNumber && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              navigator.clipboard.writeText(item.poNumber!.trim());
+                                              setCopiedUid(item.uid);
+                                              setTimeout(() => setCopiedUid(null), 1500);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                                            title="Copy PO Number"
+                                          >
+                                            {copiedUid === item.uid ? (
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                            ) : (
+                                              <Copy className="w-3.5 h-3.5" />
+                                            )}
+                                          </button>
+                                        )}
+
+                                        {canEdit && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setPoDrafts((prev) => ({ ...prev, [item.uid]: item.poNumber || '' }));
+                                              setEditingPoUids((prev) => ({ ...prev, [item.uid]: true }));
+                                            }}
+                                            className="p-1 text-indigo-300 hover:text-white hover:bg-indigo-600/30 rounded border border-indigo-500/30 transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-semibold"
+                                            title={item.poNumber ? "Edit PO #" : "Enter PO #"}
+                                          >
+                                            <Pencil className="w-3 h-3" />
+                                            {!item.poNumber && <span>Add PO</span>}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
 
@@ -2416,59 +2468,113 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                                     )}
                                   </div>
 
-                                  <div className="flex items-center gap-1.5">
-                                    <input
-                                      type="text"
-                                      disabled={!canEdit}
-                                      value={currentTrackingDraft}
-                                      onChange={(e) =>
-                                        setTrackingDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
-                                      }
-                                      placeholder="Carrier Tracking # (e.g., 1Z...)"
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          e.preventDefault();
-                                          handleSaveTracking(item);
+                                  {editingTrackingUids[item.uid] ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="text"
+                                        autoFocus
+                                        disabled={!canEdit}
+                                        value={currentTrackingDraft}
+                                        onChange={(e) =>
+                                          setTrackingDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
                                         }
-                                      }}
-                                      className={`w-full px-2 py-1 text-[10px] font-mono font-bold bg-slate-950 border border-sky-400/50 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-400 transition-all ${
-                                        !canEdit ? 'opacity-70 cursor-not-allowed' : ''
-                                      }`}
-                                      title="Enter tracking number and press Enter or click Save"
-                                    />
-                                    {canEdit && (
+                                        placeholder="Carrier Tracking # (e.g., 1Z...)"
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleSaveTracking(item);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingTrackingUids((prev) => ({ ...prev, [item.uid]: false }));
+                                          }
+                                        }}
+                                        className={`w-full px-2 py-1 text-[10px] font-mono font-bold bg-slate-950 border border-sky-400 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-400 transition-all ${
+                                          !canEdit ? 'opacity-70 cursor-not-allowed' : ''
+                                        }`}
+                                        title="Enter tracking number and press Enter or click Save"
+                                      />
+                                      {canEdit && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSaveTracking(item);
+                                          }}
+                                          className="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold cursor-pointer transition-all shadow-2xs shrink-0 active:scale-95"
+                                          title="Save tracking number"
+                                        >
+                                          Save
+                                        </button>
+                                      )}
                                       <button
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleSaveTracking(item);
+                                          setTrackingDrafts((prev) => ({ ...prev, [item.uid]: item.trackingNumber || '' }));
+                                          setEditingTrackingUids((prev) => ({ ...prev, [item.uid]: false }));
                                         }}
-                                        className="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold cursor-pointer transition-all shadow-2xs shrink-0 active:scale-95"
-                                        title="Save tracking number"
+                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded border border-slate-700 transition-colors cursor-pointer shrink-0"
+                                        title="Cancel editing"
                                       >
-                                        Save
+                                        <X className="w-3.5 h-3.5" />
                                       </button>
-                                    )}
-                                    {item.trackingNumber && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigator.clipboard.writeText(item.trackingNumber || '');
-                                          setCopiedUid(`track::${item.uid}`);
-                                          setTimeout(() => setCopiedUid(null), 2000);
-                                        }}
-                                        className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 text-[10px] cursor-pointer shrink-0"
-                                        title="Copy tracking number"
-                                      >
-                                        {copiedUid === `track::${item.uid}` ? (
-                                          <Check className="w-3 h-3 text-emerald-400" />
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between gap-1.5 bg-slate-950/80 px-2 py-1.5 rounded border border-slate-800">
+                                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                        <span className="text-[10px] text-slate-400 font-mono">Track:</span>
+                                        {item.trackingNumber ? (
+                                          <span
+                                            className="text-[10.5px] font-mono font-bold text-sky-300 truncate"
+                                            title={item.trackingNumber}
+                                          >
+                                            {item.trackingNumber}
+                                          </span>
                                         ) : (
-                                          <Copy className="w-3 h-3" />
+                                          <span className="text-[10px] font-mono italic text-slate-500">
+                                            No tracking number
+                                          </span>
                                         )}
-                                      </button>
-                                    )}
-                                  </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {item.trackingNumber && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigator.clipboard.writeText(item.trackingNumber || '');
+                                              setCopiedUid(`track::${item.uid}`);
+                                              setTimeout(() => setCopiedUid(null), 2000);
+                                            }}
+                                            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                                            title="Copy tracking number"
+                                          >
+                                            {copiedUid === `track::${item.uid}` ? (
+                                              <Check className="w-3 h-3 text-emerald-400" />
+                                            ) : (
+                                              <Copy className="w-3 h-3" />
+                                            )}
+                                          </button>
+                                        )}
+
+                                        {canEdit && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setTrackingDrafts((prev) => ({ ...prev, [item.uid]: item.trackingNumber || '' }));
+                                              setEditingTrackingUids((prev) => ({ ...prev, [item.uid]: true }));
+                                            }}
+                                            className="p-1 rounded bg-sky-950/80 hover:bg-sky-600/30 text-sky-300 hover:text-white border border-sky-500/40 text-[10px] font-semibold cursor-pointer transition-colors flex items-center gap-1"
+                                            title={item.trackingNumber ? 'Edit Tracking #' : 'Enter Tracking #'}
+                                          >
+                                            <Pencil className="w-3 h-3" />
+                                            {!item.trackingNumber && <span>Add Tracking</span>}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {/* Optional Tie to Shipping Dock Item */}
                                   {(() => {
