@@ -1385,6 +1385,7 @@ export interface OperationProject {
 export interface AcquisitionOrderMilestones {
   isOrdered?: boolean;
   orderedAt?: string;
+  poNumber?: string;
   isArrivedToWarehouse?: boolean;
   arrivedAt?: string;
   isShipped?: boolean;

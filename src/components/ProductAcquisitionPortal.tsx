@@ -59,6 +59,7 @@ import {
   Sliders,
   MoveRight,
   MoveLeft,
+  Receipt,
 } from 'lucide-react';
 
 export type AcquisitionKanbanColumnId =
@@ -143,6 +144,7 @@ export interface UnifiedAcquisitionIntakeItem {
   neededByDate?: string;
   isOrdered?: boolean;
   orderedAt?: string;
+  poNumber?: string;
   isArrivedToWarehouse?: boolean;
   arrivedAt?: string;
   isShipped?: boolean;
@@ -241,8 +243,9 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
   const [draggedItemUid, setDraggedItemUid] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<AcquisitionKanbanColumnId | null>(null);
 
-  // Local draft states for tracking numbers being edited per order UID
+  // Local draft states for tracking numbers and PO numbers being edited per order UID
   const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
+  const [poDrafts, setPoDrafts] = useState<Record<string, string>>({});
   const [selectedDockItemForUid, setSelectedDockItemForUid] = useState<Record<string, string>>({});
 
   // Modal state to edit finish options directly from the Product Acquisition Portal
@@ -279,6 +282,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         const isDeliv = !!(itemMilestone?.isDelivered ?? (ticket as any).isDelivered ?? (ticket.status === '5. Replacement Received / Closed'));
         const track = itemMilestone?.trackingNumber || ticket.trackingNumber || ticket.returnTrackingNumber || '';
         const needed = itemMilestone?.neededByDate || ticket.neededByDate || '';
+        const poVal = itemMilestone?.poNumber || (ticket as any).poNumber || '';
 
         const defaultFulfillment: ProductAcquisitionFulfillmentStatus =
           isDeliv || ticket.status === '5. Replacement Received / Closed'
@@ -345,6 +349,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           neededByDate: needed,
           isOrdered: isOrd,
           orderedAt: itemMilestone?.orderedAt || ticket.orderedAt,
+          poNumber: poVal,
           isArrivedToWarehouse: isArr,
           arrivedAt: itemMilestone?.arrivedAt || ticket.arrivedAt,
           isShipped: isShip,
@@ -383,6 +388,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           const isDeliv = !!(itemMilestone?.isDelivered ?? (co as any).isDelivered ?? (co.status === 'In Fulfillment / Installed' || item.installedCount >= item.quantity));
           const track = itemMilestone?.trackingNumber || co.trackingNumber || '';
           const needed = itemMilestone?.neededByDate || co.neededByDate || '';
+          const poVal = itemMilestone?.poNumber || (co as any).poNumber || (item as any).poNumber || '';
 
           const defaultFulfillment: ProductAcquisitionFulfillmentStatus =
             isDeliv || co.status === 'In Fulfillment / Installed' || item.installedCount >= item.quantity
@@ -440,6 +446,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
             neededByDate: needed,
             isOrdered: isOrd,
             orderedAt: itemMilestone?.orderedAt || co.orderedAt,
+            poNumber: poVal,
             isArrivedToWarehouse: isArr,
             arrivedAt: itemMilestone?.arrivedAt || co.arrivedAt,
             isShipped: isShip,
@@ -469,6 +476,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         const isDeliv = !!(itemMilestone?.isDelivered ?? (sub as any).isDelivered ?? (sub.fulfillmentStatus === 'Delivered / Fulfilled'));
         const track = itemMilestone?.trackingNumber || sub.trackingNumber || sub.poOrTrackingNumber || '';
         const needed = itemMilestone?.neededByDate || sub.neededByDate || '';
+        const poVal = itemMilestone?.poNumber || (sub as any).poNumber || sub.poOrTrackingNumber || '';
 
         list.push({
           uid,
@@ -520,6 +528,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           neededByDate: needed,
           isOrdered: isOrd,
           orderedAt: itemMilestone?.orderedAt || sub.orderedAt,
+          poNumber: poVal,
           isArrivedToWarehouse: isArr,
           arrivedAt: itemMilestone?.arrivedAt || sub.arrivedAt,
           isShipped: isShip,
@@ -671,6 +680,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     const currentMilestones = targetProject.acquisitionMilestones?.[item.uid] || {
       isOrdered: item.isOrdered,
       orderedAt: item.orderedAt,
+      poNumber: item.poNumber,
       isArrivedToWarehouse: item.isArrivedToWarehouse,
       arrivedAt: item.arrivedAt,
       isShipped: item.isShipped,
@@ -744,6 +754,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           status: newRmaStatus,
           isOrdered: nextMilestone.isOrdered,
           orderedAt: nextMilestone.orderedAt,
+          poNumber: nextMilestone.poNumber || (t as any).poNumber,
           isArrivedToWarehouse: nextMilestone.isArrivedToWarehouse,
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
@@ -797,6 +808,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           status: newCoStatus,
           isOrdered: nextMilestone.isOrdered,
           orderedAt: nextMilestone.orderedAt,
+          poNumber: nextMilestone.poNumber || (t as any).poNumber,
           isArrivedToWarehouse: nextMilestone.isArrivedToWarehouse,
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
@@ -825,6 +837,7 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
           status: derivedStatus,
           isOrdered: nextMilestone.isOrdered,
           orderedAt: nextMilestone.orderedAt,
+          poNumber: nextMilestone.poNumber || (t as any).poNumber,
           isArrivedToWarehouse: nextMilestone.isArrivedToWarehouse,
           arrivedAt: nextMilestone.arrivedAt,
           isShipped: nextMilestone.isShipped,
@@ -911,6 +924,28 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
       }
     }
 
+    if (updates.poNumber && updates.poNumber.trim()) {
+      const poVal = updates.poNumber.trim();
+      const alreadyHasNote = nextProjectNotes.some((n) => n.text?.includes(poVal));
+      if (!alreadyHasNote) {
+        const newNote = {
+          id: `note-po-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          projectId: targetProject.id,
+          author: currentUserName || 'Product Acquisition Portal',
+          timestamp: new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          category: 'Hardware Delivery' as const,
+          text: `Vendor Purchase Order (PO) # populated: ${poVal} for ${item.productName} (${item.referenceNumber || item.sourceSection}).`,
+        };
+        nextProjectNotes = [newNote, ...nextProjectNotes];
+      }
+    }
+
     // 6. Tie tracking number into the Shipping Dock line item if specified
     let nextShippingDockItems = targetProject.shippingDockItems || [];
     const trackingToTie = (
@@ -946,7 +981,10 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
     // 7. Generate high-priority notification to PMs in their Notifications tab
     let changeSummary = 'Order milestones updated in Product Acquisition Portal';
     let badgeLabel = 'Order Updated';
-    if (updates.isDelivered !== undefined) {
+    if (updates.poNumber !== undefined && updates.poNumber.trim()) {
+      changeSummary = `Purchase Order # populated: ${updates.poNumber}`;
+      badgeLabel = 'PO Added';
+    } else if (updates.isDelivered !== undefined) {
       if (updates.isDelivered) {
         changeSummary = 'Order marked as Delivered & Received On-Site.';
         badgeLabel = 'Delivered';
@@ -1044,6 +1082,9 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
 
     if (milestoneType === 'Ordered') {
       const nextVal = !item.isOrdered;
+      if (nextVal && !poDrafts[item.uid] && item.poNumber) {
+        setPoDrafts((prev) => ({ ...prev, [item.uid]: item.poNumber || '' }));
+      }
       handleUpdateMilestone(item, {
         isOrdered: nextVal,
         orderedAt: nextVal ? today : undefined,
@@ -1182,6 +1223,23 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
         deliveredAt: item.deliveredAt || today,
       });
     }
+  };
+
+  const handleSavePoNumber = (item: UnifiedAcquisitionIntakeItem) => {
+    if (!canEdit) return;
+    const rawVal = poDrafts[item.uid] ?? item.poNumber ?? '';
+    const cleanPo = rawVal.trim();
+    const today = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    handleUpdateMilestone(item, {
+      isOrdered: true,
+      orderedAt: item.orderedAt || today,
+      poNumber: cleanPo,
+    });
   };
 
   const handleSaveTracking = (item: UnifiedAcquisitionIntakeItem) => {
@@ -2265,6 +2323,77 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                                 </button>
                               )}
 
+                              {/* PO # Input & Details (When marked Ordered or PO exists) */}
+                              {(item.isOrdered || item.poNumber) && (
+                                <div
+                                  className="p-2 bg-slate-900 text-white rounded-lg border border-indigo-500/40 space-y-1.5 shadow-2xs"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <div className="flex items-center gap-1.5 font-bold text-indigo-200">
+                                      <Receipt className="w-3.5 h-3.5 text-indigo-400" />
+                                      <span>Purchase Order (PO #)</span>
+                                    </div>
+                                    {item.poNumber ? (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded">
+                                        ✓ Saved
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] font-semibold px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded">
+                                        Enter PO #
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="text"
+                                      disabled={!canEdit}
+                                      value={poDrafts[item.uid] ?? item.poNumber ?? ''}
+                                      onChange={(e) =>
+                                        setPoDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
+                                      }
+                                      placeholder="PO # (e.g. PO-84920)..."
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleSavePoNumber(item);
+                                        }
+                                      }}
+                                      className="flex-1 bg-slate-800/90 border border-slate-700 focus:border-indigo-400 rounded px-2 py-1 text-[10.5px] font-mono text-white placeholder:text-slate-500 focus:outline-hidden"
+                                    />
+                                    {canEdit && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSavePoNumber(item)}
+                                        className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded transition-colors cursor-pointer shrink-0"
+                                      >
+                                        Save
+                                      </button>
+                                    )}
+                                    {(poDrafts[item.uid] ?? item.poNumber) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(
+                                            (poDrafts[item.uid] ?? item.poNumber)!.trim()
+                                          );
+                                          setCopiedUid(item.uid);
+                                          setTimeout(() => setCopiedUid(null), 1500);
+                                        }}
+                                        className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 cursor-pointer shrink-0"
+                                        title="Copy PO Number"
+                                      >
+                                        {copiedUid === item.uid ? (
+                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                        ) : (
+                                          <Copy className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Tracking # Input & Dispatch Details (Retained in Kanban View when marked Shipped / Delivered) */}
                               {(item.isShipped || item.isDelivered || item.trackingNumber) && (
                                 <div
@@ -2870,6 +2999,85 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                         )}
                       </div>
                     </div>
+
+                    {/* Ordered -> Purchase Order (PO #) Populator Field */}
+                    {(item.isOrdered || item.poNumber) && (
+                      <div className="p-3 bg-indigo-950/70 rounded-xl border border-indigo-500/40 flex flex-col gap-2.5 animate-fadeIn">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center justify-center shrink-0">
+                              <Receipt className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-indigo-200 block">
+                                  Purchase Order (PO #) Record
+                                </span>
+                                {item.poNumber ? (
+                                  <span className="text-[9.5px] font-bold px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded">
+                                    ✓ Saved
+                                  </span>
+                                ) : (
+                                  <span className="text-[9.5px] font-semibold px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded">
+                                    Enter PO #
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-indigo-300/80">
+                                Saves directly to origin element, updates milestone records, and logs vendor PO.
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              disabled={!canEdit}
+                              value={poDrafts[item.uid] ?? item.poNumber ?? ''}
+                              onChange={(e) =>
+                                setPoDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
+                              }
+                              placeholder="Purchase Order # (e.g., PO-84920)"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSavePoNumber(item);
+                                }
+                              }}
+                              className="font-mono text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-indigo-500/50 text-white placeholder:text-slate-500 focus:outline-hidden focus:border-indigo-400 min-w-[240px]"
+                            />
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => handleSavePoNumber(item)}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+                              >
+                                Save PO #
+                              </button>
+                            )}
+                            {(poDrafts[item.uid] ?? item.poNumber) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    (poDrafts[item.uid] ?? item.poNumber)!.trim()
+                                  );
+                                  setCopiedUid(item.uid);
+                                  setTimeout(() => setCopiedUid(null), 1500);
+                                }}
+                                className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 cursor-pointer shrink-0"
+                                title="Copy PO Number"
+                              >
+                                {copiedUid === item.uid ? (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Shipped -> Tracking # Populator Field */}
                     {(item.isShipped || item.trackingNumber) && (
