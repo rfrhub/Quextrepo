@@ -1,10 +1,30 @@
 import { jsPDF } from 'jspdf';
 import { OperationProject } from '../types';
 
+export type OmarTimeframe =
+  | 'current_month'
+  | 'specific_month'
+  | 'specific_quarter'
+  | 'current_year'
+  | 'all_time';
+
+export interface OmarTimeframeScope {
+  timeframe: OmarTimeframe;
+  selectedMonth?: number;
+  selectedYear?: number;
+  selectedQuarter?: 1 | 2 | 3 | 4;
+}
+
+export interface OmarDashboardPdfOptions {
+  filterLabel?: string;
+  fileName?: string;
+  timeframeScope?: OmarTimeframeScope;
+}
+
 /**
  * Format date string into MM/DD/YYYY short string for PDF tables
  */
-function formatShortDate(dateStr?: string): string {
+export function formatShortDate(dateStr?: string): string {
   if (!dateStr || dateStr === 'TBD' || dateStr.toLowerCase().includes('tbd')) return 'TBD';
   const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (isoMatch) {
@@ -18,18 +38,116 @@ function formatShortDate(dateStr?: string): string {
 }
 
 /**
+ * Parses date string into year, 0-indexed month, and quarter (1-4).
+ */
+export function parseDateComponents(dateStr?: string): { year: number; month: number; quarter: 1 | 2 | 3 | 4 } | null {
+  if (!dateStr || dateStr === 'TBD' || dateStr.toLowerCase().includes('tbd')) return null;
+  const iso = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) {
+    const y = parseInt(iso[1], 10);
+    const m = parseInt(iso[2], 10) - 1;
+    return { year: y, month: m, quarter: (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4 };
+  }
+  const slash = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slash) {
+    const m = parseInt(slash[1], 10) - 1;
+    const y = parseInt(slash[3], 10);
+    return { year: y, month: m, quarter: (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4 };
+  }
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const m = d.getMonth();
+    return { year: d.getFullYear(), month: m, quarter: (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4 };
+  }
+  return null;
+}
+
+/**
+ * Determines whether a project has been marked Project Closed.
+ */
+export function isProjectClosed(p: OperationProject): boolean {
+  return Boolean(
+    (p.statusTag as string) === 'Project Closed' ||
+    p.milestones?.some(
+      (m) =>
+        (m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')) &&
+        m.status === 'Completed'
+    )
+  );
+}
+
+/**
+ * Extracts closure date components for a closed project.
+ */
+export function getProjectClosedDateComponents(
+  p: OperationProject
+): { year: number; month: number; quarter: 1 | 2 | 3 | 4; raw: string } | null {
+  if (!isProjectClosed(p)) return null;
+
+  const closedM = p.milestones?.find(
+    (m) => m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')
+  );
+
+  const raw =
+    closedM?.completedDate ||
+    closedM?.targetDate ||
+    (p as any).actualCompletionDate ||
+    p.targetCompletionDate;
+
+  if (!raw) return null;
+  const parsed = parseDateComponents(raw);
+  if (!parsed) return null;
+  return { ...parsed, raw };
+}
+
+/**
+ * Checks if a closed project closed within the selected timeframe scope.
+ */
+export function didProjectCloseInScope(
+  p: OperationProject,
+  scope?: OmarTimeframeScope
+): boolean {
+  if (!isProjectClosed(p)) return false;
+  if (!scope || !scope.timeframe || scope.timeframe === 'all_time') return true;
+
+  const closedDate = getProjectClosedDateComponents(p);
+  if (!closedDate) return false;
+
+  const now = new Date();
+  const currentMonthIdx = now.getMonth();
+  const currentYearVal = now.getFullYear();
+  const sYear = scope.selectedYear ?? currentYearVal;
+  const sMonth = scope.selectedMonth ?? currentMonthIdx;
+  const sQuarter = scope.selectedQuarter ?? ((Math.floor(currentMonthIdx / 3) + 1) as 1 | 2 | 3 | 4);
+
+  switch (scope.timeframe) {
+    case 'current_month':
+      return closedDate.year === currentYearVal && closedDate.month === currentMonthIdx;
+    case 'specific_month':
+      return closedDate.year === sYear && closedDate.month === sMonth;
+    case 'specific_quarter':
+      return closedDate.year === sYear && closedDate.quarter === sQuarter;
+    case 'current_year':
+      return closedDate.year === sYear;
+    default:
+      return true;
+  }
+}
+
+/**
  * Generates the official 2026 Master Projects Dashboard PDF Report.
  * Modeled after the 2026 Master Projects Dashboard - Project Tracker.
  * 
  * Features:
  * - Executive Dashboard & Scorecard banner on Page 1
+ * - Prominent "PROJECTS CLOSED" scorecard card dynamically scoped to the selected timeframe
  * - Comprehensive multi-page landscape table across operational projects
  * - Categories: Project & Portfolio, Units & Sys, Tech / Const, Status, Implementation Dates, Project Team, Installer, SWAT Invoicing, Scope & Notes
  * - Clean running headers, footers with page numbering (Page X of Y), and Quext branding
  */
 export function generateOmarDashboardPdf(
   projects: OperationProject[],
-  options?: { filterLabel?: string }
+  options?: OmarDashboardPdfOptions
 ): jsPDF {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -59,26 +177,23 @@ export function generateOmarDashboardPdf(
   // Statistics calculation
   const totalProjects = projects.length;
   const totalUnits = projects.reduce((sum, p) => sum + (p.unitsCount || 0), 0);
-  const closedCount = projects.filter(
-    (p) =>
-      (p.statusTag as string) === 'Project Closed' ||
-      p.milestones?.some(
-        (m) =>
-          (m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')) &&
-          m.status === 'Completed'
-      )
-  ).length;
+
+  // Closed projects that specifically fall within the selected timeline scope
+  const closedInScopeProjects = projects.filter((p) =>
+    didProjectCloseInScope(p, options?.timeframeScope)
+  );
+  const closedInScopeCount = closedInScopeProjects.length;
+  const closedInScopeUnits = closedInScopeProjects.reduce((sum, p) => sum + (p.unitsCount || 0), 0);
+
+  // All closed projects present in the table
+  const allClosedInTable = projects.filter(isProjectClosed).length;
+  const activeCount = totalProjects - allClosedInTable;
+
   const onTrackCount = projects.filter(
-    (p) =>
-      (p.statusTag || 'On Track') === 'On Track' &&
-      !p.milestones?.some(
-        (m) =>
-          (m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')) &&
-          m.status === 'Completed'
-      )
+    (p) => (p.statusTag || 'On Track') === 'On Track' && !isProjectClosed(p)
   ).length;
-  const behindCount = projects.filter((p) => p.statusTag === 'Behind Schedule').length;
-  const riskCount = projects.filter((p) => p.statusTag === 'High Risk').length;
+  const behindCount = projects.filter((p) => p.statusTag === 'Behind Schedule' && !isProjectClosed(p)).length;
+  const riskCount = projects.filter((p) => p.statusTag === 'High Risk' && !isProjectClosed(p)).length;
   const quextCount = projects.filter((p) => (p.platform || 'Quext') === 'Quext').length;
   const geokeyCount = projects.filter((p) => p.platform === 'Geokey').length;
   const homebaseCount = projects.filter((p) => p.platform === 'Homebase').length;
@@ -136,38 +251,49 @@ export function generateOmarDashboardPdf(
     doc.setTextColor(255, 255, 255);
     doc.text('PORTFOLIO REPORT', marginX + contentWidth - 112, 43);
 
-    // Scorecard Section (Row of 5 Cards)
+    // Scorecard Section (Row of 6 Cards, including prominent "PROJECTS CLOSED" metric)
     const cardY = 68;
     const cardHeight = 44;
-    const numCards = 5;
-    const cardGap = 8;
-    const cardWidth = (contentWidth - cardGap * (numCards - 1)) / numCards;
+    const numCards = 6;
+    const cardGap = 6;
+    const cardWidth = (contentWidth - cardGap * (numCards - 1)) / numCards; // (736 - 30) / 6 = 117.67 pt
 
     const cards = [
       {
         label: 'TOTAL PROJECTS',
         val: `${totalProjects}`,
-        sub: `${totalProjects - closedCount} Active · ${closedCount} Closed`,
+        sub: `${activeCount} Active in Scope`,
+        topColor: BRAND_BLUE,
+      },
+      {
+        label: 'PROJECTS CLOSED',
+        val: `${closedInScopeCount} Closed`,
+        sub: closedInScopeCount > 0 ? `${closedInScopeUnits.toLocaleString()} Units Closed` : 'None in Selected Scope',
+        topColor: [79, 70, 229], // Indigo
       },
       {
         label: 'RESIDENTIAL UNITS',
         val: `${totalUnits.toLocaleString()}`,
         sub: totalProjects > 0 ? `Avg ${Math.round(totalUnits / totalProjects)} / property` : '—',
-      },
-      {
-        label: 'PLATFORM ECOSYSTEM',
-        val: `QXT: ${quextCount} · GEO: ${geokeyCount}`,
-        sub: `Homebase: ${homebaseCount}`,
+        topColor: BRAND_BLUE,
       },
       {
         label: 'PROJECT HEALTH',
         val: `${onTrackCount} On Track`,
-        sub: `${behindCount} Behind · ${riskCount} Risk · ${closedCount} Closed`,
+        sub: `${behindCount} Behind · ${riskCount} Risk`,
+        topColor: [22, 101, 52], // Green
+      },
+      {
+        label: 'PLATFORMS',
+        val: `QXT: ${quextCount} · GEO: ${geokeyCount}`,
+        sub: `Homebase: ${homebaseCount}`,
+        topColor: [14, 165, 233], // Sky
       },
       {
         label: 'TECH INNOVATION',
         val: `NFC: ${nfcCount} · QR: ${qrCount}`,
-        sub: 'Mobile Wallet & Intercom',
+        sub: 'Mobile Wallet · Intercom',
+        topColor: [124, 58, 237], // Purple
       },
     ];
 
@@ -179,7 +305,7 @@ export function generateOmarDashboardPdf(
       doc.roundedRect(cX, cardY, cardWidth, cardHeight, 3, 3, 'FD');
 
       // Top color strip
-      doc.setFillColor(BRAND_BLUE[0], BRAND_BLUE[1], BRAND_BLUE[2]);
+      doc.setFillColor(card.topColor[0], card.topColor[1], card.topColor[2]);
       doc.rect(cX, cardY, cardWidth, 2.5, 'F');
 
       doc.setFont('helvetica', 'bold');
@@ -188,12 +314,12 @@ export function generateOmarDashboardPdf(
       doc.text(card.label, cX + 6, cardY + 12);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(9.5);
       doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
       doc.text(card.val, cX + 6, cardY + 26);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
+      doc.setFontSize(6);
       doc.setTextColor(TEXT_MUTED[0], TEXT_MUTED[1], TEXT_MUTED[2]);
       doc.text(card.sub, cX + 6, cardY + 38);
     });
@@ -498,10 +624,7 @@ export function generateOmarDashboardPdf(
  */
 export function downloadOmarDashboardPdf(
   projects: OperationProject[],
-  options?: {
-    filterLabel?: string;
-    fileName?: string;
-  }
+  options?: OmarDashboardPdfOptions
 ): void {
   const doc = generateOmarDashboardPdf(projects, options);
   const defaultName = options?.fileName || (

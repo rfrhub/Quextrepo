@@ -1,6 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { OperationProject } from '../types';
-import { downloadOmarDashboardPdf } from '../utils/generateOmarDashboardPdf';
+import {
+  downloadOmarDashboardPdf,
+  isProjectClosed,
+  didProjectCloseInScope,
+  parseDateComponents,
+  OmarTimeframe,
+} from '../utils/generateOmarDashboardPdf';
 import {
   X,
   FileDown,
@@ -13,12 +19,7 @@ import {
   Filter,
 } from 'lucide-react';
 
-export type OmarReportTimeframe =
-  | 'current_month'
-  | 'specific_month'
-  | 'specific_quarter'
-  | 'current_year'
-  | 'all_time';
+export type OmarReportTimeframe = OmarTimeframe;
 
 interface OmarReportModalProps {
   isOpen: boolean;
@@ -40,28 +41,6 @@ const MONTH_NAMES = [
   'November',
   'December',
 ];
-
-function parseDateComponents(dateStr?: string): { year: number; month: number; quarter: 1 | 2 | 3 | 4 } | null {
-  if (!dateStr || dateStr === 'TBD' || dateStr.toLowerCase().includes('tbd')) return null;
-  const iso = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (iso) {
-    const y = parseInt(iso[1], 10);
-    const m = parseInt(iso[2], 10) - 1;
-    return { year: y, month: m, quarter: (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4 };
-  }
-  const slash = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (slash) {
-    const m = parseInt(slash[1], 10) - 1;
-    const y = parseInt(slash[3], 10);
-    return { year: y, month: m, quarter: (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4 };
-  }
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) {
-    const m = d.getMonth();
-    return { year: d.getFullYear(), month: m, quarter: (Math.floor(m / 3) + 1) as 1 | 2 | 3 | 4 };
-  }
-  return null;
-}
 
 function getProjectDates(p: OperationProject) {
   const implM = p.milestones?.find(
@@ -90,17 +69,6 @@ function getProjectDates(p: OperationProject) {
   }[];
 }
 
-function isProjectClosed(p: OperationProject): boolean {
-  return Boolean(
-    (p.statusTag as string) === 'Project Closed' ||
-    p.milestones?.some(
-      (m) =>
-        (m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')) &&
-        m.status === 'Completed'
-    )
-  );
-}
-
 export const OmarReportModal: React.FC<OmarReportModalProps> = ({
   isOpen,
   onClose,
@@ -115,7 +83,6 @@ export const OmarReportModal: React.FC<OmarReportModalProps> = ({
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthIdx);
   const [selectedYear, setSelectedYear] = useState<number>(currentYearVal);
   const [selectedQuarter, setSelectedQuarter] = useState<1 | 2 | 3 | 4>(currentQuarterVal);
-  const [includeClosedProjects, setIncludeClosedProjects] = useState<boolean>(true);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   // Compute filter label
@@ -135,17 +102,25 @@ export const OmarReportModal: React.FC<OmarReportModalProps> = ({
     }
   }, [timeframe, selectedMonth, selectedYear, selectedQuarter, currentMonthIdx, currentYearVal]);
 
-  // Filter projects based on timeframe and closed project inclusion
+  // Filter projects based on selected timeframe
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
-      const closed = isProjectClosed(p);
-      if (!includeClosedProjects && closed) return false;
-
       if (timeframe === 'all_time') return true;
 
+      const closed = isProjectClosed(p);
+      if (closed) {
+        // Closed project: check if its closure date falls within the timeframe
+        return didProjectCloseInScope(p, {
+          timeframe,
+          selectedMonth,
+          selectedYear,
+          selectedQuarter,
+        });
+      }
+
+      // Active project: check if its installation/milestone dates fall in the timeframe
       const projectDates = getProjectDates(p);
       if (projectDates.length === 0) {
-        // Fallback for projects with undated milestones in all-year context
         return timeframe === 'current_year';
       }
 
@@ -179,14 +154,20 @@ export const OmarReportModal: React.FC<OmarReportModalProps> = ({
     selectedMonth,
     selectedYear,
     selectedQuarter,
-    includeClosedProjects,
     currentMonthIdx,
     currentYearVal,
   ]);
 
   const closedCountInFiltered = useMemo(() => {
-    return filteredProjects.filter(isProjectClosed).length;
-  }, [filteredProjects]);
+    return filteredProjects.filter((p) =>
+      didProjectCloseInScope(p, {
+        timeframe,
+        selectedMonth,
+        selectedYear,
+        selectedQuarter,
+      })
+    ).length;
+  }, [filteredProjects, timeframe, selectedMonth, selectedYear, selectedQuarter]);
 
   const totalUnitsInFiltered = useMemo(() => {
     return filteredProjects.reduce((sum, p) => sum + (p.unitsCount || 0), 0);
@@ -199,6 +180,12 @@ export const OmarReportModal: React.FC<OmarReportModalProps> = ({
         downloadOmarDashboardPdf(filteredProjects, {
           filterLabel,
           fileName: `Quext_Master_Projects_Dashboard_${filterLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`,
+          timeframeScope: {
+            timeframe,
+            selectedMonth,
+            selectedYear,
+            selectedQuarter,
+          },
         });
         onClose();
       } catch (err) {
@@ -387,26 +374,6 @@ export const OmarReportModal: React.FC<OmarReportModalProps> = ({
             </div>
           )}
 
-          {/* Project Lifecycle / Closed Milestone Checkbox */}
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={includeClosedProjects}
-                onChange={(e) => setIncludeClosedProjects(e.target.checked)}
-                className="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-0 cursor-pointer"
-              />
-              <div>
-                <span className="font-bold text-slate-900 text-xs">
-                  Include Projects Marked &quot;Project Closed&quot; on Milestone
-                </span>
-                <p className="text-[11px] text-slate-500">
-                  Ensure properties with completed closure milestones are reported with official Project Closed status badges.
-                </p>
-              </div>
-            </label>
-          </div>
-
           {/* Summary Preview Box */}
           <div className="p-3.5 bg-gradient-to-br from-sky-50/70 to-blue-50/50 border border-sky-200 rounded-xl flex items-center justify-between text-xs">
             <div className="space-y-0.5">
@@ -416,7 +383,10 @@ export const OmarReportModal: React.FC<OmarReportModalProps> = ({
               </div>
               <div className="font-bold text-slate-900 text-sm">{filterLabel}</div>
               <div className="text-[11px] text-slate-600">
-                {filteredProjects.length} total projects · {totalUnitsInFiltered.toLocaleString()} units · {closedCountInFiltered} closed
+                {filteredProjects.length} total projects · {totalUnitsInFiltered.toLocaleString()} units ·{' '}
+                <span className="font-semibold text-indigo-700">
+                  {closedCountInFiltered} {closedCountInFiltered === 1 ? 'project' : 'projects'} closed in timeline
+                </span>
               </div>
             </div>
 
