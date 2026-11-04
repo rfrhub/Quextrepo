@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProjectNote, ProjectMilestone } from '../types';
-import { MessageSquare, Plus, Pin, PinOff, Pencil, Check, Trash2, X } from 'lucide-react';
+import { MessageSquare, Plus, Pin, Pencil, Check, Trash2, X } from 'lucide-react';
 
 interface ProjectNotesSectionProps {
   notes: ProjectNote[];
@@ -69,10 +69,11 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
     setShowAddForm(false);
   };
 
-  const handleTogglePin = (e: React.MouseEvent, note: ProjectNote) => {
+  const handleTogglePin = (e: React.SyntheticEvent, note: ProjectNote) => {
     e.preventDefault();
     e.stopPropagation();
-    const nextPinned = !Boolean(note.isPinned);
+    const isCurrentlyPinned = Boolean(note.isPinned && (note.isPinned as unknown) !== 'false');
+    const nextPinned = !isCurrentlyPinned;
 
     // 1. Optimistic update in local state for instantaneous feedback
     setLocalNotes((prev) =>
@@ -290,8 +291,8 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                 {/* Note Header */}
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
                   <div className="flex items-center gap-2">
-                    {/* Primary Interactive Pin/Unpin Status Badge */}
-                    {isNotePinned ? (
+                    {/* Interactive Pinned Priority Status Badge (Click to Unpin) */}
+                    {isNotePinned && (
                       <button
                         type="button"
                         onClick={(e) => handleTogglePin(e, note)}
@@ -300,19 +301,9 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                       >
                         <Pin className="w-3.5 h-3.5 text-amber-700 fill-amber-700 rotate-45 group-hover:scale-110 transition-transform" />
                         <span>Pinned Priority</span>
-                        <span className="text-[10px] font-semibold text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded border border-amber-300/60 ml-0.5 group-hover:bg-amber-300 transition-colors">
+                        <span className="text-[10px] font-semibold text-amber-800 bg-amber-200/80 px-1.5 py-0.5 rounded border border-amber-300/60 ml-0.5 group-hover:bg-amber-300 transition-colors">
                           Unpin
                         </span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => handleTogglePin(e, note)}
-                        className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-500 hover:text-amber-800 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded px-2 py-0.5 transition-all cursor-pointer group"
-                        title="Pin note as priority alert"
-                      >
-                        <Pin className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 rotate-45" />
-                        <span>Pin</span>
                       </button>
                     )}
 
@@ -335,29 +326,18 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                       {note.category}
                     </span>
 
-                    {/* Dedicated Unpin / Pin Action Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleTogglePin(e, note)}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all cursor-pointer ${
-                        isNotePinned
-                          ? 'text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300'
-                          : 'text-slate-500 hover:text-amber-800 hover:bg-amber-50 border border-slate-200'
-                      }`}
-                      title={isNotePinned ? 'Unpin note' : 'Pin note as priority alert'}
-                    >
-                      {isNotePinned ? (
-                        <>
-                          <PinOff className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Unpin</span>
-                        </>
-                      ) : (
-                        <>
-                          <Pin className="w-3.5 h-3.5 text-slate-400 rotate-45" />
-                          <span>Pin</span>
-                        </>
-                      )}
-                    </button>
+                    {/* Pin button on right (only rendered when NOT pinned; redundant unpin removed) */}
+                    {!isNotePinned && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleTogglePin(e, note)}
+                        className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-500 hover:text-amber-800 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded px-2 py-0.5 transition-all cursor-pointer group"
+                        title="Pin note as priority alert"
+                      >
+                        <Pin className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 rotate-45" />
+                        <span>Pin</span>
+                      </button>
+                    )}
 
                     {editingNoteId !== note.id && (
                       <button

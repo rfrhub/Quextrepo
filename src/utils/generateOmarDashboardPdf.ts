@@ -2,16 +2,35 @@ import { jsPDF } from 'jspdf';
 import { OperationProject } from '../types';
 
 /**
- * Generates the official 2026 Master Projects Dashboard PDF Report (Omar Report).
+ * Format date string into MM/DD/YYYY short string for PDF tables
+ */
+function formatShortDate(dateStr?: string): string {
+  if (!dateStr || dateStr === 'TBD' || dateStr.toLowerCase().includes('tbd')) return 'TBD';
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    return `${isoMatch[2].padStart(2, '0')}/${isoMatch[3].padStart(2, '0')}/${isoMatch[1]}`;
+  }
+  const slashMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    return `${slashMatch[1].padStart(2, '0')}/${slashMatch[2].padStart(2, '0')}/${slashMatch[3]}`;
+  }
+  return dateStr.length > 10 ? dateStr.substring(0, 10) : dateStr;
+}
+
+/**
+ * Generates the official 2026 Master Projects Dashboard PDF Report.
  * Modeled after the 2026 Master Projects Dashboard - Project Tracker.
  * 
  * Features:
  * - Executive Dashboard & Scorecard banner on Page 1
- * - Comprehensive multi-page landscape table across all operational projects
- * - Categories: Project Overview, Timeline & Health, Field Ops & Team, Property POC, SWAT Accounting, Scope Notes
- * - Running headers, footers with page numbering (Page X of Y), and Quext branding
+ * - Comprehensive multi-page landscape table across operational projects
+ * - Categories: Project & Portfolio, Units & Sys, Tech / Const, Status, Implementation Dates, Project Team, Installer, SWAT Invoicing, Scope & Notes
+ * - Clean running headers, footers with page numbering (Page X of Y), and Quext branding
  */
-export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
+export function generateOmarDashboardPdf(
+  projects: OperationProject[],
+  options?: { filterLabel?: string }
+): jsPDF {
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'pt',
@@ -40,7 +59,24 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
   // Statistics calculation
   const totalProjects = projects.length;
   const totalUnits = projects.reduce((sum, p) => sum + (p.unitsCount || 0), 0);
-  const onTrackCount = projects.filter((p) => (p.statusTag || 'On Track') === 'On Track').length;
+  const closedCount = projects.filter(
+    (p) =>
+      (p.statusTag as string) === 'Project Closed' ||
+      p.milestones?.some(
+        (m) =>
+          (m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')) &&
+          m.status === 'Completed'
+      )
+  ).length;
+  const onTrackCount = projects.filter(
+    (p) =>
+      (p.statusTag || 'On Track') === 'On Track' &&
+      !p.milestones?.some(
+        (m) =>
+          (m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')) &&
+          m.status === 'Completed'
+      )
+  ).length;
   const behindCount = projects.filter((p) => p.statusTag === 'Behind Schedule').length;
   const riskCount = projects.filter((p) => p.statusTag === 'High Risk').length;
   const quextCount = projects.filter((p) => (p.platform || 'Quext') === 'Quext').length;
@@ -50,17 +86,17 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
   const qrCount = projects.filter((p) => p.useQrIntercom).length;
 
   // Columns definition: Total width 736 pt
+  // Removed Property POC column; Replaced timeline with Implementation Dates (Install Start & Install Complete)
   const cols = [
-    { id: 'prop', label: 'PROJECT & PORTFOLIO', width: 122 },
-    { id: 'units', label: 'UNITS & SYS', width: 56 },
-    { id: 'tech', label: 'TECH / CONST', width: 56 },
-    { id: 'status', label: 'STATUS', width: 65 },
-    { id: 'timeline', label: 'TIMELINE', width: 68 },
-    { id: 'team', label: 'PROJECT TEAM', width: 105 },
-    { id: 'installer', label: 'INSTALLER', width: 64 },
-    { id: 'poc', label: 'PROPERTY POC', width: 78 },
-    { id: 'accounting', label: 'SWAT INVOICING', width: 62 },
-    { id: 'notes', label: 'SCOPE & NOTES', width: 60 },
+    { id: 'prop', label: 'PROJECT & PORTFOLIO', width: 138 },
+    { id: 'units', label: 'UNITS & SYS', width: 58 },
+    { id: 'tech', label: 'TECH / CONST', width: 58 },
+    { id: 'status', label: 'STATUS', width: 70 },
+    { id: 'impl', label: 'IMPLEMENTATION DATES', width: 94 },
+    { id: 'team', label: 'PROJECT TEAM', width: 110 },
+    { id: 'installer', label: 'INSTALLER', width: 70 },
+    { id: 'accounting', label: 'SWAT INVOICING', width: 65 },
+    { id: 'notes', label: 'SCOPE & NOTES', width: 73 },
   ];
 
   let currentPage = 1;
@@ -87,15 +123,18 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
       hour: '2-digit',
       minute: '2-digit',
     });
-    doc.text(`Official Executive Portfolio Report · Generated via Omar Button · ${dateStr}`, marginX + 12, 51);
+    const filterSub = options?.filterLabel
+      ? `Official Executive Portfolio Report · Scope: ${options.filterLabel} · ${dateStr}`
+      : `Official Executive Portfolio Report · Generated on ${dateStr}`;
+    doc.text(filterSub, marginX + 12, 51);
 
-    // Omar Badge Pill in top right
+    // Executive Badge Pill in top right (No Omar wording)
     doc.setFillColor(BRAND_BLUE[0], BRAND_BLUE[1], BRAND_BLUE[2]);
-    doc.roundedRect(marginX + contentWidth - 110, 27, 98, 26, 4, 4, 'F');
+    doc.roundedRect(marginX + contentWidth - 120, 27, 108, 26, 4, 4, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text('OMAR REPORT', marginX + contentWidth - 96, 43);
+    doc.text('PORTFOLIO REPORT', marginX + contentWidth - 112, 43);
 
     // Scorecard Section (Row of 5 Cards)
     const cardY = 68;
@@ -105,11 +144,31 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     const cardWidth = (contentWidth - cardGap * (numCards - 1)) / numCards;
 
     const cards = [
-      { label: 'TOTAL PROJECTS', val: `${totalProjects}`, sub: 'Active Deployments' },
-      { label: 'RESIDENTIAL UNITS', val: `${totalUnits.toLocaleString()}`, sub: `Avg ${Math.round(totalUnits / totalProjects)} / property` },
-      { label: 'PLATFORM ECOSYSTEM', val: `QXT: ${quextCount} · GEO: ${geokeyCount}`, sub: `Homebase: ${homebaseCount}` },
-      { label: 'PROJECT HEALTH', val: `${onTrackCount} On Track`, sub: `${behindCount} Behind · ${riskCount} High Risk` },
-      { label: 'TECH INNOVATION', val: `NFC: ${nfcCount} · QR: ${qrCount}`, sub: 'Mobile Wallet & Intercom' },
+      {
+        label: 'TOTAL PROJECTS',
+        val: `${totalProjects}`,
+        sub: `${totalProjects - closedCount} Active · ${closedCount} Closed`,
+      },
+      {
+        label: 'RESIDENTIAL UNITS',
+        val: `${totalUnits.toLocaleString()}`,
+        sub: totalProjects > 0 ? `Avg ${Math.round(totalUnits / totalProjects)} / property` : '—',
+      },
+      {
+        label: 'PLATFORM ECOSYSTEM',
+        val: `QXT: ${quextCount} · GEO: ${geokeyCount}`,
+        sub: `Homebase: ${homebaseCount}`,
+      },
+      {
+        label: 'PROJECT HEALTH',
+        val: `${onTrackCount} On Track`,
+        sub: `${behindCount} Behind · ${riskCount} Risk · ${closedCount} Closed`,
+      },
+      {
+        label: 'TECH INNOVATION',
+        val: `NFC: ${nfcCount} · QR: ${qrCount}`,
+        sub: 'Mobile Wallet & Intercom',
+      },
     ];
 
     cards.forEach((card, idx) => {
@@ -150,12 +209,13 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(255, 255, 255);
-    doc.text('QUEXT OPERATIONS · MASTER PROJECTS DASHBOARD (OMAR REPORT)', marginX + 8, 30);
+    doc.text('QUEXT OPERATIONS · 2026 MASTER PROJECTS DASHBOARD', marginX + 8, 30);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(186, 230, 253);
-    doc.text(`Active Portfolio Catalog · ${totalProjects} Total Properties`, marginX + contentWidth - 175, 30);
+    const filterSub = options?.filterLabel ? `Scope: ${options.filterLabel} · ` : '';
+    doc.text(`${filterSub}${totalProjects} Total Properties`, marginX + contentWidth - 175, 30);
 
     return 44;
   };
@@ -227,7 +287,7 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
 
     let cellX = marginX;
 
-    // Col 1: Property & Portfolio (122 pt)
+    // Col 1: Property & Portfolio (138 pt)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
@@ -245,7 +305,7 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     cellX += cols[0].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 2: Units & Platform (56 pt)
+    // Col 2: Units & Platform (58 pt)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
@@ -262,7 +322,7 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     cellX += cols[1].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 3: Tech & Construction (56 pt)
+    // Col 3: Tech & Construction (58 pt)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
@@ -279,11 +339,24 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     cellX += cols[2].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 4: Status (65 pt)
-    const status = p.statusTag || 'On Track';
+    // Col 4: Status (70 pt)
+    const isClosed =
+      (p.statusTag as string) === 'Project Closed' ||
+      p.milestones?.some(
+        (m) =>
+          (m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')) &&
+          m.status === 'Completed'
+      );
+
+    let status: string = p.statusTag || 'On Track';
     let sColor = GREEN;
     let sBg = GREEN_BG;
-    if (status === 'Behind Schedule') {
+
+    if (isClosed) {
+      status = 'Project Closed';
+      sColor = [55, 48, 163]; // Indigo-800
+      sBg = [224, 231, 255]; // Indigo-100
+    } else if (status === 'Behind Schedule') {
       sColor = AMBER;
       sBg = AMBER_BG;
     } else if (status === 'High Risk') {
@@ -301,24 +374,41 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     cellX += cols[3].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 5: Timeline (68 pt)
-    doc.setFont('helvetica', 'normal');
+    // Col 5: Implementation Dates: Install Start and Install Complete (94 pt)
+    const implMilestone = p.milestones?.find(
+      (m) => m.title === 'Implementation' || m.title.toLowerCase().includes('implement')
+    );
+    const installStart =
+      (p as any).installationStartDate ||
+      implMilestone?.startedAt ||
+      p.startDate ||
+      'TBD';
+    const installComplete =
+      (p as any).installationEndDate ||
+      implMilestone?.completedDate ||
+      implMilestone?.targetDate ||
+      p.targetCompletionDate ||
+      'TBD';
+
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
     doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
-    const startStr = p.startDate ? `St: ${p.startDate}` : 'St: TBD';
-    const targetStr = p.targetCompletionDate ? `Go: ${p.targetCompletionDate}` : 'Go: TBD';
-    doc.text(startStr, cellX + 3.5, currentY + 9.5);
+    doc.text(`Start: ${formatShortDate(installStart)}`, cellX + 3.5, currentY + 9.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
     doc.setTextColor(TEXT_MUTED[0], TEXT_MUTED[1], TEXT_MUTED[2]);
-    doc.text(targetStr, cellX + 3.5, currentY + 19);
+    doc.text(`End: ${formatShortDate(installComplete)}`, cellX + 3.5, currentY + 19);
 
     cellX += cols[4].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 6: Project Team (105 pt)
+    // Col 6: Project Team (110 pt)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
-    const pmName = p.assignedPM?.name?.replace(' Recalde', '')?.replace(' Condon', '')?.replace(' Rossman', '') || 'PM';
+    const pmName =
+      p.assignedPM?.name?.replace(' Recalde', '')?.replace(' Condon', '')?.replace(' Rossman', '') || 'PM';
     const csmName = p.assignedCSM?.split(' ')?.[0] || 'Nicole';
     const teamLine1 = `PM: ${pmName}  ·  CSM: ${csmName}`;
     doc.text(teamLine1, cellX + 3.5, currentY + 9.5);
@@ -330,7 +420,7 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     cellX += cols[5].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 7: Installer (64 pt)
+    // Col 7: Installer (70 pt)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
@@ -346,27 +436,7 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     cellX += cols[6].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 8: Property POC (78 pt)
-    const poc = p.customerIntake?.staffRoles?.[0];
-    const pocName = poc ? `${poc.firstName} ${poc.lastName}`.trim() : 'On File';
-    const pocContact = p.customerIntake?.sitePhoneNumber || p.customerIntake?.communityEmail || '—';
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6);
-    doc.setTextColor(TEXT_DARK[0], TEXT_DARK[1], TEXT_DARK[2]);
-    const truncPoc = doc.splitTextToSize(pocName, cols[7].width - 6)[0] || pocName;
-    doc.text(truncPoc, cellX + 3.5, currentY + 9.5);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5.5);
-    doc.setTextColor(TEXT_MUTED[0], TEXT_MUTED[1], TEXT_MUTED[2]);
-    const truncContact = doc.splitTextToSize(pocContact, cols[7].width - 6)[0] || pocContact;
-    doc.text(truncContact, cellX + 3.5, currentY + 19);
-
-    cellX += cols[7].width;
-    doc.line(cellX, currentY, cellX, currentY + rowHeight);
-
-    // Col 9: SWAT Invoicing (62 pt)
+    // Col 8: SWAT Invoicing (65 pt)
     const fm = p.financialMilestones;
     const dep = fm?.fiftyPercentCollected ? 'Y' : 'N';
     const rough = fm?.thirtyPercentCollected ? 'Y' : 'N';
@@ -383,10 +453,10 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     const saasStr = fm?.saasStartDate ? `SaaS: ${fm.saasStartDate}` : 'SaaS: Pending';
     doc.text(saasStr, cellX + 3.5, currentY + 19);
 
-    cellX += cols[8].width;
+    cellX += cols[7].width;
     doc.line(cellX, currentY, cellX, currentY + rowHeight);
 
-    // Col 10: Scope & Notes (60 pt)
+    // Col 9: Scope & Notes (73 pt)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.5);
     doc.setTextColor(TEXT_MUTED[0], TEXT_MUTED[1], TEXT_MUTED[2]);
@@ -394,9 +464,10 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
     rawNote = rawNote
       .replace(/\[Master Tracker\]:\s*/g, '')
       .replace(/\[Network Notes\]:\s*/g, '')
+      .replace(/📌 Post-It Note.*?:\s*/g, '')
       .replace(/\s+/g, ' ');
     const noteStr = rawNote.trim() || 'Deployment active';
-    const lines = doc.splitTextToSize(noteStr, cols[9].width - 6);
+    const lines = doc.splitTextToSize(noteStr, cols[8].width - 6);
     doc.text(lines[0] || noteStr, cellX + 3.5, currentY + 10);
     if (lines[1]) {
       doc.text(lines[1], cellX + 3.5, currentY + 18.5);
@@ -423,12 +494,20 @@ export function generateOmarDashboardPdf(projects: OperationProject[]): jsPDF {
 }
 
 /**
- * Generates and triggers browser download of the Omar Report PDF.
+ * Generates and triggers browser download of the Executive Dashboard Report PDF.
  */
 export function downloadOmarDashboardPdf(
   projects: OperationProject[],
-  fileName = 'Quext_Master_Projects_Dashboard_Omar_Report.pdf'
+  options?: {
+    filterLabel?: string;
+    fileName?: string;
+  }
 ): void {
-  const doc = generateOmarDashboardPdf(projects);
-  doc.save(fileName);
+  const doc = generateOmarDashboardPdf(projects, options);
+  const defaultName = options?.fileName || (
+    options?.filterLabel
+      ? `Quext_Master_Projects_Dashboard_${options.filterLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`
+      : 'Quext_Master_Projects_Dashboard_Report.pdf'
+  );
+  doc.save(defaultName);
 }

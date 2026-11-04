@@ -1195,9 +1195,10 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const handleTogglePinNote = (noteId: string, targetPinned?: boolean) => {
     onUpdateProject({
       ...project,
-      notes: project.notes.map((n) => {
+      notes: (project.notes || []).map((n) => {
         if (n.id === noteId) {
-          const nextVal = targetPinned !== undefined ? targetPinned : !Boolean(n.isPinned);
+          const currentPinned = Boolean(n.isPinned && (n.isPinned as unknown) !== 'false');
+          const nextVal = targetPinned !== undefined ? targetPinned : !currentPinned;
           return { ...n, isPinned: nextVal };
         }
         return n;

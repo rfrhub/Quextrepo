@@ -58,6 +58,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { downloadOmarDashboardPdf } from '../utils/generateOmarDashboardPdf';
+import { OmarReportModal } from './OmarReportModal';
 
 interface OverallDashboardProps {
   projects: OperationProject[];
@@ -83,19 +84,10 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
   const [integratorFilter, setIntegratorFilter] = useState<string>('all');
   const [kickoffFilter, setKickoffFilter] = useState<'all' | 'needs_attention' | 'completed'>('all');
   const [tableSearch, setTableSearch] = useState<string>('');
-  const [isGeneratingOmarPdf, setIsGeneratingOmarPdf] = useState<boolean>(false);
+  const [isOmarModalOpen, setIsOmarModalOpen] = useState<boolean>(false);
 
   const handleDownloadOmarReport = () => {
-    setIsGeneratingOmarPdf(true);
-    setTimeout(() => {
-      try {
-        downloadOmarDashboardPdf(projects);
-      } catch (err) {
-        console.error('Failed to generate Omar Report PDF:', err);
-      } finally {
-        setIsGeneratingOmarPdf(false);
-      }
-    }, 50);
+    setIsOmarModalOpen(true);
   };
 
   const allAvailableIntegrators = getAllIntegratorPartners(projects);
@@ -569,24 +561,14 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
               type="button"
               data-tutorial-id="dashboard-omar-button"
               onClick={handleDownloadOmarReport}
-              disabled={isGeneratingOmarPdf}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] border border-slate-700 hover:border-slate-600 rounded-lg shadow-xs hover:shadow-md transition-all duration-200 ease-in-out cursor-pointer disabled:opacity-75 disabled:cursor-wait"
-              title="Generate and download the 2026 Master Projects Dashboard Executive PDF Report (Omar Report)"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] border border-slate-700 hover:border-slate-600 rounded-lg shadow-xs hover:shadow-md transition-all duration-200 ease-in-out cursor-pointer"
+              title="Generate and download the Executive PDF Portfolio Report (Omar Report)"
             >
-              {isGeneratingOmarPdf ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
-                  <span>Generating Omar PDF...</span>
-                </>
-              ) : (
-                <>
-                  <FileDown className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Omar Button</span>
-                  <span className="px-1.5 py-0.5 text-[9.5px] font-black bg-sky-500/20 text-sky-300 rounded border border-sky-400/30 uppercase tracking-wider">
-                    PDF
-                  </span>
-                </>
-              )}
+              <FileDown className="w-3.5 h-3.5 text-sky-400" />
+              <span>Omar Button</span>
+              <span className="px-1.5 py-0.5 text-[9.5px] font-black bg-sky-500/20 text-sky-300 rounded border border-sky-400/30 uppercase tracking-wider">
+                PDF
+              </span>
             </button>
             <button
               onClick={() => onGoToAllProjects()}
@@ -3906,6 +3888,13 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
           </div>
         );
       })()}
+
+      {/* Omar Button Portfolio PDF Export Modal */}
+      <OmarReportModal
+        isOpen={isOmarModalOpen}
+        onClose={() => setIsOmarModalOpen(false)}
+        projects={projects}
+      />
     </div>
   );
 };
