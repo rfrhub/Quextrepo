@@ -40,6 +40,7 @@ import {
   CSMTrainingAttendeeRole,
   CSMTrainingStatus,
   CSMContractThoroughnessLevel,
+  isPropertyGeneratedFromProject,
 } from '../types';
 import { scrubContractDocumentWithAI, dataUrlToFile } from '../services/contractScrubberService';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
@@ -3184,13 +3185,6 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
               <FileText className="w-4 h-4" />
               <span>Create SOW</span>
             </button>
-            <ManualLinkPropertyToProjectPanel
-              property={property}
-              projectsList={allProjects}
-              onUpdateProperty={onUpdateProperty}
-              currentUserName={currentUserName}
-              onOpenProjectInOperations={onOpenInOperations}
-            />
             <div className="px-3.5 py-2 rounded-xl bg-white/10 border border-white/15 text-xs">
               <div className="text-[10px] uppercase tracking-wider text-slate-300 font-bold">
                 Assigned CSM
@@ -7386,16 +7380,18 @@ const CustomerSuccessPropertyDetailView: React.FC<CustomerSuccessPropertyDetailV
         </div>
       </div>
 
-      {/* BOTTOM-LEFT: Manual Link Project Dropdown Button & History */}
-      <div className="pt-4 border-t border-slate-200">
-        <ManualLinkPropertyToProjectPanel
-          property={property}
-          projectsList={allProjects}
-          onUpdateProperty={onUpdateProperty}
-          currentUserName={currentUserName}
-          onOpenProjectInOperations={onOpenInOperations}
-        />
-      </div>
+      {/* BOTTOM-LEFT: Manual Link Project Dropdown Button & History (Only if property wasn't generated from a project) */}
+      {!isPropertyGeneratedFromProject(property) && (
+        <div className="pt-4 border-t border-slate-200">
+          <ManualLinkPropertyToProjectPanel
+            property={property}
+            projectsList={allProjects}
+            onUpdateProperty={onUpdateProperty}
+            currentUserName={currentUserName}
+            onOpenProjectInOperations={onOpenInOperations}
+          />
+        </div>
+      )}
 
       {/* Customer Comms & Portfolio Updates Modal for CSMs & PMs */}
       {isCustomerCommsOpen && (

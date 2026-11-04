@@ -39,6 +39,7 @@ import {
   getProjectPlatform,
   getPlatformBadgeStyle,
   getPropertyManagementCompany,
+  isProjectGeneratedFromQuote,
 } from '../types';
 import { markProjectAsPmVerified } from '../data/initialData';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
@@ -4581,14 +4582,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             )}
           </div>
 
-          {/* BOTTOM-LEFT: Manual Link Project Dropdown Button & History */}
-          <div className="pt-4 border-t border-slate-200">
-            <ManualLinkProjectPanel
-              project={project}
-              quotesList={quotesList}
-              onUpdateProject={onUpdateProject}
-            />
-          </div>
+          {/* BOTTOM-LEFT: Manual Link Project Dropdown Button & History (Only if project wasn't generated from a quote) */}
+          {!isProjectGeneratedFromQuote(project) && (
+            <div className="pt-4 border-t border-slate-200">
+              <ManualLinkProjectPanel
+                project={project}
+                quotesList={quotesList}
+                onUpdateProject={onUpdateProject}
+              />
+            </div>
+          )}
         </>
       )}
 

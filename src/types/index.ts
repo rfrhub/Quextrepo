@@ -1888,6 +1888,40 @@ export function isProjectInCustomerSuccessPortal(project: OperationProject): boo
   );
 }
 
+/**
+ * Checks whether an Operations Project was directly generated from a Sales Hub quote.
+ * Returns true if the project originated from an official Deal Won quote,
+ * and false if it was manually initialized or imported.
+ */
+export function isProjectGeneratedFromQuote(project?: OperationProject | null): boolean {
+  if (!project) return false;
+  if ((project as any).generatedFromQuote === true) return true;
+  if (project.isManuallyCreated) return false;
+  if (project.quoteNumber && project.quoteNumber.trim().length > 0) return true;
+  if (
+    project.quoteId &&
+    project.quoteId.trim().length > 0 &&
+    !project.quoteId.startsWith('manual-') &&
+    !project.quoteId.startsWith('import-')
+  ) {
+    return true;
+  }
+  if (project.originalQuoteBOM && project.originalQuoteBOM.length > 0) return true;
+  return false;
+}
+
+/**
+ * Checks whether a Customer Success Property was generated from an Operations Project.
+ * Returns true if the property originated through an automated project pipeline,
+ * and false if it was manually created or not generated from an operations project.
+ */
+export function isPropertyGeneratedFromProject(property?: OperationProject | null): boolean {
+  if (!property) return false;
+  if ((property as any).generatedFromProject === true) return true;
+  if (!property.isManuallyCreated && Boolean(property.quoteNumber || property.quoteId)) return true;
+  return false;
+}
+
 export type PMPMitigationStrategyType =
   | 'Parallel Installation (Unblocked Zones)'
   | 'Crew Augmentation & Accelerated Staging'
