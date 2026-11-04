@@ -192,6 +192,14 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     });
   };
 
+  const handleUpdateClientName = (newClientName: string) => {
+    onUpdateProject({
+      ...project,
+      clientName: newClientName,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
   const handleUpdatePropertyManagementCompany = (companyName: string) => {
     const existingIntake = project.customerIntake || {
       pmsSoftware: 'None',
@@ -2046,7 +2054,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                       </span>
                     </h3>
                     <p className="text-xs text-amber-900 mt-0.5">
-                      You can edit the Project Property Name, Address &amp; Zip Code, Community Site Contact Details, and Milestone Target Dates below. All changes save automatically to cloud and local storage.
+                      You can edit the Project Property Name, Client / Owner, Address &amp; Zip Code, Community Site Contact Details, and Milestone Target Dates below. All changes save automatically to cloud and local storage.
                     </p>
                   </div>
                 </div>
@@ -2092,6 +2100,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     <span className="text-[10px] text-slate-400 font-normal">Location</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="sm:col-span-4">
+                      <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Client / Owner</label>
+                      <input
+                        type="text"
+                        value={project.clientName}
+                        onChange={(e) => handleUpdateClientName(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-300 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 font-bold focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        placeholder="Client / Owner Name..."
+                      />
+                    </div>
                     <div className="sm:col-span-2">
                       <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Street Address</label>
                       <input
@@ -2268,9 +2286,23 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-              <span className="text-slate-900 font-semibold">
-                Client / Owner: {project.clientName}
-              </span>
+              {effectivePmEditMode ? (
+                <span className="inline-flex items-center gap-1.5 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-300 text-amber-950">
+                  <span className="text-[11px] font-bold text-amber-900">Client / Owner:</span>
+                  <input
+                    type="text"
+                    value={project.clientName}
+                    onChange={(e) => handleUpdateClientName(e.target.value)}
+                    placeholder="Client / Owner..."
+                    className="bg-transparent font-bold text-slate-900 placeholder:text-amber-400 placeholder:font-normal focus:outline-none focus:bg-white focus:px-1.5 rounded text-xs min-w-[165px]"
+                    title="Edit Client / Owner"
+                  />
+                </span>
+              ) : (
+                <span className="text-slate-900 font-semibold">
+                  Client / Owner: <strong className="text-slate-900">{project.clientName}</strong>
+                </span>
+              )}
               <span>·</span>
               <span className="inline-flex items-center gap-1.5 bg-indigo-50/80 px-2.5 py-0.5 rounded-md border border-indigo-200 text-indigo-950">
                 <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
