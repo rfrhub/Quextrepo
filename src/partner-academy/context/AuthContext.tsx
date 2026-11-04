@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, PartnerCompany, UserRole, IssuedCertificate } from '../types';
 import { INITIAL_USERS, PARTNER_COMPANIES, COURSE_MODULES } from '../data/mockData';
 import { PARTNER_IDENTITY_DIRECTORY } from '../utils/projectCoursePackager';
-import { resolvePartnerByAccessCode } from '../utils/partnerSecurity';
+import { resolvePartnerByAccessCode, getDeletedPartnerIds } from '../utils/partnerSecurity';
 
 interface AuthContextType {
   currentUser: User;
@@ -53,39 +53,41 @@ export const AuthProvider: React.FC<{
   activeCompanyId?: string | null;
 }> = ({ children, activePartnerEmail, activeCompanyId }) => {
   const [companies, setCompanies] = useState<PartnerCompany[]>(() => {
+    const deletedIds = getDeletedPartnerIds();
     const defaultIds = new Set(PARTNER_COMPANIES.map((c) => c.id));
     const saved = localStorage.getItem(STORAGE_KEY_COMPANIES);
     if (saved) {
       try {
         const parsed: PartnerCompany[] = JSON.parse(saved);
-        const customCompanies = parsed.filter((c) => c && c.id && !defaultIds.has(c.id));
-        const defaultOverrides = parsed.filter((c) => c && c.id && defaultIds.has(c.id));
+        const customCompanies = parsed.filter((c) => c && c.id && !defaultIds.has(c.id) && !deletedIds.has(c.id));
+        const defaultOverrides = parsed.filter((c) => c && c.id && defaultIds.has(c.id) && !deletedIds.has(c.id));
         const existingDefaultIds = new Set(defaultOverrides.map((c) => c.id));
-        const missingDefaults = PARTNER_COMPANIES.filter((c) => !existingDefaultIds.has(c.id));
+        const missingDefaults = PARTNER_COMPANIES.filter((c) => !existingDefaultIds.has(c.id) && !deletedIds.has(c.id));
         return [...missingDefaults, ...defaultOverrides, ...customCompanies];
       } catch (e) {
         console.error(e);
       }
     }
-    return PARTNER_COMPANIES;
+    return PARTNER_COMPANIES.filter((c) => !deletedIds.has(c.id));
   });
 
   const [allUsers, setAllUsers] = useState<User[]>(() => {
+    const deletedIds = getDeletedPartnerIds();
     const defaultUserIds = new Set(INITIAL_USERS.map((u) => u.id));
     const saved = localStorage.getItem(STORAGE_KEY_USERS);
     if (saved) {
       try {
         const parsed: User[] = JSON.parse(saved);
-        const customUsers = parsed.filter((u) => u && u.id && !defaultUserIds.has(u.id));
-        const defaultOverrides = parsed.filter((u) => u && u.id && defaultUserIds.has(u.id));
+        const customUsers = parsed.filter((u) => u && u.id && !defaultUserIds.has(u.id) && !deletedIds.has(u.companyId));
+        const defaultOverrides = parsed.filter((u) => u && u.id && defaultUserIds.has(u.id) && !deletedIds.has(u.companyId));
         const existingDefaultIds = new Set(defaultOverrides.map((u) => u.id));
-        const missingDefaults = INITIAL_USERS.filter((u) => !existingDefaultIds.has(u.id));
+        const missingDefaults = INITIAL_USERS.filter((u) => !existingDefaultIds.has(u.id) && !deletedIds.has(u.companyId));
         return [...missingDefaults, ...defaultOverrides, ...customUsers];
       } catch (e) {
         console.error(e);
       }
     }
-    return INITIAL_USERS;
+    return INITIAL_USERS.filter((u) => !deletedIds.has(u.companyId));
   });
 
   const [currentUserId, setCurrentUserId] = useState<string>(() => {
@@ -96,27 +98,35 @@ export const AuthProvider: React.FC<{
     return 'user_spirit_lead';
   });
 
-  // Re-sync companies and users when new partner firms are registered
+  // Re-sync companies and users when new partner firms are registered or deleted
   useEffect(() => {
     const handleStorageUpdate = () => {
       try {
+        const deletedIds = getDeletedPartnerIds();
         const savedCompanies = localStorage.getItem(STORAGE_KEY_COMPANIES);
         if (savedCompanies) {
           const parsed: PartnerCompany[] = JSON.parse(savedCompanies);
           setCompanies((prev) => {
-            const existingIds = new Set(prev.map((c) => c.id));
-            const newOnes = parsed.filter((c) => !existingIds.has(c.id));
-            return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+            const unDeleted = parsed.filter((c) => !deletedIds.has(c.id));
+            const existingIds = new Set(prev.filter((c) => !deletedIds.has(c.id)).map((c) => c.id));
+            const newOnes = unDeleted.filter((c) => !existingIds.has(c.id));
+            return [...prev.filter((c) => !deletedIds.has(c.id)), ...newOnes];
           });
+        } else {
+          setCompanies((prev) => prev.filter((c) => !deletedIds.has(c.id)));
         }
+
         const savedUsers = localStorage.getItem(STORAGE_KEY_USERS);
         if (savedUsers) {
           const parsedUsers: User[] = JSON.parse(savedUsers);
           setAllUsers((prev) => {
-            const existingIds = new Set(prev.map((u) => u.id));
-            const newOnes = parsedUsers.filter((u) => !existingIds.has(u.id));
-            return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+            const unDeleted = parsedUsers.filter((u) => !deletedIds.has(u.companyId));
+            const existingIds = new Set(prev.filter((u) => !deletedIds.has(u.companyId)).map((u) => u.id));
+            const newOnes = unDeleted.filter((u) => !existingIds.has(u.id));
+            return [...prev.filter((u) => !deletedIds.has(u.companyId)), ...newOnes];
           });
+        } else {
+          setAllUsers((prev) => prev.filter((u) => !deletedIds.has(u.companyId)));
         }
       } catch (e) {
         console.error(e);

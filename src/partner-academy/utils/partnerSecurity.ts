@@ -12,7 +12,60 @@ export interface PartnerSecurityCredential {
   lastGeneratedAt: string;
 }
 
-const STORAGE_KEY_PARTNER_CODES = 'quext_partner_secure_access_codes_v1';
+export const STORAGE_KEY_PARTNER_CODES = 'quext_partner_secure_access_codes_v1';
+export const STORAGE_KEY_DELETED_PARTNER_IDS = 'quext_deleted_partner_ids_v1';
+
+export function getDeletedPartnerIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_DELETED_PARTNER_IDS);
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function deletePartnerFirm(companyId: string): void {
+  if (!companyId || typeof window === 'undefined') return;
+  try {
+    // 1. Mark as deleted in persistent tombstone set
+    const deleted = getDeletedPartnerIds();
+    deleted.add(companyId);
+    localStorage.setItem(STORAGE_KEY_DELETED_PARTNER_IDS, JSON.stringify(Array.from(deleted)));
+
+    // 2. Remove from partner security credentials vault
+    const savedCreds = localStorage.getItem(STORAGE_KEY_PARTNER_CODES);
+    if (savedCreds) {
+      const creds = JSON.parse(savedCreds);
+      delete creds[companyId];
+      localStorage.setItem(STORAGE_KEY_PARTNER_CODES, JSON.stringify(creds));
+    }
+
+    // 3. Remove company from quext_academy_companies_v5
+    const STORAGE_KEY_COMPANIES = 'quext_academy_companies_v5';
+    const savedCompanies = localStorage.getItem(STORAGE_KEY_COMPANIES);
+    if (savedCompanies) {
+      const companiesList = JSON.parse(savedCompanies);
+      const nextCompanies = companiesList.filter((c: any) => c.id !== companyId);
+      localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(nextCompanies));
+    }
+
+    // 4. Remove users belonging to this company from quext_academy_users_v5
+    const STORAGE_KEY_USERS = 'quext_academy_users_v5';
+    const savedUsers = localStorage.getItem(STORAGE_KEY_USERS);
+    if (savedUsers) {
+      const usersList = JSON.parse(savedUsers);
+      const nextUsers = usersList.filter((u: any) => u.companyId !== companyId);
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(nextUsers));
+    }
+
+    // 5. Broadcast updates
+    window.dispatchEvent(new Event('quext-partner-credentials-updated'));
+    window.dispatchEvent(new Event('storage'));
+  } catch (err) {
+    console.error('[PartnerSecurity] Error deleting partner firm:', err);
+  }
+}
 
 // Default high-entropy cryptographic-style secure access codes for existing integrator partners
 const DEFAULT_SECURE_CODES: Record<string, string> = {
@@ -77,7 +130,8 @@ export function registerNewPartnerSecureCode(
   companyName: string,
   companyCode: string,
   defaultEmail: string,
-  region: string
+  region: string,
+  leadName?: string
 ): PartnerSecurityCredential {
   const all = loadPartnerSecurityCredentials();
   const cleanCode = companyCode.trim().toUpperCase();
@@ -98,7 +152,7 @@ export function registerNewPartnerSecureCode(
     legacyCode: cleanCode,
     secureAccessCode: secureCode,
     defaultEmail,
-    leadName: `${partnerShortName} Lead`,
+    leadName: leadName || `${partnerShortName} Lead`,
     region: region || 'National Deployment',
     lastGeneratedAt: new Date().toISOString(),
   };
@@ -114,12 +168,16 @@ export function registerNewPartnerFirm(params: {
   companyCode: string;
   region?: string;
   defaultEmail: string;
+  firstName?: string;
+  lastName?: string;
 }): PartnerSecurityCredential {
   const companyId = `comp_${Date.now()}`;
   const cleanCode = params.companyCode.trim().toUpperCase();
   const partnerShortName = params.companyName.trim().split(' ')[0] || params.companyName.trim();
   const region = params.region?.trim() || 'National Integration';
   const email = params.defaultEmail.trim();
+  const fullName = [params.firstName?.trim(), params.lastName?.trim()].filter(Boolean).join(' ');
+  const leadName = fullName || `${partnerShortName} Lead`;
 
   // 1. Register secure credential in security vault
   const cred = registerNewPartnerSecureCode(
@@ -128,7 +186,8 @@ export function registerNewPartnerFirm(params: {
     params.companyName.trim(),
     cleanCode,
     email,
-    region
+    region,
+    leadName
   );
 
   // 2. Persist company in quext_academy_companies_v5
@@ -141,6 +200,7 @@ export function registerNewPartnerFirm(params: {
       name: params.companyName.trim(),
       code: cleanCode,
       region,
+      leadName,
       tier: 'Authorized Partner',
       activeTechnicians: 1,
       contactEmail: email,
@@ -158,7 +218,7 @@ export function registerNewPartnerFirm(params: {
     const usersList = savedUsers ? JSON.parse(savedUsers) : [];
     const newAdmin = {
       id: `user_${companyId}_admin`,
-      name: `${params.companyName.trim()} Lead`,
+      name: leadName,
       email,
       role: 'partner_admin',
       companyId,
@@ -192,9 +252,11 @@ export function generateSecurePartnerCode(prefix = 'QX-PRT'): string {
 
 // Load all credentials from localStorage or defaults
 export function loadPartnerSecurityCredentials(): Record<string, PartnerSecurityCredential> {
+  const deletedIds = getDeletedPartnerIds();
   const defaults: Record<string, PartnerSecurityCredential> = {};
   
   for (const entry of PARTNER_IDENTITY_DIRECTORY) {
+    if (deletedIds.has(entry.companyId)) continue;
     const prefix = `QX-${entry.companyCode.slice(0, 3).toUpperCase()}`;
     const code = DEFAULT_SECURE_CODES[entry.companyId] || `${prefix}-7492-9K1A`;
     
@@ -218,7 +280,7 @@ export function loadPartnerSecurityCredentials(): Record<string, PartnerSecurity
     if (saved) {
       const parsed: Record<string, Partial<PartnerSecurityCredential>> = JSON.parse(saved);
       for (const [compId, cred] of Object.entries(parsed)) {
-        if (!cred) continue;
+        if (!cred || deletedIds.has(compId)) continue;
         if (defaults[compId] && cred.secureAccessCode) {
           defaults[compId] = {
             ...defaults[compId],

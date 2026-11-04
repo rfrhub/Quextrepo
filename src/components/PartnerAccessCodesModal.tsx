@@ -16,6 +16,8 @@ import {
   PlusCircle,
   Sparkles,
   Key,
+  User,
+  Trash2,
 } from 'lucide-react';
 import { OperationProject, buildPartnerAcademyPortalUrl } from '../types';
 import {
@@ -23,6 +25,7 @@ import {
   rotatePartnerSecureCode,
   generateCompanyCodeFromName,
   registerNewPartnerFirm,
+  deletePartnerFirm,
   PartnerSecurityCredential,
 } from '../partner-academy/utils/partnerSecurity';
 
@@ -51,6 +54,8 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [regName, setRegName] = useState('');
   const [regCode, setRegCode] = useState('');
+  const [regFirstName, setRegFirstName] = useState('');
+  const [regLastName, setRegLastName] = useState('');
   const [regRegion, setRegRegion] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regError, setRegError] = useState('');
@@ -58,12 +63,20 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
   const [recentlyCreatedCred, setRecentlyCreatedCred] = useState<PartnerSecurityCredential | null>(null);
   const randomSuffixRef = useRef<string>(Math.floor(1000000 + Math.random() * 9000000).toString());
 
+  // Delete partner state & feedback
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletedFeedback, setDeletedFeedback] = useState<string | null>(null);
+
   // Sync credentials on open and on updates
   React.useEffect(() => {
     if (isOpen) {
       setCredentials(loadPartnerSecurityCredentials());
       setShowRegisterForm(false);
       setRecentlyCreatedCred(null);
+      setConfirmDeleteId(null);
+      setDeletedFeedback(null);
+      setRegFirstName('');
+      setRegLastName('');
     }
   }, [isOpen]);
 
@@ -166,6 +179,8 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
         companyCode: regCode.trim(),
         region: regRegion.trim() || 'National Integration',
         defaultEmail: regEmail.trim(),
+        firstName: regFirstName.trim(),
+        lastName: regLastName.trim(),
       });
 
       setCredentials(loadPartnerSecurityCredentials());
@@ -173,12 +188,25 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
       setShowRegisterForm(false);
       setRegName('');
       setRegCode('');
+      setRegFirstName('');
+      setRegLastName('');
       setRegRegion('');
       setRegEmail('');
       setHasManuallyEditedCode(false);
     } catch (err: any) {
       setRegError(err?.message || 'Failed to register partner firm.');
     }
+  };
+
+  const handleDeletePartner = (cred: PartnerSecurityCredential) => {
+    deletePartnerFirm(cred.companyId);
+    setCredentials(loadPartnerSecurityCredentials());
+    setConfirmDeleteId(null);
+    if (recentlyCreatedCred?.companyId === cred.companyId) {
+      setRecentlyCreatedCred(null);
+    }
+    setDeletedFeedback(`Partner firm "${cred.companyName}" was successfully deleted.`);
+    setTimeout(() => setDeletedFeedback(null), 4000);
   };
 
   return (
@@ -375,6 +403,41 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
               </div>
             </div>
 
+            {/* Contact Person Name: First Name & Last Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Lead Contact First Name
+                </label>
+                <div className="relative">
+                  <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Marcus"
+                    value={regFirstName}
+                    onChange={(e) => setRegFirstName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Lead Contact Last Name
+                </label>
+                <div className="relative">
+                  <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Vance"
+                    value={regLastName}
+                    onChange={(e) => setRegLastName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1">
@@ -457,6 +520,24 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
                 <strong>Company &amp; Role Authentication Portal</strong> to enter their code and email to enter.
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Deletion feedback banner */}
+        {deletedFeedback && (
+          <div className="mb-3 p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-xs text-rose-300 flex items-center justify-between animate-in fade-in duration-150 shrink-0">
+            <div className="flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{deletedFeedback}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDeletedFeedback(null)}
+              className="text-rose-400 hover:text-rose-200 p-1 cursor-pointer transition-colors"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
@@ -583,6 +664,38 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
                       title="Open Partner Academy as this partner"
                     >
                       <ExternalLink className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* Delete Partner Action with Inline Confirmation */}
+                  {confirmDeleteId === cred.companyId ? (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-950/80 border border-rose-500/60 text-xs shadow-lg animate-in fade-in duration-150 shrink-0">
+                      <span className="text-[11px] font-semibold text-rose-200">Delete firm?</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePartner(cred)}
+                        className="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-600 hover:bg-rose-500 text-white cursor-pointer transition-colors shadow-sm"
+                        title={`Confirm permanent deletion of ${cred.companyName}`}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-1.5 py-1 rounded-lg text-[10px] text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(cred.companyId)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-900/60 transition-colors cursor-pointer shrink-0"
+                      title={`Delete ${cred.companyName} partner firm and access credentials`}
+                      aria-label={`Delete ${cred.companyName}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
