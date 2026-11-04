@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   OperationProject,
   FieldTechName,
@@ -50,6 +50,9 @@ import {
   Filter,
   ChevronDown,
   Calendar,
+  CalendarDays,
+  Search,
+  Check,
   Users,
   BookOpen,
   Sparkles,
@@ -545,6 +548,164 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
 
   // Filter inside the Field Tech Live Activity Hub (just like the PM filter on HomeScreen.tsx)
   const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>('all');
+  const [timeframeFilter, setTimeframeFilter] = useState<
+    'all' | 'current_month' | 'previous_month' | 'following_month' | 'upcoming'
+  >('all');
+  const [communitySearchQuery, setCommunitySearchQuery] = useState<string>('');
+  const [isCommunityPickerOpen, setIsCommunityPickerOpen] = useState<boolean>(false);
+  const communityPickerRef = useRef<HTMLDivElement>(null);
+
+  // Month reference dates for active installs
+  const today = useMemo(() => new Date(), []);
+  const currentMonthDate = useMemo(
+    () => new Date(today.getFullYear(), today.getMonth(), 1),
+    [today]
+  );
+  const prevMonthDate = useMemo(
+    () => new Date(today.getFullYear(), today.getMonth() - 1, 1),
+    [today]
+  );
+  const nextMonthDate = useMemo(
+    () => new Date(today.getFullYear(), today.getMonth() + 1, 1),
+    [today]
+  );
+
+  const currentMonthLabel = useMemo(
+    () => currentMonthDate.toLocaleString('default', { month: 'short' }),
+    [currentMonthDate]
+  );
+  const prevMonthLabel = useMemo(
+    () => prevMonthDate.toLocaleString('default', { month: 'short' }),
+    [prevMonthDate]
+  );
+  const nextMonthLabel = useMemo(
+    () => nextMonthDate.toLocaleString('default', { month: 'short' }),
+    [nextMonthDate]
+  );
+
+  const isProjectInMonth = useCallback((p: OperationProject, monthDate: Date): boolean => {
+    const mStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1, 0, 0, 0);
+    const mEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59);
+
+    const startStr = p.installationStartDate || p.startDate;
+    const endStr = p.installationEndDate || p.targetCompletionDate || startStr;
+
+    if (startStr) {
+      const pStart = new Date(startStr);
+      const pEnd = new Date(endStr || startStr);
+      if (!isNaN(pStart.getTime()) && !isNaN(pEnd.getTime())) {
+        if (pStart <= mEnd && pEnd >= mStart) return true;
+      } else if (!isNaN(pStart.getTime())) {
+        if (
+          pStart.getFullYear() === monthDate.getFullYear() &&
+          pStart.getMonth() === monthDate.getMonth()
+        ) {
+          return true;
+        }
+      }
+    }
+
+    const impl = p.milestones?.find((m) => m.title.toLowerCase().includes('implementation'));
+    if (impl?.targetDate) {
+      const d = new Date(impl.targetDate);
+      if (
+        !isNaN(d.getTime()) &&
+        d.getFullYear() === monthDate.getFullYear() &&
+        d.getMonth() === monthDate.getMonth()
+      ) {
+        return true;
+      }
+    }
+
+    if (p.installLogs && p.installLogs.length > 0) {
+      const hasLog = p.installLogs.some((l) => {
+        const d = new Date(l.timestamp);
+        return (
+          !isNaN(d.getTime()) &&
+          d.getFullYear() === monthDate.getFullYear() &&
+          d.getMonth() === monthDate.getMonth()
+        );
+      });
+      if (hasLog) return true;
+    }
+
+    return false;
+  }, []);
+
+  const isProjectUpcomingCsmIntro = useCallback((p: OperationProject): boolean => {
+    const csmMilestone = p.milestones?.find(
+      (m) =>
+        m.title === 'CSM Intro - Pre-implementation' ||
+        m.title.toLowerCase().includes('csm intro') ||
+        m.title.toLowerCase().includes('pre-implementation')
+    );
+    if (csmMilestone) {
+      if (csmMilestone.status === 'In Progress') return true;
+      if (p.statusTag === 'Pre-Implementation') return true;
+      if (csmMilestone.status === 'Upcoming') {
+        const prodAcq = p.milestones?.find((m) => m.title.toLowerCase().includes('acquisition'));
+        if (!prodAcq || prodAcq.status === 'Completed') return true;
+      }
+    }
+    return p.statusTag === 'Pre-Implementation';
+  }, []);
+
+  // Timeframe counts across all assigned projects
+  const countsByTimeframe = useMemo(() => {
+    return {
+      all: assignedProjects.length,
+      current_month: assignedProjects.filter((p) => isProjectInMonth(p, currentMonthDate)).length,
+      previous_month: assignedProjects.filter((p) => isProjectInMonth(p, prevMonthDate)).length,
+      following_month: assignedProjects.filter((p) => isProjectInMonth(p, nextMonthDate)).length,
+      upcoming: assignedProjects.filter((p) => isProjectUpcomingCsmIntro(p)).length,
+    };
+  }, [
+    assignedProjects,
+    isProjectInMonth,
+    currentMonthDate,
+    prevMonthDate,
+    nextMonthDate,
+    isProjectUpcomingCsmIntro,
+  ]);
+
+  // Projects filtered by the selected timeframe
+  const timeframeProjects = useMemo(() => {
+    switch (timeframeFilter) {
+      case 'previous_month':
+        return assignedProjects.filter((p) => isProjectInMonth(p, prevMonthDate));
+      case 'current_month':
+        return assignedProjects.filter((p) => isProjectInMonth(p, currentMonthDate));
+      case 'following_month':
+        return assignedProjects.filter((p) => isProjectInMonth(p, nextMonthDate));
+      case 'upcoming':
+        return assignedProjects.filter((p) => isProjectUpcomingCsmIntro(p));
+      case 'all':
+      default:
+        return assignedProjects;
+    }
+  }, [
+    assignedProjects,
+    timeframeFilter,
+    isProjectInMonth,
+    prevMonthDate,
+    currentMonthDate,
+    nextMonthDate,
+    isProjectUpcomingCsmIntro,
+  ]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (communityPickerRef.current && !communityPickerRef.current.contains(e.target as Node)) {
+        setIsCommunityPickerOpen(false);
+      }
+    };
+    if (isCommunityPickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isCommunityPickerOpen]);
+
   const [activityStreamFilter, setActivityStreamFilter] = useState<
     'all' | 'sow' | 'dock' | 'logs' | 'doors'
   >('all');
@@ -563,11 +724,14 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
       ? assignedProjects.find((p) => p.id === activeTab) || assignedProjects[0] || null
       : null;
 
-  // Filtered projects for the Live Activity Hub based on the selected property filter
+  // Filtered projects for the Live Activity Hub based on the selected timeframe & property filter
   const hubFilteredProjects = useMemo(() => {
-    if (selectedProjectFilter === 'all') return assignedProjects;
-    return assignedProjects.filter((p) => p.id === selectedProjectFilter);
-  }, [assignedProjects, selectedProjectFilter]);
+    if (selectedProjectFilter === 'all') {
+      return timeframeProjects;
+    }
+    const single = assignedProjects.find((p) => p.id === selectedProjectFilter);
+    return single ? [single] : timeframeProjects;
+  }, [assignedProjects, timeframeProjects, selectedProjectFilter]);
 
   const onTrackProjects = hubFilteredProjects.filter((p) => p.statusTag === 'On Track');
   const behindScheduleProjects = hubFilteredProjects.filter(
@@ -898,6 +1062,29 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
     });
   };
 
+  const handleUpdateLog = (
+    project: OperationProject,
+    logId: string,
+    updates: Partial<InstallLogEntry>
+  ) => {
+    const updatedLogs = project.installLogs.map((l) =>
+      l.id === logId ? { ...l, ...updates } : l
+    );
+    const updatedBOM = project.bomItems.map((item) => ({
+      ...item,
+      postItLogs: (item.postItLogs || []).map((l) =>
+        l.id === logId ? { ...l, ...updates } : l
+      ),
+    }));
+
+    onUpdateProject({
+      ...project,
+      installLogs: updatedLogs,
+      bomItems: updatedBOM,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
   const handleUpdateDoor = (
     project: OperationProject,
     doorId: string,
@@ -1189,93 +1376,325 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                 </div>
               </div>
 
-              {/* Assigned Community Filter Bar matching HomeScreen.tsx PM Filter Bar */}
-              <div className="mt-5 pt-4 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 mr-1">
-                    <Filter className="w-3.5 h-3.5 text-sky-600" />
-                    <span>Filter by Assigned Community:</span>
+              {/* Searchable Community Dropdown Picker & Timeframe Filters (Current, Previous, Following, Upcoming CSM Intro) */}
+              <div className="mt-5 pt-4 border-t border-slate-200/80 space-y-3">
+                {/* Timeframe Filter Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <CalendarDays className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Active Installs Timeframe:</span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedProjectFilter('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                      selectedProjectFilter === 'all'
-                        ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>All Assigned Communities</span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded text-[10px] font-mono tabular-nums ${
-                        selectedProjectFilter === 'all'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {assignedProjects.length}
-                    </span>
-                  </button>
-
-                  {assignedProjects.map((proj) => {
-                    const isSelected = selectedProjectFilter === proj.id;
-                    return (
-                      <button
-                        key={proj.id}
-                        type="button"
-                        onClick={() =>
-                          setSelectedProjectFilter(isSelected ? 'all' : proj.id)
-                        }
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{proj.propertyName}</span>
-                        <span
-                          className={`px-1.5 py-0.2 rounded text-[10px] font-mono tabular-nums ${
-                            isSelected
-                              ? 'bg-white/20 text-white'
-                              : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {proj.unitsCount}u
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <select
-                    value={selectedProjectFilter}
-                    onChange={(e) => setSelectedProjectFilter(e.target.value)}
-                    aria-label="Filter by Assigned Community"
-                    className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:border-sky-500 shadow-2xs"
-                  >
-                    <option value="all">
-                      All Assigned Communities ({assignedProjects.length} Projects)
-                    </option>
-                    {assignedProjects.map((proj) => (
-                      <option key={proj.id} value={proj.id}>
-                        {proj.propertyName} ({proj.city}, {proj.state})
-                      </option>
-                    ))}
-                  </select>
-
-                  {selectedProjectFilter !== 'all' && (
+                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/70">
                     <button
                       type="button"
-                      onClick={() => setSelectedProjectFilter('all')}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
-                      title="Clear Community Filter"
+                      onClick={() => {
+                        setTimeframeFilter('all');
+                        setSelectedProjectFilter('all');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        timeframeFilter === 'all'
+                          ? 'bg-white text-slate-900 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
                     >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Reset</span>
+                      <span>All Assigned</span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-200/70 text-slate-700">
+                        {countsByTimeframe.all}
+                      </span>
                     </button>
-                  )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTimeframeFilter('previous_month');
+                        setSelectedProjectFilter('all');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        timeframeFilter === 'previous_month'
+                          ? 'bg-white text-indigo-900 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>Prev Month ({prevMonthLabel})</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                          timeframeFilter === 'previous_month'
+                            ? 'bg-indigo-100 text-indigo-800'
+                            : 'bg-slate-200/70 text-slate-700'
+                        }`}
+                      >
+                        {countsByTimeframe.previous_month}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTimeframeFilter('current_month');
+                        setSelectedProjectFilter('all');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        timeframeFilter === 'current_month'
+                          ? 'bg-sky-600 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>Current Month ({currentMonthLabel})</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                          timeframeFilter === 'current_month'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-200/70 text-slate-700'
+                        }`}
+                      >
+                        {countsByTimeframe.current_month}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTimeframeFilter('following_month');
+                        setSelectedProjectFilter('all');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        timeframeFilter === 'following_month'
+                          ? 'bg-white text-emerald-900 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>Following Month ({nextMonthLabel})</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                          timeframeFilter === 'following_month'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-slate-200/70 text-slate-700'
+                        }`}
+                      >
+                        {countsByTimeframe.following_month}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTimeframeFilter('upcoming');
+                        setSelectedProjectFilter('all');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        timeframeFilter === 'upcoming'
+                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="Projects currently in the CSM intro Pre-implementation Milestone"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-300" />
+                      <span>Upcoming (CSM Intro)</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                          timeframeFilter === 'upcoming'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-200/70 text-slate-700'
+                        }`}
+                      >
+                        {countsByTimeframe.upcoming}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Searchable Dropdown Picker */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-sky-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-700">Filter by Assigned Community:</span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      ({timeframeProjects.length} in selected timeframe)
+                    </span>
+                  </div>
+
+                  <div className="relative flex-1 max-w-md" ref={communityPickerRef}>
+                    {/* Dropdown Trigger Button */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsCommunityPickerOpen((prev) => !prev)}
+                        className="w-full flex items-center justify-between gap-2 px-3.5 py-2 text-xs font-semibold bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-slate-800 shadow-2xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        aria-expanded={isCommunityPickerOpen}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
+                          {selectedProjectFilter === 'all' ? (
+                            <span className="font-bold text-slate-800">
+                              All Assigned Communities ({timeframeProjects.length} Projects)
+                            </span>
+                          ) : (
+                            (() => {
+                              const sel = assignedProjects.find((p) => p.id === selectedProjectFilter);
+                              return sel ? (
+                                <span className="flex items-center gap-1.5 font-bold text-sky-950 truncate">
+                                  <span>{sel.propertyName}</span>
+                                  <span className="text-[11px] text-slate-500 font-normal">
+                                    ({sel.city}, {sel.state})
+                                  </span>
+                                  <span className="px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 font-mono text-[10px]">
+                                    {sel.unitsCount}u
+                                  </span>
+                                </span>
+                              ) : (
+                                <span>All Assigned Communities</span>
+                              );
+                            })()
+                          )}
+                        </div>
+
+                        <ChevronDown
+                          className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${
+                            isCommunityPickerOpen ? 'rotate-180 text-sky-600' : ''
+                          }`}
+                        />
+                      </button>
+
+                      {selectedProjectFilter !== 'all' && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProjectFilter('all')}
+                          className="px-2.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer shrink-0"
+                          title="Reset to all communities in timeframe"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Popover Menu with Live Text Search */}
+                    {isCommunityPickerOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 z-40 animate-in fade-in zoom-in-95 duration-150">
+                        {/* Search Input Box */}
+                        <div className="relative mb-2">
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Search community name, city, state, or units..."
+                            value={communitySearchQuery}
+                            onChange={(e) => setCommunitySearchQuery(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-7 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 transition-all"
+                            autoFocus
+                          />
+                          {communitySearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setCommunitySearchQuery('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Dropdown Options List */}
+                        <div className="max-h-60 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
+                          {/* Option 1: All Assigned Communities */}
+                          <div
+                            onClick={() => {
+                              setSelectedProjectFilter('all');
+                              setIsCommunityPickerOpen(false);
+                            }}
+                            className={`px-3 py-2 rounded-lg text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                              selectedProjectFilter === 'all'
+                                ? 'bg-sky-50 text-sky-950 font-bold border border-sky-200'
+                                : 'hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                              <span>All Assigned Communities</span>
+                            </div>
+                            <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {timeframeProjects.length}
+                            </span>
+                          </div>
+
+                          {/* Matching communities */}
+                          {(() => {
+                            const filtered = timeframeProjects.filter((p) => {
+                              if (!communitySearchQuery.trim()) return true;
+                              const q = communitySearchQuery.trim().toLowerCase();
+                              return (
+                                p.propertyName.toLowerCase().includes(q) ||
+                                (p.city && p.city.toLowerCase().includes(q)) ||
+                                (p.state && p.state.toLowerCase().includes(q)) ||
+                                (p.unitsCount && p.unitsCount.toString().includes(q))
+                              );
+                            });
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="p-3 text-center text-xs text-slate-500">
+                                  No communities match &ldquo;{communitySearchQuery}&rdquo; in this timeframe.
+                                </div>
+                              );
+                            }
+
+                            return filtered.map((proj) => {
+                              const isSelected = selectedProjectFilter === proj.id;
+                              const isUpcoming = isProjectUpcomingCsmIntro(proj);
+                              const dates = proj.installationStartDate
+                                ? `${proj.installationStartDate} → ${proj.installationEndDate || 'Ongoing'}`
+                                : proj.startDate
+                                ? `Start: ${proj.startDate}`
+                                : null;
+
+                              return (
+                                <div
+                                  key={proj.id}
+                                  onClick={() => {
+                                    setSelectedProjectFilter(proj.id);
+                                    setIsCommunityPickerOpen(false);
+                                  }}
+                                  className={`px-3 py-2 rounded-lg text-xs flex items-center justify-between gap-2 cursor-pointer transition-colors ${
+                                    isSelected
+                                      ? 'bg-sky-50 border border-sky-300 text-sky-950 font-bold'
+                                      : 'hover:bg-slate-50 text-slate-800 border border-transparent'
+                                  }`}
+                                >
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="truncate font-semibold">{proj.propertyName}</span>
+                                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 shrink-0">
+                                        {proj.unitsCount}u
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                      <span>
+                                        {proj.city}, {proj.state}
+                                      </span>
+                                      {dates && (
+                                        <>
+                                          <span>·</span>
+                                          <span className="font-mono text-slate-600">{dates}</span>
+                                        </>
+                                      )}
+                                      {isUpcoming && (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800">
+                                          CSM Intro
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="shrink-0 flex items-center gap-1">
+                                    {isSelected && <Check className="w-4 h-4 text-sky-600" />}
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2019,6 +2438,7 @@ export const FieldTechPortal: React.FC<FieldTechPortalProps> = ({
                 projectIntegratorPartners={getProjectIntegratorPartners(selectedProject)}
                 onAddLog={(newLog, autoInc) => handleAddLog(selectedProject, newLog, Boolean(autoInc))}
                 onDeleteLog={(logId) => handleDeleteLog(selectedProject, logId)}
+                onUpdateLog={(logId, updates) => handleUpdateLog(selectedProject, logId, updates)}
                 defaultInstallerName={`${fieldTech} (Field Tech)`}
                 editorRole="field_tech"
                 editorName={`${fieldTech} (Field Tech)`}

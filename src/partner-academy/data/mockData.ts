@@ -8,6 +8,7 @@ import {
   RC_CARD_READERS_QUIZ_PACKAGE,
   PORTAL_GUIDE_QUIZ_PACKAGE,
   GATEWAY_INSTALLATION_QUIZ_PACKAGE,
+  LOCK_FIRMWARE_QUIZ_PACKAGE,
 } from './quizQuestions';
 
 export const PARTNER_COMPANIES: PartnerCompany[] = [
@@ -484,6 +485,8 @@ export const INITIAL_USERS: User[] = [
       'mod_befe_locks': 100,
       'mod_rc_card_readers': 100,
       'mod_portal_guide': 100,
+      'mod_gateway_installation': 100,
+      'mod_lock_firmware': 100,
     },
     completedLessons: [
       'les_tstat_before_start',
@@ -516,6 +519,13 @@ export const INITIAL_USERS: User[] = [
       'les_rc_ps914_power',
       'les_rc_resets',
       'les_rc_troubleshooting',
+      'les_fw_phone_prep',
+      'les_fw_supported_models',
+      'les_fw_app_navigation',
+      'les_fw_initiate_update',
+      'les_fw_flashing_cycle',
+      'les_fw_verification',
+      'les_fw_troubleshooting',
     ],
     quizScores: {
       'mod_thermostat_onboarding': 100,
@@ -525,6 +535,8 @@ export const INITIAL_USERS: User[] = [
       'mod_befe_locks': 100,
       'mod_rc_card_readers': 100,
       'mod_portal_guide': 100,
+      'mod_gateway_installation': 100,
+      'mod_lock_firmware': 100,
     },
     certificationDate: '2025-08-01',
   },
@@ -1152,32 +1164,40 @@ export const COURSE_MODULES: CourseModule[] = [
             introParagraph: 'Onboarding links the physical hardware\'s MAC address and serial number to the digital property map in the Quext cloud.',
             stepList: [
               {
-                label: 'Initiate',
+                label: 'Initiate (Slides 5-7)',
                 text: 'Log into Quext IoT Admin. Tap the service gear icon at the bottom navigation bar.',
               },
               {
-                label: 'Locate',
+                label: 'Locate (Slides 8-9)',
                 text: 'Drill down through Community > Building > Unit location hierarchy.',
               },
               {
-                label: 'Add Device',
-                text: 'Tap "+ Install device" and strictly select "Lock" from the pop-up menu.',
+                label: 'Add Device (Slide 10)',
+                text: 'Tap "+ Install device" and select "Lock" (XE360 all models, NDEB, BE467, FE410, RC Card reader).',
               },
               {
-                label: 'Identify',
+                label: 'Identify (Slide 11)',
                 text: 'Scan the barcode sticker or select "Enter Allegion SN Manually" or "Select From Nearby Locks".',
               },
               {
-                label: 'Provision',
-                text: 'Confirm location matches physical door and tap Install.',
+                label: 'Connectivity Mode (Slide 12)',
+                text: 'Select Connectivity mode: Standalone, Thermostat or bridge, or Ethernet based on site spec.',
               },
               {
-                label: 'Sync',
+                label: 'Select Sub-Location (Slide 13)',
+                text: 'If multiple door locations exist for the unit/common area, select the exact sub-location (e.g., "Front Door", "Exit Door").',
+              },
+              {
+                label: 'Confirm & Install (Slide 14)',
+                text: 'Confirm device details and location match physical door, then tap "Install".',
+              },
+              {
+                label: 'Sync (Slide 15)',
                 text: 'MUST tap the Sync button on details page to push community access configs.',
               },
               {
-                label: 'Verify',
-                text: 'Return to Home screen, tap key symbol, wait for "Activated!" overlay, and physically verify latch retraction.',
+                label: 'In-App Testing & Activation (Slides 16-18)',
+                text: 'Return to Home screen, tap key symbol, wait for "Activated!" overlay, and physically verify crash bar latch retraction.',
               },
             ],
           },
@@ -1191,30 +1211,30 @@ export const COURSE_MODULES: CourseModule[] = [
             id: 'les_xe360_fdr',
             moduleId: 'mod_xe360_locks',
             chapterId: 'ch_xe360_ch2',
-            title: 'Lesson 1: Factory Default Reset (FDR)',
+            title: 'Lesson 1: Factory Default Reset (FDR - Slide 23)',
             durationMinutes: 10,
             type: 'hardware_install',
             brief: 'Master the unique mode-switch and panic bar sequence required to wipe the XE360 back to factory defaults.',
             introParagraph: 'If an XE360 lock fails during provisioning, a Factory Default Reset (FDR) must be performed. Because the XE360 attaches to a crash bar, its reset procedure is unique compared to a standard deadbolt.',
             stepList: [
               {
-                label: 'Step 1: Mode Switch',
+                label: 'Step 1: Mode Switch (Slide 23)',
                 text: 'Press and hold the mode switch for 5 seconds. You will see 2 green lights and hear 2 beeps.',
               },
               {
-                label: 'Step 2: Actuate Exit Device',
+                label: 'Step 2: Actuate Exit Device (Slide 23)',
                 text: 'Rotate the interior lever or depress the exit device 3 times within 20 seconds of the FDR sequence starting.',
               },
               {
-                label: 'Step 3: Audible Count',
+                label: 'Step 3: Audible Count (Slide 23)',
                 text: 'There will be 1 red light for each turn/press and 1 beep for each turn/press.',
               },
               {
-                label: 'Step 4: Processing State',
+                label: 'Step 4: Processing State (Slide 23)',
                 text: 'While the FDR is in process, the lock will display a solid red light.',
               },
               {
-                label: 'Step 5: Success Confirmation',
+                label: 'Step 5: Success Confirmation (Slide 23)',
                 text: 'Once the FDR completes, you will see 1 green light and hear 1 beep. Replace electronic cover once finished.',
               },
             ],
@@ -1229,7 +1249,7 @@ export const COURSE_MODULES: CourseModule[] = [
             id: 'les_xe360_troubleshooting',
             moduleId: 'mod_xe360_locks',
             chapterId: 'ch_xe360_ch3',
-            title: 'Lesson 1: Troubleshooting & Support Rules',
+            title: 'Lesson 1: Troubleshooting & Support Rules (Slides 26-28)',
             durationMinutes: 10,
             type: 'field_troubleshooting',
             brief: 'Standard field escalation, un-synced hardware, and Deletion Protocol.',
@@ -1237,16 +1257,16 @@ export const COURSE_MODULES: CourseModule[] = [
             alertWarning: 'DELETION PROTOCOL: Whenever you delete a lock from the Quext app you will need to reach out to support to receive assistance in fully clearing out the lock from the system before you can continue using that same lock in the app.',
             stepList: [
               {
-                label: 'Missing Credentials',
+                label: 'Missing Credentials (Slide 26)',
                 text: 'If you lack permissions upon arriving, contact Quext Support directly.',
               },
               {
-                label: 'Unresponsive Hardware',
+                label: 'Unresponsive Hardware (Slides 27-28)',
                 text: 'Verify phone Bluetooth is active and batteries are fresh and properly seated.',
               },
               {
-                label: 'The Recovery Loop',
-                text: '1. Delete lock from app -> 2. Email Support (support@onequext.com) to purge backend record -> 3. Perform physical FDR -> 4. Repeat onboarding from beginning.',
+                label: 'The Recovery Protocol (Slides 27-28)',
+                text: '1. Delete lock from app -> 2. Reach out to Quext Support (support@onequext.com) to purge backend cloud record -> 3. Perform physical FDR (Slide 23) -> 4. Repeat onboarding from Slide 5 through Slide 11 -> 5. Sync and test engagement.',
               },
             ],
             infoBox: 'Direct Escalation Line: support@onequext.com',
@@ -1308,12 +1328,15 @@ export const COURSE_MODULES: CourseModule[] = [
             brief: 'Register, provision, sync, and physically verify NDE locks in the Quext cloud.',
             introParagraph: 'Step-by-step procedure to link NDE hardware MAC address and serial number.',
             stepList: [
-              { label: 'Initiate', text: 'Tap Service gear icon on bottom navigation.' },
-              { label: 'Locate', text: 'Select Community, Building, and Unit.' },
-              { label: 'Add Device', text: 'Tap "+ Install device" and select Lock.' },
-              { label: 'Identify', text: 'Scan barcode sticker or enter serial number.' },
-              { label: 'Provision & Sync', text: 'Confirm location, install, and tap Sync.' },
-              { label: 'Verify', text: 'Tap key symbol, verify "Activated!", and confirm mechanical retraction.' },
+              { label: 'Initiate (Slides 5-7)', text: 'Tap Service gear icon on bottom navigation.' },
+              { label: 'Locate (Slides 8-9)', text: 'Select Community, Building, and Unit.' },
+              { label: 'Add Device (Slide 10)', text: 'Tap "+ Install device" and select Lock.' },
+              { label: 'Identify (Slide 11)', text: 'Scan barcode sticker, enter serial number manually, or select from nearby locks.' },
+              { label: 'Connectivity Mode (Slide 12)', text: 'Select Connectivity mode: Standalone, Thermostat or bridge, or Ethernet.' },
+              { label: 'Select Sub-Location (Slide 13)', text: 'If multiple door locations exist for the space, select the local sub-location.' },
+              { label: 'Confirm & Install (Slide 14)', text: 'Confirm location matches physical door and tap Install.' },
+              { label: 'Sync (Slide 15)', text: 'Tap Sync button to push credentials and operational parameters.' },
+              { label: 'In-App Testing & Activation (Slides 16-18)', text: 'Tap key symbol on Home, verify "Activated!" overlay, and physically confirm lever unlock.' },
             ],
             hardwareImageCallout: {
               title: 'Schlage NDE Wireless Smart Lock',
@@ -1365,7 +1388,9 @@ export const COURSE_MODULES: CourseModule[] = [
             introParagraph: 'Escalation protocols for resolving cloud sync discrepancies.',
             alertWarning: 'DELETION PROTOCOL: Whenever you delete a lock from the Quext app you will need to reach out to support to receive assistance in fully clearing out the lock from the system before you can continue using that same lock in the app.',
             stepList: [
-              { label: 'Recovery Loop', text: 'Delete lock in app -> Email support@onequext.com -> Factory Reset -> Re-onboard.' },
+              { label: 'Missing Permissions (Slide 26)', text: 'If installer lacks property access in Quext IoT Admin, contact Quext Support directly.' },
+              { label: 'Unresponsive Hardware (Slides 27-28)', text: 'Verify phone Bluetooth is active and batteries are properly seated with adequate voltage.' },
+              { label: 'The Recovery Protocol (Slides 27-28)', text: '1. Delete lock in app -> 2. Reach out to support@onequext.com to purge backend cloud record -> 3. Factory Reset (Slide 22) -> 4. Wait 30 seconds for Bluetooth power on -> 5. Repeat onboarding from Slide 5 through Slide 11 -> 6. Sync and test engagement.' },
             ],
             infoBox: 'Direct Escalation Line: support@onequext.com',
           },
@@ -1427,9 +1452,14 @@ export const COURSE_MODULES: CourseModule[] = [
             brief: 'Provision BE and FE locks into the Quext property database.',
             introParagraph: 'Step-by-step procedure to register BE/FE locks.',
             stepList: [
-              { label: 'Initiate & Locate', text: 'Service gear icon -> Community > Building > Unit.' },
-              { label: 'Add Device', text: 'Select Lock and scan serial barcode sticker.' },
-              { label: 'Sync & Test', text: 'Confirm location, install, push Sync, and test unlock.' },
+              { label: 'Initiate & Locate (Slides 5-9)', text: 'Service gear icon -> Community > Building > Unit hierarchy.' },
+              { label: 'Add Device (Slide 10)', text: 'Tap "+ Install device" and select Lock.' },
+              { label: 'Identify (Slide 11)', text: 'Scan serial barcode sticker or enter serial number manually.' },
+              { label: 'Connectivity Mode (Slide 12)', text: 'Select Connectivity mode: Standalone, Thermostat or bridge, or Ethernet.' },
+              { label: 'Sub-Location (Slide 13)', text: 'If multiple door locations exist for the unit, select specific door location.' },
+              { label: 'Confirm & Install (Slide 14)', text: 'Verify hardware matches unit door, then tap Install.' },
+              { label: 'Sync (Slide 15)', text: 'Push Sync button to transmit property access permissions.' },
+              { label: 'In-App Testing & Activation (Slides 16-18)', text: 'Tap key symbol on Home, verify "Activated!" overlay, and test mechanical thumbturn operation.' },
             ],
             hardwareImageCallout: {
               title: 'Schlage Control Smart Deadbolt (BE467) & Interconnected (FE410)',
@@ -1479,7 +1509,9 @@ export const COURSE_MODULES: CourseModule[] = [
             introParagraph: 'Resolving sync failures and unlinked hardware records.',
             alertWarning: 'DELETION PROTOCOL: Whenever you delete a lock from the Quext app you will need to reach out to support to receive assistance in fully clearing out the lock from the system before you can continue using that same lock in the app.',
             stepList: [
-              { label: 'Recovery Loop', text: 'Delete in app -> Email support@onequext.com -> Physical FDR -> Re-onboard.' },
+              { label: 'Missing Permissions (Slide 26)', text: 'If installer lacks property access in Quext IoT Admin, contact Quext Support directly.' },
+              { label: 'Unresponsive Hardware (Slides 27-28)', text: 'Verify phone Bluetooth is active and 4x AA batteries are properly seated.' },
+              { label: 'The Recovery Protocol (Slides 27-28)', text: '1. Delete lock in app -> 2. Email support@onequext.com to purge backend cloud record -> 3. Physical 2-turn FDR (Slide 22) -> 4. Repeat onboarding from Slide 5 through Slide 11 -> 5. Sync and test unlock.' },
             ],
             infoBox: 'Direct Escalation Line: support@onequext.com',
           },
@@ -2502,6 +2534,272 @@ export const COURSE_MODULES: CourseModule[] = [
     lessons: [],
     practiceQuiz: GATEWAY_INSTALLATION_QUIZ_PACKAGE.practiceQuiz,
     quiz: GATEWAY_INSTALLATION_QUIZ_PACKAGE.certificationExam,
+  },
+
+  // Course 9: Lock Firmware Updates (BE, FE, XE360, NDEB)
+  {
+    id: 'mod_lock_firmware',
+    number: '09',
+    title: 'Lock Firmware Updates & BLE Flashing',
+    code: 'LOCK-FW-OTA',
+    category: 'Field Maintenance',
+    hardwareImage: '/assets/aistudio/firmware_guide_slides/slide_01.jpg',
+    officialDeviceName: 'Schlage BE467 / FE410 / XE360 / NDEB Smart Locks',
+    officialModel: 'Quext IoT Admin Over-The-Air (OTA) BLE Firmware (v05.20.03+)',
+    durationMinutes: 30,
+    difficulty: 'Core Field',
+    shortDescription: 'Wireless over-the-air firmware updates for BE, FE, XE360, and NDEB smart locks using the Quext IoT Admin app.',
+    overview: 'This course provides complete field certification for conducting over-the-air (OTA) firmware updates across all Quext-supported commercial and residential locks (BE467, FE410, XE360, and NDEB). You will learn mobile prerequisite configuration, 3-dots menu navigation, binary payload uploading, monitoring the 5-10 minute alternating Green/Red LED flashing cycle, and troubleshooting interrupted flash sessions.',
+    keyTakeaways: [
+      'Universal compatibility across BE, FE, XE360, and NDEB lock architectures',
+      'Phone screen Auto-Lock MUST be set to "Never" and cellular data prioritized over Wi-Fi',
+      'Accessed via Service Mode > Lock Details > 3-dots contextual menu > "Update Firmware"',
+      'Lock LED alternates Green and Red continuously for 5-10 minutes during flashing — DO NOT remove power or batteries',
+      'If flash stalls, verify Bluetooth proximity, re-attempt from 3-dots menu, or escalate to support@onequext.com',
+    ],
+    chapters: [
+      {
+        id: 'ch_fw_ch1',
+        title: 'Chapter 1: Preparation & Prerequisites',
+        lessons: [
+          {
+            id: 'les_fw_phone_prep',
+            moduleId: 'mod_lock_firmware',
+            chapterId: 'ch_fw_ch1',
+            title: 'Lesson 1: Mobile Environment & Cellular Priority',
+            durationMinutes: 10,
+            type: 'concept',
+            brief: 'Configure technician mobile devices to prevent signal drops during BLE binary flashing.',
+            introParagraph: 'Firmware updates stream heavy cryptographic binary payloads across Bluetooth Low Energy (BLE). If the phone screen locks, switches apps, or jumps between weak property Wi-Fi access points, the flashing handshake will abort.',
+            stepList: [
+              {
+                label: 'Screen Auto-Lock',
+                text: 'Navigate to iOS Settings > Display & Brightness > Auto-Lock, and set to "Never". On Android, set Screen Timeout to maximum or enable developer Stay Awake while charging.',
+              },
+              {
+                label: 'Cellular Priority',
+                text: 'Disable hallway Wi-Fi and keep cellular LTE/5G active to ensure uninterrupted cloud asset retrieval while provisioning BLE.',
+              },
+              {
+                label: 'Bluetooth & Battery Check',
+                text: 'Verify Bluetooth is toggled ON and physical lock batteries report adequate charge before initiating flashing.',
+              },
+            ],
+            hardwareImageCallout: {
+              title: 'Mobile Configuration Requirements',
+              imageUrl: '/assets/aistudio/firmware_guide_slides/slide_02.jpg',
+              deviceModel: 'iOS / Android Quext IoT Admin Application',
+              description: 'Standard mobile preparation ensures sustained Bluetooth radio communication during the 5-10 minute flashing window.',
+              badge: 'Prerequisite Setting',
+            },
+          },
+          {
+            id: 'les_fw_supported_models',
+            moduleId: 'mod_lock_firmware',
+            chapterId: 'ch_fw_ch1',
+            title: 'Lesson 2: Hardware Compatibility & Scope',
+            durationMinutes: 10,
+            type: 'concept',
+            brief: 'Verify all 4 supported lock types eligible for Quext OTA firmware flashing.',
+            introParagraph: 'The Quext IoT Admin firmware update utility supports all four primary field lock variants. Understanding each form factor ensures proper identification before flashing.',
+            stepList: [
+              {
+                label: 'Residential Deadbolts (BE467)',
+                text: 'Schlage Control Smart Deadbolt for unit entry doors.',
+              },
+              {
+                label: 'Interconnected Locks (FE410)',
+                text: 'Schlage Control Interconnected Locks with integrated lever and deadbolt.',
+              },
+              {
+                label: 'Commercial Exit Trims (XE360)',
+                text: 'Schlage XE360 wireless panic bar exit trims installed on Falcon 25 and Von Duprin 98/99/22 assemblies.',
+              },
+              {
+                label: 'Commercial Cylindrical / Mortise (NDEB)',
+                text: 'Schlage NDEB wireless locks with integrated rose reader and handle.',
+              },
+            ],
+            hardwareImageCallout: {
+              title: 'Supported Lock Portfolio',
+              imageUrl: '/assets/aistudio/firmware_guide_slides/slide_03.jpg',
+              deviceModel: 'BE467, FE410, XE360, NDEB Series',
+              description: 'All 4 lock models share the unified Quext IoT Admin BLE flashing protocol and alternating Green/Red diagnostic LED indicators.',
+              badge: 'Universal BLE Protocol',
+            },
+          },
+        ],
+      },
+      {
+        id: 'ch_fw_ch2',
+        title: 'Chapter 2: Firmware Upgrade Procedure',
+        lessons: [
+          {
+            id: 'les_fw_app_navigation',
+            moduleId: 'mod_lock_firmware',
+            chapterId: 'ch_fw_ch2',
+            title: 'Lesson 1: In-App Navigation & Lock Selection',
+            durationMinutes: 10,
+            type: 'hardware_install',
+            brief: 'Navigate to target lock in Quext IoT Admin and open device settings.',
+            introParagraph: 'Properly locating the installed hardware in the property hierarchy ensures the correct cryptographic keys are negotiated.',
+            stepList: [
+              {
+                label: 'Step 1: Open Service Mode',
+                text: 'Log into Quext IoT Admin app and tap the service gear icon in the bottom navigation bar.',
+              },
+              {
+                label: 'Step 2: Select Unit Location',
+                text: 'Drill down through Community > Building > Unit to locate the targeted physical door.',
+              },
+              {
+                label: 'Step 3: Select Lock Device',
+                text: 'Tap on the Lock device card to open the lock detail and diagnostics view.',
+              },
+            ],
+            hardwareImageCallout: {
+              title: 'Lock Details & Device Settings',
+              imageUrl: '/assets/aistudio/firmware_guide_slides/slide_05.jpg',
+              deviceModel: 'Quext IoT Admin Navigation Hierarchy',
+              description: 'Access the specific lock details screen before opening the contextual actions menu.',
+              badge: 'App Navigation',
+            },
+          },
+          {
+            id: 'les_fw_initiate_update',
+            moduleId: 'mod_lock_firmware',
+            chapterId: 'ch_fw_ch2',
+            title: 'Lesson 2: Contextual Menu & Version Selection',
+            durationMinutes: 10,
+            type: 'hardware_install',
+            brief: 'Trigger the firmware upgrade modal via 3-dots menu and select firmware package.',
+            introParagraph: 'The firmware update command is located inside the lock contextual menu.',
+            stepList: [
+              {
+                label: 'Step 1: Tap 3 Vertical Dots',
+                text: 'In the upper right corner of the lock details screen, tap the three vertical dots to reveal options.',
+              },
+              {
+                label: 'Step 2: Tap Update Firmware',
+                text: 'Select "Update Firmware" from the dropdown menu to open available versions.',
+              },
+              {
+                label: 'Step 3: Select Target Version',
+                text: 'Choose the latest approved firmware release (e.g., 05.20.03) from the version picker and tap "Update Firmware" to begin transmission.',
+              },
+            ],
+            hardwareImageCallout: {
+              title: 'Firmware Selection Modal',
+              imageUrl: '/assets/aistudio/firmware_guide_slides/slide_07.jpg',
+              deviceModel: 'Quext IoT Admin v05.20.03 Selection',
+              description: 'Select approved firmware package and confirm transmission initiation.',
+              badge: 'Contextual Menu',
+            },
+          },
+          {
+            id: 'les_fw_flashing_cycle',
+            moduleId: 'mod_lock_firmware',
+            chapterId: 'ch_fw_ch2',
+            title: 'Lesson 3: Transmission Progress & 5-10 Min LED Flashing Cycle',
+            durationMinutes: 10,
+            type: 'hardware_install',
+            brief: 'Monitor Bluetooth upload progress and decode alternating Green/Red LED state.',
+            introParagraph: 'Firmware flashing occurs in two distinct stages: over-the-air packet transmission followed by internal lock flash memory writing.',
+            stepList: [
+              {
+                label: 'Stage 1: BLE Packet Transmission',
+                text: 'Maintain phone proximity within 3-5 feet of the lock while the progress bar advances from 0% to 100%. Do not close app or lock screen.',
+              },
+              {
+                label: 'Stage 2: Alternating Green/Red Flashing',
+                text: 'Once the upload completes, the lock indicator light will blink Green and Red alternately for approximately 5 to 10 minutes while internal flash memory is overwritten.',
+              },
+              {
+                label: 'CRITICAL WARNING: Do Not Interrupt Power',
+                text: 'NEVER pull batteries or press reset during the 5-10 minute alternating Green/Red cycle! Doing so will brick the onboard microcontroller.',
+              },
+              {
+                label: 'Stage 3: Completion & Reboot',
+                text: 'Upon successful flash completion, the lock reboots into its operational state with normal LED illumination.',
+              },
+            ],
+            hardwareImageCallout: {
+              title: 'Flashing Progress & LED Status',
+              imageUrl: '/assets/aistudio/firmware_guide_slides/slide_11.jpg',
+              deviceModel: 'Lock Microcontroller Bootloader Stage',
+              description: 'Alternating Green and Red LED blinks continuously for 5-10 minutes during flash write.',
+              badge: 'Critical Operation',
+            },
+          },
+        ],
+      },
+      {
+        id: 'ch_fw_ch3',
+        title: 'Chapter 3: Verification & Field Support',
+        lessons: [
+          {
+            id: 'les_fw_verification',
+            moduleId: 'mod_lock_firmware',
+            chapterId: 'ch_fw_ch3',
+            title: 'Lesson 1: Field Verification & Cloud Sync',
+            durationMinutes: 10,
+            type: 'hardware_install',
+            brief: 'Verify new firmware version and execute physical unlock test.',
+            introParagraph: 'Always verify the newly applied firmware build before releasing the door to property management.',
+            stepList: [
+              {
+                label: 'Step 1: Tap Sync',
+                text: 'Return to lock details and tap the "Sync" button to synchronize device configuration with the Quext cloud.',
+              },
+              {
+                label: 'Step 2: Test Unlock Engagement',
+                text: 'From the Home screen, tap the Key icon to initiate a Bluetooth unlock. Verify the "Activated!" confirmation appears and the mechanical latch operates smoothly.',
+              },
+              {
+                label: 'Step 3: Confirm Version String',
+                text: 'Check the lock details view to verify the reported firmware version matches the target release (05.20.03).',
+              },
+            ],
+            hardwareImageCallout: {
+              title: 'Field Verification & Functional Testing',
+              imageUrl: '/assets/aistudio/firmware_guide_slides/slide_13.jpg',
+              deviceModel: 'Quext Key Unlock Activation',
+              description: 'Always confirm Bluetooth activation and mechanical latch movement following firmware upgrades.',
+              badge: 'Verification Step',
+            },
+          },
+          {
+            id: 'les_fw_troubleshooting',
+            moduleId: 'mod_lock_firmware',
+            chapterId: 'ch_fw_ch3',
+            title: 'Lesson 2: Troubleshooting Stalled Updates & Deletion Protocol',
+            durationMinutes: 10,
+            type: 'field_troubleshooting',
+            brief: 'Resolving failed updates, Bluetooth disconnects, and escalation paths.',
+            introParagraph: 'If a firmware update fails to complete or the lock stops responding, follow this strict escalation protocol.',
+            alertWarning: 'DELETION PROTOCOL: If a lock fails to recover after an interrupted firmware update, delete the lock from the app, email support@onequext.com to purge cloud records, perform a physical FDR, and re-onboard using slides 5 through 11.',
+            stepList: [
+              {
+                label: 'Connection Drops',
+                text: 'Verify phone Bluetooth is active and you remain within 3 feet of the lock. Re-open 3-dots menu and tap "Update Firmware" again.',
+              },
+              {
+                label: 'Low Battery Error',
+                text: 'If firmware update will not start, replace all 4 AA batteries with fresh commercial-grade alkaline cells.',
+              },
+              {
+                label: 'Direct Support Line',
+                text: 'Contact Quext Support at support@onequext.com or call 806-993-3200 for immediate firmware provisioning assistance.',
+              },
+            ],
+            infoBox: 'Official Quext Support Hotline: 806-993-3200 · support@onequext.com.',
+          },
+        ],
+      },
+    ],
+    lessons: [],
+    practiceQuiz: LOCK_FIRMWARE_QUIZ_PACKAGE.practiceQuiz,
+    quiz: LOCK_FIRMWARE_QUIZ_PACKAGE.certificationExam,
   },
 ];
 

@@ -589,6 +589,42 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
+  // Listen for global partner access code requests & direct project assignments
+  useEffect(() => {
+    const handleOpenCodesModal = () => {
+      setIsPartnerCodesModalOpen(true);
+    };
+
+    const handleAssignPartner = (e: Event) => {
+      const customEvent = e as CustomEvent<{ companyName: string; projectIds: string[] }>;
+      if (!customEvent.detail) return;
+      const { companyName, projectIds } = customEvent.detail;
+
+      setProjects((prev) =>
+        prev.map((proj) => {
+          if (projectIds.includes(proj.id)) {
+            const currentPartners = proj.integratorPartners || [];
+            if (!currentPartners.some((p) => p.toLowerCase() === companyName.toLowerCase())) {
+              return {
+                ...proj,
+                integratorPartners: [...currentPartners, companyName],
+                lastUpdated: new Date().toISOString(),
+              };
+            }
+          }
+          return proj;
+        })
+      );
+    };
+
+    window.addEventListener('quext-open-partner-access-codes', handleOpenCodesModal);
+    window.addEventListener('quext-assign-partner-to-projects', handleAssignPartner);
+    return () => {
+      window.removeEventListener('quext-open-partner-access-codes', handleOpenCodesModal);
+      window.removeEventListener('quext-assign-partner-to-projects', handleAssignPartner);
+    };
+  }, []);
+
   // Sync projects with quotes marked as "Deal Won"
   const handleUpdateQuoteStage = (
     quoteId: string,

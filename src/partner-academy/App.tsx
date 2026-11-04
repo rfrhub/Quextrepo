@@ -23,6 +23,7 @@ import { LeakSensorsGuide } from './components/LeakSensorsGuide';
 import { BefeLocksGuide } from './components/BefeLocksGuide';
 import { LockFieldGuide } from './components/LockFieldGuide';
 import { SpecSheetsViewer } from './components/SpecSheetsViewer';
+import { LockFirmwareGuide } from './components/LockFirmwareGuide';
 import { ButterflyIntercomWiring } from './components/ButterflyIntercomWiring';
 import { InstallersClipModal } from '../components/InstallersClipModal';
 import { CourseModule } from './types';
@@ -416,6 +417,14 @@ const MainApp: React.FC<{
           {currentTab === 'rc_reader_guide' && (
             <LockFieldGuide
               lockType="rc_reader"
+              onOpenCourse={(modId) => handleStartCourse(modId)}
+              onNavigateTab={(tab) => setCurrentTab(tab)}
+            />
+          )}
+
+          {/* Dedicated Lock Firmware Guide (BE, FE, XE360, NDEB) */}
+          {currentTab === 'firmware_guide' && (
+            <LockFirmwareGuide
               onOpenCourse={(modId) => handleStartCourse(modId)}
               onNavigateTab={(tab) => setCurrentTab(tab)}
             />

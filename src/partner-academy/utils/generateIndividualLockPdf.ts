@@ -196,7 +196,7 @@ export const generateAndDownloadIndividualLockPdf = (
   });
 
   // =========================================================================
-  // PAGE 2: IN-APP ONBOARDING, SYNCING & TESTING (SLIDES 6 - 17)
+  // PAGE 2: IN-APP ONBOARDING, SYNCING & TESTING (SLIDES 6 - 19)
   // =========================================================================
   curY = advancePage('ONBOARDING, SYNCING & TESTING');
 
@@ -204,13 +204,16 @@ export const generateAndDownloadIndividualLockPdf = (
     { num: 'Slide 6', title: 'Login with Admin Credentials', text: 'Enter your email and password, check the legal agreement boxes, and tap Sign In.' },
     { num: 'Slide 7', title: 'Tap the Service Gear Icon', text: 'Once logged in, tap on the "Service" gear icon located on the bottom navigation bar.' },
     { num: 'Slide 8', title: 'Select Location for Service', text: 'Navigate: Community → Building → Specific Unit number or Amenity Door.' },
-    { num: 'Slide 9', title: 'Tap "+ Install device"', text: 'Tap the purple install device button at the bottom of the location profile screen.' },
-    { num: 'Slide 10', title: 'Select "Lock" from Pop-Up', text: 'Select "Lock" from the pop up menu (used for BE467, FE410, NDEB, XE360, and RC readers).' },
-    { num: 'Slide 11', title: 'Scan Lock Barcode Sticker', text: 'Locate the lock serial number barcode sticker and place inside the camera scan reticle.' },
-    { num: 'Slide 12', title: 'Confirm Location & Tap Install', text: 'Confirm location matches unit number and tap "Install". The app automatically adds the lock.' },
-    { num: 'Slide 13', title: 'Tap "Sync" Button', text: 'Once installed, tap the purple "Sync" button on the lock profile to push active credentials.' },
-    { num: 'Slides 14-16', title: 'Test the Lock via Home Screen', text: 'Return Home, tap the key symbol, wait for Bluetooth search, verify "Activated!", and unlock.' },
-    { num: 'Slide 17', title: 'Onboarding Completed!', text: 'Door engaged and verified. The mobile credential pass is live and ready for residents/staff.' },
+    { num: 'Slide 9', title: 'Tap "+ Install device"', text: 'Tap the cyan "+ Install device" button at the bottom of the location profile screen.' },
+    { num: 'Slide 10', title: 'Select "Lock" from Pop-Up Menu', text: 'Select "Lock" from the pop up menu (used for XE360 all models, NDEB, BE467, FE410, and RC readers).' },
+    { num: 'Slide 11', title: 'Scan Lock Barcode Sticker', text: 'Locate lock serial number barcode sticker and place inside scan box (or Select Nearby / Enter Allegion SN Manually).' },
+    { num: 'Slide 12', title: 'Select Connectivity Mode', text: 'Select mode: Standalone (where thermostats not installed), Thermostat or bridge (connected to thermostat/bridge), or Ethernet.' },
+    { num: 'Slide 13', title: 'Select Sub-Location (If Applicable)', text: 'If multiple locations exist, select the specific target location for the lock under "Install in".' },
+    { num: 'Slide 14', title: 'Confirm Location & Tap Install', text: 'Confirm location matches unit number and tap "Install". The app will automatically add the lock; wait for completion.' },
+    { num: 'Slide 15', title: 'Tap "Sync" Button to Update', text: 'Once installed, tap the purple "Sync" button on the lock profile to push active credentials and firmware state.' },
+    { num: 'Slide 16', title: 'Return Home & Tap Key Symbol', text: 'Navigate back to the Home screen by tapping Home on the bottom navigation bar, then tap the key symbol to test.' },
+    { num: 'Slides 17-18', title: 'Lock Search & "Activated!" Test', text: 'Wait for Bluetooth/Remote search. When "Activated!" appears, unlock or lock the door, then tap Dismiss.' },
+    { num: 'Slide 19', title: 'SUCCESS: Onboarding Complete', text: 'Door engaged and verified. Mobile credentials live on smartphone and smartwatch for residents/staff.' },
   ];
 
   onboardingSteps.forEach((st) => {
@@ -248,7 +251,7 @@ export const generateAndDownloadIndividualLockPdf = (
   });
 
   // =========================================================================
-  // PAGE 3: HARDWARE-SPECIFIC FACTORY RESET (SLIDES 20 - 23)
+  // PAGE 3: HARDWARE-SPECIFIC FACTORY RESET (SLIDES 22 - 25)
   // =========================================================================
   curY = advancePage(`FACTORY RESET: ${config.name.toUpperCase()}`);
 
@@ -317,22 +320,22 @@ export const generateAndDownloadIndividualLockPdf = (
   }
 
   // =========================================================================
-  // PAGE 4: TROUBLESHOOTING & SUPPORT DISPATCH (SLIDES 24 - 26)
+  // PAGE 4: TROUBLESHOOTING & SUPPORT DISPATCH (SLIDES 26 - 28)
   // =========================================================================
   curY = advancePage('TROUBLESHOOTING & CONTACT SUPPORT');
 
   const troubleshootingItems = [
     {
-      q: 'Slide 24: I don\'t see my invite to the app or credentials I need?',
+      q: 'Slide 26: I don\'t see my invite to the app or credentials I need?',
       a: 'Contact Quext Support (support@onequext.com). They can assist with getting you back on track with login issues and missing credentials!',
     },
     {
-      q: 'Slide 25: The lock I just installed is not responding to the app or fob?',
-      a: '1. Ensure your phone is running the latest OS version and Bluetooth is ON.\n2. As a last resort, delete the lock from the Quext App.\n3. Reach out to support@onequext.com to have them delete the lock from the cloud.\n4. Perform Factory Reset (FDR) as described in this guide.\n5. Repeat onboarding process from Slide 5 through Slide 11, then Sync and test!',
+      q: 'Slide 27: The lock I just installed is not responding to the app or fob?',
+      a: '1. Ensure your phone is running the latest OS version and Bluetooth is ON.\n2. As a last resort, delete the lock from the Quext App.\n3. Reach out to support@onequext.com to have them delete the lock from their side.\n4. Perform Factory Reset (FDR) as described in slide 22 / 23.\n5. Repeat the Onboarding process from slide 5 through slide 11.\n6. Then try Syncing or engaging the lock to unlock it!',
     },
     {
-      q: 'Slide 26: The lock I just installed won\'t complete the Sync step?',
-      a: 'In this instance, the solution is again deleting the lock you are having issues with from the Quext App, reaching out to support to delete on their end, performing another Factory Reset (FDR), and repeating onboarding from Slide 5 to 11.',
+      q: 'Slide 28: The lock I just installed won\'t complete the Sync step?',
+      a: 'In this instance the solution is again deleting the lock you are having issues with from the Quext App and then reaching out to support to have them also delete the lock on their end, then performing another Factory Reset (FDR). Repeat the Onboarding process from slide 5 through slide 11, then try Syncing or engaging the lock to unlock it!',
     },
   ];
 

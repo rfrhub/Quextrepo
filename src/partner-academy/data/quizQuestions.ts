@@ -2437,4 +2437,238 @@ export const GATEWAY_INSTALLATION_QUIZ_PACKAGE: ModuleQuizPackage = {
   },
 };
 
+// ============================================================================
+// COURSE 09: SMART LOCK FIRMWARE UPGRADE GUIDE (LOCK-FIRMWARE)
+// ============================================================================
+export const LOCK_FIRMWARE_QUIZ_PACKAGE: ModuleQuizPackage = {
+  practiceQuiz: {
+    title: 'Lock Firmware Upgrade Practice Check',
+    passingScore: 80,
+    questions: [
+      {
+        id: 'fw_pq_1',
+        question: 'Which lock hardware families are supported by the Quext Lock Firmware Guide?',
+        options: [
+          'BE467, FE410, XE360 (all models), and NDEB locks',
+          'Only BE467 residential deadbolts',
+          'Only TEKTELIC smart gateways',
+          'Only third-party magnetic exit strikes',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 1 states: "The following process applies to both BE, FE, XE360, and NDEB type locks."',
+      },
+      {
+        id: 'fw_pq_2',
+        question: 'What phone display setting must be configured before starting an in-field lock firmware update?',
+        options: [
+          'Set Auto-Lock / Screen Timeout to "Never" (or None/Swipe on Android) so the screen stays on',
+          'Set screen brightness to 10%',
+          'Enable Do Not Disturb mode only',
+          'Switch display to grayscale mode',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 3 requires turning off screen auto-lock so OS display sleep does not drop active Bluetooth firmware transmission.',
+      },
+      {
+        id: 'fw_pq_3',
+        question: 'Which mobile application must field installers use when updating lock firmware?',
+        options: [
+          'Quext IoT Admin app (dark icon with cyan square frame)',
+          'Resident Quext IoT app',
+          'Apple Home app',
+          'Allegion Engage consumer app',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 4 instructs installers to double check they are using the Quext IoT Admin app (marked with a green checkmark), NOT the resident app.',
+      },
+      {
+        id: 'fw_pq_4',
+        question: 'What network communication method should be prioritized for the Quext app during firmware deployment?',
+        options: [
+          'Cellular LTE / 5G signal',
+          'Building guest Wi-Fi',
+          'Public cafe hotspot',
+          'Bluetooth tethering to a resident phone',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 2: "Ensure that you prioritize using cellular signal as your main method of communication to the Quext app unless under a poor service area for cellular coverage."',
+      },
+      {
+        id: 'fw_pq_5',
+        question: 'How do you navigate to the "Update firmware" option in the Quext IoT Admin app?',
+        options: [
+          'Tap the Service gear icon → select lock location → select lock → tap three dots (...) → select "Update firmware"',
+          'Shake the phone 3 times on the Home screen',
+          'Unscrew the backplate and press the internal reset button',
+          'Scan the resident lease agreement QR code',
+        ],
+        correctIndex: 0,
+        explanation: 'Slides 6 through 9 outline navigating via the Service gear icon, drilling down to the lock, opening the three-dots (...) menu, and selecting "Update firmware".',
+      },
+      {
+        id: 'fw_pq_6',
+        question: 'What critical instruction is displayed on Slide 12 while firmware is uploading to the lock?',
+        options: [
+          '"To ensure a successful update, please stay on this screen until the update is complete."',
+          '"You may now close the app and take a lunch break."',
+          '"Disconnect Bluetooth immediately."',
+          '"Power cycle the lock by pulling all batteries."',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 12 states: "To ensure a successful update, please stay on this screen until the update is complete." Never navigate away while uploading.',
+      },
+      {
+        id: 'fw_pq_7',
+        question: 'What physical LED indicator behavior appears on the lock during the firmware flash write process?',
+        options: [
+          'The lock will blink Green and Red continuously for approximately 5 - 10 minutes',
+          'A solid blue LED remains on for 30 seconds',
+          'Rapid green strobe flashes for 10 seconds',
+          'No lights appear on the exterior escutcheon',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 13 confirms: "The Lock will blink Green and Red for approximately 5 - 10 min this ultimately depends on how old the current firmware the lock was previously on."',
+      },
+      {
+        id: 'fw_pq_8',
+        question: 'Why might an older lock take longer during the Green and Red LED blinking cycle?',
+        options: [
+          'Older firmware versions require additional EEPROM block rewrites and migration checks',
+          'The lock motor is running backwards',
+          'The Bluetooth radio needs to recharge its battery',
+          'The lock is waiting for a resident keyfob tap',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 13 explains: "this ultimately depends on how old the current firmware the lock was previously on expect longer times if the firmware is older."',
+      },
+      {
+        id: 'fw_pq_9',
+        question: 'What direct email should technicians contact if they are missing invites or credentials for the Quext Admin app?',
+        options: [
+          'support@onequext.com',
+          'sales@allegion.com',
+          'admin@google.com',
+          'info@homebase.com',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 14 directs technicians with missing invites or credentials to contact Quext Support at support@onequext.com.',
+      },
+      {
+        id: 'fw_pq_10',
+        question: 'What steps should be taken if a lock fails to complete the sync step or does not respond after an update?',
+        options: [
+          'Delete lock in Quext app, have support delete on cloud side, execute FDR, repeat onboarding slides 5-11, then sync/engage',
+          'Throw the lock away and order a new one',
+          'Force the deadbolt with a screwdriver',
+          'Leave the unit unlocked and mark complete',
+        ],
+        correctIndex: 0,
+        explanation: 'Slides 27 and 28 of the updated Onboarding Guide require deleting in app, contacting support@onequext.com to delete in cloud, executing FDR, and repeating onboarding slides 5-11.',
+      },
+    ],
+  },
+  certificationExam: {
+    passingScore: 85,
+    questions: [
+      {
+        id: 'fw_cert_1',
+        question: 'Which lock models are covered under the official Quext Lock Firmware Guide?',
+        options: [
+          'BE467, FE410, XE360, and NDEB locks',
+          'Only wired access controllers and maglocks',
+          'Only third-party cylindrical locks',
+          'Only mechanical push-button locks',
+        ],
+        correctIndex: 0,
+        explanation: 'The guide explicitly covers Schlage Control BE467, FE410, XE360 Series, and NDEB commercial wireless locks.',
+      },
+      {
+        id: 'fw_cert_2',
+        question: 'Why must the installer phone display auto-lock setting be set to "Never" before beginning firmware transmission?',
+        options: [
+          'To prevent the mobile operating system from suspending BLE data transmission before the firmware upload reaches 100%',
+          'To conserve phone battery power',
+          'To prevent screen burn-in',
+          'To increase cellular upload bandwidth',
+        ],
+        correctIndex: 0,
+        explanation: 'When phone screens sleep, iOS and Android throttle background BLE tasks, aborting the firmware binary upload to the lock microcontroller.',
+      },
+      {
+        id: 'fw_cert_3',
+        question: 'How does a technician choose a new firmware version in the Quext IoT Admin app?',
+        options: [
+          'Navigate to lock card → three dots (...) → Update firmware → tap "Selected version >" → choose version from modal list → tap Update',
+          'Type the version number on the keypad of the lock',
+          'Scan a barcode on the battery door',
+          'Call the property manager to push the firmware remotely',
+        ],
+        correctIndex: 0,
+        explanation: 'Slides 8 through 11 show opening the lock 3-dots menu, tapping "Update firmware", selecting the version row, and picking the desired firmware build.',
+      },
+      {
+        id: 'fw_cert_4',
+        question: 'What automated pre-flight checks are confirmed on the screen before firmware bytes begin streaming?',
+        options: [
+          'Serial number, security token, firmware download, bluetooth availability, and looking for lock',
+          'Checking GPS satellites and weather radar',
+          'Running a motor speed test and spring tension check',
+          'Taking a camera photo of the door frame',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 12 verifies: Getting serial number (Done), Getting security token (Done), Downloading firmware (Done), Checking bluetooth availability (Done), and Looking for the lock (Done).',
+      },
+      {
+        id: 'fw_cert_5',
+        question: 'What does continuous alternating Green and Red blinking on the lock exterior signify?',
+        options: [
+          'The lock is actively flashing firmware to its internal EEPROM memory; do not remove batteries or interrupt',
+          'The lock has dead batteries and is shutting down',
+          'The lock is permanently bricked and cannot be recovered',
+          'The lock is reporting an open door position switch',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 13 defines the Green and Red blinking state as the physical firmware flashing rewrite phase.',
+      },
+      {
+        id: 'fw_cert_6',
+        question: 'What is the expected duration of the Green and Red blinking flashing cycle?',
+        options: [
+          'Approximately 5 to 10 minutes depending on the age of prior firmware',
+          '10 to 15 seconds',
+          'Exactly 1 hour',
+          'Overnight (8 hours)',
+        ],
+        correctIndex: 0,
+        explanation: 'Slide 13 states the lock will blink Green and Red for approximately 5 - 10 minutes.',
+      },
+      {
+        id: 'fw_cert_7',
+        question: 'Once the physical blinking stops and the lock reboots, what post-update steps are required?',
+        options: [
+          'Tap "Sync" on the lock profile in Quext Admin, verify the new firmware version number, and test lock engagement/unlock',
+          'Immediately perform a factory default reset',
+          'Replace all 4 batteries with rechargeable NiMH cells',
+          'Delete the lock from the property hierarchy',
+        ],
+        correctIndex: 0,
+        explanation: 'Post-update verification requires syncing with Quext Cloud to record updated version telemetry and testing operational deadbolt engagement.',
+      },
+      {
+        id: 'fw_cert_8',
+        question: 'What is the official Quext Support email address for partner assistance and credential routing?',
+        options: [
+          'support@onequext.com',
+          'help@quextops.com',
+          'support@allegion.com',
+          'service@smartlocks.io',
+        ],
+        correctIndex: 0,
+        explanation: 'support@onequext.com is the centralized support address across all slides in the official guides.',
+      },
+    ],
+  },
+};
+
+
 

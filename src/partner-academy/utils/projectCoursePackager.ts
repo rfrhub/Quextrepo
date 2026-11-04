@@ -232,6 +232,17 @@ export function buildProjectPrePackagedBundle(
     );
   }
 
+  // Lock Firmware Updates Course (Mandatory for projects deploying locks)
+  if (hasUnitLocks || hasCommonReadersOrIntercom) {
+    const totalLocks = (unitLockMatch.qty || 0) + (commonAccessMatch.qty || 0) || project.unitsCount;
+    addCourse(
+      'mod_lock_firmware',
+      `Over-the-Air (OTA) BLE firmware updates for ${totalLocks.toLocaleString()} BE467, FE410, XE360, & NDEB Smart Locks`,
+      totalLocks,
+      true
+    );
+  }
+
   // IoT LoRaWAN Gateways & Mesh Infrastructure (Mandatory when on BOM)
   if (hasGateways) {
     addCourse(
@@ -376,6 +387,18 @@ export function buildProjectPrePackagedBundle(
       badge: 'Exit Trim / Mortise',
       matchReason: `Matched to stairwell exit trims & high-traffic common entries`,
       estimatedMinutes: 14,
+    });
+  }
+
+  if (hasUnitLocks || hasCommonReadersOrIntercom) {
+    addGuide({
+      tabId: 'firmware_guide',
+      title: 'Lock Firmware Updates Field Guide',
+      subtitle: 'Wireless BLE firmware update procedure for BE, FE, XE360, & NDEB smart locks (v05.20.03+)',
+      category: 'Field Guide',
+      badge: 'OTA Firmware',
+      matchReason: `Required for BLE firmware maintenance across all deployed smart locks`,
+      estimatedMinutes: 12,
     });
   }
 

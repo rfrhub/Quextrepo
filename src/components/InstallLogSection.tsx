@@ -23,6 +23,8 @@ import {
   Play,
   Pause,
   X,
+  MessageSquarePlus,
+  StickyNote,
 } from 'lucide-react';
 
 interface SelectedBOMConfig {
@@ -36,6 +38,7 @@ interface InstallLogSectionProps {
   projectIntegratorPartners?: string[];
   onAddLog: (newLog: Omit<InstallLogEntry, 'id'>, autoIncrementBOM: boolean) => void;
   onDeleteLog: (logId: string) => void;
+  onUpdateLog?: (logId: string, updates: Partial<InstallLogEntry>) => void;
   preselectedItem?: BOMItem | null;
   onClearPreselectedItem?: () => void;
   defaultInstallerName?: string;
@@ -53,6 +56,7 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
   projectIntegratorPartners = [],
   onAddLog,
   onDeleteLog,
+  onUpdateLog,
   preselectedItem,
   onClearPreselectedItem,
   defaultInstallerName,
@@ -85,6 +89,37 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
   // Media preview states for photos & audio memos
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+
+  // Dedicated Field Tech Note editor state for line items
+  const [editingLogNoteId, setEditingLogNoteId] = useState<string | null>(null);
+  const [editingLogNoteText, setEditingLogNoteText] = useState<string>('');
+
+  const handleStartEditingTechNote = (log: InstallLogEntry) => {
+    if (editingLogNoteId === log.id) {
+      setEditingLogNoteId(null);
+      setEditingLogNoteText('');
+    } else {
+      setEditingLogNoteId(log.id);
+      setEditingLogNoteText(log.fieldTechNotes || '');
+    }
+  };
+
+  const handleSaveTechNote = (logId: string) => {
+    const trimmed = editingLogNoteText.trim();
+    const now = new Date();
+    const dateFormatted = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const author = editorName || (editorRole === 'field_tech' ? 'Field Technician' : 'PM');
+
+    if (onUpdateLog) {
+      onUpdateLog(logId, {
+        fieldTechNotes: trimmed,
+        fieldTechNoteAuthor: author,
+        fieldTechNoteTimestamp: dateFormatted,
+      });
+    }
+    setEditingLogNoteId(null);
+    setEditingLogNoteText('');
+  };
 
   const activePM = assignedPM || AVAILABLE_PMS[0];
 
@@ -677,16 +712,16 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
               </tr>
             ) : (
               logs.map((log) => (
-                <tr
-                  key={log.id}
-                  className={`hover:bg-slate-50/80 transition-colors ${
-                    log.exceedsSOW && log.approvalStatus === 'denied'
-                      ? 'bg-rose-50/30'
-                      : log.exceedsSOW
-                      ? 'bg-amber-50/30'
-                      : ''
-                  }`}
-                >
+                <React.Fragment key={log.id}>
+                  <tr
+                    className={`hover:bg-slate-50/80 transition-colors ${
+                      log.exceedsSOW && log.approvalStatus === 'denied'
+                        ? 'bg-rose-50/30'
+                        : log.exceedsSOW
+                        ? 'bg-amber-50/30'
+                        : ''
+                    }`}
+                  >
                   <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[11px] text-slate-600">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
@@ -806,6 +841,40 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
                         Line Note: {log.itemNotes}
                       </div>
                     )}
+
+                    {/* Dedicated Field Tech Line Item Note Display */}
+                    {log.fieldTechNotes && (
+                      <div className="mt-1.5 p-2 rounded-lg bg-sky-50 border border-sky-200/90 text-[11px] text-sky-950">
+                        <div className="flex items-center justify-between gap-1 text-[10px] font-bold text-sky-800 mb-0.5">
+                          <span className="flex items-center gap-1">
+                            <MessageSquarePlus className="w-3 h-3 text-sky-600" />
+                            <span>Tech Note ({log.fieldTechNoteAuthor || 'Field Tech'})</span>
+                          </span>
+                          {log.fieldTechNoteTimestamp && (
+                            <span className="text-[9px] font-normal text-sky-600">{log.fieldTechNoteTimestamp}</span>
+                          )}
+                        </div>
+                        <p className="text-slate-800 leading-snug">{log.fieldTechNotes}</p>
+                      </div>
+                    )}
+
+                    {/* Add / Edit Field Tech Note Action Button */}
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditingTechNote(log)}
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                          log.fieldTechNotes
+                            ? 'text-sky-800 bg-sky-50 hover:bg-sky-100 border-sky-300'
+                            : 'text-slate-700 bg-slate-100 hover:bg-sky-50 hover:text-sky-800 border-slate-300 hover:border-sky-300'
+                        }`}
+                        title="Add or edit technician notes for this line item"
+                      >
+                        <MessageSquarePlus className="w-3 h-3 text-sky-600" />
+                        <span>{log.fieldTechNotes ? 'Edit Tech Note' : '+ Add Tech Note'}</span>
+                      </button>
+                    </div>
+
                     {/* Media Attachments: Photos & Audio Memos logged from Installers Clip */}
                     {((log.photos && log.photos.length > 0) || log.audioNoteUrl) && (
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -873,7 +942,87 @@ export const InstallLogSection: React.FC<InstallLogSectionProps> = ({
                     </button>
                   </td>
                 </tr>
-              ))
+
+                {/* Inline Field Tech Note Editor Sub-Row */}
+                {editingLogNoteId === log.id && (
+                  <tr key={`${log.id}-editor`} className="bg-sky-50/70 border-b border-sky-200">
+                    <td colSpan={8} className="p-3.5">
+                      <div className="bg-white border border-sky-300 rounded-xl p-3.5 shadow-sm space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+                            <span className="text-xs font-bold text-slate-900">
+                              Field Technician Note for:{' '}
+                              <span className="text-sky-700 font-extrabold">{log.itemName}</span>{' '}
+                              ({log.locationCompleted})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditingLogNoteId(null)}
+                            className="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <textarea
+                          value={editingLogNoteText}
+                          onChange={(e) => setEditingLogNoteText(e.target.value)}
+                          placeholder="Enter technician note (e.g. Strike plate adjusted, signal verified at -84 dBm, latch bolt clearance confirmed, technician sign-off)..."
+                          rows={2}
+                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 font-sans"
+                          autoFocus
+                        />
+
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-semibold text-slate-500">Quick Tags:</span>
+                            {[
+                              '✓ Verified & Tested',
+                              'Strike Plate Shimmed',
+                              'LoRa Gateway Sync Confirmed',
+                              'Replaced Strike Screws',
+                              'Follow-Up Required',
+                            ].map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() =>
+                                  setEditingLogNoteText((prev) =>
+                                    prev ? `${prev} · ${tag}` : tag
+                                  )
+                                }
+                                className="px-2 py-0.5 text-[10px] bg-slate-100 hover:bg-sky-100 hover:text-sky-900 text-slate-700 rounded border border-slate-200 transition-colors cursor-pointer"
+                              >
+                                +{tag}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingLogNoteId(null)}
+                              className="px-2.5 py-1 text-xs text-slate-600 hover:text-slate-800 rounded cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveTechNote(log.id)}
+                              className="px-3.5 py-1 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-2xs transition-colors cursor-pointer"
+                            >
+                              Save Tech Note
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))
             )}
           </tbody>
         </table>

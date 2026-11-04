@@ -26,6 +26,7 @@ interface InstallLogsAndMediaContainerProps {
   editorName?: string;
   defaultInstallerName?: string;
   assignedPM?: ProjectManagerInfo;
+  onUpdateLog?: (logId: string, updates: Partial<InstallLogEntry>) => void;
   onConfirmInstallation?: (
     changeId?: string,
     sowItemId?: string,
@@ -43,6 +44,7 @@ export const InstallLogsAndMediaContainer: React.FC<InstallLogsAndMediaContainer
   projectIntegratorPartners,
   onAddLog,
   onDeleteLog,
+  onUpdateLog,
   editorRole = 'pm',
   editorName = 'Project Manager',
   defaultInstallerName,
@@ -221,6 +223,7 @@ export const InstallLogsAndMediaContainer: React.FC<InstallLogsAndMediaContainer
             projectIntegratorPartners={projectIntegratorPartners}
             onAddLog={onAddLog}
             onDeleteLog={onDeleteLog}
+            onUpdateLog={onUpdateLog}
             editorRole={editorRole}
             editorName={editorName}
             defaultInstallerName={defaultInstallerName}

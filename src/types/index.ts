@@ -90,6 +90,9 @@ export interface InstallLogEntry {
   photos?: string[]; // In-the-field photos confirming installation / hardware context
   audioNoteUrl?: string; // Voice memo audio recording URL or data URI
   audioNoteDuration?: number; // Duration of audio memo in seconds
+  fieldTechNotes?: string; // Dedicated field technician notes on this specific install log line item
+  fieldTechNoteAuthor?: string; // Field tech name who authored the note
+  fieldTechNoteTimestamp?: string; // Timestamp when field tech note was added/updated
 }
 
 export interface PendingInstallationChange {

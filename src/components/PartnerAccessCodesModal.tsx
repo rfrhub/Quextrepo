@@ -63,6 +63,10 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
   const [recentlyCreatedCred, setRecentlyCreatedCred] = useState<PartnerSecurityCredential | null>(null);
   const randomSuffixRef = useRef<string>(Math.floor(1000000 + Math.random() * 9000000).toString());
 
+  // Real-time project association during registration
+  const [selectedProjectIdsForReg, setSelectedProjectIdsForReg] = useState<string[]>([]);
+  const [showProjectPickerForReg, setShowProjectPickerForReg] = useState(false);
+
   // Delete partner state & feedback
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletedFeedback, setDeletedFeedback] = useState<string | null>(null);
@@ -77,6 +81,8 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
       setDeletedFeedback(null);
       setRegFirstName('');
       setRegLastName('');
+      setSelectedProjectIdsForReg([]);
+      setShowProjectPickerForReg(false);
     }
   }, [isOpen]);
 
@@ -104,6 +110,19 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
     }
     return counts;
   }, [projects]);
+
+  // Real-time detection of projects already assigned to company name typed in registration form
+  const detectedProjectsForReg = useMemo(() => {
+    if (!regName.trim()) return [];
+    const q = regName.trim().toLowerCase();
+    return projects.filter((p) => {
+      const partners = p.integratorPartners || [];
+      return partners.some((partner) => {
+        const pNorm = partner.trim().toLowerCase();
+        return pNorm === q || pNorm.includes(q) || q.includes(pNorm);
+      });
+    });
+  }, [projects, regName]);
 
   if (!isOpen) return null;
 
@@ -186,12 +205,27 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
       setCredentials(loadPartnerSecurityCredentials());
       setRecentlyCreatedCred(newCred);
       setShowRegisterForm(false);
+
+      // If user selected projects to assign to this partner during registration, dispatch assignment
+      if (selectedProjectIdsForReg.length > 0) {
+        window.dispatchEvent(
+          new CustomEvent('quext-assign-partner-to-projects', {
+            detail: {
+              companyName: regName.trim(),
+              projectIds: selectedProjectIdsForReg,
+            },
+          })
+        );
+      }
+
       setRegName('');
       setRegCode('');
       setRegFirstName('');
       setRegLastName('');
       setRegRegion('');
       setRegEmail('');
+      setSelectedProjectIdsForReg([]);
+      setShowProjectPickerForReg(false);
       setHasManuallyEditedCode(false);
     } catch (err: any) {
       setRegError(err?.message || 'Failed to register partner firm.');
@@ -473,6 +507,109 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
               </div>
             </div>
 
+            {/* REAL-TIME OPERATIONS PROJECT AWARENESS & ASSIGNMENT SECTION */}
+            <div className="pt-1">
+              {regName.trim() ? (
+                detectedProjectsForReg.length > 0 ? (
+                  <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 text-xs text-cyan-200 space-y-2 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FolderGit2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span className="font-bold text-white">
+                          ✓ Operations Projects Assigned ({detectedProjectsForReg.length}):
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-900/60 text-cyan-300 border border-cyan-700/60">
+                        Recognized by Company
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-cyan-300/80 leading-relaxed">
+                      We found active operations projects already assigned to &ldquo;{regName}&rdquo;. Registering this partner will immediately grant contractor technicians authenticated access to these communities:
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {detectedProjectsForReg.map((p) => (
+                        <div
+                          key={p.id}
+                          className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-xs flex items-center justify-between"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-bold text-white block truncate">{p.propertyName}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {p.city}, {p.state} · {p.unitsCount} units
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 shrink-0 ml-2">
+                            {p.statusTag}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-2 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FolderGit2 className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="font-semibold text-slate-300">
+                          No operations projects currently assigned to &ldquo;{regName}&rdquo;.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowProjectPickerForReg((prev) => !prev)}
+                        className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                      >
+                        {showProjectPickerForReg ? 'Hide Project Picker' : '+ Assign Active Projects Now'}
+                      </button>
+                    </div>
+
+                    {showProjectPickerForReg && (
+                      <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                        <span className="text-[11px] font-semibold text-slate-400 block">
+                          Select existing projects to assign to this partner firm upon registration:
+                        </span>
+                        <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+                          {projects.map((p) => {
+                            const isChecked = selectedProjectIdsForReg.includes(p.id);
+                            return (
+                              <label
+                                key={p.id}
+                                className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-colors ${
+                                  isChecked
+                                    ? 'bg-cyan-950/60 border-cyan-500/60 text-white'
+                                    : 'bg-slate-950/60 border-slate-800 hover:bg-slate-900 text-slate-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() =>
+                                      setSelectedProjectIdsForReg((prev) =>
+                                        isChecked ? prev.filter((id) => id !== p.id) : [...prev, p.id]
+                                      )
+                                    }
+                                    className="w-3.5 h-3.5 rounded text-cyan-500 border-slate-700 bg-slate-900 cursor-pointer shrink-0"
+                                  />
+                                  <span className="font-semibold truncate">{p.propertyName}</span>
+                                  <span className="text-[10px] text-slate-500 font-mono">({p.unitsCount}u)</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                                  {p.city}, {p.state}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              ) : null}
+            </div>
+
             {regError && (
               <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-xs text-rose-300 flex items-start gap-2">
                 <span className="text-rose-400 font-bold shrink-0">⚠</span>
@@ -548,7 +685,21 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
             const isLinkCopied = copiedLinkId === cred.companyId;
             const isRotating = rotatingId === cred.companyId;
             const directUrl = buildPartnerAcademyPortalUrl(cred.partnerShortName);
-            const activeProjectsCount = projectCountsByPartner[cred.partnerShortName.toLowerCase()] || 0;
+            const partnerAssignedProjects = projects.filter((p) => {
+              const partners = p.integratorPartners || [];
+              const qShort = cred.partnerShortName.toLowerCase();
+              const qFull = cred.companyName.toLowerCase();
+              return partners.some((pt) => {
+                const ptNorm = pt.toLowerCase();
+                return (
+                  ptNorm === qShort ||
+                  ptNorm === qFull ||
+                  ptNorm.includes(qShort) ||
+                  qShort.includes(ptNorm)
+                );
+              });
+            });
+            const activeProjectsCount = partnerAssignedProjects.length;
 
             return (
               <div
@@ -565,13 +716,36 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-950/70 text-purple-300 border border-purple-800/60">
                       {cred.partnerShortName}
                     </span>
-                    {activeProjectsCount > 0 && (
+                    {activeProjectsCount > 0 ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-800/50 flex items-center gap-1">
                         <FolderGit2 className="w-3 h-3" />
                         {activeProjectsCount} Ops Project{activeProjectsCount > 1 ? 's' : ''}
                       </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] text-slate-500 bg-slate-950/60 border border-slate-800">
+                        0 Projects
+                      </span>
                     )}
                   </div>
+
+                  {/* Assigned Operations Projects Pills */}
+                  {partnerAssignedProjects.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[10px] font-bold text-cyan-400 flex items-center gap-1">
+                        <FolderGit2 className="w-3 h-3 text-cyan-400" />
+                        <span>Assigned Projects:</span>
+                      </span>
+                      {partnerAssignedProjects.map((proj) => (
+                        <span
+                          key={proj.id}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800/90 text-slate-200 border border-slate-700 flex items-center gap-1"
+                        >
+                          <span>{proj.propertyName}</span>
+                          <span className="text-slate-400 font-mono text-[9px]">({proj.unitsCount}u)</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
                     <span className="flex items-center gap-1">

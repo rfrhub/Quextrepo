@@ -1157,6 +1157,25 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     });
   };
 
+  const handleUpdateLog = (logId: string, updates: Partial<InstallLogEntry>) => {
+    const updatedLogs = (project.installLogs || []).map((l) =>
+      l.id === logId ? { ...l, ...updates } : l
+    );
+    const updatedBOM = project.bomItems.map((item) => ({
+      ...item,
+      postItLogs: (item.postItLogs || []).map((l) =>
+        l.id === logId ? { ...l, ...updates } : l
+      ),
+    }));
+
+    onUpdateProject({
+      ...project,
+      installLogs: updatedLogs,
+      bomItems: updatedBOM,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
   const handleAddNote = (newNote: Omit<ProjectNote, 'id'>) => {
     const noteId = `note-${Date.now()}`;
     const noteEntry: ProjectNote = {
@@ -4363,6 +4382,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               projectIntegratorPartners={getProjectIntegratorPartners(project)}
               onAddLog={handleAddLog}
               onDeleteLog={handleDeleteLog}
+              onUpdateLog={handleUpdateLog}
               editorRole="pm"
               editorName={project.assignedPM?.name || 'Project Manager'}
               assignedPM={project.assignedPM}

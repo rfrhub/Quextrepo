@@ -25,7 +25,16 @@ import {
   History,
   Trash2,
   Check,
+  KeyRound,
+  Key,
+  Copy,
 } from 'lucide-react';
+import {
+  loadPartnerSecurityCredentials,
+  registerNewPartnerFirm,
+  generateCompanyCodeFromName,
+  PartnerSecurityCredential,
+} from '../partner-academy/utils/partnerSecurity';
 
 interface IntegratorPartnerSelectorProps {
   assignedPartners: string[];
@@ -48,6 +57,10 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
   const [customPartnerInput, setCustomPartnerInput] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [feedbackMessage, setFeedbackMessage] = useState<string>('');
+  const [copiedPartnerCode, setCopiedPartnerCode] = useState<string | null>(null);
+  const [partnerCreds, setPartnerCreds] = useState<Record<string, PartnerSecurityCredential>>(() =>
+    loadPartnerSecurityCredentials()
+  );
   const [usedHistory, setUsedHistory] = useState<UsedIntegratorHistoryEntry[]>(() =>
     loadUsedIntegratorHistory(allProjects)
   );
@@ -72,11 +85,49 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
     setFloatingPosition({ top, left });
   }, []);
 
+  // Sync credentials from storage and broadcast events
+  useEffect(() => {
+    const handleSync = () => {
+      setPartnerCreds(loadPartnerSecurityCredentials());
+    };
+    window.addEventListener('quext-partner-credentials-updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('quext-partner-credentials-updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
+  // Helper to look up partner's Academy Access Code
+  const getPartnerAccessCred = useCallback(
+    (name: string): PartnerSecurityCredential | null => {
+      const q = name.trim().toLowerCase();
+      const all = Object.values(partnerCreds);
+      const direct = all.find(
+        (c) =>
+          c.partnerShortName.toLowerCase() === q ||
+          c.companyName.toLowerCase() === q
+      );
+      if (direct) return direct;
+      return (
+        all.find(
+          (c) =>
+            c.partnerShortName.toLowerCase().includes(q) ||
+            q.includes(c.partnerShortName.toLowerCase()) ||
+            c.companyName.toLowerCase().includes(q) ||
+            q.includes(c.companyName.toLowerCase())
+        ) || null
+      );
+    },
+    [partnerCreds]
+  );
+
   // Sync OCP list, history & position when floating hub opens
   useEffect(() => {
     if (isOpen) {
       setOcpPartners(loadOfficialChannelPartners());
       setUsedHistory(loadUsedIntegratorHistory(allProjects));
+      setPartnerCreds(loadPartnerSecurityCredentials());
       updateFloatingPosition();
       window.addEventListener('scroll', updateFloatingPosition, true);
       window.addEventListener('resize', updateFloatingPosition);
@@ -170,6 +221,32 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
         matchedMain
           ? `Assigned "${finalName}" to project.`
           : `Assigned "${finalName}" to project & saved to History of Used Integrators.`
+      );
+    }
+
+    // Automatically tie in with Partner Academy access code flow:
+    // If not already registered, generate their Partner Academy credentials & access code immediately!
+    const existingCred = getPartnerAccessCred(finalName);
+    let provisionedCode = existingCred?.secureAccessCode;
+    if (!existingCred) {
+      try {
+        const generatedCode = generateCompanyCodeFromName(finalName);
+        const newCred = registerNewPartnerFirm({
+          companyName: finalName,
+          companyCode: generatedCode,
+          defaultEmail: `${finalName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'partner'}@installerops.com`,
+          region: 'National Integration',
+        });
+        provisionedCode = newCred.secureAccessCode;
+        setPartnerCreds(loadPartnerSecurityCredentials());
+      } catch (err) {
+        console.warn('Auto-provisioning Partner Academy credentials warning:', err);
+      }
+    }
+
+    if (provisionedCode) {
+      setFeedbackMessage(
+        (prev) => `${prev} · Academy Code: ${provisionedCode}`
       );
     }
 
@@ -267,6 +344,29 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                       Manual
                     </span>
                   )}
+
+                  {/* Partner Academy Access Code Pill with One-Click Copy */}
+                  {(() => {
+                    const cred = getPartnerAccessCred(partner);
+                    if (!cred) return null;
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(cred.secureAccessCode);
+                          setCopiedPartnerCode(partner);
+                          setTimeout(() => setCopiedPartnerCode(null), 2000);
+                        }}
+                        className="inline-flex items-center gap-1 font-mono text-[9px] font-bold bg-slate-900 hover:bg-black text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-700/60 shadow-2xs cursor-pointer transition-colors"
+                        title={`Partner Academy Access Code: ${cred.secureAccessCode} (Click to copy)`}
+                      >
+                        <Key className="w-2.5 h-2.5 text-cyan-400" />
+                        <span>{copiedPartnerCode === partner ? 'Copied Code!' : cred.secureAccessCode}</span>
+                      </button>
+                    );
+                  })()}
+
                   <button
                     type="button"
                     onClick={(e) => handleRemovePartner(partner, e)}
@@ -499,6 +599,26 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                               PM Added
                             </span>
                           )}
+                          {(() => {
+                            const cred = getPartnerAccessCred(partner);
+                            if (!cred) return null;
+                            return (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(cred.secureAccessCode);
+                                  setCopiedPartnerCode(partner);
+                                  setTimeout(() => setCopiedPartnerCode(null), 2000);
+                                }}
+                                className="inline-flex items-center gap-1 font-mono text-[9px] font-bold bg-slate-900 hover:bg-black text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-700/60 shadow-2xs shrink-0 cursor-pointer"
+                                title={`Partner Academy Access Code: ${cred.secureAccessCode} (Click to copy)`}
+                              >
+                                <Key className="w-2.5 h-2.5 text-cyan-400" />
+                                <span>{copiedPartnerCode === partner ? 'Copied!' : cred.secureAccessCode}</span>
+                              </button>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
                           {isChecked && (
@@ -568,6 +688,26 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
                                 <span className="text-[9px] font-bold uppercase tracking-wider bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded shrink-0">
                                   History
                                 </span>
+                                {(() => {
+                                  const cred = getPartnerAccessCred(entry.name);
+                                  if (!cred) return null;
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(cred.secureAccessCode);
+                                        setCopiedPartnerCode(entry.name);
+                                        setTimeout(() => setCopiedPartnerCode(null), 2000);
+                                      }}
+                                      className="inline-flex items-center gap-1 font-mono text-[9px] font-bold bg-slate-900 hover:bg-black text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-700/60 shadow-2xs shrink-0 cursor-pointer"
+                                      title={`Partner Academy Access Code: ${cred.secureAccessCode} (Click to copy)`}
+                                    >
+                                      <Key className="w-2.5 h-2.5 text-cyan-400" />
+                                      <span>{copiedPartnerCode === entry.name ? 'Copied!' : cred.secureAccessCode}</span>
+                                    </button>
+                                  );
+                                })()}
                               </div>
                               <div className="text-[10px] text-slate-500 truncate">
                                 {entry.lastUsedOnProject
@@ -605,18 +745,33 @@ export const IntegratorPartnerSelector: React.FC<IntegratorPartnerSelectorProps>
               )}
             </div>
 
-            {/* Summary / Done Footer */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] shrink-0">
-              <span className="text-slate-500">
-                <strong className="text-slate-800">{assignedPartners.length}</strong> partner(s) assigned to project
-              </span>
+            {/* Partner Academy Integration Link & Summary Footer */}
+            <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-col gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-3 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                onClick={() => {
+                  setIsOpen(false);
+                  window.dispatchEvent(new CustomEvent('quext-open-partner-access-codes'));
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-950/80 via-slate-900 to-cyan-950/80 hover:from-purple-900 hover:to-cyan-900 border border-purple-500/40 text-cyan-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                title="Open Partner Access Codes & Logins vault modal"
               >
-                Done
+                <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Manage Partner Academy Codes &amp; Logins</span>
               </button>
+
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500">
+                  <strong className="text-slate-800">{assignedPartners.length}</strong> partner(s) assigned to project
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="px-3 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>,
           document.body

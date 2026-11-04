@@ -62,6 +62,12 @@ export const Header: React.FC<HeaderProps> = ({
       group: 'locks',
     },
     {
+      id: 'firmware_guide',
+      title: 'Lock Firmware Guide',
+      desc: 'Wireless BLE firmware update procedure for BE, FE, XE360, & NDEB locks',
+      group: 'locks',
+    },
+    {
       id: 'gateway_guide',
       title: 'Smart Community Gateway Guide',
       desc: 'TEKTELIC outdoor gateway mounting, Unistrut & antenna, T568B wiring, PoE & verification',
@@ -170,11 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <button
               onClick={() => {
-                if (isGuidesActive) {
-                  setOpenDropdown(openDropdown === 'guides' ? null : 'guides');
-                } else {
-                  setCurrentTab('wallet_guide');
-                }
+                setOpenDropdown(openDropdown === 'guides' ? null : 'guides');
               }}
               className={`px-2.5 py-1 rounded-full transition-all inline-flex items-center gap-1 whitespace-nowrap cursor-pointer ${
                 isGuidesActive

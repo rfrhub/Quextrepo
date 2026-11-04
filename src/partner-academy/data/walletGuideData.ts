@@ -530,7 +530,7 @@ export const WALLET_GUIDE_PAGES: WalletGuidePage[] = [
     pageNumber: 17,
     id: 'page_17_support_back',
     sectionTag: 'SUPPORT ESCALATION',
-    title: 'Need Help? 24/7 Field Support',
+    title: 'Need Help?',
     subtitle: 'Dedicated Quext engineering and installer support lines.',
     phase: 'SUPPORT',
     contentSummary: 'Chat with Quext technical support anytime through the Quext mobile app or access the online field operations portal at help.quext.io.',
