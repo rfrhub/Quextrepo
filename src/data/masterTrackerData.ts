@@ -6,6 +6,7 @@ import { OperationProject } from '../types';
  * Preserves 21 Pearl and all existing seed projects while integrating 97 tracker properties.
  * Enriched with operational notes from executive notes update file.
  * Milestone states and installation dates synchronized from Milestone Card updates sheet.
+ * 71 projects outside the executive update tagged with needsVerifiedByPm (21 Pearl excluded).
  */
 export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   {
@@ -10128,7 +10129,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "quoteNumber": "QXT-2026-8066",
     "targetCompletionDate": "2026-12-18",
-    "quoteId": "quote-master-1793739220233"
+    "quoteId": "quote-master-1793739220233",
+    "needsVerifiedByPm": true
   },
   {
     "useQrIntercom": false,
@@ -11713,7 +11715,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "finalTwentyPercentCollected": false
     },
     "isManuallyCreated": true,
-    "useQrIntercom": false
+    "useQrIntercom": false,
+    "needsVerifiedByPm": true
   },
   {
     "targetCompletionDate": "2026-12-12",
@@ -29569,7 +29572,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "installWorkingHours": "9:00 AM - 5:00 PM Mon-Fri",
       "csmName": "Nicole Franklin"
     },
-    "isManuallyCreated": true
+    "isManuallyCreated": true,
+    "needsVerifiedByPm": true
   },
   {
     "communityDetails": {
@@ -41744,7 +41748,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "finalTwentyPercentCollected": false
     },
     "sowForecastCadenceEnabled": true,
-    "installLogs": []
+    "installLogs": [],
+    "needsVerifiedByPm": true
   },
   {
     "clientName": "TCC Properties",
@@ -52855,7 +52860,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "email": "bethany.condon@onequext.com",
       "name": "Bethany Condon",
       "phone": "(806) 555-0188"
-    }
+    },
+    "needsVerifiedByPm": true
   },
   {
     "installLogs": [],
@@ -58908,7 +58914,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "sentBy": "Ian Robertson",
         "type": "kickoff_submission"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "pendingInstallationChanges": [],
@@ -59634,7 +59641,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "changeOrders": [],
     "quoteNumber": "QXT-IMP-9282",
     "id": "proj-imported-1793160473001",
-    "platform": "Quext"
+    "platform": "Quext",
+    "needsVerifiedByPm": true
   },
   {
     "customerIntake": {
@@ -60364,7 +60372,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "customerScenarioNotes": "",
         "trackingNumber": "QXT-TRK-20261060-107"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "assignedPM": {
@@ -60923,7 +60932,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "assignedCSM": "Nicole Franklin",
     "assignedFieldTech": "Hector Lopez",
     "city": "Las Vegas",
-    "propertyName": "Bria"
+    "propertyName": "Bria",
+    "needsVerifiedByPm": true
   },
   {
     "id": "proj-imported-1793160472986",
@@ -61681,7 +61691,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "targetCompletionDate": "2026-11-16",
     "quoteNumber": "QXT-IMP-2151",
-    "startDate": "2026-10-28"
+    "startDate": "2026-10-28",
+    "needsVerifiedByPm": true
   },
   {
     "state": "TX",
@@ -62332,7 +62343,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "id": "proj-imported-1793160472946",
     "useNfcWallet": true,
     "platform": "Quext",
-    "quoteNumber": "QXT-IMP-9034"
+    "quoteNumber": "QXT-IMP-9034",
+    "needsVerifiedByPm": true
   },
   {
     "useQrIntercom": false,
@@ -62966,7 +62978,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472975-7",
         "status": "Upcoming"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "bomItems": [
@@ -63600,7 +63613,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "workDescription": "Install and signal-verify Quext LoRaWAN Outdoor Gateway Base Station (8-Channel) at Clubhouse Rooftop & Central Buildings",
         "scheduledStartDate": "2026-10-22"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "startDate": "2026-10-28",
@@ -64234,7 +64248,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "isManuallyCreated": true,
-    "quoteNumber": "QXT-IMP-2679"
+    "quoteNumber": "QXT-IMP-2679",
+    "needsVerifiedByPm": true
   },
   {
     "assignedPM": {
@@ -65522,7 +65537,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "projectId": "proj-imported-1793160472993"
     },
     "assignedFieldTech": "Hector Lopez",
-    "useQrIntercom": false
+    "useQrIntercom": false,
+    "needsVerifiedByPm": true
   },
   {
     "quoteId": "import-quote-1793160472994",
@@ -66156,7 +66172,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "name": "Megan Rossman",
       "phone": "(806) 555-0193"
     },
-    "assignedFieldTech": "Hector Lopez"
+    "assignedFieldTech": "Hector Lopez",
+    "needsVerifiedByPm": true
   },
   {
     "statusReason": "Imported via spreadsheet. Target completion set for 2026-12-12.",
@@ -67424,7 +67441,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
           "code": "QXT-GW-TEKTELIC"
         }
       ]
-    }
+    },
+    "needsVerifiedByPm": true
   },
   {
     "lastUpdated": "2026-10-28T04:07:52.930Z",
@@ -68058,7 +68076,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "platform": "Quext",
     "id": "proj-imported-1793160472998",
     "statusReason": "Imported via spreadsheet. Target completion set for 2026-12-12.",
-    "assignedFieldTech": "Hector Lopez"
+    "assignedFieldTech": "Hector Lopez",
+    "needsVerifiedByPm": true
   },
   {
     "lastUpdated": "2026-10-28T04:07:52.930Z",
@@ -69335,7 +69354,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project Closed",
         "targetDate": "2026-04-15"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "address": "100 Main St",
@@ -69969,7 +69989,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "name": "Quext LoRaWAN Outdoor Gateway Base Station (8-Channel)"
       }
     ],
-    "state": "TX"
+    "state": "TX",
+    "needsVerifiedByPm": true
   },
   {
     "assignedPM": {
@@ -70603,7 +70624,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       ]
     },
     "sowForecastCadenceEnabled": true,
-    "useQrIntercom": false
+    "useQrIntercom": false,
+    "needsVerifiedByPm": true
   },
   {
     "startDate": "2026-10-28",
@@ -71237,7 +71259,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "phone": "(806) 555-0193"
     },
     "useNfcWallet": true,
-    "clientName": "Iris Innovations"
+    "clientName": "Iris Innovations",
+    "needsVerifiedByPm": true
   },
   {
     "assignedCSM": "Nicole Franklin",
@@ -71871,7 +71894,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "targetCompletionDate": "2026-07-31",
-    "address": "100 Main St"
+    "address": "100 Main St",
+    "needsVerifiedByPm": true
   },
   {
     "sowForecastCadenceEnabled": true,
@@ -72505,7 +72529,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "assignedCSM": "Nicole Franklin",
-    "useNfcWallet": true
+    "useNfcWallet": true,
+    "needsVerifiedByPm": true
   },
   {
     "shippingDockItems": [
@@ -73139,7 +73164,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "state": "TX",
     "integratorPartners": [
       "SKBM"
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "quoteId": "import-quote-1793160472936",
@@ -73773,7 +73799,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "sowForecastCadenceEnabled": true,
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
     "clientName": "Alpha Residential",
-    "city": "Austin"
+    "city": "Austin",
+    "needsVerifiedByPm": true
   },
   {
     "clientName": "Everbase Solutions",
@@ -74407,7 +74434,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
     "state": "TX",
     "useNfcWallet": true,
-    "sowForecastCadenceEnabled": true
+    "sowForecastCadenceEnabled": true,
+    "needsVerifiedByPm": true
   },
   {
     "quoteNumber": "QXT-IMP-6899",
@@ -75041,7 +75069,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-12-12",
         "id": "m-proj-imported-1793160472945-7"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "isBomLocked": true,
@@ -75675,7 +75704,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "category": "General Context",
         "timestamp": "Just now"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "customerIntake": {
@@ -76309,7 +76339,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "location": "Clubhouse Rooftop & Central Buildings",
         "postItLogs": []
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "installLogs": [],
@@ -76943,7 +76974,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "email": "bethany.condon@onequext.com",
       "role": "Project Manager",
       "name": "Bethany Condon"
-    }
+    },
+    "needsVerifiedByPm": true
   },
   {
     "assignedPM": {
@@ -77577,7 +77609,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "sowForecastCadenceEnabled": true,
-    "useNfcWallet": true
+    "useNfcWallet": true,
+    "needsVerifiedByPm": true
   },
   {
     "useNfcWallet": true,
@@ -78211,7 +78244,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "projectId": "proj-imported-1793160472966",
         "timestamp": "Just now"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "platform": "Quext",
@@ -78845,7 +78879,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "assignedInstaller": "SKBM Field Crew",
         "workDescription": "Install and signal-verify Quext LoRaWAN Outdoor Gateway Base Station (8-Channel) at Clubhouse Rooftop & Central Buildings"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "customerIntake": {
@@ -79479,7 +79514,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "isManuallyCreated": true,
     "propertyName": "Riverview Heights at Austin",
-    "useQrIntercom": false
+    "useQrIntercom": false,
+    "needsVerifiedByPm": true
   },
   {
     "quoteId": "import-quote-1793159067123",
@@ -80113,7 +80149,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "sowForecastCadenceEnabled": true,
     "clientName": "Quext Client Portfolio",
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
-    "city": "Denver"
+    "city": "Denver",
+    "needsVerifiedByPm": true
   },
   {
     "address": "120 Prairie Ave",
@@ -80747,7 +80784,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "workDescription": "Install and signal-verify Quext LoRaWAN Outdoor Gateway Base Station (8-Channel) at Clubhouse Rooftop & Central Buildings",
         "id": "sow-proj-imported-1793159067124-3"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "sowForecastCadenceEnabled": true,
@@ -81555,7 +81593,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "statusReason": "Project newly converted from Deal Won quote. Initial staging initiated.",
     "quoteNumber": "QXT-2026-1110",
-    "city": "Holmen"
+    "city": "Holmen",
+    "needsVerifiedByPm": true
   },
   {
     "sowForecastItems": [
@@ -82285,7 +82324,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "name": "Raul Recalde"
     },
     "statusReason": "Project newly converted from Deal Won quote. Initial staging initiated.",
-    "targetCompletionDate": "2026-12-11"
+    "targetCompletionDate": "2026-12-11",
+    "needsVerifiedByPm": true
   },
   {
     "useQrIntercom": false,
@@ -82810,7 +82850,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "quoteNumber": "QXT-2026-1062",
     "targetCompletionDate": "2026-12-11",
-    "quoteId": "sf_imp_1789999426784_27c28008"
+    "quoteId": "sf_imp_1789999426784_27c28008",
+    "needsVerifiedByPm": true
   },
   {
     "installLogs": [],
@@ -82995,7 +83036,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "name": "Project Management Fee"
       }
     ],
-    "kickoffCompleted": false
+    "kickoffCompleted": false,
+    "needsVerifiedByPm": true
   },
   {
     "unitsCount": 132,
@@ -83204,7 +83246,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "statusReason": "Active deployment converted from Deal Won.",
-    "targetCompletionDate": "2026-11-13"
+    "targetCompletionDate": "2026-11-13",
+    "needsVerifiedByPm": true
   },
   {
     "kickoffCompleted": true,
@@ -83878,7 +83921,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "model": "QXT-IC-20",
         "installedCount": 0
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "city": "Wake Forest",
@@ -84027,7 +84071,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "address": "3133 Burlington Mills Road",
     "clientName": "Cortland Management",
     "targetCompletionDate": "2026-11-11",
-    "state": "NC"
+    "state": "NC",
+    "needsVerifiedByPm": true
   },
   {
     "propertyName": "Mission Lanes",
@@ -84224,7 +84269,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "assignedFieldTech": "Hector Lopez",
     "quoteId": "niIRWifT4ZAENi7MIHcv",
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
-    "id": "niIRWifT4ZAENi7MIHcv"
+    "id": "niIRWifT4ZAENi7MIHcv",
+    "needsVerifiedByPm": true
   },
   {
     "clientName": "LV Collective",
@@ -84385,7 +84431,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "quoteId": "V8jLZAaCelxwRaUxmm1K",
     "statusTag": "On Track",
     "state": "TX",
-    "quoteNumber": "QXT-2026-1005"
+    "quoteNumber": "QXT-2026-1005",
+    "needsVerifiedByPm": true
   },
   {
     "installLogs": [],
@@ -84534,7 +84581,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "RMR"
     ],
-    "quoteId": "uOZllnZpCNzPoUFWjpUr"
+    "quoteId": "uOZllnZpCNzPoUFWjpUr",
+    "needsVerifiedByPm": true
   },
   {
     "quoteNumber": "QXT-2026-1026",
@@ -84659,7 +84707,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "quoteId": "0SD2YXBmJXWZa1qM7Rk4",
     "assignedFieldTech": "Hector Lopez",
     "state": "TX",
-    "assignedCSM": "Jasmine Hunt"
+    "assignedCSM": "Jasmine Hunt",
+    "needsVerifiedByPm": true
   },
   {
     "installLogs": [],
@@ -84784,7 +84833,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "clientName": "The Irvine Company",
     "quoteNumber": "QXT-2026-1004",
     "heroImage": "/src/assets/images/property_lumina_midtown_1792605892751.jpg",
-    "assignedFieldTech": "Hector Lopez"
+    "assignedFieldTech": "Hector Lopez",
+    "needsVerifiedByPm": true
   },
   {
     "clientName": "Related Companies",
@@ -84873,7 +84923,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "installLogs": [],
     "statusTag": "On Track",
     "assignedFieldTech": "Sean Gates",
-    "address": "151 South 1st Street"
+    "address": "151 South 1st Street",
+    "needsVerifiedByPm": true
   },
   {
     "bomItems": [
@@ -85058,7 +85109,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "name": "Megan Rossman",
       "email": "megan.rossman@onequext.com"
     },
-    "installLogs": []
+    "installLogs": [],
+    "needsVerifiedByPm": true
   },
   {
     "address": "INTERSECTION OF NW TULLISON RD. & NW 38th ST",
@@ -85219,7 +85271,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "location": "Software and Services"
       }
     ],
-    "kickoffCompleted": true
+    "kickoffCompleted": true,
+    "needsVerifiedByPm": true
   },
   {
     "assignedPM": {
@@ -85476,7 +85529,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-28",
         "title": "Project Closed"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "assignedCSM": "Jasmine Hunt",
@@ -85566,7 +85620,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "clientName": "The Dawson Company",
     "assignedFieldTech": "Hector Lopez",
     "city": "Huntsville",
-    "statusTag": "Behind Schedule"
+    "statusTag": "Behind Schedule",
+    "needsVerifiedByPm": true
   },
   {
     "unitsCount": 99,
@@ -85715,7 +85770,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "notes": [],
-    "quoteId": "snHjGzXuymQfGp4dqIuc"
+    "quoteId": "snHjGzXuymQfGp4dqIuc",
+    "needsVerifiedByPm": true
   },
   {
     "quoteId": "sf_imp_1785373518753_ac961e07",
@@ -85853,7 +85909,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "clientName": "Iris Innovations",
     "assignedCSM": "Jasmine Hunt",
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
-    "platform": "Homebase"
+    "platform": "Homebase",
+    "needsVerifiedByPm": true
   },
   {
     "statusReason": "Active deployment converted from Deal Won.",
@@ -86026,7 +86083,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project Closed",
         "id": "m-HXpmnL-7"
       }
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "quoteId": "sf_imp_1787679493344_91676b8e",
@@ -86199,7 +86257,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusReason": "Active deployment converted from Deal Won.",
     "lastUpdated": "2026-09-03T17:26:00.817Z",
     "heroImage": "/src/assets/images/property_lumina_midtown_1792605892751.jpg",
-    "assignedFieldTech": "Hector Lopez"
+    "assignedFieldTech": "Hector Lopez",
+    "needsVerifiedByPm": true
   },
   {
     "integratorPartners": [
@@ -86348,7 +86407,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "kickoffCompleted": false,
     "propertyName": "Richmond Heights",
     "id": "Svgce0Av4QZ2HVfY4byI",
-    "address": "1120 S Brentwood BLVD"
+    "address": "1120 S Brentwood BLVD",
+    "needsVerifiedByPm": true
   },
   {
     "lastUpdated": "2026-09-03T15:42:35.515Z",
@@ -86509,7 +86569,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "JTS"
     ],
     "notes": [],
-    "statusTag": "High Risk"
+    "statusTag": "High Risk",
+    "needsVerifiedByPm": true
   },
   {
     "heroImage": "/src/assets/images/property_kathryn_canals_1792605853194.jpg",
@@ -86658,7 +86719,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusTag": "On Track",
     "integratorPartners": [
       "RMR"
-    ]
+    ],
+    "needsVerifiedByPm": true
   },
   {
     "statusTag": "Behind Schedule",
@@ -86820,7 +86882,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "assignedCSM": "Tessa Peshke",
-    "city": "Roy"
+    "city": "Roy",
+    "needsVerifiedByPm": true
   },
   {
     "quoteId": "sf_imp_1788112391819_45655742",
@@ -87097,7 +87160,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "assignedPartners": [
         "SKBM"
       ]
-    }
+    },
+    "needsVerifiedByPm": true
   },
   {
     "kickoffCompleted": true,
@@ -87198,7 +87262,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "ATB"
     ],
-    "unitsCount": 70
+    "unitsCount": 70,
+    "needsVerifiedByPm": true
   },
   {
     "statusReason": "Active deployment converted from Deal Won.",
@@ -87395,7 +87460,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "All Media"
     ],
-    "city": "Nashville"
+    "city": "Nashville",
+    "needsVerifiedByPm": true
   },
   {
     "installLogs": [],
@@ -87568,7 +87634,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "quoteNumber": "QXT-2026-1009",
     "statusReason": "Active deployment converted from Deal Won.",
     "kickoffCompleted": true,
-    "clientName": "ipb Properties"
+    "clientName": "ipb Properties",
+    "needsVerifiedByPm": true
   },
   {
     "city": "Lenexa",
@@ -87729,7 +87796,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "address": "8601 Renner Blvd",
     "clientName": "Price Partners",
     "targetCompletionDate": "2026-12-01",
-    "state": "Kansas"
+    "state": "Kansas",
+    "needsVerifiedByPm": true
   },
   {
     "assignedFieldTech": "Sean Gates",
@@ -87950,7 +88018,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "statusReason": "Active deployment converted from Deal Won.",
     "startDate": "2026-09-24",
-    "clientName": "IQ Envelop"
+    "clientName": "IQ Envelop",
+    "needsVerifiedByPm": true
   },
   {
     "address": "20 W. Linwood Blvd.",
@@ -88099,7 +88168,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "assignedFieldTech": "Hector Lopez",
     "propertyName": "Linwood",
     "kickoffCompleted": true,
-    "startDate": "2026-10-04"
+    "startDate": "2026-10-04",
+    "needsVerifiedByPm": true
   },
   {
     "startDate": "2026-09-26",
@@ -88937,7 +89007,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "sitePlanConfirmedEdited": false,
       "pmsSoftware": "Yardi",
       "commonAreaDoors": []
-    }
+    },
+    "needsVerifiedByPm": true
   },
   {
     "lastUpdated": "2026-06-03T02:44:27.345Z",
@@ -89170,6 +89241,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "status": "Upcoming"
       }
     ],
-    "id": "vzP34ZLqePwXnEVBK2b0"
+    "id": "vzP34ZLqePwXnEVBK2b0",
+    "needsVerifiedByPm": true
   }
 ];

@@ -40,6 +40,7 @@ import {
   getPlatformBadgeStyle,
   getPropertyManagementCompany,
 } from '../types';
+import { markProjectAsPmVerified } from '../data/initialData';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
 import { BOMTable } from './BOMTable';
 import { ShippingDockSection, buildFullShippingUpdatePayload } from './ShippingDockSection';
@@ -86,6 +87,7 @@ import {
   Sparkles,
   Calendar,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   MessageSquare,
   Thermometer,
@@ -297,6 +299,15 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
       milestones: updatedMilestones,
       installationEndDate: newDate,
       statusTag: health.effectiveTag,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleClearNeedsVerifiedTag = () => {
+    markProjectAsPmVerified(project.id);
+    onUpdateProject({
+      ...project,
+      needsVerifiedByPm: false,
       lastUpdated: new Date().toISOString(),
     });
   };
@@ -2320,6 +2331,21 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 <span className="text-xs px-2.5 py-0.5 rounded font-bold bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1">
                   <Lock className="w-3 h-3 text-slate-500" />
                   Locked BOM Baseline
+                </span>
+              )}
+              {project.needsVerifiedByPm && (
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-2xs">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Needs Verified by PM</span>
+                  <button
+                    type="button"
+                    onClick={handleClearNeedsVerifiedTag}
+                    title="Permanently clear this tag (mark project as verified)"
+                    className="ml-1 px-1.5 py-0.2 text-[10px] bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 hover:border-amber-400 rounded font-bold cursor-pointer transition-colors shadow-2xs inline-flex items-center gap-0.5"
+                  >
+                    <Check className="w-2.5 h-2.5 text-emerald-600" />
+                    <span>Clear Tag</span>
+                  </button>
                 </span>
               )}
             </div>

@@ -24,6 +24,7 @@ import {
   saveStoredProjects,
   saveStoredQuotes,
   loadArchivedProjectIds,
+  loadClearedPmVerificationIds,
 } from '../data/initialData';
 
 // Active Google Cloud Firestore Database Config
@@ -161,6 +162,14 @@ export function subscribeToLiveProjects(
               );
               if (initHasActive && !enrichedHasActive) {
                 enriched.milestones = initProj.milestones;
+              }
+
+              // Preserve needsVerifiedByPm unless permanently cleared by PM
+              const clearedPmVerificationIds = loadClearedPmVerificationIds();
+              if (clearedPmVerificationIds.has(enriched.id)) {
+                enriched.needsVerifiedByPm = false;
+              } else if (initProj.needsVerifiedByPm && enriched.needsVerifiedByPm === undefined) {
+                enriched.needsVerifiedByPm = true;
               }
             }
             if (hasInvalidLockTag) {

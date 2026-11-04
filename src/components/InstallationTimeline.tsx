@@ -94,9 +94,15 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
   const [selectedCalendarDayDate, setSelectedCalendarDayDate] = useState<string | null>('2026-10-22');
   const [showOnlyActiveMonths, setShowOnlyActiveMonths] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'needs_verification' | 'verified'>('all');
   const [pmFilter, setPmFilter] = useState<string>('all');
   const [integratorFilter, setIntegratorFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const needsVerificationCount = useMemo(
+    () => projects.filter((p) => !!p.needsVerifiedByPm).length,
+    [projects]
+  );
 
   const allAvailableIntegrators = useMemo(() => getAllIntegratorPartners(projects), [projects]);
 
@@ -272,9 +278,13 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
         p.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
         partners.some((partner) => partner.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchesStatus && matchesPM && matchesIntegrator && matchesSearch;
+      const matchesVerification =
+        verificationFilter === 'all' ||
+        (verificationFilter === 'needs_verification' && !!p.needsVerifiedByPm) ||
+        (verificationFilter === 'verified' && !p.needsVerifiedByPm);
+      return matchesStatus && matchesPM && matchesIntegrator && matchesSearch && matchesVerification;
     });
-  }, [projects, statusFilter, pmFilter, integratorFilter, searchQuery]);
+  }, [projects, statusFilter, verificationFilter, pmFilter, integratorFilter, searchQuery]);
 
   // Aggregate all daily installation logs across active projects
   const allDailyLogs = useMemo(() => {
@@ -1306,6 +1316,23 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                 <option value="On Track">✓ On Track</option>
                 <option value="Behind Schedule">⏳ Behind Schedule</option>
                 <option value="High Risk">⚠ High Risk</option>
+              </select>
+            </div>
+
+            {/* PM Verification Review Filter */}
+            <div className="flex items-center gap-1 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-300 shadow-2xs">
+              <span className="text-amber-900 font-bold text-xs flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                <span>Review:</span>
+              </span>
+              <select
+                value={verificationFilter}
+                onChange={(e) => setVerificationFilter(e.target.value as any)}
+                className="bg-transparent font-bold text-amber-950 focus:outline-none cursor-pointer text-xs"
+              >
+                <option value="all">All Projects</option>
+                <option value="needs_verification">Needs Verified ({needsVerificationCount})</option>
+                <option value="verified">Verified Projects</option>
               </select>
             </div>
           </div>
@@ -2593,6 +2620,12 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                         <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
                           {health.weeksBehindLabel}
                         </span>
+                        {project.needsVerifiedByPm && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 border border-amber-300 flex items-center gap-1 shadow-2xs">
+                            <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span>Needs Verified by PM</span>
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-1">
                         <span className="flex items-center gap-1 font-semibold text-slate-800">

@@ -551,6 +551,7 @@ export default function App() {
         setMainTab('operations');
         if (sub) {
           setOperationsSubTab(sub);
+          setFocusedProjectId(sub);
         }
         setMyQuextTopTab('operations');
       } else if (hash.includes('#/catalog') || hash.includes('#catalog')) {

@@ -1228,6 +1228,11 @@ export const OverallDashboard: React.FC<OverallDashboardProps> = ({
                         >
                           {project.propertyName}
                         </button>
+                        {project.needsVerifiedByPm && (
+                          <span className="ml-1.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-0.5 align-middle">
+                            Needs Verified
+                          </span>
+                        )}
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
                           <MapPin className="w-3 h-3 text-slate-400" />
                           <span>{project.city}, {project.state}</span>

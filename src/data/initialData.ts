@@ -1978,6 +1978,35 @@ export function addArchivedProjectId(id: string) {
 export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v2';
 export const MASTER_NOTES_IMPORTED_VERSION_KEY = 'quext_master_notes_imported_v3';
 export const MASTER_MILESTONES_SYNC_VERSION_KEY = 'quext_master_milestones_sync_v2';
+export const STORAGE_CLEARED_PM_VERIFICATION_KEY = 'quext_cleared_pm_verification_ids_v1';
+
+export function loadClearedPmVerificationIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_CLEARED_PM_VERIFICATION_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch (e) {
+    console.warn('Failed to load cleared PM verification IDs', e);
+  }
+  return new Set();
+}
+
+export function saveClearedPmVerificationIds(ids: Set<string> | string[]) {
+  try {
+    localStorage.setItem(STORAGE_CLEARED_PM_VERIFICATION_KEY, JSON.stringify(Array.from(ids)));
+  } catch (e) {
+    console.warn('Failed to save cleared PM verification IDs', e);
+  }
+}
+
+export function markProjectAsPmVerified(projectId: string) {
+  if (!projectId) return;
+  const set = loadClearedPmVerificationIds();
+  set.add(projectId);
+  saveClearedPmVerificationIds(set);
+}
 
 export function isFakeNote(note: { id?: string; author?: string; text?: string }): boolean {
   if (!note) return true;
@@ -2221,7 +2250,25 @@ export function loadStoredProjects(): OperationProject[] {
         localStorage.setItem(MASTER_MILESTONES_SYNC_VERSION_KEY, 'true');
       }
 
-      if (hasNotesChanges || hasMilestoneChanges || !isAlreadyPurged) {
+      // Synchronize needsVerifiedByPm tag from canonical INITIAL_PROJECTS unless permanently cleared by PM
+      const clearedPmVerificationIds = loadClearedPmVerificationIds();
+      let hasVerificationTagChanges = false;
+      INITIAL_PROJECTS.forEach((initProj) => {
+        const target = sanitizedList.find((p) => p.id === initProj.id);
+        if (target) {
+          if (clearedPmVerificationIds.has(target.id)) {
+            if (target.needsVerifiedByPm) {
+              target.needsVerifiedByPm = false;
+              hasVerificationTagChanges = true;
+            }
+          } else if (initProj.needsVerifiedByPm && target.needsVerifiedByPm === undefined) {
+            target.needsVerifiedByPm = true;
+            hasVerificationTagChanges = true;
+          }
+        }
+      });
+
+      if (hasNotesChanges || hasMilestoneChanges || hasVerificationTagChanges || !isAlreadyPurged) {
         localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitizedList));
         localStorage.setItem(REAL_TEAM_PURGE_VERSION_KEY, 'true');
       }

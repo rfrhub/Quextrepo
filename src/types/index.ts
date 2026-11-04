@@ -1332,6 +1332,7 @@ export interface OperationProject {
   installLogs: InstallLogEntry[];
   notes: ProjectNote[];
   milestones: ProjectMilestone[];
+  needsVerifiedByPm?: boolean; // Tag for projects not included on spreadsheet update needing PM review (can be permanently cleared)
   communityDetails?: CommunityKickoffDetails;
   customerIntake?: KickoffCustomerIntake;
   customerCommsLogs?: CustomerCommsLog[];

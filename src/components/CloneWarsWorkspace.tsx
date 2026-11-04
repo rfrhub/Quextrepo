@@ -49,6 +49,7 @@ import {
   DollarSign,
   CheckSquare,
   Info,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 const COMMON_STOPWORDS = new Set([
@@ -64,6 +65,7 @@ export interface CloneCluster {
   sharedWords: string[];
   confidence: 'Confirmed' | 'High' | 'Medium' | 'Low';
   isConfirmedClone?: boolean;
+  isReviewCandidate?: boolean; // Cross-pair: 1 unverified candidate vs 1 spreadsheet-verified project
 }
 
 export interface ConfirmedClonePair {
@@ -228,7 +230,17 @@ export function detectCloneClusters(
         (w) => isExplicitConfirmed || !learnedFalsePositiveWords.has(w.toLowerCase())
       );
 
-      if (isExplicitConfirmed || shared.length > 0) {
+      // Check cross-pair: 1 unverified candidate vs 1 spreadsheet-verified project
+      const isCrossReview =
+        (p1.needsVerifiedByPm && !p2.needsVerifiedByPm) ||
+        (p2.needsVerifiedByPm && !p1.needsVerifiedByPm);
+
+      // Check client / owner word overlap
+      const clientWords1 = extractSignificantWords(p1.clientName || '');
+      const clientWords2 = extractSignificantWords(p2.clientName || '');
+      const sharedClient = clientWords1.filter((w) => clientWords2.includes(w));
+
+      if (isExplicitConfirmed || shared.length > 0 || (isCrossReview && sharedClient.length > 0)) {
         // Calculate similarity
         const union = new Set([...words1, ...words2]);
         const ratio = shared.length / (union.size || 1);
@@ -243,29 +255,37 @@ export function detectCloneClusters(
           confidence = 'Confirmed';
         } else if (ratio >= 0.5 || shared.length >= 2 || sharesPositiveIndicator) {
           confidence = 'High';
-        } else if (ratio >= 0.25 || shared.length === 1) {
+        } else if (ratio >= 0.25 || shared.length === 1 || (isCrossReview && sharedClient.length >= 2)) {
           confidence = 'Medium';
+        } else if (isCrossReview && sharedClient.length > 0) {
+          confidence = 'Low';
         }
 
-        if (strictMode && confidence === 'Low') {
+        if (strictMode && confidence === 'Low' && !isCrossReview) {
           continue;
         }
+
+        const combinedShared = Array.from(new Set([...shared, ...sharedClient.map((w) => `portfolio:${w}`)]));
 
         clusters.push({
           id: key1,
           projectA: p1,
           projectB: p2,
-          sharedWords: shared.length > 0 ? shared : ['confirmed_clone'],
+          sharedWords: combinedShared.length > 0 ? combinedShared : ['confirmed_clone'],
           confidence,
           isConfirmedClone: isExplicitConfirmed,
+          isReviewCandidate: isCrossReview,
         });
       }
     }
   }
 
-  // Sort: Confirmed first, then High, Medium, Low
+  // Sort: Confirmed first, then Unverified-vs-Spreadsheet review candidates, then High, Medium, Low
   const score = (c: CloneCluster) => {
-    if (c.isConfirmedClone) return 1000;
+    if (c.isConfirmedClone) return 2000;
+    if (c.isReviewCandidate && c.confidence === 'High') return 1500 + c.sharedWords.length;
+    if (c.isReviewCandidate && c.confidence === 'Medium') return 800 + c.sharedWords.length;
+    if (c.isReviewCandidate) return 300 + c.sharedWords.length;
     if (c.confidence === 'High') return 100 + c.sharedWords.length;
     if (c.confidence === 'Medium') return 20 + c.sharedWords.length;
     return c.sharedWords.length;
@@ -331,6 +351,208 @@ export function getProjectMilestoneStage(project?: OperationProject | null): {
     allMilestones: milestones,
     isAllCompleted: false,
   };
+}
+
+function CloneProjectSearchSelector({
+  label,
+  badgeLetter,
+  selectedId,
+  onSelectId,
+  projects,
+  excludeId,
+  defaultTab = 'all',
+}: {
+  label: string;
+  badgeLetter: string;
+  selectedId: string;
+  onSelectId: (id: string) => void;
+  projects: OperationProject[];
+  excludeId?: string;
+  defaultTab?: 'all' | 'unverified' | 'spreadsheet';
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [tab, setTab] = useState<'all' | 'unverified' | 'spreadsheet'>(defaultTab);
+
+  const selectedProj = useMemo(() => {
+    return projects.find((p) => p.id === selectedId);
+  }, [projects, selectedId]);
+
+  const available = useMemo(() => {
+    return projects.filter((p) => p.id !== excludeId);
+  }, [projects, excludeId]);
+
+  const filtered = useMemo(() => {
+    return available.filter((p) => {
+      if (tab === 'unverified' && !p.needsVerifiedByPm) return false;
+      if (tab === 'spreadsheet' && p.needsVerifiedByPm) return false;
+      if (!query.trim()) return true;
+      const q = query.toLowerCase();
+      return (
+        p.propertyName.toLowerCase().includes(q) ||
+        (p.clientName || '').toLowerCase().includes(q) ||
+        (p.quoteNumber || '').toLowerCase().includes(q) ||
+        (p.city || '').toLowerCase().includes(q)
+      );
+    });
+  }, [available, tab, query]);
+
+  return (
+    <div className="space-y-1.5 relative">
+      <div className="flex items-center justify-between text-[10px]">
+        <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono font-bold text-[9px]">
+            {badgeLetter}
+          </span>
+          <span>{label}</span>
+        </span>
+        {selectedProj && (
+          <button
+            type="button"
+            onClick={() => onSelectId('')}
+            className="text-slate-400 hover:text-rose-400 font-semibold cursor-pointer transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {selectedProj ? (
+        <div className="p-2.5 rounded-xl bg-slate-900 border border-cyan-500/50 flex items-center justify-between text-xs shadow-md">
+          <div className="min-w-0 pr-2 space-y-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-bold text-white truncate block">
+                {selectedProj.propertyName}
+              </span>
+              {selectedProj.needsVerifiedByPm ? (
+                <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                  Needs Verified
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                  Spreadsheet (95)
+                </span>
+              )}
+            </div>
+            <div className="text-[10px] text-slate-400 truncate">
+              {selectedProj.clientName || 'N/A'} · {selectedProj.unitsCount}u · {selectedProj.assignedPM?.name || 'Quext PM'}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSelectId('')}
+            className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Change selection"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder={`Search by name, client, or quote...`}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setIsOpen(true);
+              }}
+              onFocus={() => setIsOpen(true)}
+              className="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div className="flex items-center gap-1 text-[10px]">
+            <button
+              type="button"
+              onClick={() => {
+                setTab('all');
+                setIsOpen(true);
+              }}
+              className={`px-2 py-0.5 rounded font-semibold cursor-pointer transition-colors ${
+                tab === 'all'
+                  ? 'bg-cyan-600 text-white font-bold'
+                  : 'bg-slate-800/80 text-slate-400 hover:text-white'
+              }`}
+            >
+              All ({available.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab('unverified');
+                setIsOpen(true);
+              }}
+              className={`px-2 py-0.5 rounded font-semibold cursor-pointer transition-colors ${
+                tab === 'unverified'
+                  ? 'bg-amber-600 text-white font-bold'
+                  : 'bg-slate-800/80 text-amber-400 hover:text-amber-300'
+              }`}
+            >
+              Needs Verified
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab('spreadsheet');
+                setIsOpen(true);
+              }}
+              className={`px-2 py-0.5 rounded font-semibold cursor-pointer transition-colors ${
+                tab === 'spreadsheet'
+                  ? 'bg-emerald-600 text-white font-bold'
+                  : 'bg-slate-800/80 text-emerald-400 hover:text-emerald-300'
+              }`}
+            >
+              Spreadsheet (95)
+            </button>
+          </div>
+
+          {isOpen && (
+            <div className="p-1 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl max-h-52 overflow-y-auto divide-y divide-slate-800/60 z-30 relative">
+              {filtered.length === 0 ? (
+                <div className="p-3 text-center text-[11px] text-slate-400">
+                  No matching projects found
+                </div>
+              ) : (
+                filtered.slice(0, 40).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectId(p.id);
+                      setIsOpen(false);
+                      setQuery('');
+                    }}
+                    className="w-full text-left p-2 hover:bg-slate-800/80 rounded-lg transition-colors flex items-center justify-between text-xs cursor-pointer group"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <div className="font-bold text-slate-200 group-hover:text-cyan-300 truncate">
+                        {p.propertyName}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        {p.clientName || 'N/A'} · {p.unitsCount}u · {p.assignedPM?.name || 'Quext PM'}
+                      </div>
+                    </div>
+                    {p.needsVerifiedByPm ? (
+                      <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                        Needs Verified
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                        Spreadsheet (95)
+                      </span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface CloneWarsWorkspaceProps {
@@ -443,6 +665,8 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
   }, [learnedWords]);
 
   // Scan clusters based on current projects list, factoring in confirmed clones & learned noise words
+  const [clusterCategoryTab, setClusterCategoryTab] = useState<'all' | 'unverified_vs_spreadsheet' | 'confirmed'>('all');
+
   const detectedClusters = useMemo(() => {
     const archivedIds = loadArchivedProjectIds();
     const activeProjects = projects.filter((p) => !archivedIds.has(p.id));
@@ -456,16 +680,28 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
     );
   }, [projects, strictScan, dismissedSet, learnedWordsSet, confirmedSet, confirmedWordsSet]);
 
+  const reviewCandidateCount = useMemo(() => {
+    return detectedClusters.filter((c) => c.isReviewCandidate).length;
+  }, [detectedClusters]);
+
   const filteredClusters = useMemo(() => {
-    if (!searchTerm.trim()) return detectedClusters;
+    let list = detectedClusters;
+    if (clusterCategoryTab === 'unverified_vs_spreadsheet') {
+      list = list.filter((c) => c.isReviewCandidate);
+    } else if (clusterCategoryTab === 'confirmed') {
+      list = list.filter((c) => c.isConfirmedClone);
+    }
+    if (!searchTerm.trim()) return list;
     const q = searchTerm.toLowerCase();
-    return detectedClusters.filter(
+    return list.filter(
       (c) =>
         c.projectA.propertyName.toLowerCase().includes(q) ||
         c.projectB.propertyName.toLowerCase().includes(q) ||
+        (c.projectA.clientName || '').toLowerCase().includes(q) ||
+        (c.projectB.clientName || '').toLowerCase().includes(q) ||
         c.sharedWords.some((w) => w.toLowerCase().includes(q))
     );
-  }, [detectedClusters, searchTerm]);
+  }, [detectedClusters, clusterCategoryTab, searchTerm]);
 
   // Mark identified match as a VERIFIED CLONE to train the duplicate scanner
   const handleMarkAsClone = (pA: OperationProject, pB: OperationProject, words: string[]) => {
@@ -1412,6 +1648,45 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                 />
               </div>
 
+              {/* Review Filter Tabs */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-[10.5px]">
+                <button
+                  type="button"
+                  onClick={() => setClusterCategoryTab('all')}
+                  className={`py-1 px-1 rounded-lg font-bold text-center transition-colors cursor-pointer ${
+                    clusterCategoryTab === 'all'
+                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All ({detectedClusters.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClusterCategoryTab('unverified_vs_spreadsheet')}
+                  className={`py-1 px-1 rounded-lg font-bold text-center transition-colors cursor-pointer flex items-center justify-center gap-1 ${
+                    clusterCategoryTab === 'unverified_vs_spreadsheet'
+                      ? 'bg-amber-400 text-amber-950 shadow-xs ring-1 ring-amber-300'
+                      : 'text-amber-400 hover:text-amber-300 bg-amber-500/10'
+                  }`}
+                  title="Candidate duplicate pairs: 1 Unverified Project vs 1 Spreadsheet-Verified Project"
+                >
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  <span>Review ({reviewCandidateCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClusterCategoryTab('confirmed')}
+                  className={`py-1 px-1 rounded-lg font-bold text-center transition-colors cursor-pointer ${
+                    clusterCategoryTab === 'confirmed'
+                      ? 'bg-emerald-500 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Confirmed ({confirmedPairs.length})
+                </button>
+              </div>
+
               <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
                 <span>Scan Mode:</span>
                 <button
@@ -1573,12 +1848,23 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                       {/* Project A vs Project B Comparison Card */}
                       <div className="space-y-2">
                         <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
-                          <div className="min-w-0 pr-2">
-                            <span className="font-bold text-slate-100 truncate block">
-                              {cluster.projectA.propertyName}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              {cluster.projectA.unitsCount} units · {cluster.projectA.assignedPM?.name || 'Quext PM'}
+                          <div className="min-w-0 pr-2 space-y-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-slate-100 truncate block">
+                                {cluster.projectA.propertyName}
+                              </span>
+                              {cluster.projectA.needsVerifiedByPm ? (
+                                <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                                  Needs Verified
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                                  Spreadsheet (95)
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 block truncate">
+                              {cluster.projectA.clientName || 'N/A'} · {cluster.projectA.unitsCount} units · {cluster.projectA.assignedPM?.name || 'Quext PM'}
                             </span>
                           </div>
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 shrink-0">
@@ -1587,12 +1873,23 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                         </div>
 
                         <div className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
-                          <div className="min-w-0 pr-2">
-                            <span className="font-bold text-slate-100 truncate block">
-                              {cluster.projectB.propertyName}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              {cluster.projectB.unitsCount} units · {cluster.projectB.assignedPM?.name || 'Quext PM'}
+                          <div className="min-w-0 pr-2 space-y-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-slate-100 truncate block">
+                                {cluster.projectB.propertyName}
+                              </span>
+                              {cluster.projectB.needsVerifiedByPm ? (
+                                <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                                  Needs Verified
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                                  Spreadsheet (95)
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 block truncate">
+                              {cluster.projectB.clientName || 'N/A'} · {cluster.projectB.unitsCount} units · {cluster.projectB.assignedPM?.name || 'Quext PM'}
                             </span>
                           </div>
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 shrink-0">
@@ -1669,52 +1966,51 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
 
             {/* Manual Pair Selection Accordion */}
             <div className="p-4 rounded-2xl bg-[#0F172A] border border-slate-800 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Manual Pair Comparison</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Manual Pair Comparison</span>
+                </div>
+                {manualProjAId && manualProjBId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const temp = manualProjAId;
+                      setManualProjAId(manualProjBId);
+                      setManualProjBId(temp);
+                    }}
+                    className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 cursor-pointer"
+                    title="Swap Project Alpha and Project Beta"
+                  >
+                    <ArrowRightLeft className="w-3 h-3" />
+                    <span>Swap A / B</span>
+                  </button>
+                )}
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Want to merge two projects whose titles do not share exact words? Select any two projects below:
+                Search and select any two projects to manually review and consolidate in the Merge Arena:
               </p>
 
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                    PROJECT ALPHA (1):
-                  </label>
-                  <select
-                    value={manualProjAId}
-                    onChange={(e) => setManualProjAId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-xs text-white"
-                  >
-                    <option value="">Select Project A...</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.propertyName} ({p.unitsCount}u)
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="space-y-3">
+                <CloneProjectSearchSelector
+                  label="Project Alpha (1)"
+                  badgeLetter="A"
+                  selectedId={manualProjAId}
+                  onSelectId={setManualProjAId}
+                  projects={projects}
+                  excludeId={manualProjBId}
+                  defaultTab="unverified"
+                />
 
-                <div>
-                  <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                    PROJECT BETA (2):
-                  </label>
-                  <select
-                    value={manualProjBId}
-                    onChange={(e) => setManualProjBId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-xs text-white"
-                  >
-                    <option value="">Select Project B...</option>
-                    {projects
-                      .filter((p) => p.id !== manualProjAId)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.propertyName} ({p.unitsCount}u)
-                        </option>
-                      ))}
-                  </select>
-                </div>
+                <CloneProjectSearchSelector
+                  label="Project Beta (2)"
+                  badgeLetter="B"
+                  selectedId={manualProjBId}
+                  onSelectId={setManualProjBId}
+                  projects={projects}
+                  excludeId={manualProjAId}
+                  defaultTab="spreadsheet"
+                />
 
                 <button
                   type="button"
@@ -1726,9 +2022,10 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                       handleLoadPair(pA, pB, ['manual']);
                     }
                   }}
-                  className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow transition-all cursor-pointer mt-1"
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow transition-all cursor-pointer mt-1 flex items-center justify-center gap-1.5"
                 >
-                  Load Custom Pair into Arena
+                  <GitMerge className="w-3.5 h-3.5" />
+                  <span>Load Custom Pair into Arena</span>
                 </button>
               </div>
             </div>
