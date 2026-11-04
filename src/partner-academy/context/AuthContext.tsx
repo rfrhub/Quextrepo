@@ -267,6 +267,23 @@ export const AuthProvider: React.FC<{
           [moduleId]: passed ? 100 : Math.max(user.progress[moduleId] || 0, 75),
         };
 
+        const currentYear = new Date().getFullYear();
+        const todayStr = new Date().toISOString().split('T')[0];
+        const newCompletions = {
+          ...user.courseCompletions,
+        };
+
+        if (passed) {
+          newCompletions[moduleId] = {
+            moduleId,
+            completedAt: todayStr,
+            year: currentYear,
+            score,
+            passed: true,
+            notes: `Completed for calendar year ${currentYear} - valid across all assigned partner projects`,
+          };
+        }
+
         // Check if all 5 modules are passed >= 80
         const allModulesPassed = COURSE_MODULES.every(mod => {
           const modScore = newScores[mod.id];
@@ -277,9 +294,9 @@ export const AuthProvider: React.FC<{
         let certDate = user.certificationDate;
 
         if (allModulesPassed && updatedCerts.length === 0) {
-          const newCertId = `QCIP-2026-${currentCompany.code.replace('-', '')}-${user.fieldIdNumber.replace('TECH-', '')}`;
+          const newCertId = `QCIP-${currentYear}-${currentCompany.code.replace('-', '')}-${user.fieldIdNumber.replace('TECH-', '')}`;
           updatedCerts.push(newCertId);
-          certDate = new Date().toISOString().split('T')[0];
+          certDate = todayStr;
           certEarned = true;
         }
 
@@ -287,6 +304,7 @@ export const AuthProvider: React.FC<{
           ...user,
           quizScores: newScores,
           progress: newProgress,
+          courseCompletions: newCompletions,
           certifications: updatedCerts,
           certificationDate: certDate,
         };

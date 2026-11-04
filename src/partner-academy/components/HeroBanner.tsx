@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_MODULES } from '../data/mockData';
 import { Award, CheckCircle2, Shield, ArrowRight, Sparkles, Cpu, BookOpen, Scan, Droplets } from 'lucide-react';
+import { CURRENT_CALENDAR_YEAR, isCourseCompletedForCurrentYear } from '../utils/annualCourseTracker';
 
 interface HeroBannerProps {
   onStartCourse: (moduleId: string) => void;
@@ -28,8 +29,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   const totalCourses = COURSE_MODULES.length;
   const passedCourses = COURSE_MODULES.filter((m) => {
-    const score = currentUser.quizScores[m.id];
-    return score !== undefined && score >= m.quiz.passingScore;
+    return isCourseCompletedForCurrentYear(currentUser, m.id);
   }).length;
 
   const totalCompletedLessons = currentUser.completedLessons.length;

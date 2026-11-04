@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { CourseModule } from '../types';
 import { COURSE_MODULES } from '../data/mockData';
-import { Clock, CheckCircle2, BookOpen, HelpCircle, Layers, ArrowRight } from 'lucide-react';
+import { Clock, CheckCircle2, BookOpen, HelpCircle, Layers, ArrowRight, ShieldCheck } from 'lucide-react';
+import { CURRENT_CALENDAR_YEAR, isCourseCompletedForCurrentYear } from '../utils/annualCourseTracker';
 
 interface CourseCurriculumProps {
   onSelectModule: (module: CourseModule) => void;
@@ -78,8 +79,10 @@ export const CourseCurriculum: React.FC<CourseCurriculumProps> = ({
             (completedLessonsCount / (module.lessons.length || 1)) * 100
           );
 
+          const annualSat = isCourseCompletedForCurrentYear(currentUser, module.id);
           const quizScore = currentUser.quizScores[module.id];
-          const isPassed = quizScore !== undefined && quizScore >= module.quiz.passingScore;
+          const isPassed =
+            annualSat || (quizScore !== undefined && quizScore >= module.quiz.passingScore);
 
           return (
             <div
@@ -110,7 +113,7 @@ export const CourseCurriculum: React.FC<CourseCurriculumProps> = ({
                 {isPassed ? (
                   <span className="absolute top-3 right-3 text-xs font-semibold px-2.5 py-0.5 rounded bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 backdrop-blur-sm flex items-center gap-1 shadow-md">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    Passed ({quizScore}%)
+                    Passed for {CURRENT_CALENDAR_YEAR} {quizScore ? `(${quizScore}%)` : ''}
                   </span>
                 ) : (
                   <span className="absolute top-3 right-3 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-black/80 text-cyan-300 border border-cyan-500/40 backdrop-blur-sm flex items-center gap-1 shadow-sm">
@@ -157,6 +160,13 @@ export const CourseCurriculum: React.FC<CourseCurriculumProps> = ({
                   <p className="text-xs text-zinc-400 mt-2 line-clamp-2 leading-relaxed">
                     {module.shortDescription}
                   </p>
+
+                  {isPassed && (
+                    <div className="mt-2.5 p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-[10px] text-emerald-300 font-mono flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{CURRENT_CALENDAR_YEAR} Annual Certification Active · Valid across all assigned projects</span>
+                    </div>
+                  )}
 
                   {/* Chapters breakdown */}
                   <div className="mt-4 pt-3 border-t border-zinc-900 space-y-1.5">

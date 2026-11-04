@@ -2,6 +2,11 @@ import { OperationProject, BOMItem, getProjectIntegratorPartners } from '../../t
 import { COURSE_MODULES, INITIAL_USERS } from '../data/mockData';
 import { DOOR_PREP_CUT_SHEETS, HARDWARE_DATA_SHEETS } from '../data/quextLockGuidesData';
 import { User } from '../types';
+import {
+  isProjectCourseSatisfiedForPartner,
+  createAnnualCourseCompletionRecord,
+  CURRENT_CALENDAR_YEAR,
+} from './annualCourseTracker';
 
 export interface PackagedCourseItem {
   moduleId: string;
@@ -813,11 +818,15 @@ export function resolveMyQuextEmailIdentity(
   };
 }
 
-const STORAGE_KEY_USERS = 'quext_academy_users_v3';
+const STORAGE_KEY_USERS = 'quext_academy_users_v5';
+const STORAGE_KEY_USERS_FALLBACK = 'quext_academy_users_v3';
 
 export function loadPartnerAcademyUsers(): User[] {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_USERS);
+    let saved = localStorage.getItem(STORAGE_KEY_USERS);
+    if (!saved) {
+      saved = localStorage.getItem(STORAGE_KEY_USERS_FALLBACK);
+    }
     if (saved) {
       const parsed: User[] = JSON.parse(saved);
       const existingIds = new Set(parsed.map((u) => u.id));
@@ -1017,10 +1026,21 @@ export function getProjectPartnerCourseCompletion(
     const overallSummary = getPartnerOverallProgress(partnerName, users);
 
     const courseStatuses: ProjectPartnerCourseItemStatus[] = requiredCourses.map((c) => {
+      // Annual Single Completion Check:
+      // If the partner firm or technician has already completed this course for the current calendar year,
+      // it is credited across all their assigned projects (no retake needed).
+      const annualSat = isProjectCourseSatisfiedForPartner(
+        project,
+        c.moduleId,
+        user,
+        users,
+        dirEntry.companyId
+      );
+
       const rawPct = user?.progress?.[c.moduleId] || 0;
       const quizScore = user?.quizScores?.[c.moduleId];
       const passedQuiz = quizScore !== undefined && quizScore >= 80;
-      const isCompleted = rawPct >= 100 || passedQuiz;
+      const isCompleted = annualSat.isSatisfied || rawPct >= 100 || passedQuiz;
       const progressPct = isCompleted ? 100 : rawPct;
 
       return {
@@ -1029,10 +1049,12 @@ export function getProjectPartnerCourseCompletion(
         title: c.title,
         category: c.category,
         isMandatory: c.isMandatory,
-        matchReason: c.matchReason,
+        matchReason: annualSat.isSatisfied
+          ? `${c.matchReason} · [${CURRENT_CALENDAR_YEAR} Annual Requirement Met]`
+          : c.matchReason,
         matchedBomQuantity: c.matchedBomQuantity,
         progressPct,
-        quizScore,
+        quizScore: annualSat.score ?? quizScore,
         isCompleted,
       };
     });
@@ -1120,15 +1142,25 @@ export function togglePartnerSingleCourseCompletion(
     if (u.id !== user.id) return u;
     const nextProgress = { ...u.progress, [moduleId]: isCurrentlyCompleted ? 50 : 100 };
     const nextScores = { ...u.quizScores };
+    const nextCompletions = { ...u.courseCompletions };
+
     if (isCurrentlyCompleted) {
       delete nextScores[moduleId];
+      delete nextCompletions[moduleId];
     } else {
       nextScores[moduleId] = 94;
+      nextCompletions[moduleId] = createAnnualCourseCompletionRecord(
+        moduleId,
+        94,
+        true,
+        CURRENT_CALENDAR_YEAR
+      );
     }
     return {
       ...u,
       progress: nextProgress,
       quizScores: nextScores,
+      courseCompletions: nextCompletions,
     };
   });
 
@@ -1158,6 +1190,7 @@ export function setPartnerCourseCompletionForProject(
     if (u.id !== user.id) return u;
     const nextProgress = { ...u.progress };
     const nextScores = { ...u.quizScores };
+    const nextCompletions = { ...u.courseCompletions };
 
     requiredCourses.forEach((c, idx) => {
       if (markComplete) {
@@ -1165,11 +1198,18 @@ export function setPartnerCourseCompletionForProject(
         if (!nextScores[c.moduleId] || nextScores[c.moduleId] < 80) {
           nextScores[c.moduleId] = 92;
         }
+        nextCompletions[c.moduleId] = createAnnualCourseCompletionRecord(
+          c.moduleId,
+          nextScores[c.moduleId] || 92,
+          true,
+          CURRENT_CALENDAR_YEAR
+        );
       } else {
         // Leave first courses complete and last one in progress (60%)
         if (idx === requiredCourses.length - 1) {
           nextProgress[c.moduleId] = 60;
           delete nextScores[c.moduleId];
+          delete nextCompletions[c.moduleId];
         }
       }
     });
@@ -1178,6 +1218,7 @@ export function setPartnerCourseCompletionForProject(
       ...u,
       progress: nextProgress,
       quizScores: nextScores,
+      courseCompletions: nextCompletions,
     };
   });
 

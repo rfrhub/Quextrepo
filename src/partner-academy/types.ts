@@ -18,6 +18,15 @@ export interface PartnerCompany {
   logoUrl?: string;
 }
 
+export interface CourseCompletionRecord {
+  moduleId: string;
+  completedAt: string; // ISO date string e.g. "2026-11-04"
+  year: number; // calendar year e.g. 2026
+  score?: number;
+  passed: boolean;
+  notes?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -32,6 +41,7 @@ export interface User {
   quizScores: Record<string, number>; // moduleId -> score (0-100)
   certificationDate?: string;
   fieldIdNumber: string;
+  courseCompletions?: Record<string, CourseCompletionRecord>; // moduleId -> annual completion record
 }
 
 export interface Chapter {

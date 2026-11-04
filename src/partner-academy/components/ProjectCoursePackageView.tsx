@@ -10,6 +10,10 @@ import {
   isPartnerMatching,
 } from '../utils/projectCoursePackager';
 import {
+  isProjectCourseSatisfiedForPartner,
+  CURRENT_CALENDAR_YEAR,
+} from '../utils/annualCourseTracker';
+import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -52,7 +56,7 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
   onOpenInstallersClip,
   onUpdateProject,
 }) => {
-  const { currentUser, currentCompany } = useAuth();
+  const { currentUser, currentCompany, allUsers } = useAuth();
   const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
 
   // Map currentCompany to its corresponding Operations Integrator Partner name
@@ -89,8 +93,18 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
 
   const totalBomDevices = (project.bomItems || []).reduce((acc, b) => acc + (b.quantity || 0), 0);
 
-  // Calculate course completion stats
+  // Calculate course completion stats taking into account annual single completion
   const completedCoursesCount = bundle.courses.filter((c) => {
+    const annualSat = isProjectCourseSatisfiedForPartner(
+      project,
+      c.moduleId,
+      currentUser,
+      allUsers,
+      currentCompany.id,
+      CURRENT_CALENDAR_YEAR
+    );
+    if (annualSat.isSatisfied) return true;
+
     const score = currentUser.quizScores[c.moduleId];
     const mod = COURSE_MODULES.find((m) => m.id === c.moduleId);
     const passScore = mod?.quiz.passingScore || 80;
@@ -473,9 +487,23 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
               const fullMod = COURSE_MODULES.find((m) => m.id === courseItem.moduleId);
               if (!fullMod) return null;
 
-              const progress = currentUser.progress[fullMod.id] || 0;
-              const quizScore = currentUser.quizScores[fullMod.id];
-              const isPassed = quizScore !== undefined && quizScore >= fullMod.quiz.passingScore;
+              // Annual Single Completion Check:
+              // Only need to complete once for the calendar year across all assigned projects
+              const annualSat = isProjectCourseSatisfiedForPartner(
+                project,
+                courseItem.moduleId,
+                currentUser,
+                allUsers,
+                currentCompany.id,
+                CURRENT_CALENDAR_YEAR
+              );
+
+              const userProgress = currentUser.progress[fullMod.id] || 0;
+              const quizScore = annualSat.score ?? currentUser.quizScores[fullMod.id];
+              const isPassed =
+                annualSat.isSatisfied ||
+                (quizScore !== undefined && quizScore >= fullMod.quiz.passingScore);
+              const progress = isPassed ? 100 : userProgress;
 
               return (
                 <div
@@ -498,7 +526,12 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
                         </span>
                       </div>
                       <div className="absolute top-3 right-3">
-                        {isPassed ? (
+                        {annualSat.isSatisfied ? (
+                          <span className="px-2.5 py-0.5 rounded-md bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1 shadow-md">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>Passed for {CURRENT_CALENDAR_YEAR}</span>
+                          </span>
+                        ) : isPassed ? (
                           <span className="px-2.5 py-0.5 rounded-md bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" />
                             Passed ({quizScore}%)
@@ -513,6 +546,19 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
 
                     {/* Course Body */}
                     <div className="p-5 space-y-3">
+                      {annualSat.isSatisfied && (
+                        <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-[11px] text-emerald-200 font-medium leading-snug space-y-1">
+                          <div className="flex items-center gap-1.5 text-emerald-300 font-bold font-mono text-[10px] uppercase">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>{CURRENT_CALENDAR_YEAR} Annual Requirement Met</span>
+                          </div>
+                          <p className="text-[11px] text-emerald-200/90 leading-tight">
+                            Course completed once for calendar year {CURRENT_CALENDAR_YEAR}
+                            {quizScore ? ` (${quizScore}%)` : ''}. Under Quext Partner policy, this course automatically credits toward {project.propertyName} — <strong>no retake required</strong>.
+                          </p>
+                        </div>
+                      )}
+
                       <div className="p-2.5 rounded-xl bg-purple-950/30 border border-purple-500/30 text-[11px] text-purple-200 font-medium leading-snug">
                         <strong className="text-purple-300 font-mono uppercase text-[10px] block mb-0.5">
                           Why Packaged for This Project:
@@ -553,20 +599,34 @@ export const ProjectCoursePackageView: React.FC<ProjectCoursePackageViewProps> =
                       <button
                         type="button"
                         onClick={() => onStartCourseModule(fullMod)}
-                        className="py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                          annualSat.isSatisfied
+                            ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
+                            : 'bg-purple-600 hover:bg-purple-500 text-white'
+                        }`}
                       >
-                        <Play className="w-3.5 h-3.5" />
-                        <span>Start Course</span>
+                        <BookOpen className="w-3.5 h-3.5 text-purple-300" />
+                        <span>{annualSat.isSatisfied ? 'Review Course' : 'Start Course'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => onTakeCourseQuiz(fullMod, 'certification_exam')}
-                        className="py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                          annualSat.isSatisfied
+                            ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60'
+                            : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-700 text-zinc-200'
+                        }`}
                       >
                         <Award className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Cert Exam</span>
+                        <span>{annualSat.isSatisfied ? `Passed (${quizScore}%)` : 'Cert Exam'}</span>
                       </button>
                     </div>
+
+                    {annualSat.isSatisfied && (
+                      <div className="text-[10px] text-zinc-400 text-center font-mono pt-0.5">
+                        ✓ Pre-qualified for {project.propertyName}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

@@ -8,6 +8,10 @@ import {
   isPartnerMatching,
 } from '../utils/projectCoursePackager';
 import {
+  isProjectCourseSatisfiedForPartner,
+  CURRENT_CALENDAR_YEAR,
+} from '../utils/annualCourseTracker';
+import {
   Building2,
   Calendar,
   BookOpen,
@@ -33,7 +37,7 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
   projects,
   onSelectProjectPackage,
 }) => {
-  const { currentUser, currentCompany } = useAuth();
+  const { currentUser, currentCompany, allUsers } = useAuth();
   const isQuextEmployee = isQuextEmployeeUser(currentUser, currentCompany);
 
   // Map currentCompany to its corresponding Operations Integrator Partner name
@@ -96,6 +100,18 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
     const bundle = project.partnerCourseBundle || buildProjectPrePackagedBundle(project);
     const totalCourses = bundle.courses.length || 1;
     const passedOrCompletedCourses = bundle.courses.filter((c) => {
+      // Annual Single Completion Check:
+      // Once completed in the current calendar year, course is satisfied across all assigned projects
+      const annualSat = isProjectCourseSatisfiedForPartner(
+        project,
+        c.moduleId,
+        currentUser,
+        allUsers,
+        currentCompany.id,
+        CURRENT_CALENDAR_YEAR
+      );
+      if (annualSat.isSatisfied) return true;
+
       const score = currentUser.quizScores[c.moduleId];
       const mod = COURSE_MODULES.find((m) => m.id === c.moduleId);
       const passThreshold = mod?.quiz.passingScore || 80;
@@ -119,6 +135,8 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
       completedChecklist,
       totalChecklist: bundle.checklist.length,
       readinessPercent,
+      isFullySatisfiedByAnnualCerts:
+        passedOrCompletedCourses === bundle.courses.length && bundle.courses.length > 0,
     };
   };
 
@@ -151,6 +169,12 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
             <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-3xl">
               Each assigned project automatically packages the exact <strong>Quext Partner Academy courses, interactive field guides, wiring sandboxes, checklists, and hardware cut sheets</strong> matched to that property&apos;s BOM. Click any project card below to begin preparing for your installation.
             </p>
+            <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs text-purple-200">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                <strong>Annual Certification Policy ({CURRENT_CALENDAR_YEAR}):</strong> Partners only need to complete a course once per calendar year. Once passed, that curriculum automatically credits across all your assigned projects for {CURRENT_CALENDAR_YEAR}—no retakes required.
+              </span>
+            </div>
           </div>
 
           {/* Partner Filter Controls */}
@@ -372,8 +396,14 @@ export const UpcomingPartnerProjectsSection: React.FC<UpcomingPartnerProjectsSec
                 <div className="pt-3 border-t border-zinc-800/80 space-y-3">
                   <div>
                     <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-zinc-400">
-                        Course Readiness ({passedOrCompletedCourses}/{totalCourses} courses complete)
+                      <span className="text-zinc-400 flex items-center gap-1.5 flex-wrap">
+                        <span>Course Readiness ({passedOrCompletedCourses}/{totalCourses} courses complete)</span>
+                        {passedOrCompletedCourses > 0 && (
+                          <span className="text-emerald-300 font-mono text-[10px] bg-emerald-950/70 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                            <span>{CURRENT_CALENDAR_YEAR} Annual Credit Active</span>
+                          </span>
+                        )}
                       </span>
                       <span className="font-mono font-bold text-purple-300 tabular-nums">
                         {readinessPercent}% Ready
