@@ -2166,6 +2166,8 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                       </div>
                     ) : (
                       colItems.map((item) => {
+                        const currentTrackingDraft = trackingDrafts[item.uid] ?? item.trackingNumber ?? '';
+
                         return (
                           <div
                             key={item.uid}
@@ -2263,22 +2265,127 @@ export const ProductAcquisitionPortal: React.FC<ProductAcquisitionPortalProps> =
                                 </button>
                               )}
 
-                              {/* Tracking # Details (Shown if in Shipped, Delivered, or has tracking) */}
+                              {/* Tracking # Input & Dispatch Details (Retained in Kanban View when marked Shipped / Delivered) */}
                               {(item.isShipped || item.isDelivered || item.trackingNumber) && (
-                                <div className="text-[10px] p-2 bg-sky-50 rounded-lg border border-sky-200 space-y-1">
-                                  <div className="flex items-center justify-between text-sky-950 font-bold">
-                                    <span className="flex items-center gap-1">
-                                      <Truck className="w-3 h-3 text-sky-700" />
-                                      <span>Tracking #:</span>
+                                <div
+                                  className="p-2.5 bg-slate-900 text-white rounded-lg border border-sky-500/40 space-y-2 shadow-2xs"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="flex items-center justify-between gap-1 text-[10px]">
+                                    <span className="font-bold text-sky-200 flex items-center gap-1.5">
+                                      <Truck className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                      <span>Carrier Tracking #:</span>
                                     </span>
                                     {item.trackingNumber ? (
-                                      <span className="font-mono text-sky-900 truncate max-w-[130px]">
-                                        {item.trackingNumber}
+                                      <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/90 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                                        ✓ Saved
                                       </span>
                                     ) : (
-                                      <span className="text-sky-600 font-normal italic">None</span>
+                                      <span className="text-[9px] font-mono text-amber-300 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-500/40">
+                                        Pending Tracking
+                                      </span>
                                     )}
                                   </div>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="text"
+                                      disabled={!canEdit}
+                                      value={currentTrackingDraft}
+                                      onChange={(e) =>
+                                        setTrackingDrafts((prev) => ({ ...prev, [item.uid]: e.target.value }))
+                                      }
+                                      placeholder="Carrier Tracking # (e.g., 1Z...)"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleSaveTracking(item);
+                                        }
+                                      }}
+                                      className={`w-full px-2 py-1 text-[10px] font-mono font-bold bg-slate-950 border border-sky-400/50 rounded text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-400 transition-all ${
+                                        !canEdit ? 'opacity-70 cursor-not-allowed' : ''
+                                      }`}
+                                      title="Enter tracking number and press Enter or click Save"
+                                    />
+                                    {canEdit && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSaveTracking(item);
+                                        }}
+                                        className="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold cursor-pointer transition-all shadow-2xs shrink-0 active:scale-95"
+                                        title="Save tracking number"
+                                      >
+                                        Save
+                                      </button>
+                                    )}
+                                    {item.trackingNumber && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigator.clipboard.writeText(item.trackingNumber || '');
+                                          setCopiedUid(`track::${item.uid}`);
+                                          setTimeout(() => setCopiedUid(null), 2000);
+                                        }}
+                                        className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 text-[10px] cursor-pointer shrink-0"
+                                        title="Copy tracking number"
+                                      >
+                                        {copiedUid === `track::${item.uid}` ? (
+                                          <Check className="w-3 h-3 text-emerald-400" />
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Optional Tie to Shipping Dock Item */}
+                                  {(() => {
+                                    const projectForCard = projects.find((p) => p.id === item.projectId);
+                                    const dockItems = projectForCard?.shippingDockItems || [];
+                                    if (dockItems.length === 0) return null;
+
+                                    const activeDockId =
+                                      selectedDockItemForUid[item.uid] ||
+                                      item.tiedShippingDockId ||
+                                      dockItems.find((d) =>
+                                        getDockItemTrackingNumbers(d).includes(
+                                          (item.trackingNumber || currentTrackingDraft || '').trim()
+                                        )
+                                      )?.id ||
+                                      '';
+
+                                    return (
+                                      <div className="pt-1.5 border-t border-slate-800 flex items-center gap-1.5 text-[9px] text-sky-300">
+                                        <Link2 className="w-3 h-3 text-sky-400 shrink-0" />
+                                        <span className="shrink-0 font-medium">Dock:</span>
+                                        <select
+                                          disabled={!canEdit}
+                                          value={activeDockId}
+                                          onChange={(e) => {
+                                            const dockId = e.target.value;
+                                            setSelectedDockItemForUid((prev) => ({ ...prev, [item.uid]: dockId }));
+                                            if (item.trackingNumber) {
+                                              handleUpdateMilestone(item, {
+                                                trackingNumber: item.trackingNumber,
+                                                tiedShippingDockId: dockId,
+                                              });
+                                            }
+                                          }}
+                                          className="w-full bg-slate-950 border border-sky-800/80 rounded px-1.5 py-0.5 text-[9px] font-mono text-sky-200 truncate focus:outline-none"
+                                        >
+                                          <option value="">Auto / Standalone Dock</option>
+                                          {dockItems.map((d) => (
+                                            <option key={d.id} value={d.id}>
+                                              {d.shipmentBatchLabel || 'Batch'} · {d.carrier || 'Carrier'}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               )}
                             </div>
