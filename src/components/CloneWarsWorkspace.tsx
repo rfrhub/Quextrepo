@@ -2146,14 +2146,6 @@ export const CloneWarsWorkspace: React.FC<CloneWarsWorkspaceProps> = ({
                     >
                       Cancel Arena
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleExecuteMerge}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Execute Merge Finalization</span>
-                    </button>
                   </div>
                 </div>
 
