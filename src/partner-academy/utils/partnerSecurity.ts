@@ -218,10 +218,24 @@ export function loadPartnerSecurityCredentials(): Record<string, PartnerSecurity
     if (saved) {
       const parsed: Record<string, Partial<PartnerSecurityCredential>> = JSON.parse(saved);
       for (const [compId, cred] of Object.entries(parsed)) {
+        if (!cred) continue;
         if (defaults[compId] && cred.secureAccessCode) {
           defaults[compId] = {
             ...defaults[compId],
             ...cred,
+          };
+        } else if (cred.secureAccessCode && (cred.companyName || cred.partnerShortName)) {
+          // Include all newly registered partner firms created from PM modal
+          defaults[compId] = {
+            companyId: compId,
+            partnerShortName: cred.partnerShortName || cred.companyName || 'Partner',
+            companyName: cred.companyName || cred.partnerShortName || 'Partner Firm',
+            legacyCode: cred.legacyCode || cred.secureAccessCode || 'QXT-100',
+            secureAccessCode: cred.secureAccessCode,
+            defaultEmail: cred.defaultEmail || '',
+            leadName: cred.leadName || `${cred.partnerShortName || 'Partner'} Lead`,
+            region: cred.region || 'National Integration',
+            lastGeneratedAt: cred.lastGeneratedAt || new Date().toISOString(),
           };
         }
       }
@@ -238,6 +252,8 @@ export function savePartnerSecurityCredentials(creds: Record<string, PartnerSecu
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY_PARTNER_CODES, JSON.stringify(creds));
+    window.dispatchEvent(new Event('quext-partner-credentials-updated'));
+    window.dispatchEvent(new Event('storage'));
   } catch (err) {
     console.error('[PartnerSecurity] Error saving credentials:', err);
   }

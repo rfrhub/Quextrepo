@@ -58,7 +58,7 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
   const [recentlyCreatedCred, setRecentlyCreatedCred] = useState<PartnerSecurityCredential | null>(null);
   const randomSuffixRef = useRef<string>(Math.floor(1000000 + Math.random() * 9000000).toString());
 
-  // Sync credentials on open
+  // Sync credentials on open and on updates
   React.useEffect(() => {
     if (isOpen) {
       setCredentials(loadPartnerSecurityCredentials());
@@ -66,6 +66,18 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
       setRecentlyCreatedCred(null);
     }
   }, [isOpen]);
+
+  React.useEffect(() => {
+    const handleSync = () => {
+      setCredentials(loadPartnerSecurityCredentials());
+    };
+    window.addEventListener('quext-partner-credentials-updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('quext-partner-credentials-updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
 
   // Compute active projects count per partner
   const projectCountsByPartner = useMemo(() => {
@@ -82,7 +94,11 @@ export const PartnerAccessCodesModal: React.FC<PartnerAccessCodesModalProps> = (
 
   if (!isOpen) return null;
 
-  const credentialsList = Object.values(credentials);
+  const credentialsList = Object.values(credentials).sort((a, b) => {
+    const timeA = new Date(a.lastGeneratedAt || 0).getTime();
+    const timeB = new Date(b.lastGeneratedAt || 0).getTime();
+    return timeB - timeA;
+  });
 
   const filteredList = credentialsList.filter((cred) => {
     if (!searchQuery.trim()) return true;

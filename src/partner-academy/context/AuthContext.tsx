@@ -53,15 +53,16 @@ export const AuthProvider: React.FC<{
   activeCompanyId?: string | null;
 }> = ({ children, activePartnerEmail, activeCompanyId }) => {
   const [companies, setCompanies] = useState<PartnerCompany[]>(() => {
-    const allowedCompanyIds = new Set(PARTNER_COMPANIES.map((c) => c.id));
+    const defaultIds = new Set(PARTNER_COMPANIES.map((c) => c.id));
     const saved = localStorage.getItem(STORAGE_KEY_COMPANIES);
     if (saved) {
       try {
         const parsed: PartnerCompany[] = JSON.parse(saved);
-        const validParsed = parsed.filter((c) => allowedCompanyIds.has(c.id));
-        const existingIds = new Set(validParsed.map((c) => c.id));
-        const missing = PARTNER_COMPANIES.filter((c) => !existingIds.has(c.id));
-        return [...missing, ...validParsed];
+        const customCompanies = parsed.filter((c) => c && c.id && !defaultIds.has(c.id));
+        const defaultOverrides = parsed.filter((c) => c && c.id && defaultIds.has(c.id));
+        const existingDefaultIds = new Set(defaultOverrides.map((c) => c.id));
+        const missingDefaults = PARTNER_COMPANIES.filter((c) => !existingDefaultIds.has(c.id));
+        return [...missingDefaults, ...defaultOverrides, ...customCompanies];
       } catch (e) {
         console.error(e);
       }
@@ -70,18 +71,16 @@ export const AuthProvider: React.FC<{
   });
 
   const [allUsers, setAllUsers] = useState<User[]>(() => {
-    const allowedUserIds = new Set(INITIAL_USERS.map((u) => u.id));
-    const allowedCompanyIds = new Set(PARTNER_COMPANIES.map((c) => c.id));
+    const defaultUserIds = new Set(INITIAL_USERS.map((u) => u.id));
     const saved = localStorage.getItem(STORAGE_KEY_USERS);
     if (saved) {
       try {
         const parsed: User[] = JSON.parse(saved);
-        const validParsed = parsed.filter(
-          (u) => allowedUserIds.has(u.id) || allowedCompanyIds.has(u.companyId)
-        );
-        const existingIds = new Set(validParsed.map((u) => u.id));
-        const missing = INITIAL_USERS.filter((u) => !existingIds.has(u.id));
-        return [...missing, ...validParsed];
+        const customUsers = parsed.filter((u) => u && u.id && !defaultUserIds.has(u.id));
+        const defaultOverrides = parsed.filter((u) => u && u.id && defaultUserIds.has(u.id));
+        const existingDefaultIds = new Set(defaultOverrides.map((u) => u.id));
+        const missingDefaults = INITIAL_USERS.filter((u) => !existingDefaultIds.has(u.id));
+        return [...missingDefaults, ...defaultOverrides, ...customUsers];
       } catch (e) {
         console.error(e);
       }
@@ -91,11 +90,46 @@ export const AuthProvider: React.FC<{
 
   const [currentUserId, setCurrentUserId] = useState<string>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
-    if (saved && INITIAL_USERS.some((u) => u.id === saved)) {
+    if (saved && typeof saved === 'string' && saved.trim()) {
       return saved;
     }
     return 'user_spirit_lead';
   });
+
+  // Re-sync companies and users when new partner firms are registered
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      try {
+        const savedCompanies = localStorage.getItem(STORAGE_KEY_COMPANIES);
+        if (savedCompanies) {
+          const parsed: PartnerCompany[] = JSON.parse(savedCompanies);
+          setCompanies((prev) => {
+            const existingIds = new Set(prev.map((c) => c.id));
+            const newOnes = parsed.filter((c) => !existingIds.has(c.id));
+            return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+          });
+        }
+        const savedUsers = localStorage.getItem(STORAGE_KEY_USERS);
+        if (savedUsers) {
+          const parsedUsers: User[] = JSON.parse(savedUsers);
+          setAllUsers((prev) => {
+            const existingIds = new Set(prev.map((u) => u.id));
+            const newOnes = parsedUsers.filter((u) => !existingIds.has(u.id));
+            return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    window.addEventListener('quext-partner-credentials-updated', handleStorageUpdate);
+    window.addEventListener('storage', handleStorageUpdate);
+    return () => {
+      window.removeEventListener('quext-partner-credentials-updated', handleStorageUpdate);
+      window.removeEventListener('storage', handleStorageUpdate);
+    };
+  }, []);
 
   // Sync when activePartnerEmail or activeCompanyId changes from MyQuext Email Router
   useEffect(() => {
@@ -408,11 +442,73 @@ export const AuthProvider: React.FC<{
              c.name.toLowerCase() === companyCode.trim().toLowerCase()
       );
     }
+
+    // Check localStorage in case company was just created in another component
+    if (!matchingCompany && typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_COMPANIES);
+        if (saved) {
+          const parsed: PartnerCompany[] = JSON.parse(saved);
+          const cleanInput = companyCode.replace(/[\s-]+/g, '').toLowerCase();
+          matchingCompany = parsed.find(
+            c => (resolvedByCode && c.id === resolvedByCode.companyId) ||
+                 c.code.toLowerCase() === companyCode.trim().toLowerCase() ||
+                 c.code.replace(/[\s-]+/g, '').toLowerCase() === cleanInput ||
+                 c.name.toLowerCase() === companyCode.trim().toLowerCase()
+          );
+          if (matchingCompany) {
+            setCompanies(prev => prev.some(c => c.id === matchingCompany!.id) ? prev : [...prev, matchingCompany!]);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Dynamic auto-provisioning from resolved security vault credentials
+    if (!matchingCompany && resolvedByCode) {
+      matchingCompany = {
+        id: resolvedByCode.companyId,
+        name: resolvedByCode.companyName,
+        code: resolvedByCode.companyCode,
+        region: resolvedByCode.region,
+        leadName: resolvedByCode.leadName,
+        activeTechnicians: 1,
+        tier: (resolvedByCode.tier as any) || 'Authorized Partner',
+        contactEmail: resolvedByCode.defaultEmail,
+      };
+      setCompanies(prev => {
+        const next = [...prev.filter(c => c.id !== matchingCompany!.id), matchingCompany!];
+        try {
+          localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(next));
+        } catch (_) {}
+        return next;
+      });
+    }
+
     if (!matchingCompany) return false;
 
-    const matchingUser = allUsers.find(
-      u => u.companyId === matchingCompany.id && u.email.toLowerCase() === email.trim().toLowerCase()
+    // Check existing allUsers state or storage
+    let matchingUser = allUsers.find(
+      u => u.companyId === matchingCompany!.id && u.email.toLowerCase() === email.trim().toLowerCase()
     );
+
+    if (!matchingUser && typeof window !== 'undefined') {
+      try {
+        const savedUsers = localStorage.getItem(STORAGE_KEY_USERS);
+        if (savedUsers) {
+          const parsedUsers: User[] = JSON.parse(savedUsers);
+          matchingUser = parsedUsers.find(
+            u => u.companyId === matchingCompany!.id && u.email.toLowerCase() === email.trim().toLowerCase()
+          );
+          if (matchingUser) {
+            setAllUsers(prev => prev.some(u => u.id === matchingUser!.id) ? prev : [...prev, matchingUser!]);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
 
     if (matchingUser) {
       setCurrentUserId(matchingUser.id);
@@ -433,7 +529,13 @@ export const AuthProvider: React.FC<{
       completedLessons: [],
       quizScores: {},
     };
-    setAllUsers(prev => [...prev, newUser]);
+    setAllUsers(prev => {
+      const next = [...prev, newUser];
+      try {
+        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
     setCurrentUserId(newUser.id);
     return true;
   };
