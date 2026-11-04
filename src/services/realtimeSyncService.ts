@@ -128,6 +128,22 @@ export function subscribeToLiveProjects(
               (b) => !isLockBOMItem(b) && Boolean(b.lockFinishConfig)
             );
             const enriched = sanitizeProjectRealTeamOnly(enrichProjectDefaults(data));
+
+            // Merge imported sheet notes from canonical INITIAL_PROJECTS if not present
+            const initProj = INITIAL_PROJECTS.find((p) => p.id === data.id);
+            if (initProj && initProj.notes) {
+              const existingIds = new Set((enriched.notes || []).map((n) => n.id));
+              const existingTexts = new Set((enriched.notes || []).map((n) => n.text?.trim()));
+              const sheetNotes = initProj.notes.filter(
+                (n) =>
+                  n.id?.startsWith('note-sheet-') &&
+                  !existingIds.has(n.id) &&
+                  !existingTexts.has(n.text?.trim())
+              );
+              if (sheetNotes.length > 0) {
+                enriched.notes = [...sheetNotes, ...(enriched.notes || [])];
+              }
+            }
             if (hasInvalidLockTag) {
               hadNonLockTagsInCloud = true;
               projectsToCleanseInCloud.push(enriched);

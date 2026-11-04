@@ -4,6 +4,7 @@ import { OperationProject } from '../types';
  * MASTER PROJECTS DATASET (167 Operational Projects)
  * Ingested and synchronized from 2026 Master Projects Dashboard - Project Tracker.
  * Preserves 21 Pearl and all existing seed projects while integrating 97 tracker properties.
+ * Enriched with operational notes from executive notes update file.
  */
 export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   {
@@ -8316,6 +8317,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "propertyManagementCompany": "Redfern",
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160472958-1",
+        "projectId": "proj-imported-1793160472958",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Contract not finalized",
+        "isPinned": false
+      },
+      {
         "projectId": "proj-imported-1793160472958",
         "author": "Master Project Tracker",
         "id": "note-mt-1793739220207-289",
@@ -9451,6 +9461,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "nfcWalletConfigured": false
     },
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220230-1",
+        "projectId": "proj-master-1793739220230",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Master - The Lariat Martin inderman.xlsx",
+        "isPinned": false
+      },
       {
         "projectId": "proj-master-1793739220230",
         "id": "note-proj-master-1793739220230",
@@ -13097,6 +13116,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "phone": "(806) 555-0193"
     },
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472976-1",
+        "projectId": "proj-imported-1793160472976",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Crest at Marbella Ranch | MASTER \nCrest at Marbella Ranch | Scope of Work",
+        "isPinned": false
+      },
       {
         "timestamp": "Just now",
         "isPinned": false,
@@ -20887,6 +20915,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "isBomLocked": true,
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160473000-1",
+        "projectId": "proj-imported-1793160473000",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "Waiting on issues with CTE's and CS issues to resolve before offical close out.",
+        "isPinned": false
+      },
+      {
         "isPinned": false,
         "id": "note-mt-1793739220207-768",
         "text": "[Master Tracker]: Waiting on issues with CTE's and CS issues to resolve before offical close out.",
@@ -21480,6 +21517,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160473004-1",
+        "projectId": "proj-imported-1793160473004",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Waiting on customer for next phase of doors",
+        "isPinned": false
+      },
+      {
         "text": "Project imported via spreadsheet with 122 residential units on Quext. Assigned Integrator: SKBM.",
         "projectId": "proj-imported-1793160473004",
         "author": "Raul Recalde",
@@ -22053,6 +22099,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "isManuallyCreated": true,
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160473006-1",
+        "projectId": "proj-imported-1793160473006",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Pending issues with network trying to repair before closing project.",
+        "isPinned": false
+      },
       {
         "projectId": "proj-imported-1793160473006",
         "text": "[Master Tracker]: Pending issues with network trying to repair before closing project.",
@@ -22700,6 +22755,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160473007-1",
+        "projectId": "proj-imported-1793160473007",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Pending issues with network trying to repair before closing project.",
+        "isPinned": false
+      },
+      {
         "isPinned": false,
         "timestamp": "Just now",
         "text": "[Master Tracker]: Pending issues with network trying to repair before closing project.",
@@ -23035,6 +23099,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "useNfcWallet": true,
     "clientName": "Iris Innovations",
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160473010-1",
+        "projectId": "proj-imported-1793160473010",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "MASTER - Union & Mill",
+        "isPinned": false
+      },
       {
         "text": "[Master Tracker]: MASTER - Union & Mill",
         "timestamp": "Just now",
@@ -24217,6 +24290,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "SKBM"
     ],
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160473011-1",
+        "projectId": "proj-imported-1793160473011",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "MASTER - Union & Mill",
+        "isPinned": false
+      },
       {
         "id": "note-mt-1793739220206-8",
         "category": "General Context",
@@ -27606,6 +27688,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "lastUpdated": "2026-11-03T20:56:47.010Z",
     "notes": [
       {
+        "id": "note-sheet-proj-master-1793739220216-1",
+        "projectId": "proj-master-1793739220216",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Gamecock Village | MASTER \nGamecock Village | Scope of Work",
+        "isPinned": false
+      },
+      {
         "isPinned": true,
         "id": "note-proj-master-1793739220216",
         "timestamp": "Just now",
@@ -28045,6 +28136,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusReason": "Created from Master Projects Dashboard Tracker. Target completion: 2026-12-18.",
     "notes": [
       {
+        "id": "note-sheet-proj-master-1793739220219-1",
+        "projectId": "proj-master-1793739220219",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "Waiting on issues with CTE's and CS issues to resolve before offical close out.",
+        "isPinned": false
+      },
+      {
         "id": "note-proj-master-1793739220219",
         "timestamp": "Just now",
         "text": "[Master Tracker]: Waiting on issues with CTE's and CS issues to resolve before offical close out.",
@@ -28198,6 +28298,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   {
     "startDate": "2026-11-03",
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220221-1",
+        "projectId": "proj-master-1793739220221",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "Waiting on issues with CTE's and CS issues to resolve before offical close out.",
+        "isPinned": false
+      },
       {
         "text": "[Master Tracker]: Waiting on issues with CTE's and CS issues to resolve before offical close out.",
         "category": "General Context",
@@ -28523,6 +28632,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "notes": [
       {
+        "id": "note-sheet-proj-master-1793739220222-1",
+        "projectId": "proj-master-1793739220222",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "Waiting on issues with CTE's and CS issues to resolve before offical close out.",
+        "isPinned": false
+      },
+      {
         "text": "[Master Tracker]: Waiting on issues with CTE's and CS issues to resolve before offical close out.",
         "timestamp": "Just now",
         "author": "Master Project Tracker",
@@ -28544,6 +28662,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   {
     "installLogs": [],
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220223-1",
+        "projectId": "proj-master-1793739220223",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "Waiting on issues with CTE's and CS issues to resolve before offical close out.",
+        "isPinned": false
+      },
       {
         "id": "note-proj-master-1793739220223",
         "projectId": "proj-master-1793739220223",
@@ -28720,6 +28847,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
     "unitsCount": 54,
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220224-1",
+        "projectId": "proj-master-1793739220224",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "Waiting on issues with CTE's and CS issues to resolve before offical close out.",
+        "isPinned": false
+      },
       {
         "text": "[Master Tracker]: Waiting on issues with CTE's and CS issues to resolve before offical close out.",
         "timestamp": "Just now",
@@ -29513,6 +29649,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "useQrIntercom": false,
     "notes": [
       {
+        "id": "note-sheet-proj-master-1793739220228-1",
+        "projectId": "proj-master-1793739220228",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Waiting on leadership for Butterfly integration",
+        "isPinned": false
+      },
+      {
         "author": "Master Project Tracker",
         "projectId": "proj-master-1793739220228",
         "id": "note-proj-master-1793739220228",
@@ -29577,6 +29722,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "address": "100 Main St",
     "targetCompletionDate": "2026-12-18",
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220229-1",
+        "projectId": "proj-master-1793739220229",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Google to do the network on this",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-master-1793739220229-2",
+        "projectId": "proj-master-1793739220229",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Sales still has not finalized contract this is not a project yet.",
+        "isPinned": false
+      },
       {
         "id": "note-proj-master-1793739220229",
         "timestamp": "Just now",
@@ -29744,6 +29907,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   },
   {
     "notes": [
+      {
+        "id": "note-sheet-vWnYmEUJNnJdWNG43Z7c-1",
+        "projectId": "vWnYmEUJNnJdWNG43Z7c",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "Waiting on issues with CTE's and CS issues to resolve before offical close out.",
+        "isPinned": false
+      },
       {
         "timestamp": "Just now",
         "text": "[Master Tracker]: Waiting on issues with CTE's and CS issues to resolve before offical close out.",
@@ -31165,6 +31337,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "heroImage": "/src/assets/images/property_parkside_craig_1792605865604.jpg",
     "notes": [
+      {
+        "id": "note-sheet-4FbLToKBWCIoIIluD3lT-1",
+        "projectId": "4FbLToKBWCIoIIluD3lT",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Celito to do the network here I think",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-4FbLToKBWCIoIIluD3lT-2",
+        "projectId": "4FbLToKBWCIoIIluD3lT",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Sales still has not finalized contract this is not a project yet.",
+        "isPinned": false
+      },
       {
         "isPinned": false,
         "projectId": "4FbLToKBWCIoIIluD3lT",
@@ -33440,6 +33630,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "startDate": "2026-10-28",
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160472929-1",
+        "projectId": "proj-imported-1793160472929",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Everbase providing HW",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472929-2",
+        "projectId": "proj-imported-1793160472929",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Waiting for details/updated from ES",
+        "isPinned": false
+      },
+      {
         "isPinned": false,
         "author": "Master Project Tracker",
         "id": "note-mt-1793739220205-897",
@@ -34120,6 +34328,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       ]
     },
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472930-1",
+        "projectId": "proj-imported-1793160472930",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Everbase providing HW",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472930-2",
+        "projectId": "proj-imported-1793160472930",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Waiting for details/updated from ES",
+        "isPinned": false
+      },
       {
         "isPinned": false,
         "timestamp": "Just now",
@@ -39345,6 +39571,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "unitsCount": 164,
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160472953-1",
+        "projectId": "proj-imported-1793160472953",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "MASTER - Arbella at Blue Hills.xlsx\nArbella at Blue Hill | Quext | Scope of Work",
+        "isPinned": false
+      },
+      {
         "id": "note-mt-1793739220205-825",
         "category": "General Context",
         "timestamp": "Just now",
@@ -39423,6 +39658,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   },
   {
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472954-1",
+        "projectId": "proj-imported-1793160472954",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "MASTER - Terracotta Terrace.xlsx \nTerracotta Terrace | Quext | Scope of Work",
+        "isPinned": false
+      },
       {
         "projectId": "proj-imported-1793160472954",
         "id": "note-mt-1793739220205-85",
@@ -40145,6 +40389,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "propertyName": "Artisan Village",
     "unitsCount": 288,
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472961-1",
+        "projectId": "proj-imported-1793160472961",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "No NFC Wallet on contract?",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472961-2",
+        "projectId": "proj-imported-1793160472961",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Artisan Village | MASTER.xlsx\nArtisan Village | Scope of Work.docx\nArtisan Village | Internal Notes\nInstall pending construction",
+        "isPinned": false
+      },
       {
         "isPinned": false,
         "text": "[Master Tracker]: Artisan Village | MASTER.xlsx\nArtisan Village | Scope of Work.docx\nArtisan Village | Internal Notes\nInstall pending construction",
@@ -41536,6 +41798,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160472968-1",
+        "projectId": "proj-imported-1793160472968",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Pinon Apartments | MASTER.xlsx\nPinon Apartments | Scope of Work.docx\nWaiting for hard install date from SBH",
+        "isPinned": false
+      },
+      {
         "id": "note-mt-1793739220205-621",
         "author": "Master Project Tracker",
         "timestamp": "Just now",
@@ -42165,6 +42436,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472971-1",
+        "projectId": "proj-imported-1793160472971",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Hardware Delivery",
+        "text": "Change order for:\n(242) Matte Black locks & (1) GWY - shipping 11/3",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472971-2",
+        "projectId": "proj-imported-1793160472971",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "29 North MASTER.xlsx\n29 North | Scope of Work.docx\nInstall date pending leak sensor arrival",
+        "isPinned": false
+      },
       {
         "author": "Master Project Tracker",
         "isPinned": false,
@@ -42889,6 +43178,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160472974-1",
+        "projectId": "proj-imported-1793160472974",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "SBH providing all HW",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472974-2",
+        "projectId": "proj-imported-1793160472974",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Lido Square | Internal Notes",
+        "isPinned": false
+      },
+      {
         "timestamp": "Just now",
         "category": "General Context",
         "isPinned": false,
@@ -43465,6 +43772,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "sowForecastCadenceEnabled": true,
     "address": "100 Main St",
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472977-1",
+        "projectId": "proj-imported-1793160472977",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Auraria Lofts | MASTER \nAuraria Lofts | Scope of Work",
+        "isPinned": false
+      },
       {
         "projectId": "proj-imported-1793160472977",
         "timestamp": "Just now",
@@ -45227,6 +45543,33 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "city": "Austin",
     "propertyName": "SVN OAK - Bethany Square Apartments - 217 - IoT",
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472990-1",
+        "projectId": "proj-imported-1793160472990",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "FlexCapital Financing - will bill 100% when\nequipment gets shipped",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472990-2",
+        "projectId": "proj-imported-1793160472990",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Hardware Delivery",
+        "text": "Shipping in phases.\nFirst shipment: (2) GWY, (100) QXT tstats, (100) BE locks",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472990-3",
+        "projectId": "proj-imported-1793160472990",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Hardware Delivery",
+        "text": "Bethany Square | Project Notes & Communications\nBethany Square | MASTER \nBethany Square | Scope of Work \nDIY install - property will inform when they're\nready for next shipment",
+        "isPinned": false
+      },
       {
         "text": "[Master Tracker]: Bethany Square | Project Notes & Communications\nBethany Square | MASTER \nBethany Square | Scope of Work \nDIY install - property will inform when they're\nready for next shipment",
         "timestamp": "Just now",
@@ -48070,6 +48413,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "propertyName": "The Pointe at Central - Orlando, FL",
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160473015-1",
+        "projectId": "proj-imported-1793160473015",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Homebase Project",
+        "isPinned": false
+      },
+      {
         "author": "Master Project Tracker",
         "isPinned": false,
         "category": "General Context",
@@ -48905,6 +49257,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "notes": [
       {
+        "id": "note-sheet-proj-master-1793739220211-1",
+        "projectId": "proj-master-1793739220211",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "NFC - 50% billed // will bill in full once NFC install is complete",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-master-1793739220211-2",
+        "projectId": "proj-master-1793739220211",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "NFC installation - waiting for remaining door\ninstallations before we can complete",
+        "isPinned": false
+      },
+      {
         "projectId": "proj-master-1793739220211",
         "category": "General Context",
         "id": "note-proj-master-1793739220211",
@@ -49072,6 +49442,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "quoteId": "quote-master-1793739220212",
     "useQrIntercom": false,
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220212-1",
+        "projectId": "proj-master-1793739220212",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Midtown | MASTER.xlsx\nContract finalization - in progress\nInstall pending construction",
+        "isPinned": false
+      },
       {
         "text": "[Master Tracker]: Midtown | MASTER.xlsx\nContract finalization - in progress\nInstall pending construction",
         "projectId": "proj-master-1793739220212",
@@ -49597,6 +49976,33 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "useNfcWallet": true,
     "notes": [
       {
+        "id": "note-sheet-buuP51JrJT6WnogdVlDT-1",
+        "projectId": "buuP51JrJT6WnogdVlDT",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "50% sent",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-buuP51JrJT6WnogdVlDT-2",
+        "projectId": "buuP51JrJT6WnogdVlDT",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Need to work with MWPS/Sales on scope discrepancies.",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-buuP51JrJT6WnogdVlDT-3",
+        "projectId": "buuP51JrJT6WnogdVlDT",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Shadow View Village MASTER.xlsx\nShadow View Village | Scope of Work.docx\nShadow View Village | Internal Review.docx\nInstall pending constuction",
+        "isPinned": false
+      },
+      {
         "isPinned": false,
         "timestamp": "Just now",
         "author": "Master Project Tracker",
@@ -49657,6 +50063,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "quoteId": "import-quote-1793160472969",
     "lastUpdated": "2026-11-03T20:56:47.008Z",
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472969-1",
+        "projectId": "proj-imported-1793160472969",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "30% billed on 9/30",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472969-2",
+        "projectId": "proj-imported-1793160472969",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Agora Heights |  MASTER\nAgora Heights | Scope of Work\nInstall pending construction",
+        "isPinned": false
+      },
       {
         "projectId": "proj-imported-1793160472969",
         "isPinned": false,
@@ -50301,6 +50725,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "fieldOpsLead": "Sean Gates"
     },
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472970-1",
+        "projectId": "proj-imported-1793160472970",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "30% billed on 9/30",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472970-2",
+        "projectId": "proj-imported-1793160472970",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Clearstone | MASTER.xlsx\nClearstone | Scope of Work\nInstall date pending construction",
+        "isPinned": false
+      },
       {
         "category": "General Context",
         "text": "[Master Tracker]: Clearstone | MASTER.xlsx\nClearstone | Scope of Work\nInstall date pending construction",
@@ -51415,6 +51857,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusReason": "Imported via spreadsheet. Target completion set for 2026-11-06.",
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160472972-1",
+        "projectId": "proj-imported-1793160472972",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "MASTER - Bishop Modern.xlsx\nQuext | Scope of Work - Bishop Modern",
+        "isPinned": false
+      },
+      {
         "timestamp": "Just now",
         "text": "[Master Tracker]: MASTER - Bishop Modern.xlsx\nQuext | Scope of Work - Bishop Modern",
         "id": "note-mt-1793739220205-751",
@@ -52323,6 +52774,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "startDate": "2026-10-28",
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160473022-1",
+        "projectId": "proj-imported-1793160473022",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "With CX - trying to close out",
+        "isPinned": false
+      },
+      {
         "text": "[Master Tracker]: With CX - trying to close out",
         "projectId": "proj-imported-1793160473022",
         "author": "Master Project Tracker",
@@ -53150,6 +53610,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "isBomLocked": true,
     "notes": [
       {
+        "id": "note-sheet-proj-master-1793739220204-1",
+        "projectId": "proj-master-1793739220204",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "MASTER - The Hartley.xlsx",
+        "isPinned": false
+      },
+      {
         "category": "General Context",
         "text": "[Master Tracker]: MASTER - The Hartley.xlsx",
         "author": "Master Project Tracker",
@@ -53168,6 +53637,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   {
     "statusReason": "Created from Master Projects Dashboard Tracker. Target completion: 2026-12-18.",
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220205-1",
+        "projectId": "proj-master-1793739220205",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "MASTER - Midway Row House.xlsx\nQuext | Scope of Work - Midway Row House\nMidway Post Mortem Notes",
+        "isPinned": false
+      },
       {
         "id": "note-proj-master-1793739220205",
         "author": "Master Project Tracker",
@@ -53341,6 +53819,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   {
     "startDate": "2026-11-03",
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220206-1",
+        "projectId": "proj-master-1793739220206",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Inspection & Commissioning",
+        "text": "MASTER - Rivertown Commons.xlsx\nRivertown Commons | Post Mortem Notes",
+        "isPinned": false
+      },
       {
         "projectId": "proj-master-1793739220206",
         "text": "[Master Tracker]: MASTER - Rivertown Commons.xlsx\nRivertown Commons | Post Mortem Notes",
@@ -53636,6 +54123,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusReason": "Created from Master Projects Dashboard Tracker. Target completion: 2026-12-18.",
     "notes": [
       {
+        "id": "note-sheet-proj-master-1793739220208-1",
+        "projectId": "proj-master-1793739220208",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Billing through ProCore - will pay invoice in October",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-master-1793739220208-2",
+        "projectId": "proj-master-1793739220208",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Site Access & Keys",
+        "text": "Arbor Lake Notes Document\nArbor Lake | Master Doc\nArbor Lake | SOW\nPhase 1: tstats only - complete (10/21)\nPhase 2: Property to intall locks & QXT to return\nto program tstats/locks (DEC2026)",
+        "isPinned": false
+      },
+      {
         "timestamp": "Just now",
         "isPinned": true,
         "category": "General Context",
@@ -53721,6 +54226,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "id": "proj-master-1793739220209",
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220209-1",
+        "projectId": "proj-master-1793739220209",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Need to work with Everbase/Sales on scope discrepancies.",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-master-1793739220209-2",
+        "projectId": "proj-master-1793739220209",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Brigham Lofts | MASTER.xlsx\nBrigham Lofts | Notes.docx\nBrigham Lofts | Scope of Work .docx\nWon't be ready until Q1 2027 due to construction",
+        "isPinned": false
+      },
       {
         "projectId": "proj-master-1793739220209",
         "text": "[Master Tracker]: Brigham Lofts | MASTER.xlsx\nBrigham Lofts | Notes.docx\nBrigham Lofts | Scope of Work .docx\nWon't be ready until Q1 2027 due to construction",
@@ -53883,6 +54406,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   },
   {
     "notes": [
+      {
+        "id": "note-sheet-proj-master-1793739220210-1",
+        "projectId": "proj-master-1793739220210",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Hardware Delivery",
+        "text": "Waiting for strike plates to ship to property through AHS\nOnly LH strikes arrived - working to get RH strikes to sire",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-master-1793739220210-2",
+        "projectId": "proj-master-1793739220210",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Hardware Delivery",
+        "text": "MASTER - 3450 NLS - P1.xlsx\nQuext | Scope of Work - 3450 NLS - Phase 1\n3450 NLS Project Notes\nWaiting for RH strike plates - coordinating with\nInstallation team on install date",
+        "isPinned": false
+      },
       {
         "projectId": "proj-master-1793739220210",
         "author": "Master Project Tracker",
@@ -64203,6 +64744,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "platform": "Quext",
     "notes": [
       {
+        "id": "note-sheet-proj-imported-1793160472992-1",
+        "projectId": "proj-imported-1793160472992",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Hardware Delivery",
+        "text": "All equipment is onsite as of 8/22",
+        "isPinned": false
+      },
+      {
+        "id": "note-sheet-proj-imported-1793160472992-2",
+        "projectId": "proj-imported-1793160472992",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "General Context",
+        "text": "Maxwell Memorial MASTER.xlsx\nMaxwell Memorial | Scope of Work\nMaxwell Memorial | Scope of Work_Phase 2\nMaxwell Memorial Project Notes\nWaiting for discussions with ATB on inventory\ncheck and the complete remaining (14) locations",
+        "isPinned": false
+      },
+      {
         "projectId": "proj-imported-1793160472992",
         "id": "note-1793160472992",
         "text": "Project imported via spreadsheet with 350 residential units on Quext. Assigned Integrator: SKBM.",
@@ -67956,6 +68515,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "clientName": "Sunflower Development",
     "notes": [
+      {
+        "id": "note-sheet-proj-imported-1793160472999-1",
+        "projectId": "proj-imported-1793160472999",
+        "author": "Raul Recalde",
+        "timestamp": "Nov 3, 2026, 09:00 PM",
+        "category": "Site Access & Keys",
+        "text": "Waiting on customer for unit doors to be reader for installation",
+        "isPinned": false
+      },
       {
         "isPinned": true,
         "timestamp": "Just now",

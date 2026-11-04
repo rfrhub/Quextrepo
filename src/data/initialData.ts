@@ -1976,6 +1976,7 @@ export function addArchivedProjectId(id: string) {
 }
 
 export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v2';
+export const MASTER_NOTES_IMPORTED_VERSION_KEY = 'quext_master_notes_imported_v3';
 
 export function isFakeNote(note: { id?: string; author?: string; text?: string }): boolean {
   if (!note) return true;
@@ -2145,7 +2146,29 @@ export function loadStoredProjects(): OperationProject[] {
         }
       });
 
-      if (!isAlreadyPurged) {
+      // Non-destructively merge imported operational notes into stored projects
+      let hasNotesChanges = false;
+      INITIAL_PROJECTS.forEach((initProj) => {
+        if (initProj.notes && initProj.notes.length > 0) {
+          const target = sanitizedList.find((p) => p.id === initProj.id);
+          if (target) {
+            const existingNoteIds = new Set((target.notes || []).map((n) => n.id));
+            const existingTexts = new Set((target.notes || []).map((n) => n.text?.trim()));
+            const notesToAdd = initProj.notes.filter(
+              (n) =>
+                n.id &&
+                n.id.startsWith('note-sheet-') &&
+                !existingNoteIds.has(n.id) &&
+                !existingTexts.has(n.text?.trim())
+            );
+            if (notesToAdd.length > 0) {
+              target.notes = [...notesToAdd, ...(target.notes || [])];
+              hasNotesChanges = true;
+            }
+          }
+        }
+      });
+      if (hasNotesChanges || !isAlreadyPurged) {
         localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitizedList));
         localStorage.setItem(REAL_TEAM_PURGE_VERSION_KEY, 'true');
       }
