@@ -2787,7 +2787,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     <div className="text-[10px] font-bold truncate">{milestone.title}</div>
                     {effectivePmEditMode ? (
                       <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                        {milestone.title === 'Implementation' || milestone.title.toLowerCase().includes('implement') ? (
+                        {milestone.title === 'Implementation' || (milestone.title.toLowerCase().includes('implementation') && !milestone.title.toLowerCase().includes('pre-') && !milestone.title.toLowerCase().includes('intro')) ? (
                           <div className="space-y-1 text-left">
                             <div>
                               <label className="text-[8.5px] font-bold text-amber-900 block">
@@ -2830,7 +2830,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                         )}
                       </div>
                     ) : (
-                      milestone.title === 'Implementation' || milestone.title.toLowerCase().includes('implement') ? (
+                      milestone.title === 'Implementation' || (milestone.title.toLowerCase().includes('implementation') && !milestone.title.toLowerCase().includes('pre-') && !milestone.title.toLowerCase().includes('intro')) ? (
                         <div className="mt-1 space-y-0.5 text-left bg-white/70 px-1.5 py-1 rounded border border-slate-200/80 text-[9px] font-mono">
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-slate-500 font-semibold">Start:</span>

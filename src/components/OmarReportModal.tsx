@@ -44,7 +44,11 @@ const MONTH_NAMES = [
 
 function getProjectDates(p: OperationProject) {
   const implM = p.milestones?.find(
-    (m) => m.title === 'Implementation' || m.title.toLowerCase().includes('implement')
+    (m) =>
+      m.title === 'Implementation' ||
+      (m.title.toLowerCase().includes('implementation') &&
+        !m.title.toLowerCase().includes('pre-') &&
+        !m.title.toLowerCase().includes('intro'))
   );
   const closedM = p.milestones?.find(
     (m) => m.title === 'Project Closed' || m.title.toLowerCase().includes('closed')

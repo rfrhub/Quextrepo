@@ -605,7 +605,10 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
       // Implementation Milestone
       const implMilestone = proj.milestones.find(
         (m) =>
-          m.title.toLowerCase().includes('implementation') ||
+          m.title === 'Implementation' ||
+          (m.title.toLowerCase().includes('implementation') &&
+            !m.title.toLowerCase().includes('pre-') &&
+            !m.title.toLowerCase().includes('intro')) ||
           m.title.toLowerCase().includes('installation')
       );
       const implParsed = parseYMD(implMilestone?.targetDate);
@@ -2755,7 +2758,7 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                         }`}
                       >
                         <div className="text-[10px] font-bold truncate">{milestone.title}</div>
-                        {milestone.title === 'Implementation' || milestone.title.toLowerCase().includes('implement') ? (
+                        {milestone.title === 'Implementation' || (milestone.title.toLowerCase().includes('implementation') && !milestone.title.toLowerCase().includes('pre-') && !milestone.title.toLowerCase().includes('intro')) ? (
                           <div className="mt-1 space-y-0.5 text-left bg-white/70 px-1.5 py-1 rounded border border-slate-200/80 text-[9px] font-mono">
                             <div className="flex items-center justify-between gap-1">
                               <span className="text-slate-500 font-semibold">Start:</span>

@@ -502,7 +502,11 @@ export function generateOmarDashboardPdf(
 
     // Col 5: Implementation Dates: Install Start and Install Complete (94 pt)
     const implMilestone = p.milestones?.find(
-      (m) => m.title === 'Implementation' || m.title.toLowerCase().includes('implement')
+      (m) =>
+        m.title === 'Implementation' ||
+        (m.title.toLowerCase().includes('implementation') &&
+          !m.title.toLowerCase().includes('pre-') &&
+          !m.title.toLowerCase().includes('intro'))
     );
     const installStart =
       (p as any).installationStartDate ||
