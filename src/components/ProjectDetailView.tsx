@@ -2326,20 +2326,21 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
               {effectivePmEditMode ? (
-                <span className="inline-flex items-center gap-1.5 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-300 text-amber-950">
-                  <span className="text-[11px] font-bold text-amber-900">Client / Owner:</span>
+                <span className="inline-flex items-center gap-1.5 bg-amber-50/90 px-2.5 py-1 rounded-lg border border-amber-300 text-amber-950 shadow-2xs transition-all duration-200 focus-within:ring-2 focus-within:ring-amber-500/40 focus-within:border-amber-500">
+                  <span className="text-[11px] font-bold text-amber-900 shrink-0">Client / Owner:</span>
                   <input
                     type="text"
                     value={project.clientName}
                     onChange={(e) => handleUpdateClientName(e.target.value)}
                     placeholder="Client / Owner..."
-                    className="bg-transparent font-bold text-slate-900 placeholder:text-amber-400 placeholder:font-normal focus:outline-none focus:bg-white focus:px-1.5 rounded text-xs min-w-[165px]"
+                    className="bg-transparent font-bold text-slate-900 placeholder:text-amber-400/80 placeholder:font-normal focus:outline-none focus:bg-white focus:px-2 focus:py-0.5 rounded text-xs min-w-[165px] transition-all duration-150"
                     title="Edit Client / Owner"
                   />
                 </span>
               ) : (
-                <span className="text-slate-900 font-semibold">
-                  Client / Owner: <strong className="text-slate-900">{project.clientName}</strong>
+                <span className="inline-flex items-center gap-1 text-slate-700 font-medium">
+                  <span className="text-slate-500">Client / Owner:</span>
+                  <strong className="text-slate-900 font-semibold">{project.clientName}</strong>
                 </span>
               )}
               <span>·</span>
@@ -2762,7 +2763,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               </div>
 
               {/* Milestones Horizontal Flow (7 Milestones — Design Removed) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-1.5 pt-1 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2 pt-1 text-center items-stretch">
                 {project.milestones.map((milestone) => (
                   <div
                     key={milestone.id}
@@ -2772,66 +2773,66 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                         ? `Set target date for ${milestone.title}`
                         : `Click to progress status: Uncompleted → In Progress → Completed (Current: ${milestone.status})`
                     }
-                    className={`p-2 rounded-lg border text-xs transition-all ${
+                    className={`flex flex-col justify-between p-2.5 rounded-lg border text-xs transition-all duration-200 ease-out ${
                       effectivePmEditMode
-                        ? 'cursor-default ring-2 ring-amber-400 bg-amber-50/40 shadow-xs'
-                        : 'cursor-pointer select-none hover:scale-[1.02]'
+                        ? 'min-h-[110px] cursor-default ring-2 ring-amber-400 bg-amber-50/50 shadow-xs'
+                        : 'min-h-[96px] cursor-pointer select-none hover:scale-[1.02] hover:shadow-xs'
                     } ${
                       milestone.status === 'Completed'
-                        ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 font-semibold hover:bg-emerald-100/80'
+                        ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 font-semibold hover:bg-emerald-100/90'
                         : milestone.status === 'In Progress'
-                        ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold ring-2 ring-sky-300/40 hover:bg-sky-100/80'
-                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-100'
+                        ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold ring-2 ring-sky-300/40 hover:bg-sky-100/90'
+                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="text-[10px] font-bold truncate">{milestone.title}</div>
+                    <div className="text-[10px] font-bold truncate tracking-tight">{milestone.title}</div>
                     {effectivePmEditMode ? (
-                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                      <div className="mt-1 flex-1 flex flex-col justify-center" onClick={(e) => e.stopPropagation()}>
                         {milestone.title === 'Implementation' || (milestone.title.toLowerCase().includes('implementation') && !milestone.title.toLowerCase().includes('pre-') && !milestone.title.toLowerCase().includes('intro')) ? (
-                          <div className="space-y-1 text-left">
+                          <div className="space-y-1.5 text-left">
                             <div>
-                              <label className="text-[8.5px] font-bold text-amber-900 block">
+                              <label className="text-[8.5px] font-bold text-amber-900 block mb-0.5">
                                 Install Start:
                               </label>
                               <input
                                 type="date"
                                 value={project.installationStartDate || milestone.startedAt || project.startDate || ''}
                                 onChange={(e) => handleUpdateInstallStartDate(milestone.id, e.target.value)}
-                                className="w-full text-[9px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                                className="w-full text-[9px] font-mono font-bold text-slate-900 bg-white border border-amber-400/90 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 shadow-2xs cursor-pointer transition-all duration-150"
                                 title="Set Install Start Date"
                               />
                             </div>
                             <div>
-                              <label className="text-[8.5px] font-bold text-amber-900 block">
+                              <label className="text-[8.5px] font-bold text-amber-900 block mb-0.5">
                                 Install Complete:
                               </label>
                               <input
                                 type="date"
                                 value={project.installationEndDate || milestone.completedDate || milestone.targetDate || project.targetCompletionDate || ''}
                                 onChange={(e) => handleUpdateInstallCompleteDate(milestone.id, e.target.value)}
-                                className="w-full text-[9px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                                className="w-full text-[9px] font-mono font-bold text-slate-900 bg-white border border-amber-400/90 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 shadow-2xs cursor-pointer transition-all duration-150"
                                 title="Set Install Complete Date"
                               />
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <label className="text-[9px] font-semibold text-amber-800 block text-left">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-semibold text-amber-800 block text-left mb-0.5">
                               Target:
                             </label>
                             <input
                               type="date"
                               value={milestone.targetDate || ''}
                               onChange={(e) => handleUpdateMilestoneTargetDate(milestone.id, e.target.value)}
-                              className="w-full text-[10px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                              className="w-full text-[10px] font-mono font-bold text-slate-900 bg-white border border-amber-400/90 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 shadow-2xs cursor-pointer transition-all duration-150"
                               title={`Set target date for ${milestone.title}`}
                             />
-                          </>
+                          </div>
                         )}
                       </div>
                     ) : (
                       milestone.title === 'Implementation' || (milestone.title.toLowerCase().includes('implementation') && !milestone.title.toLowerCase().includes('pre-') && !milestone.title.toLowerCase().includes('intro')) ? (
-                        <div className="mt-1 space-y-0.5 text-left bg-white/70 px-1.5 py-1 rounded border border-slate-200/80 text-[9px] font-mono">
+                        <div className="mt-1.5 space-y-0.5 text-left bg-white/80 backdrop-blur-2xs px-2 py-1.5 rounded-md border border-slate-200/90 text-[9px] font-mono shadow-2xs">
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-slate-500 font-semibold">Start:</span>
                             <span className="font-bold text-slate-800">
@@ -2845,23 +2846,31 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                             </span>
                           </div>
                           {milestone.status === 'Completed' && (
-                            <div className="text-[8.5px] font-bold text-emerald-700 text-center pt-0.5 border-t border-emerald-200/60">
+                            <div className="text-[8.5px] font-bold text-emerald-700 text-center pt-1 mt-0.5 border-t border-emerald-200/60">
                               ✓ Completed
                             </div>
                           )}
                           {milestone.status === 'In Progress' && (
-                            <div className="text-[8.5px] font-bold text-sky-700 text-center pt-0.5 border-t border-sky-200/60">
+                            <div className="text-[8.5px] font-bold text-sky-700 text-center pt-1 mt-0.5 border-t border-sky-200/60">
                               ● In Progress
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="text-[10px] font-mono text-slate-600 mt-0.5">
-                          {milestone.status === 'Completed'
-                            ? '✓ Completed'
-                            : milestone.status === 'In Progress'
-                            ? '● In Progress'
-                            : milestone.targetDate}
+                        <div className="mt-1 flex-1 flex flex-col items-center justify-center">
+                          {milestone.status === 'Completed' ? (
+                            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-300/70 px-2 py-0.5 rounded-md shadow-2xs">
+                              ✓ Completed
+                            </span>
+                          ) : milestone.status === 'In Progress' ? (
+                            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-sky-800 bg-sky-100/80 border border-sky-300/70 px-2 py-0.5 rounded-md shadow-2xs">
+                              ● In Progress
+                            </span>
+                          ) : (
+                            <span className="text-[9.5px] font-mono text-slate-500 font-medium">
+                              {milestone.targetDate || 'TBD'}
+                            </span>
+                          )}
                         </div>
                       )
                     )}

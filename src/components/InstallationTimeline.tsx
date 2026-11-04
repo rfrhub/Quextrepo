@@ -2749,17 +2749,17 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                           });
                         }}
                         title={`Click to progress status: Uncompleted → In Progress → Completed (Current: ${milestone.status})`}
-                        className={`p-2 rounded-lg border text-xs transition-all cursor-pointer select-none hover:scale-[1.02] ${
+                        className={`flex flex-col justify-between min-h-[96px] p-2.5 rounded-lg border text-xs transition-all duration-200 ease-out cursor-pointer select-none hover:scale-[1.02] hover:shadow-xs ${
                           milestone.status === 'Completed'
-                            ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 font-semibold'
+                            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 font-semibold hover:bg-emerald-100/90'
                             : milestone.status === 'In Progress'
-                            ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold ring-2 ring-sky-300/40'
-                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                            ? 'bg-sky-50 border-sky-400 text-sky-950 font-bold ring-2 ring-sky-300/40 hover:bg-sky-100/90'
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="text-[10px] font-bold truncate">{milestone.title}</div>
+                        <div className="text-[10px] font-bold truncate tracking-tight">{milestone.title}</div>
                         {milestone.title === 'Implementation' || (milestone.title.toLowerCase().includes('implementation') && !milestone.title.toLowerCase().includes('pre-') && !milestone.title.toLowerCase().includes('intro')) ? (
-                          <div className="mt-1 space-y-0.5 text-left bg-white/70 px-1.5 py-1 rounded border border-slate-200/80 text-[9px] font-mono">
+                          <div className="mt-1.5 space-y-0.5 text-left bg-white/80 backdrop-blur-2xs px-2 py-1.5 rounded-md border border-slate-200/90 text-[9px] font-mono shadow-2xs">
                             <div className="flex items-center justify-between gap-1">
                               <span className="text-slate-500 font-semibold">Start:</span>
                               <span className="font-bold text-slate-800">
@@ -2773,23 +2773,31 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                               </span>
                             </div>
                             {milestone.status === 'Completed' && (
-                              <div className="text-[8.5px] font-bold text-emerald-700 text-center pt-0.5 border-t border-emerald-200/60">
+                              <div className="text-[8.5px] font-bold text-emerald-700 text-center pt-1 mt-0.5 border-t border-emerald-200/60">
                                 ✓ Completed
                               </div>
                             )}
                             {milestone.status === 'In Progress' && (
-                              <div className="text-[8.5px] font-bold text-sky-700 text-center pt-0.5 border-t border-sky-200/60">
+                              <div className="text-[8.5px] font-bold text-sky-700 text-center pt-1 mt-0.5 border-t border-sky-200/60">
                                 ● In Progress
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div className="text-[10px] font-mono text-slate-600 mt-0.5">
-                            {milestone.status === 'Completed'
-                              ? '✓ Completed'
-                              : milestone.status === 'In Progress'
-                              ? '● In Progress'
-                              : milestone.targetDate}
+                          <div className="mt-1 flex-1 flex flex-col items-center justify-center">
+                            {milestone.status === 'Completed' ? (
+                              <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-300/70 px-2 py-0.5 rounded-md shadow-2xs">
+                                ✓ Completed
+                              </span>
+                            ) : milestone.status === 'In Progress' ? (
+                              <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-sky-800 bg-sky-100/80 border border-sky-300/70 px-2 py-0.5 rounded-md shadow-2xs">
+                                ● In Progress
+                              </span>
+                            ) : (
+                              <span className="text-[9.5px] font-mono text-slate-500 font-medium">
+                                {milestone.targetDate || 'TBD'}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
