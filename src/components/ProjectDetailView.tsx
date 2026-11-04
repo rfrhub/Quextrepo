@@ -107,6 +107,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { exportSingleProject, openImportModal } from '../utils/projectBackupService';
+import { formatShortDate } from '../utils/generateOmarDashboardPdf';
 import {
   getProjectPartnerCourseCompletion,
   loadPartnerAcademyUsers,
@@ -257,6 +258,44 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
       ...project,
       milestones: updatedMilestones,
       targetCompletionDate: updatedTargetDate,
+      statusTag: health.effectiveTag,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleUpdateInstallStartDate = (milestoneId: string, newDate: string) => {
+    const updatedMilestones = project.milestones.map((m) =>
+      m.id === milestoneId ? { ...m, startedAt: newDate } : m
+    );
+    onUpdateProject({
+      ...project,
+      milestones: updatedMilestones,
+      installationStartDate: newDate,
+      startDate: project.startDate || newDate,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleUpdateInstallCompleteDate = (milestoneId: string, newDate: string) => {
+    const updatedMilestones = project.milestones.map((m) =>
+      m.id === milestoneId
+        ? {
+            ...m,
+            targetDate: newDate,
+            completedDate: m.status === 'Completed' ? newDate : m.completedDate,
+          }
+        : m
+    );
+    const health = calculateProjectScheduleHealth(
+      project.targetCompletionDate,
+      project.statusTag,
+      updatedMilestones,
+      project.notes
+    );
+    onUpdateProject({
+      ...project,
+      milestones: updatedMilestones,
+      installationEndDate: newDate,
       statusTag: health.effectiveTag,
       lastUpdated: new Date().toISOString(),
     });
@@ -2748,25 +2787,83 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     <div className="text-[10px] font-bold truncate">{milestone.title}</div>
                     {effectivePmEditMode ? (
                       <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                        <label className="text-[9px] font-semibold text-amber-800 block text-left">
-                          Target:
-                        </label>
-                        <input
-                          type="date"
-                          value={milestone.targetDate || ''}
-                          onChange={(e) => handleUpdateMilestoneTargetDate(milestone.id, e.target.value)}
-                          className="w-full text-[10px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
-                          title={`Set target date for ${milestone.title}`}
-                        />
+                        {milestone.title === 'Implementation' || milestone.title.toLowerCase().includes('implement') ? (
+                          <div className="space-y-1 text-left">
+                            <div>
+                              <label className="text-[8.5px] font-bold text-amber-900 block">
+                                Install Start:
+                              </label>
+                              <input
+                                type="date"
+                                value={project.installationStartDate || milestone.startedAt || project.startDate || ''}
+                                onChange={(e) => handleUpdateInstallStartDate(milestone.id, e.target.value)}
+                                className="w-full text-[9px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                                title="Set Install Start Date"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[8.5px] font-bold text-amber-900 block">
+                                Install Complete:
+                              </label>
+                              <input
+                                type="date"
+                                value={project.installationEndDate || milestone.completedDate || milestone.targetDate || project.targetCompletionDate || ''}
+                                onChange={(e) => handleUpdateInstallCompleteDate(milestone.id, e.target.value)}
+                                className="w-full text-[9px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                                title="Set Install Complete Date"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <label className="text-[9px] font-semibold text-amber-800 block text-left">
+                              Target:
+                            </label>
+                            <input
+                              type="date"
+                              value={milestone.targetDate || ''}
+                              onChange={(e) => handleUpdateMilestoneTargetDate(milestone.id, e.target.value)}
+                              className="w-full text-[10px] font-mono font-bold text-slate-900 bg-white border border-amber-400 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                              title={`Set target date for ${milestone.title}`}
+                            />
+                          </>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-[10px] font-mono text-slate-600 mt-0.5">
-                        {milestone.status === 'Completed'
-                          ? '✓ Completed'
-                          : milestone.status === 'In Progress'
-                          ? '● In Progress'
-                          : milestone.targetDate}
-                      </div>
+                      milestone.title === 'Implementation' || milestone.title.toLowerCase().includes('implement') ? (
+                        <div className="mt-1 space-y-0.5 text-left bg-white/70 px-1.5 py-1 rounded border border-slate-200/80 text-[9px] font-mono">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-slate-500 font-semibold">Start:</span>
+                            <span className="font-bold text-slate-800">
+                              {formatShortDate(project.installationStartDate || milestone.startedAt || project.startDate)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-slate-500 font-semibold">End:</span>
+                            <span className="font-bold text-slate-800">
+                              {formatShortDate(project.installationEndDate || milestone.completedDate || milestone.targetDate || project.targetCompletionDate)}
+                            </span>
+                          </div>
+                          {milestone.status === 'Completed' && (
+                            <div className="text-[8.5px] font-bold text-emerald-700 text-center pt-0.5 border-t border-emerald-200/60">
+                              ✓ Completed
+                            </div>
+                          )}
+                          {milestone.status === 'In Progress' && (
+                            <div className="text-[8.5px] font-bold text-sky-700 text-center pt-0.5 border-t border-sky-200/60">
+                              ● In Progress
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-[10px] font-mono text-slate-600 mt-0.5">
+                          {milestone.status === 'Completed'
+                            ? '✓ Completed'
+                            : milestone.status === 'In Progress'
+                            ? '● In Progress'
+                            : milestone.targetDate}
+                        </div>
+                      )
                     )}
                   </div>
                 ))}

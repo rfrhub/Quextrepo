@@ -49,6 +49,7 @@ import {
   LayoutGrid,
   CalendarDays,
 } from 'lucide-react';
+import { formatShortDate } from '../utils/generateOmarDashboardPdf';
 
 interface InstallationTimelineProps {
   projects: OperationProject[];
@@ -2753,14 +2754,41 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                             : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
                         }`}
                       >
-                        <div className="text-[10px] truncate">{milestone.title}</div>
-                        <div className="text-[10px] font-mono text-slate-600 mt-0.5">
-                          {milestone.status === 'Completed'
-                            ? '✓ Completed'
-                            : milestone.status === 'In Progress'
-                            ? '● In Progress'
-                            : milestone.targetDate}
-                        </div>
+                        <div className="text-[10px] font-bold truncate">{milestone.title}</div>
+                        {milestone.title === 'Implementation' || milestone.title.toLowerCase().includes('implement') ? (
+                          <div className="mt-1 space-y-0.5 text-left bg-white/70 px-1.5 py-1 rounded border border-slate-200/80 text-[9px] font-mono">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-slate-500 font-semibold">Start:</span>
+                              <span className="font-bold text-slate-800">
+                                {formatShortDate(project.installationStartDate || milestone.startedAt || project.startDate)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-slate-500 font-semibold">End:</span>
+                              <span className="font-bold text-slate-800">
+                                {formatShortDate(project.installationEndDate || milestone.completedDate || milestone.targetDate || project.targetCompletionDate)}
+                              </span>
+                            </div>
+                            {milestone.status === 'Completed' && (
+                              <div className="text-[8.5px] font-bold text-emerald-700 text-center pt-0.5 border-t border-emerald-200/60">
+                                ✓ Completed
+                              </div>
+                            )}
+                            {milestone.status === 'In Progress' && (
+                              <div className="text-[8.5px] font-bold text-sky-700 text-center pt-0.5 border-t border-sky-200/60">
+                                ● In Progress
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] font-mono text-slate-600 mt-0.5">
+                            {milestone.status === 'Completed'
+                              ? '✓ Completed'
+                              : milestone.status === 'In Progress'
+                              ? '● In Progress'
+                              : milestone.targetDate}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

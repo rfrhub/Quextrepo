@@ -1326,6 +1326,8 @@ export interface OperationProject {
   statusReason?: string;
   startDate: string;
   targetCompletionDate: string;
+  installationStartDate?: string; // Implementation milestone: Install Start Date
+  installationEndDate?: string; // Implementation milestone: Install Complete Date
   bomItems: BOMItem[];
   installLogs: InstallLogEntry[];
   notes: ProjectNote[];
