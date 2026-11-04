@@ -1,4 +1,11 @@
 import { PARTNER_IDENTITY_DIRECTORY, PartnerIdentityDirectoryEntry } from './projectCoursePackager';
+import {
+  saveLivePartnerCredential,
+  deleteLivePartnerCredential,
+  fetchLivePartnerByCodeFromCloud,
+} from '../../services/realtimeSyncService';
+
+export { fetchLivePartnerByCodeFromCloud };
 
 export interface PartnerSecurityCredential {
   companyId: string;
@@ -62,6 +69,11 @@ export function deletePartnerFirm(companyId: string): void {
     // 5. Broadcast updates
     window.dispatchEvent(new Event('quext-partner-credentials-updated'));
     window.dispatchEvent(new Event('storage'));
+
+    // 6. Delete in Cloud Firestore for cross-browser, out-of-state synchronization
+    deleteLivePartnerCredential(companyId).catch((err) =>
+      console.warn('[PartnerSecurity] Cloud partner deletion sync warning:', err)
+    );
   } catch (err) {
     console.error('[PartnerSecurity] Error deleting partner firm:', err);
   }
@@ -159,6 +171,12 @@ export function registerNewPartnerSecureCode(
 
   all[companyId] = cred;
   savePartnerSecurityCredentials(all);
+
+  // Sync to Cloud Firestore in real time for cross-browser, live anywhere access
+  saveLivePartnerCredential(cred).catch((err) =>
+    console.warn('[PartnerSecurity] Cloud partner sync warning:', err)
+  );
+
   return cred;
 }
 
@@ -358,6 +376,12 @@ export function rotatePartnerSecureCode(companyId: string): string {
   };
 
   savePartnerSecurityCredentials(all);
+
+  // Sync rotated credentials to Cloud Firestore
+  saveLivePartnerCredential(all[companyId]).catch((err) =>
+    console.warn('[PartnerSecurity] Cloud partner code rotation sync warning:', err)
+  );
+
   return newCode;
 }
 

@@ -16,6 +16,8 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { OperationProject, Quote, isLockBOMItem } from '../types';
+import type { PartnerSecurityCredential } from '../partner-academy/utils/partnerSecurity';
+import { PARTNER_IDENTITY_DIRECTORY } from '../partner-academy/utils/projectCoursePackager';
 import {
   INITIAL_PROJECTS,
   INITIAL_QUOTES,
@@ -41,6 +43,8 @@ const db = getFirestore(syncApp);
 const PROJECTS_COLLECTION = 'quext_live_projects';
 const ARCHIVED_PROJECTS_COLLECTION = 'quext_archived_projects';
 const QUOTES_COLLECTION = 'quext_live_quotes';
+const PARTNER_CREDENTIALS_COLLECTION = 'quext_live_partner_codes';
+const DELETED_PARTNERS_COLLECTION = 'quext_live_deleted_partners';
 
 export interface SyncStatus {
   isConnected: boolean;
@@ -402,4 +406,339 @@ async function seedInitialQuotesToCloud(quotes: Quote[]): Promise<void> {
   } catch (err) {
     console.error('[Cloud Sync] Failed to seed initial quotes:', err);
   }
+}
+
+/**
+ * Saves or updates a partner security credential in Cloud Firestore in real-time.
+ */
+export async function saveLivePartnerCredential(cred: PartnerSecurityCredential): Promise<void> {
+  if (!cred || !cred.companyId) return;
+  try {
+    updateSyncStatus({ isSyncing: true });
+    const clean = sanitizeForFirestore({
+      ...cred,
+      isDeleted: false,
+      syncedAt: new Date().toISOString(),
+    });
+    const docRef = doc(db, PARTNER_CREDENTIALS_COLLECTION, cred.companyId);
+    await setDoc(docRef, clean, { merge: true });
+
+    // Ensure removed from deleted tombstone collection
+    try {
+      await deleteDoc(doc(db, DELETED_PARTNERS_COLLECTION, cred.companyId));
+    } catch {}
+
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    updateSyncStatus({
+      isConnected: true,
+      isSyncing: false,
+      lastSyncedAt: nowStr,
+      error: null,
+    });
+  } catch (err: any) {
+    console.error(`[Cloud Sync] Failed to save partner credential ${cred.companyId}:`, err);
+    updateSyncStatus({
+      isSyncing: false,
+      error: err?.message || 'Failed to save partner code to cloud',
+    });
+    throw err;
+  }
+}
+
+/**
+ * Permanently removes a partner firm and marks it as deleted in Cloud Firestore.
+ */
+export async function deleteLivePartnerCredential(companyId: string): Promise<void> {
+  if (!companyId) return;
+  try {
+    updateSyncStatus({ isSyncing: true });
+
+    // 1. Delete document from live partner codes collection
+    const docRef = doc(db, PARTNER_CREDENTIALS_COLLECTION, companyId);
+    await deleteDoc(docRef);
+
+    // 2. Add tombstone to deleted collection so other devices do not re-seed it
+    const delDocRef = doc(db, DELETED_PARTNERS_COLLECTION, companyId);
+    await setDoc(delDocRef, { companyId, deletedAt: new Date().toISOString() }, { merge: true });
+
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    updateSyncStatus({
+      isConnected: true,
+      isSyncing: false,
+      lastSyncedAt: nowStr,
+      error: null,
+    });
+  } catch (err: any) {
+    console.error(`[Cloud Sync] Failed to delete partner credential ${companyId}:`, err);
+    updateSyncStatus({
+      isSyncing: false,
+      error: err?.message || 'Failed to delete partner code from cloud',
+    });
+    throw err;
+  }
+}
+
+/**
+ * Seed initial partner directory to Cloud Firestore if collection is empty
+ */
+async function seedInitialPartnersToCloud(): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    const defaults: Record<string, string> = {
+      comp_spirit: 'QX-SPR-9F4K-82A1',
+      comp_engineered: 'QX-ENC-371B-94M2',
+      comp_everbase: 'QX-EVB-883P-41K7',
+      comp_skbm: 'QX-SKB-619X-55D2',
+      comp_southbay: 'QX-SBH-204K-73L9',
+      comp_atb: 'QX-ATB-582M-19N4',
+      comp_jts: 'QX-JTS-447Q-88P3',
+      comp_rmr: 'QX-RMR-731V-62X5',
+      comp_allmedia: 'QX-AMD-905W-34E8',
+      comp_diy: 'QX-DIY-100A-0000',
+    };
+
+    for (const entry of PARTNER_IDENTITY_DIRECTORY) {
+      const prefix = `QX-${entry.companyCode.slice(0, 3).toUpperCase()}`;
+      const code = defaults[entry.companyId] || `${prefix}-7492-9K1A`;
+      const cred: PartnerSecurityCredential = {
+        companyId: entry.companyId,
+        partnerShortName: entry.partnerShortName,
+        companyName: entry.companyName,
+        legacyCode: entry.companyCode,
+        secureAccessCode: code,
+        defaultEmail: entry.defaultEmail,
+        leadName: entry.leadName,
+        region: entry.region,
+        lastGeneratedAt: '2026-01-15T00:00:00.000Z',
+      };
+      const clean = sanitizeForFirestore(cred);
+      const docRef = doc(db, PARTNER_CREDENTIALS_COLLECTION, cred.companyId);
+      batch.set(docRef, clean, { merge: true });
+    }
+    await batch.commit();
+    console.log('[Cloud Sync] Successfully seeded initial partner directory to Cloud Firestore.');
+  } catch (err) {
+    console.error('[Cloud Sync] Failed to seed initial partners to cloud:', err);
+  }
+}
+
+/**
+ * Synchronizes cloud partners with browser local storage and triggers state updates.
+ */
+function syncCloudPartnersToLocalStorage(
+  liveCreds: Record<string, PartnerSecurityCredential>,
+  cloudDeletedIds: string[]
+): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const STORAGE_KEY_PARTNER_CODES = 'quext_partner_secure_access_codes_v1';
+    const STORAGE_KEY_DELETED_PARTNER_IDS = 'quext_deleted_partner_ids_v1';
+    const STORAGE_KEY_COMPANIES = 'quext_academy_companies_v5';
+    const STORAGE_KEY_USERS = 'quext_academy_users_v5';
+
+    // 1. Save partner credentials
+    localStorage.setItem(STORAGE_KEY_PARTNER_CODES, JSON.stringify(liveCreds));
+
+    // 2. Save deleted IDs
+    const existingDeletedRaw = localStorage.getItem(STORAGE_KEY_DELETED_PARTNER_IDS);
+    const existingDeleted: string[] = existingDeletedRaw ? JSON.parse(existingDeletedRaw) : [];
+    const mergedDeleted = Array.from(new Set([...existingDeleted, ...cloudDeletedIds]));
+    localStorage.setItem(STORAGE_KEY_DELETED_PARTNER_IDS, JSON.stringify(mergedDeleted));
+    const deletedSet = new Set(mergedDeleted);
+
+    // 3. Sync partner companies
+    const savedCompaniesRaw = localStorage.getItem(STORAGE_KEY_COMPANIES);
+    const currentCompanies: any[] = savedCompaniesRaw ? JSON.parse(savedCompaniesRaw) : [];
+    const companyMap = new Map(currentCompanies.map((c) => [c.id, c]));
+
+    // Remove deleted companies
+    for (const id of deletedSet) {
+      companyMap.delete(id);
+    }
+
+    // Add or update companies from liveCreds
+    for (const cred of Object.values(liveCreds)) {
+      if (deletedSet.has(cred.companyId)) continue;
+      if (!companyMap.has(cred.companyId)) {
+        companyMap.set(cred.companyId, {
+          id: cred.companyId,
+          name: cred.companyName,
+          code: cred.legacyCode,
+          region: cred.region,
+          leadName: cred.leadName,
+          tier: 'Authorized Partner',
+          activeTechnicians: 1,
+          contactEmail: cred.defaultEmail,
+          joinedDate: 'Active Partner',
+        });
+      } else {
+        const existing = companyMap.get(cred.companyId);
+        companyMap.set(cred.companyId, {
+          ...existing,
+          name: cred.companyName,
+          code: cred.legacyCode,
+          region: cred.region,
+          leadName: cred.leadName,
+          contactEmail: cred.defaultEmail,
+        });
+      }
+    }
+    localStorage.setItem(STORAGE_KEY_COMPANIES, JSON.stringify(Array.from(companyMap.values())));
+
+    // 4. Sync partner admin users
+    const savedUsersRaw = localStorage.getItem(STORAGE_KEY_USERS);
+    const currentUsers: any[] = savedUsersRaw ? JSON.parse(savedUsersRaw) : [];
+    const userMap = new Map(currentUsers.map((u) => [u.id, u]));
+
+    // Remove users belonging to deleted companies
+    for (const [userId, user] of Array.from(userMap.entries())) {
+      if (deletedSet.has(user.companyId)) {
+        userMap.delete(userId);
+      }
+    }
+
+    // Ensure admin user exists for each partner
+    for (const cred of Object.values(liveCreds)) {
+      if (deletedSet.has(cred.companyId)) continue;
+      const adminUserId = `user_${cred.companyId}_admin`;
+      if (!userMap.has(adminUserId)) {
+        userMap.set(adminUserId, {
+          id: adminUserId,
+          name: cred.leadName || `${cred.partnerShortName} Lead`,
+          email: cred.defaultEmail,
+          role: 'partner_admin',
+          companyId: cred.companyId,
+          companyName: cred.companyName,
+          fieldIdNumber: `MGR-${cred.legacyCode.replace(/[^0-9]/g, '').slice(-4) || '1001'}`,
+          certifications: [],
+          progress: {},
+          completedLessons: [],
+          quizScores: {},
+        });
+      } else {
+        const existing = userMap.get(adminUserId);
+        userMap.set(adminUserId, {
+          ...existing,
+          name: cred.leadName || existing.name,
+          email: cred.defaultEmail || existing.email,
+          companyName: cred.companyName,
+        });
+      }
+    }
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(Array.from(userMap.values())));
+
+    // Broadcast update events to all local hooks and context
+    window.dispatchEvent(new Event('quext-partner-credentials-updated'));
+    window.dispatchEvent(new Event('storage'));
+  } catch (err) {
+    console.error('[Cloud Sync] Error syncing cloud partners to localStorage:', err);
+  }
+}
+
+/**
+ * Subscribes to live partner credentials collection in Cloud Firestore.
+ * Automatically synchronizes with local storage and notifies subscribers.
+ */
+export function subscribeToLivePartnerCredentials(
+  onUpdate?: (creds: Record<string, PartnerSecurityCredential>) => void
+): () => void {
+  const colRef = collection(db, PARTNER_CREDENTIALS_COLLECTION);
+  const delColRef = collection(db, DELETED_PARTNERS_COLLECTION);
+  let isInitialLoad = true;
+  const cloudDeletedIds = new Set<string>();
+
+  // Real-time listener for deleted partners
+  const unsubDeleted = onSnapshot(
+    delColRef,
+    (delSnapshot) => {
+      delSnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && data.companyId) {
+          cloudDeletedIds.add(data.companyId);
+        }
+      });
+    },
+    (err) => console.warn('[Cloud Sync] Firestore deleted partners listener warning:', err)
+  );
+
+  // Real-time listener for partner credentials
+  const unsubCreds = onSnapshot(
+    colRef,
+    async (snapshot) => {
+      try {
+        if (snapshot.empty && isInitialLoad) {
+          isInitialLoad = false;
+          console.log('[Cloud Sync] Cloud partner codes empty. Seeding directory to Firestore...');
+          await seedInitialPartnersToCloud();
+          return;
+        }
+
+        isInitialLoad = false;
+        const liveCreds: Record<string, PartnerSecurityCredential> = {};
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as PartnerSecurityCredential & { isDeleted?: boolean };
+          if (data && data.companyId && !data.isDeleted && !cloudDeletedIds.has(data.companyId)) {
+            liveCreds[data.companyId] = {
+              companyId: data.companyId,
+              partnerShortName: data.partnerShortName,
+              companyName: data.companyName,
+              legacyCode: data.legacyCode,
+              secureAccessCode: data.secureAccessCode,
+              defaultEmail: data.defaultEmail,
+              leadName: data.leadName,
+              region: data.region,
+              lastGeneratedAt: data.lastGeneratedAt,
+            };
+          }
+        });
+
+        syncCloudPartnersToLocalStorage(liveCreds, Array.from(cloudDeletedIds));
+
+        if (onUpdate) {
+          onUpdate(liveCreds);
+        }
+      } catch (err) {
+        console.error('[Cloud Sync] Error processing live partner codes snapshot:', err);
+      }
+    },
+    (err) => {
+      console.warn('[Cloud Sync] Firestore live partner codes listener error:', err);
+    }
+  );
+
+  return () => {
+    unsubCreds();
+    unsubDeleted();
+  };
+}
+
+/**
+ * Fallback direct cloud query to locate a partner by secure access code or company code.
+ * Used when a user on a brand new browser attempts authentication.
+ */
+export async function fetchLivePartnerByCodeFromCloud(
+  inputCode: string
+): Promise<PartnerSecurityCredential | null> {
+  if (!inputCode) return null;
+  const clean = inputCode.trim().toUpperCase().replace(/[\s-]+/g, '');
+
+  try {
+    const snap = await getDocs(collection(db, PARTNER_CREDENTIALS_COLLECTION));
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data() as PartnerSecurityCredential & { isDeleted?: boolean };
+      if (!data || data.isDeleted) continue;
+      const cleanSecure = (data.secureAccessCode || '').replace(/[\s-]+/g, '').toUpperCase();
+      const cleanLegacy = (data.legacyCode || '').replace(/[\s-]+/g, '').toUpperCase();
+      if (clean === cleanSecure || clean === cleanLegacy) {
+        // Cache to local storage immediately
+        syncCloudPartnersToLocalStorage({ [data.companyId]: data }, []);
+        return data;
+      }
+    }
+  } catch (err) {
+    console.error('[Cloud Sync] Error querying partner by code from cloud:', err);
+  }
+  return null;
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Key, Mail, Shield, X, Lock } from 'lucide-react';
+import { Key, Mail, Shield, X, Lock, Loader2 } from 'lucide-react';
+import { fetchLivePartnerByCodeFromCloud } from '../utils/partnerSecurity';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -33,8 +34,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   });
 
   const [loginError, setLoginError] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleCredentialsLogin = (e: React.FormEvent) => {
+  const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
@@ -43,7 +45,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    const success = loginWithCredentials(loginEmail.trim(), loginCompanyCode.trim());
+    setIsAuthenticating(true);
+    let success = loginWithCredentials(loginEmail.trim(), loginCompanyCode.trim());
+
+    // If not found in local cache, query live Cloud Firestore directly
+    if (!success) {
+      try {
+        const cloudCred = await fetchLivePartnerByCodeFromCloud(loginCompanyCode.trim());
+        if (cloudCred) {
+          success = loginWithCredentials(loginEmail.trim(), loginCompanyCode.trim());
+        }
+      } catch (err) {
+        console.error('[LoginModal] Cloud partner credential verification error:', err);
+      }
+    }
+
+    setIsAuthenticating(false);
+
     if (success) {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('quext_partner_portal_authenticated', 'true');
@@ -146,10 +164,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-xs transition-all shadow-lg shadow-blue-900/30 cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+              disabled={isAuthenticating}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-60 text-white font-bold text-xs transition-all shadow-lg shadow-blue-900/30 cursor-pointer flex items-center justify-center gap-2 active:scale-98"
             >
-              <Lock className="w-3.5 h-3.5 text-white" />
-              <span>Sign In to Company Portal</span>
+              {isAuthenticating ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-white" />
+                  <span>Sign In to Company Portal</span>
+                </>
+              )}
             </button>
           </div>
 

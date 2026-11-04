@@ -53,6 +53,7 @@ import { syncLiveOpportunitiesFromMyQuext } from './services/myquextLiveSync';
 import {
   subscribeToLiveProjects,
   subscribeToLiveQuotes,
+  subscribeToLivePartnerCredentials,
   saveLiveProject,
   deleteLiveProject,
   archiveLiveProject,
@@ -288,9 +289,12 @@ export default function App() {
       setQuotes(liveQuotes);
     });
 
+    const unsubPartners = subscribeToLivePartnerCredentials();
+
     return () => {
       unsubProjects();
       unsubQuotes();
+      unsubPartners();
     };
   }, [signedInUser]);
 
