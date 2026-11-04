@@ -144,6 +144,25 @@ export function subscribeToLiveProjects(
                 enriched.notes = [...sheetNotes, ...(enriched.notes || [])];
               }
             }
+
+            // Merge imported dates & milestones from canonical INITIAL_PROJECTS if missing/un-updated
+            if (initProj) {
+              if (initProj.installationStartDate && !enriched.installationStartDate) {
+                enriched.installationStartDate = initProj.installationStartDate;
+              }
+              if (initProj.installationEndDate && !enriched.installationEndDate) {
+                enriched.installationEndDate = initProj.installationEndDate;
+              }
+              const initHasActive = (initProj.milestones || []).some(
+                (m) => m.status === 'Completed' || m.status === 'In Progress'
+              );
+              const enrichedHasActive = (enriched.milestones || []).some(
+                (m) => m.status === 'Completed' || m.status === 'In Progress'
+              );
+              if (initHasActive && !enrichedHasActive) {
+                enriched.milestones = initProj.milestones;
+              }
+            }
             if (hasInvalidLockTag) {
               hadNonLockTagsInCloud = true;
               projectsToCleanseInCloud.push(enriched);

@@ -5,6 +5,7 @@ import { OperationProject } from '../types';
  * Ingested and synchronized from 2026 Master Projects Dashboard - Project Tracker.
  * Preserves 21 Pearl and all existing seed projects while integrating 97 tracker properties.
  * Enriched with operational notes from executive notes update file.
+ * Milestone states and installation dates synchronized from Milestone Card updates sheet.
  */
 export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
   {
@@ -4419,18 +4420,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "id": "m-proj-imported-1793160472944-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-01",
         "title": "Project kickoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472944-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-07"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-16",
         "id": "m-proj-imported-1793160472944-3",
         "title": "Product Acquisition"
@@ -4439,10 +4440,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-23",
         "id": "m-proj-imported-1793160472944-4",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Implementation",
         "targetDate": "2026-12-02",
         "id": "m-proj-imported-1793160472944-5"
@@ -4451,12 +4452,12 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-12-07",
         "id": "m-proj-imported-1793160472944-6",
         "title": "CSM Handoff",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Project Closed",
         "id": "m-proj-imported-1793160472944-7",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-12"
       }
     ],
@@ -4493,7 +4494,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "propertyManagementCompany": "TGG Management",
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472947-1",
         "targetDate": "2026-11-01",
         "title": "Project kickoff"
@@ -4501,29 +4502,29 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472947-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-16",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472947-3"
       },
       {
         "targetDate": "2026-11-23",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472947-4",
         "title": "CSM Intro - Pre-implementation"
       },
       {
         "id": "m-proj-imported-1793160472947-5",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-02",
         "title": "Implementation"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-07",
         "id": "m-proj-imported-1793160472947-6",
         "title": "CSM Handoff"
@@ -4531,7 +4532,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472947-7",
         "title": "Project Closed",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-12"
       }
     ],
@@ -5691,23 +5692,23 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160472948-1",
         "targetDate": "2026-11-01",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472948-2"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472948-3",
         "targetDate": "2026-11-16",
         "title": "Product Acquisition"
       },
       {
         "id": "m-proj-imported-1793160472948-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-23",
         "title": "CSM Intro - Pre-implementation"
       },
@@ -5715,16 +5716,16 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472948-5",
         "title": "Implementation",
         "targetDate": "2026-12-02",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-12-07",
         "id": "m-proj-imported-1793160472948-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Handoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-12",
         "id": "m-proj-imported-1793160472948-7",
         "title": "Project Closed"
@@ -6361,19 +6362,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "targetDate": "2026-11-01",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472949-1",
         "title": "Project kickoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472949-2",
         "title": "Portal Buildout"
       },
       {
         "targetDate": "2026-11-16",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472949-3"
       },
@@ -6381,24 +6382,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472949-4",
         "targetDate": "2026-11-23",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Implementation",
         "id": "m-proj-imported-1793160472949-5",
         "targetDate": "2026-12-02",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472949-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-07",
         "title": "CSM Handoff"
       },
       {
         "targetDate": "2026-12-12",
         "id": "m-proj-imported-1793160472949-7",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project Closed"
       }
     ],
@@ -6894,35 +6895,35 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160472950-1",
         "targetDate": "2026-11-01",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472950-2",
         "title": "Portal Buildout",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07"
       },
       {
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472950-3",
         "targetDate": "2026-11-16",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-23",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-imported-1793160472950-4"
       },
       {
         "id": "m-proj-imported-1793160472950-5",
         "title": "Implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-02"
       },
       {
         "id": "m-proj-imported-1793160472950-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Handoff",
         "targetDate": "2026-12-07"
       },
@@ -6930,7 +6931,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472950-7",
         "targetDate": "2026-12-12",
         "title": "Project Closed",
-        "status": "Upcoming"
+        "status": "Completed"
       }
     ],
     "propertyName": "TGG Management - 6345 S Throop Street - IoT",
@@ -7307,41 +7308,41 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472957-1",
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-01"
       },
       {
         "id": "m-proj-imported-1793160472957-2",
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "targetDate": "2026-11-16",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472957-3"
       },
       {
         "id": "m-proj-imported-1793160472957-4",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-23"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472957-5",
         "title": "Implementation",
         "targetDate": "2026-12-02"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-07",
         "title": "CSM Handoff",
         "id": "m-proj-imported-1793160472957-6"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472957-7",
         "targetDate": "2026-12-12",
         "title": "Project Closed"
@@ -8347,7 +8348,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "id": "m-proj-imported-1793160472958-1",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-10-30",
         "title": "Project kickoff"
       },
@@ -9484,19 +9485,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220230-1",
         "title": "Project kickoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220230-2"
       },
       {
         "targetDate": "2026-11-22",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-master-1793739220230-3",
         "title": "Product Acquisition"
       },
@@ -9510,7 +9511,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-12-08",
         "status": "Upcoming",
         "id": "m-proj-master-1793739220230-5",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2026-08-31"
       },
       {
         "targetDate": "2026-12-13",
@@ -9636,7 +9638,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "installLogs": [],
     "propertyName": "The lariat Amarillo",
-    "unitsCount": 312
+    "unitsCount": 312,
+    "installationStartDate": "2026-08-31"
   },
   {
     "startDate": "2026-11-03",
@@ -9729,7 +9732,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "id": "m-proj-master-1793739220231-1",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-07",
         "title": "Project kickoff"
       },
@@ -10654,17 +10657,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-10-02",
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-K1qIh3-1"
       },
       {
         "id": "m-K1qIh3-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "targetDate": "2026-10-06"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "Product Acquisition",
         "id": "m-K1qIh3-3",
         "targetDate": "2026-10-10"
@@ -12222,7 +12225,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160472956-1",
         "targetDate": "2026-11-01",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "targetDate": "2026-11-07",
@@ -12937,30 +12940,30 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "id": "m-proj-imported-1793160472963-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff",
         "targetDate": "2026-11-01"
       },
       {
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472963-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "id": "m-proj-imported-1793160472963-3",
         "targetDate": "2026-11-16",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition"
       },
       {
         "targetDate": "2026-11-23",
         "id": "m-proj-imported-1793160472963-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Intro - Pre-implementation"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-12-02",
         "title": "Implementation",
         "id": "m-proj-imported-1793160472963-5"
@@ -13150,7 +13153,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "installLogs": [],
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472976-1",
         "title": "Project kickoff",
         "targetDate": "2026-11-01"
@@ -13159,12 +13162,12 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Portal Buildout",
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472976-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Product Acquisition",
         "targetDate": "2026-11-16",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472976-3"
       },
       {
@@ -14258,19 +14261,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472978-1",
         "title": "Project kickoff",
         "targetDate": "2026-11-01",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472978-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472978-3",
         "title": "Product Acquisition",
         "targetDate": "2026-11-16",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "status": "Upcoming",
@@ -14567,18 +14570,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472979-1",
         "targetDate": "2026-10-30",
         "title": "Project kickoff",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472979-2",
         "targetDate": "2026-11-02",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "targetDate": "2026-11-09",
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472979-3"
       },
       {
@@ -15610,10 +15613,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
         "id": "m-proj-imported-1793160472980-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472980-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-02"
@@ -15622,7 +15625,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Product Acquisition",
         "targetDate": "2026-11-09",
         "id": "m-proj-imported-1793160472980-3",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "id": "m-proj-imported-1793160472980-4",
@@ -15780,24 +15783,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472982-1",
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-10-30"
       },
       {
         "id": "m-proj-imported-1793160472982-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-02",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472982-3",
         "title": "Product Acquisition",
         "targetDate": "2026-11-09"
       },
       {
         "id": "m-proj-imported-1793160472982-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-15",
         "title": "CSM Intro - Pre-implementation"
       },
@@ -15805,7 +15808,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-21",
         "title": "Implementation",
         "id": "m-proj-imported-1793160472982-5",
-        "status": "Upcoming"
+        "status": "In Progress",
+        "startedAt": "2026-09-28"
       },
       {
         "status": "Upcoming",
@@ -16320,24 +16324,25 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "propertyName": "Collection at Saxony - IoT",
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
     "propertyManagementCompany": "Preiss/Iris",
-    "state": "TX"
+    "state": "TX",
+    "installationStartDate": "2026-09-28"
   },
   {
     "milestones": [
       {
         "targetDate": "2026-10-30",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472983-1",
         "title": "Project kickoff"
       },
       {
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160472983-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-02"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-09",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472983-3"
@@ -16352,7 +16357,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Implementation",
         "id": "m-proj-imported-1793160472983-5",
         "targetDate": "2026-11-21",
-        "status": "Upcoming"
+        "status": "Upcoming",
+        "startedAt": "2026-10-26"
       },
       {
         "targetDate": "2026-11-27",
@@ -16976,7 +16982,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "bomItemId": "bom-imp-gw-1793160472983",
         "assignedInstaller": "SKBM Field Crew"
       }
-    ]
+    ],
+    "installationStartDate": "2026-10-26"
   },
   {
     "quoteId": "import-quote-1793160472984",
@@ -17130,19 +17137,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusReason": "Imported via spreadsheet. Target completion set for 2026-07-31.",
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472984-1",
         "title": "Project kickoff",
         "targetDate": "2026-10-30"
       },
       {
         "id": "m-proj-imported-1793160472984-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "targetDate": "2026-11-02"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472984-3",
         "title": "Product Acquisition",
         "targetDate": "2026-11-09"
@@ -17753,14 +17760,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472985-5",
         "targetDate": "2026-12-17",
-        "status": "Completed",
-        "title": "Implementation"
+        "status": "In Progress",
+        "title": "Implementation",
+        "startedAt": "2026-08-31"
       },
       {
         "startedAt": "2026-11-02",
         "id": "m-proj-imported-1793160472985-6",
         "targetDate": "2026-12-24",
-        "status": "In Progress",
+        "status": "Upcoming",
         "title": "CSM Handoff"
       },
       {
@@ -19632,7 +19640,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "statusTag": "On Track",
     "statusReason": "Imported via spreadsheet. Target completion set for 2026-12-31.",
-    "unitsCount": 91
+    "unitsCount": 91,
+    "installationStartDate": "2026-08-31"
   },
   {
     "city": "Austin",
@@ -19654,17 +19663,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472987-1",
         "targetDate": "2026-10-30",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff"
       },
       {
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160472987-2",
         "title": "Portal Buildout",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472987-3",
         "targetDate": "2026-11-09",
         "title": "Product Acquisition"
@@ -19672,11 +19681,11 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-11-15",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472987-4"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472987-5",
         "targetDate": "2026-11-21",
         "title": "Implementation"
@@ -19684,13 +19693,13 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "CSM Handoff",
         "targetDate": "2026-11-27",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472987-6"
       },
       {
         "id": "m-proj-imported-1793160472987-7",
         "targetDate": "2026-05-31",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project Closed"
       }
     ],
@@ -20821,45 +20830,46 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "id": "m-proj-imported-1793160473000-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-10-30",
         "title": "Project kickoff"
       },
       {
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160473000-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "targetDate": "2026-11-09",
         "id": "m-proj-imported-1793160473000-3",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473000-4",
         "targetDate": "2026-11-15",
         "title": "CSM Intro - Pre-implementation"
       },
       {
         "targetDate": "2026-11-21",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Implementation",
-        "id": "m-proj-imported-1793160473000-5"
+        "id": "m-proj-imported-1793160473000-5",
+        "startedAt": "2026-04-15"
       },
       {
         "title": "CSM Handoff",
         "targetDate": "2026-11-27",
         "id": "m-proj-imported-1793160473000-6",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Project Closed",
         "id": "m-proj-imported-1793160473000-7",
         "targetDate": "2026-06-30",
-        "status": "Upcoming"
+        "status": "Completed"
       }
     ],
     "sowForecastCadenceEnabled": true,
@@ -20962,7 +20972,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "projectType": "Retrofit / Occupied",
       "csmName": "Nicole Franklin",
       "nfcWalletConfigured": true
-    }
+    },
+    "installationStartDate": "2026-04-15"
   },
   {
     "quoteNumber": "QXT-IMP-6193",
@@ -21572,22 +21583,22 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160473004-1",
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160473004-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "targetDate": "2026-11-09",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473004-3",
         "title": "Product Acquisition"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473004-4",
         "targetDate": "2026-11-15",
         "title": "CSM Intro - Pre-implementation"
@@ -21596,7 +21607,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Implementation",
         "targetDate": "2026-11-21",
         "id": "m-proj-imported-1793160473004-5",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "id": "m-proj-imported-1793160473004-6",
@@ -22184,11 +22195,11 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-10-30",
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473006-1"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160473006-2"
@@ -22196,20 +22207,22 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-11-09",
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473006-3"
       },
       {
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-imported-1793160473006-4",
         "targetDate": "2026-11-15",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160473006-5",
         "targetDate": "2026-11-21",
-        "status": "Upcoming",
-        "title": "Implementation"
+        "status": "In Progress",
+        "title": "Implementation",
+        "startedAt": "2025-07-31",
+        "completedDate": "2026-01-31"
       },
       {
         "status": "Upcoming",
@@ -22301,7 +22314,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "email": "raul.recalde@onequext.com",
       "name": "Raul Recalde",
       "role": "Director of Implementation"
-    }
+    },
+    "installationStartDate": "2025-07-31",
+    "installationEndDate": "2026-01-31"
   },
   {
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
@@ -22847,35 +22862,37 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160473007-1",
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
         "targetDate": "2026-11-02",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473007-2"
       },
       {
         "targetDate": "2026-11-09",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473007-3",
         "title": "Product Acquisition"
       },
       {
         "id": "m-proj-imported-1793160473007-4",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-15"
       },
       {
         "id": "m-proj-imported-1793160473007-5",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Implementation",
-        "targetDate": "2026-11-21"
+        "targetDate": "2026-11-21",
+        "startedAt": "2025-07-31",
+        "completedDate": "2026-01-31"
       },
       {
         "id": "m-proj-imported-1793160473007-6",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-27",
         "title": "CSM Handoff"
       },
@@ -22975,7 +22992,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "platform": "Quext",
     "sowForecastCadenceEnabled": true,
     "isManuallyCreated": true,
-    "clientName": "JPI Multifamily"
+    "clientName": "JPI Multifamily",
+    "installationStartDate": "2025-07-31",
+    "installationEndDate": "2026-01-31"
   },
   {
     "city": "Austin",
@@ -23214,14 +23233,14 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "propertyManagementCompany": "Preiss Company",
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-01",
         "id": "m-proj-imported-1793160473010-1",
         "title": "Project kickoff"
       },
       {
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160473010-2"
       },
@@ -23229,19 +23248,20 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-16",
         "id": "m-proj-imported-1793160473010-3",
         "title": "Product Acquisition",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-imported-1793160473010-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-23"
       },
       {
         "title": "Implementation",
         "targetDate": "2026-12-02",
         "id": "m-proj-imported-1793160473010-5",
-        "status": "Upcoming"
+        "status": "In Progress",
+        "startedAt": "2026-08-03"
       },
       {
         "id": "m-proj-imported-1793160473010-6",
@@ -23649,7 +23669,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       ]
     },
     "quoteId": "import-quote-1793160473010",
-    "assignedFieldTech": "Hector Lopez"
+    "assignedFieldTech": "Hector Lopez",
+    "installationStartDate": "2026-08-03"
   },
   {
     "assignedCSM": "Nicole Franklin",
@@ -24049,7 +24070,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "isBomLocked": true,
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473011-1",
         "targetDate": "2026-11-01",
         "title": "Project kickoff"
@@ -24058,25 +24079,26 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160473011-2",
         "title": "Portal Buildout",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-16",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160473011-3"
       },
       {
         "targetDate": "2026-11-23",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473011-4"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "Implementation",
         "id": "m-proj-imported-1793160473011-5",
-        "targetDate": "2026-12-02"
+        "targetDate": "2026-12-02",
+        "startedAt": "2026-08-03"
       },
       {
         "title": "CSM Handoff",
@@ -24323,7 +24345,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "platform": "Quext",
     "id": "proj-imported-1793160473011",
     "propertyManagementCompany": "Preiss Company",
-    "useNfcWallet": true
+    "useNfcWallet": true,
+    "installationStartDate": "2026-08-03"
   },
   {
     "assignedCSM": "Nicole Franklin",
@@ -24880,17 +24903,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160473012-1",
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-10-30"
       },
       {
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160473012-2",
         "title": "Portal Buildout",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-09",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160473012-3"
@@ -24899,19 +24922,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-imported-1793160473012-4",
         "targetDate": "2026-11-15",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160473012-5",
         "title": "Implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-21"
       },
       {
         "title": "CSM Handoff",
         "id": "m-proj-imported-1793160473012-6",
         "targetDate": "2026-11-27",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "id": "m-proj-imported-1793160473012-7",
@@ -25035,13 +25058,13 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "platform": "Quext",
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160473014-1",
         "targetDate": "2026-10-30"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473014-2",
         "targetDate": "2026-11-02",
         "title": "Portal Buildout"
@@ -25049,23 +25072,23 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160473014-3",
         "targetDate": "2026-11-09",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-15",
         "id": "m-proj-imported-1793160473014-4",
         "title": "CSM Intro - Pre-implementation"
       },
       {
         "targetDate": "2026-11-21",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473014-5",
         "title": "Implementation"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-27",
         "id": "m-proj-imported-1793160473014-6",
         "title": "CSM Handoff"
@@ -26243,24 +26266,24 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-10-30",
         "id": "m-proj-imported-1793160473016-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160473016-2",
         "title": "Portal Buildout"
       },
       {
         "id": "m-proj-imported-1793160473016-3",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-09",
         "title": "Product Acquisition"
       },
       {
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473016-4",
         "targetDate": "2026-11-15"
       },
@@ -26268,7 +26291,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-21",
         "title": "Implementation",
         "id": "m-proj-imported-1793160473016-5",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "title": "CSM Handoff",
@@ -26323,36 +26346,36 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-01",
         "id": "m-proj-imported-1793160473018-1"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160473018-2"
       },
       {
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-16",
         "id": "m-proj-imported-1793160473018-3"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473018-4",
         "targetDate": "2026-11-23",
         "title": "CSM Intro - Pre-implementation"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-02",
         "title": "Implementation",
         "id": "m-proj-imported-1793160473018-5"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160473018-6",
         "targetDate": "2026-12-07",
         "title": "CSM Handoff"
@@ -27562,7 +27585,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "id": "m-proj-imported-1793160473019-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-01",
         "title": "Project kickoff"
       },
@@ -27570,10 +27593,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160473019-2",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473019-3",
         "targetDate": "2026-11-16",
         "title": "Product Acquisition"
@@ -27582,12 +27605,12 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160473019-4",
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-23",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160473019-5",
         "targetDate": "2026-12-02",
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "Implementation"
       },
       {
@@ -27631,20 +27654,20 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "propertyName": "Gamecock Village",
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07",
         "id": "m-proj-master-1793739220216-1",
         "title": "Project kickoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220216-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-13"
       },
       {
         "targetDate": "2026-11-22",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220216-3",
         "title": "Product Acquisition"
       },
@@ -27652,17 +27675,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-29",
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-master-1793739220216-4",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-08",
         "id": "m-proj-master-1793739220216-5",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2026-08-31"
       },
       {
         "id": "m-proj-master-1793739220216-6",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-12-13",
         "title": "CSM Handoff"
       },
@@ -27785,7 +27809,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusTag": "On Track",
     "address": "100 Main St",
     "targetCompletionDate": "2026-12-18",
-    "statusReason": "Created from Master Projects Dashboard Tracker. Target completion: 2026-12-18."
+    "statusReason": "Created from Master Projects Dashboard Tracker. Target completion: 2026-12-18.",
+    "installationStartDate": "2026-08-31"
   },
   {
     "isBomLocked": true,
@@ -27812,10 +27837,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220217-1",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220217-2",
         "title": "Portal Buildout"
@@ -27824,17 +27849,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220217-3",
         "targetDate": "2026-11-22",
         "title": "Product Acquisition",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-29",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220217-4"
       },
       {
         "id": "m-proj-master-1793739220217-5",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Implementation",
         "targetDate": "2026-12-08"
       },
@@ -27842,7 +27867,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "CSM Handoff",
         "id": "m-proj-master-1793739220217-6",
         "targetDate": "2026-12-13",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "status": "Upcoming",
@@ -28043,18 +28068,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220218-1"
       },
       {
         "id": "m-proj-master-1793739220218-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-13",
         "title": "Portal Buildout"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220218-3",
         "title": "Product Acquisition",
         "targetDate": "2026-11-22"
@@ -28062,12 +28087,12 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-master-1793739220218-4",
         "targetDate": "2026-11-29",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Intro - Pre-implementation"
       },
       {
         "title": "Implementation",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-12-08",
         "id": "m-proj-master-1793739220218-5"
       },
@@ -28255,23 +28280,23 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-11-07",
         "id": "m-proj-master-1793739220219-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-master-1793739220219-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-13",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "targetDate": "2026-11-22",
         "id": "m-proj-master-1793739220219-3"
       },
       {
         "id": "m-proj-master-1793739220219-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-29",
         "title": "CSM Intro - Pre-implementation"
       },
@@ -28279,13 +28304,14 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220219-5",
         "targetDate": "2026-12-08",
         "title": "Implementation",
-        "status": "Upcoming"
+        "status": "Completed",
+        "startedAt": "2026-04-15"
       },
       {
         "id": "m-proj-master-1793739220219-6",
         "title": "CSM Handoff",
         "targetDate": "2026-12-13",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "id": "m-proj-master-1793739220219-7",
@@ -28293,7 +28319,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-12-18",
         "status": "Upcoming"
       }
-    ]
+    ],
+    "installationStartDate": "2026-04-15"
   },
   {
     "startDate": "2026-11-03",
@@ -28406,23 +28433,23 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220221-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07"
       },
       {
         "title": "Portal Buildout",
         "targetDate": "2026-11-13",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220221-2"
       },
       {
         "id": "m-proj-master-1793739220221-3",
         "title": "Product Acquisition",
         "targetDate": "2026-11-22",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-29",
         "id": "m-proj-master-1793739220221-4",
         "title": "CSM Intro - Pre-implementation"
@@ -28430,18 +28457,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Implementation",
         "id": "m-proj-master-1793739220221-5",
-        "status": "Upcoming",
-        "targetDate": "2026-12-08"
+        "status": "Completed",
+        "targetDate": "2026-12-08",
+        "startedAt": "2026-04-15"
       },
       {
         "targetDate": "2026-12-13",
         "id": "m-proj-master-1793739220221-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Handoff"
       },
       {
         "id": "m-proj-master-1793739220221-7",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-18",
         "title": "Project Closed"
       }
@@ -28475,7 +28503,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "thirtyPercentCollected": false,
       "finalTwentyPercentCollected": false
     },
-    "clientName": "Enclave Property Management"
+    "clientName": "Enclave Property Management",
+    "installationStartDate": "2026-04-15"
   },
   {
     "assignedPM": {
@@ -28573,7 +28602,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "isManuallyCreated": true,
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220222-1",
         "targetDate": "2026-11-07"
@@ -28582,37 +28611,38 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-13",
         "title": "Portal Buildout",
         "id": "m-proj-master-1793739220222-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-22",
         "title": "Product Acquisition",
         "id": "m-proj-master-1793739220222-3"
       },
       {
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-29",
         "id": "m-proj-master-1793739220222-4"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-08",
         "title": "Implementation",
-        "id": "m-proj-master-1793739220222-5"
+        "id": "m-proj-master-1793739220222-5",
+        "startedAt": "2026-04-15"
       },
       {
         "title": "CSM Handoff",
         "targetDate": "2026-12-13",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220222-6"
       },
       {
         "title": "Project Closed",
         "targetDate": "2026-12-18",
         "id": "m-proj-master-1793739220222-7",
-        "status": "Upcoming"
+        "status": "Completed"
       }
     ],
     "city": "Dallas",
@@ -28657,7 +28687,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "assignedFieldTech": "Hector Lopez",
     "targetCompletionDate": "2026-12-18",
     "isBomLocked": true,
-    "lastUpdated": "2026-11-03T20:56:47.010Z"
+    "lastUpdated": "2026-11-03T20:56:47.010Z",
+    "installationStartDate": "2026-04-15"
   },
   {
     "installLogs": [],
@@ -28689,41 +28720,42 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220223-1",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220223-2",
         "targetDate": "2026-11-13",
         "title": "Portal Buildout"
       },
       {
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220223-3",
         "targetDate": "2026-11-22"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220223-4",
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-29"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-08",
         "id": "m-proj-master-1793739220223-5",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2026-04-15"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Handoff",
         "targetDate": "2026-12-13",
         "id": "m-proj-master-1793739220223-6"
       },
       {
         "id": "m-proj-master-1793739220223-7",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-18",
         "title": "Project Closed"
       }
@@ -28839,7 +28871,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "unitsCount": 57,
     "propertyName": "Latitude",
     "startDate": "2026-11-03",
-    "quoteNumber": "QXT-2026-7300"
+    "quoteNumber": "QXT-2026-7300",
+    "installationStartDate": "2026-04-15"
   },
   {
     "platform": "Homebase",
@@ -28982,34 +29015,35 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220224-1",
         "title": "Project kickoff",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220224-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Product Acquisition",
         "id": "m-proj-master-1793739220224-3",
         "targetDate": "2026-11-22",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-master-1793739220224-4",
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-29",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-master-1793739220224-5",
         "title": "Implementation",
         "targetDate": "2026-12-08",
-        "status": "Upcoming"
+        "status": "Completed",
+        "startedAt": "2026-04-15"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220224-6",
         "title": "CSM Handoff",
         "targetDate": "2026-12-13"
@@ -29018,10 +29052,11 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-12-18",
         "id": "m-proj-master-1793739220224-7",
         "title": "Project Closed",
-        "status": "Upcoming"
+        "status": "Completed"
       }
     ],
-    "assignedCSM": "Nicole Franklin"
+    "assignedCSM": "Nicole Franklin",
+    "installationStartDate": "2026-04-15"
   },
   {
     "installLogs": [],
@@ -29040,12 +29075,12 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220225-1",
         "title": "Project kickoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220225-2",
         "targetDate": "2026-11-13",
         "title": "Portal Buildout"
@@ -29054,10 +29089,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220225-3",
         "title": "Product Acquisition",
         "targetDate": "2026-11-22",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-29",
         "id": "m-proj-master-1793739220225-4",
         "title": "CSM Intro - Pre-implementation"
@@ -29065,19 +29100,21 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-master-1793739220225-5",
         "title": "Implementation",
-        "status": "Upcoming",
-        "targetDate": "2026-12-08"
+        "status": "Completed",
+        "targetDate": "2026-12-08",
+        "startedAt": "2026-07-20",
+        "completedDate": "2026-07-24"
       },
       {
         "id": "m-proj-master-1793739220225-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-13",
         "title": "CSM Handoff"
       },
       {
         "id": "m-proj-master-1793739220225-7",
         "title": "Project Closed",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-18"
       }
     ],
@@ -29184,7 +29221,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       }
     ],
     "quoteNumber": "QXT-2026-1517",
-    "useQrIntercom": false
+    "useQrIntercom": false,
+    "installationStartDate": "2026-07-20",
+    "installationEndDate": "2026-07-24"
   },
   {
     "statusReason": "Created from Master Projects Dashboard Tracker. Target completion: 2026-12-18.",
@@ -29259,22 +29298,22 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220226-1",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220226-2",
         "title": "Portal Buildout",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-22",
         "title": "Product Acquisition",
         "id": "m-proj-master-1793739220226-3"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220226-4",
         "targetDate": "2026-11-29",
         "title": "CSM Intro - Pre-implementation"
@@ -29283,10 +29322,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220226-5",
         "targetDate": "2026-12-08",
         "title": "Implementation",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-13",
         "title": "CSM Handoff",
         "id": "m-proj-master-1793739220226-6"
@@ -29294,7 +29333,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-master-1793739220226-7",
         "targetDate": "2026-12-18",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project Closed"
       }
     ],
@@ -29554,12 +29593,12 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220228-1"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220228-2",
         "title": "Portal Buildout"
@@ -29568,10 +29607,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220228-3",
         "targetDate": "2026-11-22",
         "title": "Product Acquisition",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220228-4",
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-29"
@@ -29579,7 +29618,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-12-08",
         "title": "Implementation",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-master-1793739220228-5"
       },
       {
@@ -29835,7 +29874,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-master-1793739220229-1",
         "targetDate": "2026-11-07"
       },
@@ -30159,16 +30198,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-vWnYmE-5",
         "status": "Completed",
         "targetDate": "2026-11-29",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2026-04-15"
       },
       {
         "title": "CSM Handoff",
         "targetDate": "2026-12-02",
-        "status": "In Progress",
+        "status": "Completed",
         "id": "m-vWnYmE-6"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-vWnYmE-7",
         "targetDate": "2026-12-04",
         "title": "Project Closed"
@@ -30755,7 +30795,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "generationTrigger": "BOM Scope Sync"
     },
     "assignedCSM": "Nicole Franklin",
-    "sowForecastCadenceEnabled": true
+    "sowForecastCadenceEnabled": true,
+    "installationStartDate": "2026-04-15"
   },
   {
     "state": "Arizona",
@@ -30764,13 +30805,13 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-4FbLTo-1",
         "targetDate": "2026-10-03",
-        "status": "Completed",
+        "status": "In Progress",
         "title": "Project kickoff"
       },
       {
         "id": "m-4FbLTo-2",
         "title": "Portal Buildout",
-        "status": "In Progress",
+        "status": "Upcoming",
         "targetDate": "2026-10-07"
       },
       {
@@ -32408,13 +32449,15 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       },
       {
         "id": "m-Ygomho-5",
-        "status": "In Progress",
+        "status": "Completed",
         "title": "Implementation",
-        "targetDate": "2026-11-10"
+        "targetDate": "2026-11-10",
+        "startedAt": "2026-07-20",
+        "completedDate": "2026-07-31"
       },
       {
         "title": "CSM Handoff",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-Ygomho-6",
         "targetDate": "2026-11-13"
       },
@@ -32974,7 +33017,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "status": "Delivered to Site"
       }
     ],
-    "statusReason": "Active deployment converted from Deal Won."
+    "statusReason": "Active deployment converted from Deal Won.",
+    "installationStartDate": "2026-07-20",
+    "installationEndDate": "2026-07-31"
   },
   {
     "bomItems": [
@@ -33470,12 +33515,12 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "id": "m-proj-imported-1793160472929-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff",
         "targetDate": "2026-11-01"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472929-2",
         "title": "Portal Buildout"
@@ -33484,7 +33529,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Product Acquisition",
         "targetDate": "2026-11-16",
         "id": "m-proj-imported-1793160472929-3",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "id": "m-proj-imported-1793160472929-4",
@@ -33741,18 +33786,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472930-1",
         "targetDate": "2026-11-01",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff"
       },
       {
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472930-2",
         "title": "Portal Buildout"
       },
       {
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472930-3",
         "targetDate": "2026-11-16"
       },
@@ -34974,13 +35019,13 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-01",
         "id": "m-proj-imported-1793160472934-1"
       },
       {
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472934-2",
         "title": "Portal Buildout"
       },
@@ -34988,22 +35033,22 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472934-3",
         "targetDate": "2026-11-16",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-23",
         "id": "m-proj-imported-1793160472934-4",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Implementation",
         "id": "m-proj-imported-1793160472934-5",
         "targetDate": "2026-12-02",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-12-07",
         "id": "m-proj-imported-1793160472934-6",
         "title": "CSM Handoff"
@@ -35614,14 +35659,14 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "quoteNumber": "QXT-IMP-5860",
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472939-1",
         "title": "Project kickoff",
         "targetDate": "2026-11-01"
       },
       {
         "id": "m-proj-imported-1793160472939-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07",
         "title": "Portal Buildout"
       },
@@ -35629,29 +35674,29 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472939-3",
         "targetDate": "2026-11-16",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472939-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-23"
       },
       {
         "id": "m-proj-imported-1793160472939-5",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Implementation",
         "targetDate": "2026-12-02"
       },
       {
         "id": "m-proj-imported-1793160472939-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Handoff",
         "targetDate": "2026-12-07"
       },
       {
         "id": "m-proj-imported-1793160472939-7",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-12",
         "title": "Project Closed"
       }
@@ -35714,7 +35759,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "targetCompletionDate": "2026-12-12",
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-01",
         "id": "m-proj-imported-1793160472940-1",
         "title": "Project kickoff"
@@ -36373,7 +36418,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Project kickoff",
         "targetDate": "2026-11-01",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472941-1"
       },
       {
@@ -37003,7 +37048,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472942-1",
         "targetDate": "2026-11-01",
         "title": "Project kickoff",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "title": "Portal Buildout",
@@ -38247,7 +38292,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "milestones": [
       {
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-01",
         "id": "m-proj-imported-1793160472943-1"
       },
@@ -38829,7 +38874,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-11-01",
         "id": "m-proj-imported-1793160472952-1",
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "Project kickoff"
       },
       {
@@ -38854,7 +38899,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Implementation",
         "id": "m-proj-imported-1793160472952-5",
         "status": "Upcoming",
-        "targetDate": "2026-12-02"
+        "targetDate": "2026-12-02",
+        "startedAt": "2026-09-28",
+        "completedDate": "2026-10-02"
       },
       {
         "title": "CSM Handoff",
@@ -38968,7 +39015,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "integratorPartners": [
       "Everbase Solutions"
     ],
-    "clientName": "Rich Development"
+    "clientName": "Rich Development",
+    "installationStartDate": "2026-09-28",
+    "installationEndDate": "2026-10-02"
   },
   {
     "sowForecastCadenceEnabled": true,
@@ -39598,7 +39647,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "category": "General Context"
       }
     ],
-    "statusReason": "Imported via spreadsheet. Target completion set for 2026-12-12.",
+    "statusReason": "Project On Hold (2027 planned timeline)",
     "quoteNumber": "QXT-IMP-6641",
     "bomItems": [
       {
@@ -39654,7 +39703,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "useQrIntercom": false,
     "quoteId": "import-quote-1793160472953",
     "isBomLocked": true,
-    "lastUpdated": "2026-11-03T20:56:47.009Z"
+    "lastUpdated": "2026-11-03T20:56:47.009Z",
+    "installationStartDate": "2027-01-01"
   },
   {
     "notes": [
@@ -40181,7 +40231,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "propertyManagementCompany": "UGoC",
     "clientName": "The United Group of Companies (UGOC)",
-    "statusReason": "Imported via spreadsheet. Target completion set for 2026-12-12.",
+    "statusReason": "Project On Hold (2027 planned timeline)",
     "assignedCSM": "Nicole Franklin",
     "quoteId": "import-quote-1793160472954",
     "shippingDockItems": [
@@ -40340,7 +40390,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "postItLogs": [],
         "installedCount": 0
       }
-    ]
+    ],
+    "installationStartDate": "2027-01-01"
   },
   {
     "id": "proj-imported-1793160472961",
@@ -40600,7 +40651,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472961-1",
         "targetDate": "2026-10-31",
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "Project kickoff"
       },
       {
@@ -40625,7 +40676,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "status": "Upcoming",
         "id": "m-proj-imported-1793160472961-5",
         "title": "Implementation",
-        "targetDate": "2026-11-24"
+        "targetDate": "2026-11-24",
+        "startedAt": "2027-01-01"
       },
       {
         "targetDate": "2026-11-27",
@@ -41035,7 +41087,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "sowForecastCadenceEnabled": true,
     "lastUpdated": "2026-11-03T20:56:47.009Z",
     "isBomLocked": true,
-    "platform": "Quext"
+    "platform": "Quext",
+    "installationStartDate": "2027-01-01"
   },
   {
     "platform": "Geokey",
@@ -41834,19 +41887,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472968-1",
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160472968-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Product Acquisition",
         "targetDate": "2026-11-09",
         "id": "m-proj-imported-1793160472968-3",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "id": "m-proj-imported-1793160472968-4",
@@ -41858,7 +41911,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-21",
         "id": "m-proj-imported-1793160472968-5",
         "title": "Implementation",
-        "status": "Upcoming"
+        "status": "Upcoming",
+        "startedAt": "2026-11-09",
+        "completedDate": "2026-11-13"
       },
       {
         "status": "Upcoming",
@@ -42377,7 +42432,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
     "state": "TX",
     "useNfcWallet": true,
-    "sowForecastCadenceEnabled": true
+    "sowForecastCadenceEnabled": true,
+    "installationStartDate": "2026-11-09",
+    "installationEndDate": "2026-11-13"
   },
   {
     "assignedFieldTech": "Sean Gates",
@@ -42628,7 +42685,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
         "id": "m-proj-imported-1793160472971-1"
@@ -42637,13 +42694,13 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472971-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-02",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472971-3",
         "targetDate": "2026-11-09",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "id": "m-proj-imported-1793160472971-4",
@@ -42655,7 +42712,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-21",
         "status": "Upcoming",
         "title": "Implementation",
-        "id": "m-proj-imported-1793160472971-5"
+        "id": "m-proj-imported-1793160472971-5",
+        "startedAt": "2026-11-09",
+        "completedDate": "2026-11-13"
       },
       {
         "status": "Upcoming",
@@ -43072,7 +43131,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "assignedPartners": [
         "SKBM"
       ]
-    }
+    },
+    "installationStartDate": "2026-11-09",
+    "installationEndDate": "2026-11-13"
   },
   {
     "city": "Austin",
@@ -43326,17 +43387,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160472974-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-01"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07",
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160472974-2"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472974-3",
         "targetDate": "2026-11-16",
         "title": "Product Acquisition"
@@ -43351,7 +43412,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "status": "Upcoming",
         "title": "Implementation",
         "targetDate": "2026-12-02",
-        "id": "m-proj-imported-1793160472974-5"
+        "id": "m-proj-imported-1793160472974-5",
+        "startedAt": "2026-11-09",
+        "completedDate": "2026-11-11"
       },
       {
         "targetDate": "2026-12-07",
@@ -43755,7 +43818,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       ]
     },
     "targetCompletionDate": "2026-12-12",
-    "assignedFieldTech": "Hector Lopez"
+    "assignedFieldTech": "Hector Lopez",
+    "installationStartDate": "2026-11-09",
+    "installationEndDate": "2026-11-11"
   },
   {
     "platform": "Quext",
@@ -44317,20 +44382,20 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472977-1",
         "targetDate": "2026-11-01",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff"
       },
       {
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472977-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "id": "m-proj-imported-1793160472977-3",
         "title": "Product Acquisition",
         "targetDate": "2026-11-16",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "targetDate": "2026-11-23",
@@ -44342,7 +44407,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "status": "Upcoming",
         "targetDate": "2026-12-02",
         "title": "Implementation",
-        "id": "m-proj-imported-1793160472977-5"
+        "id": "m-proj-imported-1793160472977-5",
+        "startedAt": "2026-11-02"
       },
       {
         "id": "m-proj-imported-1793160472977-6",
@@ -44429,7 +44495,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "sow-proj-imported-1793160472977-3",
         "bomItemName": "Quext LoRaWAN Outdoor Gateway Base Station (8-Channel)"
       }
-    ]
+    ],
+    "installationStartDate": "2026-11-02"
   },
   {
     "installLogs": [],
@@ -44946,18 +45013,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160472981-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-10-30"
       },
       {
         "id": "m-proj-imported-1793160472981-2",
         "targetDate": "2026-11-02",
         "title": "Portal Buildout",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472981-3",
         "targetDate": "2026-11-09"
       },
@@ -44971,7 +45038,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472981-5",
         "status": "Upcoming",
         "title": "Implementation",
-        "targetDate": "2026-11-21"
+        "targetDate": "2026-11-21",
+        "startedAt": "2026-09-04"
       },
       {
         "status": "Upcoming",
@@ -45085,7 +45153,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "shippedDate": "2026-10-16",
         "status": "Shipped / In Transit"
       }
-    ]
+    ],
+    "installationStartDate": "2026-09-04"
   },
   {
     "id": "proj-imported-1793160472990",
@@ -45700,31 +45769,32 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-11-01",
         "id": "m-proj-imported-1793160472990-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472990-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472990-3",
         "targetDate": "2026-11-16"
       },
       {
         "targetDate": "2026-11-23",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472990-4",
         "title": "CSM Intro - Pre-implementation"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160472990-5",
         "targetDate": "2026-12-02",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2026-08-17"
       },
       {
         "targetDate": "2026-12-07",
@@ -45789,7 +45859,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "DIY"
     ],
     "quoteNumber": "QXT-IMP-5623",
-    "startDate": "2026-10-28"
+    "startDate": "2026-10-28",
+    "installationStartDate": "2026-08-17"
   },
   {
     "assignedFieldTech": "Hector Lopez",
@@ -45905,7 +45976,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472995-1",
         "targetDate": "2026-10-30",
         "title": "Project kickoff"
@@ -45914,10 +45985,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160472995-2",
         "targetDate": "2026-11-02",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-09",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472995-3"
@@ -45925,18 +45996,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-15",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472995-4"
       },
       {
         "targetDate": "2026-11-21",
         "id": "m-proj-imported-1793160472995-5",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Implementation"
       },
       {
         "id": "m-proj-imported-1793160472995-6",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-27",
         "title": "CSM Handoff"
       },
@@ -46589,30 +46660,30 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160473008-1",
         "targetDate": "2026-10-30",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff"
       },
       {
         "targetDate": "2026-11-02",
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160473008-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-09",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160473008-3"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473008-4",
         "targetDate": "2026-11-15",
         "title": "CSM Intro - Pre-implementation"
       },
       {
         "targetDate": "2026-11-21",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160473008-5",
         "title": "Implementation"
       },
@@ -47714,7 +47785,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     ],
     "milestones": [
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-10-30",
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160473009-1"
@@ -47723,17 +47794,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160473009-2",
         "targetDate": "2026-11-02",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-09",
         "id": "m-proj-imported-1793160473009-3",
         "title": "Product Acquisition"
       },
       {
         "id": "m-proj-imported-1793160473009-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-15",
         "title": "CSM Intro - Pre-implementation"
       },
@@ -47741,7 +47812,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Implementation",
         "targetDate": "2026-11-21",
         "id": "m-proj-imported-1793160473009-5",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "title": "CSM Handoff",
@@ -47790,10 +47861,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-10-30",
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160473015-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473015-2",
         "targetDate": "2026-11-02",
         "title": "Portal Buildout"
@@ -47801,24 +47872,26 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160473015-3",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-09"
       },
       {
         "targetDate": "2026-11-15",
         "id": "m-proj-imported-1793160473015-4",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Intro - Pre-implementation"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473015-5",
         "targetDate": "2026-11-21",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2026-04-27",
+        "completedDate": "2026-05-08"
       },
       {
         "targetDate": "2026-11-27",
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "CSM Handoff",
         "id": "m-proj-imported-1793160473015-6"
       },
@@ -48440,7 +48513,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "author": "Megan Rossman"
       }
     ],
-    "unitsCount": 432
+    "unitsCount": 432,
+    "installationStartDate": "2026-04-27",
+    "installationEndDate": "2026-05-08"
   },
   {
     "propertyName": "Knight Circle Phase 1 & 3 Units - Orlando, FL (GeoKey)",
@@ -48463,16 +48538,16 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160473020-1",
         "targetDate": "2026-11-01",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07",
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160473020-2"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "targetDate": "2026-11-16",
         "id": "m-proj-imported-1793160473020-3"
@@ -48481,18 +48556,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-imported-1793160473020-4",
         "targetDate": "2026-11-23",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160473020-5",
         "title": "Implementation",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-02"
       },
       {
         "id": "m-proj-imported-1793160473020-6",
         "title": "CSM Handoff",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-12-07"
       },
       {
@@ -49173,11 +49248,11 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220211-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220211-2"
@@ -49185,20 +49260,22 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Product Acquisition",
         "id": "m-proj-master-1793739220211-3",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-22"
       },
       {
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-29",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220211-4"
       },
       {
         "targetDate": "2026-12-08",
         "title": "Implementation",
-        "status": "Upcoming",
-        "id": "m-proj-master-1793739220211-5"
+        "status": "In Progress",
+        "id": "m-proj-master-1793739220211-5",
+        "startedAt": "2026-10-13",
+        "completedDate": "2026-10-23"
       },
       {
         "status": "Upcoming",
@@ -49299,7 +49376,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "clientName": "RPM Living",
     "propertyName": "Maxwell Memorial - Add On",
     "city": "Dallas",
-    "startDate": "2026-11-03"
+    "startDate": "2026-11-03",
+    "installationStartDate": "2026-10-13",
+    "installationEndDate": "2026-10-23"
   },
   {
     "lastUpdated": "2026-11-03T20:56:47.009Z",
@@ -49343,7 +49422,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-11-07",
         "id": "m-proj-master-1793739220212-1",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "targetDate": "2026-11-13",
@@ -49367,7 +49446,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-12-08",
         "title": "Implementation",
         "status": "Upcoming",
-        "id": "m-proj-master-1793739220212-5"
+        "id": "m-proj-master-1793739220212-5",
+        "startedAt": "2026-12-31"
       },
       {
         "targetDate": "2026-12-13",
@@ -49481,7 +49561,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "platform": "Quext",
     "targetCompletionDate": "2026-12-18",
     "startDate": "2026-11-03",
-    "assignedFieldTech": "Hector Lopez"
+    "assignedFieldTech": "Hector Lopez",
+    "installationStartDate": "2026-12-31"
   },
   {
     "assignedFieldTech": "Hector Lopez",
@@ -49557,7 +49638,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-11-07",
         "id": "m-proj-master-1793739220213-1",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "title": "Portal Buildout",
@@ -49738,11 +49819,11 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-master-1793739220215-1",
         "targetDate": "2026-11-07",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220215-2",
         "title": "Portal Buildout",
         "targetDate": "2026-11-13"
@@ -49751,19 +49832,19 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220215-3",
         "targetDate": "2026-11-22",
         "title": "Product Acquisition",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-master-1793739220215-4",
         "targetDate": "2026-11-29",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Intro - Pre-implementation"
       },
       {
         "id": "m-proj-master-1793739220215-5",
         "targetDate": "2026-12-08",
         "title": "Implementation",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "targetDate": "2026-12-13",
@@ -49918,35 +49999,36 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-buuP51-1",
         "targetDate": "2026-10-03",
-        "status": "Completed",
+        "status": "In Progress",
         "title": "Project kickoff"
       },
       {
         "title": "Portal Buildout",
-        "status": "Completed",
+        "status": "Upcoming",
         "targetDate": "2026-10-07",
         "id": "m-buuP51-2"
       },
       {
         "id": "m-buuP51-3",
         "title": "Product Acquisition",
-        "status": "Completed",
+        "status": "Upcoming",
         "targetDate": "2026-10-11"
       },
       {
         "title": "CSM Intro - Pre-implementation",
-        "status": "Completed",
+        "status": "Upcoming",
         "targetDate": "2026-10-22",
         "id": "m-buuP51-4"
       },
       {
         "id": "m-buuP51-5",
-        "status": "Completed",
+        "status": "Upcoming",
         "title": "Implementation",
-        "targetDate": "2026-11-14"
+        "targetDate": "2026-11-14",
+        "startedAt": "2027-01-04"
       },
       {
-        "status": "In Progress",
+        "status": "Upcoming",
         "targetDate": "2026-11-17",
         "id": "m-buuP51-6",
         "title": "CSM Handoff"
@@ -50011,7 +50093,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "text": "[Master Tracker]: Shadow View Village MASTER.xlsx\nShadow View Village | Scope of Work.docx\nShadow View Village | Internal Review.docx\nInstall pending constuction",
         "projectId": "buuP51JrJT6WnogdVlDT"
       }
-    ]
+    ],
+    "installationStartDate": "2027-01-04"
   },
   {
     "platform": "Quext",
@@ -50660,18 +50743,18 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160472969-1",
         "targetDate": "2026-11-01",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-07",
         "id": "m-proj-imported-1793160472969-2"
       },
       {
         "targetDate": "2026-11-16",
         "id": "m-proj-imported-1793160472969-3",
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "Product Acquisition"
       },
       {
@@ -50684,7 +50767,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472969-5",
         "title": "Implementation",
         "status": "Upcoming",
-        "targetDate": "2026-12-02"
+        "targetDate": "2026-12-02",
+        "startedAt": "2026-12-31"
       },
       {
         "title": "CSM Handoff",
@@ -50706,7 +50790,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "finalTwentyPercentCollected": false
     },
     "sowForecastCadenceEnabled": true,
-    "installLogs": []
+    "installLogs": [],
+    "installationStartDate": "2026-12-31"
   },
   {
     "statusTag": "On Track",
@@ -51297,16 +51382,16 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-01",
         "title": "Project kickoff",
         "id": "m-proj-imported-1793160472970-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472970-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout",
         "targetDate": "2026-11-07"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-16",
         "title": "Product Acquisition",
         "id": "m-proj-imported-1793160472970-3"
@@ -51321,7 +51406,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472970-5",
         "title": "Implementation",
         "status": "Upcoming",
-        "targetDate": "2026-12-02"
+        "targetDate": "2026-12-02",
+        "startedAt": "2026-12-31"
       },
       {
         "id": "m-proj-imported-1793160472970-6",
@@ -51401,7 +51487,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "statusReason": "Imported via spreadsheet. Target completion set for 2026-12-12.",
     "state": "TX",
     "startDate": "2026-10-28",
-    "city": "Austin"
+    "city": "Austin",
+    "installationStartDate": "2026-12-31"
   },
   {
     "isBomLocked": true,
@@ -51892,20 +51979,20 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472972-1"
       },
       {
         "targetDate": "2026-11-02",
         "id": "m-proj-imported-1793160472972-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "title": "Product Acquisition",
         "targetDate": "2026-11-09",
         "id": "m-proj-imported-1793160472972-3",
-        "status": "Upcoming"
+        "status": "In Progress"
       },
       {
         "targetDate": "2026-11-15",
@@ -51917,7 +52004,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Implementation",
         "targetDate": "2026-11-21",
         "status": "Upcoming",
-        "id": "m-proj-imported-1793160472972-5"
+        "id": "m-proj-imported-1793160472972-5",
+        "startedAt": "2026-11-09",
+        "completedDate": "2026-11-13"
       },
       {
         "id": "m-proj-imported-1793160472972-6",
@@ -52087,7 +52176,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "targetCompletionDate": "2026-11-06",
     "integratorPartners": [
       "JTS"
-    ]
+    ],
+    "installationStartDate": "2026-11-09",
+    "installationEndDate": "2026-11-13"
   },
   {
     "propertyManagementCompany": "RPM Living",
@@ -52806,22 +52897,22 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
         "id": "m-proj-imported-1793160473022-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-02",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473022-2",
         "title": "Portal Buildout"
       },
       {
         "title": "Product Acquisition",
         "targetDate": "2026-11-09",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160473022-3"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-15",
         "id": "m-proj-imported-1793160473022-4",
         "title": "CSM Intro - Pre-implementation"
@@ -52830,11 +52921,13 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160473022-5",
         "title": "Implementation",
         "targetDate": "2026-11-21",
-        "status": "Upcoming"
+        "status": "Completed",
+        "startedAt": "2024-12-09",
+        "completedDate": "2026-01-31"
       },
       {
         "title": "CSM Handoff",
-        "status": "Upcoming",
+        "status": "In Progress",
         "id": "m-proj-imported-1793160473022-6",
         "targetDate": "2026-11-27"
       },
@@ -53450,7 +53543,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "N/A"
     ],
     "state": "TX",
-    "quoteId": "import-quote-1793160473022"
+    "quoteId": "import-quote-1793160473022",
+    "installationStartDate": "2024-12-09",
+    "installationEndDate": "2026-01-31"
   },
   {
     "assignedPM": {
@@ -53530,17 +53625,17 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "id": "m-proj-master-1793739220204-1",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220204-2",
         "title": "Portal Buildout"
       },
       {
         "title": "Product Acquisition",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220204-3",
         "targetDate": "2026-11-22"
       },
@@ -53548,25 +53643,28 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220204-4",
         "targetDate": "2026-11-29",
         "title": "CSM Intro - Pre-implementation",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-12-08",
         "id": "m-proj-master-1793739220204-5",
         "title": "Implementation",
-        "status": "Upcoming"
+        "status": "Completed",
+        "startedAt": "2025-07-02",
+        "completedDate": "2026-03-31"
       },
       {
         "title": "CSM Handoff",
         "id": "m-proj-master-1793739220204-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-12-13"
       },
       {
-        "targetDate": "2026-12-18",
-        "status": "Upcoming",
+        "targetDate": "2026-07-28",
+        "status": "Completed",
         "id": "m-proj-master-1793739220204-7",
-        "title": "Project Closed"
+        "title": "Project Closed",
+        "completedDate": "2026-07-28"
       }
     ],
     "address": "100 Main St",
@@ -53592,7 +53690,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "staffRoles": []
     },
     "isManuallyCreated": true,
-    "targetCompletionDate": "2026-12-18",
+    "targetCompletionDate": "2026-07-28",
     "installLogs": [],
     "platform": "Quext",
     "unitsCount": 262,
@@ -53632,7 +53730,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "assignedFieldTech": "Hector Lopez",
     "startDate": "2026-11-03",
     "city": "Dallas",
-    "propertyName": "The Hartley"
+    "propertyName": "The Hartley",
+    "installationStartDate": "2025-07-02",
+    "installationEndDate": "2026-03-31"
   },
   {
     "statusReason": "Created from Master Projects Dashboard Tracker. Target completion: 2026-12-18.",
@@ -53675,26 +53775,26 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "id": "proj-master-1793739220205",
     "assignedFieldTech": "Hector Lopez",
     "unitsCount": 158,
-    "targetCompletionDate": "2026-12-18",
+    "targetCompletionDate": "2026-06-12",
     "startDate": "2026-11-03",
     "isBomLocked": true,
     "lastUpdated": "2026-11-03T20:56:47.008Z",
     "milestones": [
       {
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220205-1",
         "targetDate": "2026-11-07"
       },
       {
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220205-2",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Portal Buildout"
       },
       {
         "targetDate": "2026-11-22",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "id": "m-proj-master-1793739220205-3"
       },
@@ -53702,25 +53802,28 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-master-1793739220205-4",
         "targetDate": "2026-11-29",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Implementation",
         "id": "m-proj-master-1793739220205-5",
-        "status": "Upcoming",
-        "targetDate": "2026-12-08"
+        "status": "Completed",
+        "targetDate": "2026-12-08",
+        "startedAt": "2026-03-16",
+        "completedDate": "2026-05-21"
       },
       {
         "title": "CSM Handoff",
         "targetDate": "2026-12-13",
         "id": "m-proj-master-1793739220205-6",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
-        "targetDate": "2026-12-18",
+        "status": "Completed",
+        "targetDate": "2026-06-12",
         "id": "m-proj-master-1793739220205-7",
-        "title": "Project Closed"
+        "title": "Project Closed",
+        "completedDate": "2026-06-12"
       }
     ],
     "customerIntake": {
@@ -53814,7 +53917,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "email": "bethany.condon@onequext.com",
       "name": "Bethany Condon",
       "role": "Project Manager"
-    }
+    },
+    "installationStartDate": "2026-03-16",
+    "installationEndDate": "2026-05-21"
   },
   {
     "startDate": "2026-11-03",
@@ -53838,7 +53943,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "isPinned": true
       }
     ],
-    "targetCompletionDate": "2026-12-18",
+    "targetCompletionDate": "2026-05-20",
     "assignedFieldTech": "Hector Lopez",
     "id": "proj-master-1793739220206",
     "quoteNumber": "QXT-2026-3667",
@@ -53928,10 +54033,10 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-11-07",
         "id": "m-proj-master-1793739220206-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220206-2",
         "title": "Portal Buildout"
@@ -53939,32 +54044,35 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Product Acquisition",
         "targetDate": "2026-11-22",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220206-3"
       },
       {
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-29",
         "id": "m-proj-master-1793739220206-4",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-master-1793739220206-5",
         "targetDate": "2026-12-08",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2026-05-11",
+        "completedDate": "2026-05-15"
       },
       {
         "title": "CSM Handoff",
         "targetDate": "2026-12-13",
         "id": "m-proj-master-1793739220206-6",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-master-1793739220206-7",
-        "targetDate": "2026-12-18",
+        "targetDate": "2026-05-20",
         "title": "Project Closed",
-        "status": "Upcoming"
+        "status": "Completed",
+        "completedDate": "2026-05-20"
       }
     ],
     "state": "TX",
@@ -53996,7 +54104,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       "saasStarted": false,
       "fiftyPercentCollected": false
     },
-    "clientName": "Trilogy Real Estate Group"
+    "clientName": "Trilogy Real Estate Group",
+    "installationStartDate": "2026-05-11",
+    "installationEndDate": "2026-05-15"
   },
   {
     "unitsCount": 132,
@@ -54154,23 +54264,23 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "targetDate": "2026-11-07",
         "id": "m-proj-master-1793739220208-1",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Project kickoff"
       },
       {
         "targetDate": "2026-11-13",
         "title": "Portal Buildout",
         "id": "m-proj-master-1793739220208-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Product Acquisition",
         "id": "m-proj-master-1793739220208-3",
         "targetDate": "2026-11-22",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-29",
         "id": "m-proj-master-1793739220208-4",
         "title": "CSM Intro - Pre-implementation"
@@ -54178,8 +54288,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "Implementation",
         "targetDate": "2026-12-08",
-        "status": "Upcoming",
-        "id": "m-proj-master-1793739220208-5"
+        "status": "In Progress",
+        "id": "m-proj-master-1793739220208-5",
+        "startedAt": "2026-10-19"
       },
       {
         "targetDate": "2026-12-13",
@@ -54199,7 +54310,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "platform": "Quext",
     "integratorPartners": [
       "DIY"
-    ]
+    ],
+    "installationStartDate": "2026-10-19"
   },
   {
     "propertyName": "Brigham Lofts Phase 2",
@@ -54259,7 +54371,7 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-master-1793739220209-1",
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "In Progress",
         "targetDate": "2026-11-07"
       },
       {
@@ -54284,7 +54396,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220209-5",
         "targetDate": "2026-12-08",
         "status": "Upcoming",
-        "title": "Implementation"
+        "title": "Implementation",
+        "startedAt": "2027-01-01"
       },
       {
         "title": "CSM Handoff",
@@ -54402,7 +54515,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     },
     "integratorPartners": [
       "EverBase Solutions"
-    ]
+    ],
+    "installationStartDate": "2027-01-01"
   },
   {
     "notes": [
@@ -54441,16 +54555,16 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-master-1793739220210-1",
         "title": "Project kickoff",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
         "targetDate": "2026-11-13",
         "id": "m-proj-master-1793739220210-2",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition",
         "id": "m-proj-master-1793739220210-3",
         "targetDate": "2026-11-22"
@@ -54459,13 +54573,14 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "targetDate": "2026-11-29",
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-master-1793739220210-4",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-master-1793739220210-5",
         "targetDate": "2026-12-08",
         "title": "Implementation",
-        "status": "Upcoming"
+        "status": "In Progress",
+        "startedAt": "2026-06-08"
       },
       {
         "id": "m-proj-master-1793739220210-6",
@@ -54605,7 +54720,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
     "state": "TX",
     "unitsCount": 150,
     "isManuallyCreated": true,
-    "propertyName": "3450 North Lake Shore Phase 1"
+    "propertyName": "3450 North Lake Shore Phase 1",
+    "installationStartDate": "2026-06-08"
   },
   {
     "notes": [
@@ -64248,22 +64364,22 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Project kickoff",
         "targetDate": "2026-10-30",
         "id": "m-proj-imported-1793160472992-1",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
-        "status": "Upcoming",
+        "status": "Completed",
         "id": "m-proj-imported-1793160472992-2",
         "targetDate": "2026-11-02"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-09",
         "id": "m-proj-imported-1793160472992-3",
         "title": "Product Acquisition"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "CSM Intro - Pre-implementation",
         "id": "m-proj-imported-1793160472992-4",
         "targetDate": "2026-11-15"
@@ -64271,8 +64387,9 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472992-5",
         "targetDate": "2026-11-21",
-        "status": "Upcoming",
-        "title": "Implementation"
+        "status": "In Progress",
+        "title": "Implementation",
+        "startedAt": "2026-06-22"
       },
       {
         "status": "Upcoming",
@@ -64770,7 +64887,8 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "timestamp": "Just now",
         "isPinned": true
       }
-    ]
+    ],
+    "installationStartDate": "2026-06-22"
   },
   {
     "heroImage": "/src/assets/images/property_grand_horizon_1792605840266.jpg",
@@ -66167,28 +66285,28 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "id": "m-proj-imported-1793160472996-1",
         "title": "Project kickoff",
         "targetDate": "2026-11-01",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160472996-2",
         "targetDate": "2026-11-07",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "targetDate": "2026-11-16",
         "id": "m-proj-imported-1793160472996-3",
-        "status": "Upcoming",
+        "status": "Completed",
         "title": "Product Acquisition"
       },
       {
         "id": "m-proj-imported-1793160472996-4",
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-23",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "In Progress",
         "title": "Implementation",
         "targetDate": "2026-12-02",
         "id": "m-proj-imported-1793160472996-5"
@@ -68374,11 +68492,11 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "id": "m-proj-imported-1793160472999-1",
         "title": "Project kickoff",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-10-30"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-02",
         "title": "Portal Buildout",
         "id": "m-proj-imported-1793160472999-2"
@@ -68387,16 +68505,16 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
         "title": "Product Acquisition",
         "targetDate": "2026-11-09",
         "id": "m-proj-imported-1793160472999-3",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
         "id": "m-proj-imported-1793160472999-4",
         "title": "CSM Intro - Pre-implementation",
         "targetDate": "2026-11-15",
-        "status": "Upcoming"
+        "status": "Completed"
       },
       {
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-21",
         "title": "Implementation",
         "id": "m-proj-imported-1793160472999-5"
@@ -68404,14 +68522,14 @@ export const MASTER_TRACKER_PROJECTS: OperationProject[] = [
       {
         "title": "CSM Handoff",
         "id": "m-proj-imported-1793160472999-6",
-        "status": "Upcoming",
+        "status": "Completed",
         "targetDate": "2026-11-27"
       },
       {
         "id": "m-proj-imported-1793160472999-7",
         "title": "Project Closed",
         "targetDate": "2026-08-01",
-        "status": "Upcoming"
+        "status": "Completed"
       }
     ],
     "bomItems": [

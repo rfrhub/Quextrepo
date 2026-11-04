@@ -1977,6 +1977,7 @@ export function addArchivedProjectId(id: string) {
 
 export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v2';
 export const MASTER_NOTES_IMPORTED_VERSION_KEY = 'quext_master_notes_imported_v3';
+export const MASTER_MILESTONES_SYNC_VERSION_KEY = 'quext_master_milestones_sync_v2';
 
 export function isFakeNote(note: { id?: string; author?: string; text?: string }): boolean {
   if (!note) return true;
@@ -2168,7 +2169,59 @@ export function loadStoredProjects(): OperationProject[] {
           }
         }
       });
-      if (hasNotesChanges || !isAlreadyPurged) {
+
+      // Non-destructively merge imported milestones and installation dates into stored projects
+      const isMilestonesSynced = localStorage.getItem(MASTER_MILESTONES_SYNC_VERSION_KEY) === 'true';
+      let hasMilestoneChanges = false;
+
+      if (!isMilestonesSynced) {
+        INITIAL_PROJECTS.forEach((initProj) => {
+          const target = sanitizedList.find((p) => p.id === initProj.id);
+          if (target) {
+            let changed = false;
+            if (initProj.installationStartDate && target.installationStartDate !== initProj.installationStartDate) {
+              target.installationStartDate = initProj.installationStartDate;
+              changed = true;
+            }
+            if (initProj.installationEndDate && target.installationEndDate !== initProj.installationEndDate) {
+              target.installationEndDate = initProj.installationEndDate;
+              changed = true;
+            }
+            if (initProj.statusReason && target.statusReason !== initProj.statusReason) {
+              target.statusReason = initProj.statusReason;
+              changed = true;
+            }
+            // Check if milestones differ in status or dates
+            const initHasActive = (initProj.milestones || []).some(
+              (m) => m.status === 'Completed' || m.status === 'In Progress'
+            );
+            if (initHasActive) {
+              const initMMap = new Map((initProj.milestones || []).map((m) => [m.title, m]));
+              const updatedMilestones = (target.milestones || []).map((tm) => {
+                const im = initMMap.get(tm.title);
+                if (im) {
+                  return {
+                    ...tm,
+                    status: im.status,
+                    startedAt: im.startedAt || tm.startedAt,
+                    completedDate: im.completedDate || tm.completedDate,
+                    targetDate: tm.targetDate || im.targetDate,
+                  };
+                }
+                return tm;
+              });
+              target.milestones = updatedMilestones;
+              changed = true;
+            }
+            if (changed) {
+              hasMilestoneChanges = true;
+            }
+          }
+        });
+        localStorage.setItem(MASTER_MILESTONES_SYNC_VERSION_KEY, 'true');
+      }
+
+      if (hasNotesChanges || hasMilestoneChanges || !isAlreadyPurged) {
         localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitizedList));
         localStorage.setItem(REAL_TEAM_PURGE_VERSION_KEY, 'true');
       }
