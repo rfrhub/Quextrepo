@@ -54,6 +54,7 @@ import {
   subscribeToLiveProjects,
   subscribeToLiveQuotes,
   subscribeToLivePartnerCredentials,
+  subscribeToLiveSOWSubmissions,
   saveLiveProject,
   deleteLiveProject,
   archiveLiveProject,
@@ -285,16 +286,18 @@ export default function App() {
       }
     });
 
-    const unsubQuotes = subscribeToLiveQuotes((liveQuotes) => {
-      setQuotes(liveQuotes);
-    });
-
     const unsubPartners = subscribeToLivePartnerCredentials();
+    const unsubSows = subscribeToLiveSOWSubmissions();
+
+    const handleOpenSowHub = () => setIsSowHubOpen(true);
+    window.addEventListener('quext-open-sow-hub', handleOpenSowHub);
 
     return () => {
       unsubProjects();
       unsubQuotes();
       unsubPartners();
+      unsubSows();
+      window.removeEventListener('quext-open-sow-hub', handleOpenSowHub);
     };
   }, [signedInUser]);
 
@@ -2091,6 +2094,16 @@ export default function App() {
             });
             window.location.hash = `#/partner-academy?partner=${encodeURIComponent(target.partnerShortName)}`;
           }}
+        />
+
+        {/* OneQuext SOW Creation Hub & Partner Integrator / Vendor Email Dispatcher */}
+        <SOWFormAutomationHub
+          isOpen={isSowHubOpen}
+          onClose={() => setIsSowHubOpen(false)}
+          onNavigateToProject={handleGoToOperationsProject}
+          properties={projects}
+          currentUserName={signedInUser?.name || 'Raul Recalde'}
+          onUpdateProperty={handleUpdateProject}
         />
       </>
     );

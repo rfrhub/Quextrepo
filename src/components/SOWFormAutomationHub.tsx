@@ -11,7 +11,13 @@ import {
   DEFAULT_FIELD_TECHS,
   dispatchSowEmailToTech,
   buildPartnerVendorPlainTextEmail,
+  SEED_SOW_RIVERTOWN_COMMONS,
+  SEED_SOW_21_PEARL,
 } from '../services/sowFormService';
+import {
+  fetchLiveSOWSubmissionsFromCloud,
+  saveLiveSOWSubmission,
+} from '../services/realtimeSyncService';
 import { downloadSowPdf } from '../utils/generateSowPdf';
 import {
   FileText,
@@ -84,6 +90,8 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
   const [copiedEmailBody, setCopiedEmailBody] = useState<boolean>(false);
   const [isDispatching, setIsDispatching] = useState<boolean>(false);
   const [dispatchSuccessMsg, setDispatchSuccessMsg] = useState<string | null>(null);
+  const [isRefreshingCloud, setIsRefreshingCloud] = useState<boolean>(false);
+  const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
 
   // =========================================================================
   // 23-Question "Onsite Visit Scheduling and SOW Information Form" State
@@ -330,12 +338,95 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     }
   };
 
+  const handleRefreshSOWs = async () => {
+    setIsRefreshingCloud(true);
+    try {
+      // 1. Actively query Cloud Firestore to fetch all live SOW submissions
+      const cloudSows = await fetchLiveSOWSubmissionsFromCloud();
+
+      // 2. Collect any SOW submissions embedded in properties
+      const propertySows: GoogleFormSubmission[] = [];
+      properties.forEach((p) => {
+        if (p.sowSubmissions && Array.isArray(p.sowSubmissions)) {
+          propertySows.push(...p.sowSubmissions);
+        }
+      });
+
+      // 3. Deduplicate and merge
+      const map = new Map<string, GoogleFormSubmission>();
+      cloudSows.forEach((s) => {
+        if (s && s.id) map.set(s.id, s);
+      });
+      propertySows.forEach((s) => {
+        if (s && s.id && !map.has(s.id)) {
+          map.set(s.id, s);
+        }
+      });
+
+      // Ensure 21 Pearl and Rivertown Commons are guaranteed present
+      const hasRivertown = Array.from(map.values()).some(
+        (s) =>
+          s.id === SEED_SOW_RIVERTOWN_COMMONS.id ||
+          (s.communityName || '').trim().toLowerCase().includes('rivertown')
+      );
+      if (!hasRivertown) {
+        map.set(SEED_SOW_RIVERTOWN_COMMONS.id, SEED_SOW_RIVERTOWN_COMMONS);
+        saveLiveSOWSubmission(SEED_SOW_RIVERTOWN_COMMONS).catch(() => {});
+      }
+
+      const has21Pearl = Array.from(map.values()).some(
+        (s) =>
+          s.id === SEED_SOW_21_PEARL.id ||
+          (s.communityName || '').trim().toLowerCase() === '21 pearl'
+      );
+      if (!has21Pearl) {
+        map.set(SEED_SOW_21_PEARL.id, SEED_SOW_21_PEARL);
+        saveLiveSOWSubmission(SEED_SOW_21_PEARL).catch(() => {});
+      }
+
+      // If Rivertown Commons is in properties, ensure its sowSubmissions array is populated
+      if (onUpdateProperty) {
+        const rtcProp = properties.find(
+          (p) =>
+            p.id === 'proj-master-1793739220206' ||
+            (p.propertyName || '').trim().toLowerCase() === 'rivertown commons'
+        );
+        if (rtcProp && (!rtcProp.sowSubmissions || rtcProp.sowSubmissions.length === 0)) {
+          onUpdateProperty({
+            ...rtcProp,
+            sowSubmissions: [SEED_SOW_RIVERTOWN_COMMONS],
+            lastUpdated: new Date().toISOString(),
+          });
+        }
+      }
+
+      const combined = Array.from(map.values()).sort(
+        (a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
+      );
+
+      setSubmissions(combined);
+      saveSubmissions(combined);
+
+      const rtcFound = combined.some((s) => (s.communityName || '').includes('Rivertown'));
+      setSyncToastMessage(
+        `✓ Fetched ${combined.length} SOW Work Orders from Cloud Database${rtcFound ? ' (including Rivertown Commons)' : ''}!`
+      );
+      setTimeout(() => setSyncToastMessage(null), 4500);
+    } catch (err) {
+      console.error('Error refreshing SOWs from cloud:', err);
+      refreshSubmissions();
+    } finally {
+      setIsRefreshingCloud(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
-      const all = loadSubmissions();
-      setSubmissions(all);
+      refreshSubmissions();
+      handleRefreshSOWs();
       setActiveTab('create');
       if (initialEditingSowId) {
+        const all = loadSubmissions();
         const target = all.find((s) => s.id === initialEditingSowId);
         if (target) {
           startEditingSow(target);
@@ -350,11 +441,31 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     } else {
       setEditingSowId(null);
     }
-  }, [isOpen, initialEditingSowId, initialProperty]);
+  }, [isOpen, initialEditingSowId, initialProperty, properties]);
 
   const refreshSubmissions = () => {
     const local = loadSubmissions();
-    setSubmissions(local);
+    const propertySows: GoogleFormSubmission[] = [];
+    properties.forEach((p) => {
+      if (p.sowSubmissions && Array.isArray(p.sowSubmissions)) {
+        propertySows.push(...p.sowSubmissions);
+      }
+    });
+
+    const map = new Map<string, GoogleFormSubmission>();
+    local.forEach((s) => {
+      if (s && s.id) map.set(s.id, s);
+    });
+    propertySows.forEach((s) => {
+      if (s && s.id && !map.has(s.id)) {
+        map.set(s.id, s);
+      }
+    });
+
+    const combined = Array.from(map.values()).sort(
+      (a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
+    );
+    setSubmissions(combined);
   };
 
   useEffect(() => {
@@ -807,15 +918,25 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs">
+            {syncToastMessage && (
+              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-md animate-fadeIn">
+                {syncToastMessage}
+              </span>
+            )}
             <button
               type="button"
-              onClick={refreshSubmissions}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md hover:bg-slate-200 transition text-slate-700 cursor-pointer"
-              title="Refresh generated SOWs"
+              disabled={isRefreshingCloud}
+              onClick={handleRefreshSOWs}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                isRefreshingCloud
+                  ? 'bg-teal-100 text-teal-800 border border-teal-300 cursor-wait'
+                  : 'bg-white hover:bg-teal-50 text-teal-900 border border-teal-300 hover:border-teal-400'
+              }`}
+              title="Query Cloud Firestore to fetch and restore any missing SOWs (including Rivertown Commons)"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
+              <RefreshCw className={`w-3.5 h-3.5 text-teal-700 ${isRefreshingCloud ? 'animate-spin' : ''}`} />
+              <span>{isRefreshingCloud ? 'Syncing Cloud SOWs...' : 'Refresh'}</span>
             </button>
           </div>
         </div>

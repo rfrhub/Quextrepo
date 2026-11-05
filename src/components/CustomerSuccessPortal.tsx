@@ -1318,7 +1318,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
             setSowTargetProperty(null);
             setEditingSowId(null);
           }}
-          properties={handoffProperties}
+          properties={projects}
           initialProperty={sowTargetProperty}
           initialEditingSowId={editingSowId}
           currentUserName={currentUserName}
@@ -1443,7 +1443,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
       {/* VIEW 1: OVERVIEW DASHBOARD */}
       {csmViewMode === 'overview' && (
         <CSMOverviewDashboardView
-          properties={handoffProperties}
+          properties={projects}
           onSelectProperty={(propId) => setSelectedPropertyId(propId)}
           onOpenCreateSow={(prop) => {
             setSowTargetProperty(prop || null);
@@ -1462,7 +1462,7 @@ export const CustomerSuccessPortal: React.FC<CustomerSuccessPortalProps> = ({
       {/* VIEW 2: CSM LIVE ACTIVITY HUB */}
       {csmViewMode === 'activity_hub' && (
         <CSMLiveActivityHubView
-          properties={handoffProperties}
+          properties={projects}
           onSelectProperty={(propId) => setSelectedPropertyId(propId)}
           onOpenCreateSow={(prop) => {
             setSowTargetProperty(prop || null);

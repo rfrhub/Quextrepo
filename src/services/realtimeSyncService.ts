@@ -9,6 +9,7 @@ import {
   getFirestore,
   collection,
   doc,
+  getDoc,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -16,6 +17,8 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { OperationProject, Quote, isLockBOMItem } from '../types';
+import type { GoogleFormSubmission } from '../types/sowForm';
+import { SEED_SOW_21_PEARL, SEED_SOW_RIVERTOWN_COMMONS } from './sowFormService';
 import type { PartnerSecurityCredential } from '../partner-academy/utils/partnerSecurity';
 import { PARTNER_IDENTITY_DIRECTORY } from '../partner-academy/utils/projectCoursePackager';
 import {
@@ -45,6 +48,8 @@ const ARCHIVED_PROJECTS_COLLECTION = 'quext_archived_projects';
 const QUOTES_COLLECTION = 'quext_live_quotes';
 const PARTNER_CREDENTIALS_COLLECTION = 'quext_live_partner_codes';
 const DELETED_PARTNERS_COLLECTION = 'quext_live_deleted_partners';
+const SOW_SUBMISSIONS_COLLECTION = 'quext_live_sow_submissions';
+const DELETED_SOWS_COLLECTION = 'quext_live_deleted_sows';
 
 export interface SyncStatus {
   isConnected: boolean;
@@ -174,6 +179,25 @@ export function subscribeToLiveProjects(
                 enriched.needsVerifiedByPm = false;
               } else if (initProj.needsVerifiedByPm && enriched.needsVerifiedByPm === undefined) {
                 enriched.needsVerifiedByPm = true;
+              }
+            }
+
+            // Ensure Rivertown Commons and 21 Pearl SOWs are retained live in cloud projects
+            if (
+              data.id === 'proj-master-1793739220206' ||
+              (data.propertyName || '').trim().toLowerCase() === 'rivertown commons'
+            ) {
+              if (!enriched.sowSubmissions || enriched.sowSubmissions.length === 0) {
+                enriched.sowSubmissions = [SEED_SOW_RIVERTOWN_COMMONS];
+              }
+            }
+            if (
+              data.id === 'proj-21-pearl' ||
+              data.id === 'proj-imported-1793730055881' ||
+              (data.propertyName || '').trim().toLowerCase() === '21 pearl'
+            ) {
+              if (!enriched.sowSubmissions || enriched.sowSubmissions.length === 0) {
+                enriched.sowSubmissions = [SEED_SOW_21_PEARL];
               }
             }
             if (hasInvalidLockTag) {
@@ -741,4 +765,302 @@ export async function fetchLivePartnerByCodeFromCloud(
     console.error('[Cloud Sync] Error querying partner by code from cloud:', err);
   }
   return null;
+}
+
+/**
+ * Saves a single SOW submission to Cloud Firestore in real-time.
+ * Also synchronizes the SOW into the corresponding Project document if propertyId is present.
+ */
+export async function saveLiveSOWSubmission(sow: GoogleFormSubmission): Promise<void> {
+  if (!sow || !sow.id) return;
+  try {
+    updateSyncStatus({ isSyncing: true });
+    const clean = sanitizeForFirestore({
+      ...sow,
+      lastSyncedAt: new Date().toISOString(),
+    });
+    const docRef = doc(db, SOW_SUBMISSIONS_COLLECTION, sow.id);
+    await setDoc(docRef, clean, { merge: true });
+
+    // Ensure removed from deleted tombstone collection
+    try {
+      await deleteDoc(doc(db, DELETED_SOWS_COLLECTION, sow.id));
+    } catch {}
+
+    // If linked to a property, also sync to project's sowSubmissions in Firestore
+    if (sow.propertyId) {
+      try {
+        const projRef = doc(db, PROJECTS_COLLECTION, sow.propertyId);
+        const projSnap = await getDoc(projRef);
+        if (projSnap.exists()) {
+          const projData = projSnap.data() as OperationProject;
+          const currentSows = projData.sowSubmissions ? [...projData.sowSubmissions] : [];
+          const idx = currentSows.findIndex((s) => s.id === sow.id);
+          if (idx >= 0) {
+            currentSows[idx] = sow;
+          } else {
+            currentSows.unshift(sow);
+          }
+          await setDoc(projRef, { sowSubmissions: currentSows }, { merge: true });
+        }
+      } catch (projErr) {
+        console.warn(`[Cloud Sync] Could not sync SOW ${sow.id} to project doc ${sow.propertyId}:`, projErr);
+      }
+    }
+
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    updateSyncStatus({
+      isConnected: true,
+      isSyncing: false,
+      lastSyncedAt: nowStr,
+      error: null,
+    });
+  } catch (err: any) {
+    console.error(`[Cloud Sync] Failed to save SOW ${sow.id} to Firestore:`, err);
+    updateSyncStatus({
+      isSyncing: false,
+      error: err?.message || 'Failed to save SOW to cloud',
+    });
+    throw err;
+  }
+}
+
+/**
+ * Permanently deletes an SOW from Cloud Firestore and marks a tombstone.
+ */
+export async function deleteLiveSOWSubmission(sowId: string, propertyId?: string): Promise<void> {
+  if (!sowId) return;
+  try {
+    updateSyncStatus({ isSyncing: true });
+
+    // 1. Delete from live SOW submissions collection
+    const docRef = doc(db, SOW_SUBMISSIONS_COLLECTION, sowId);
+    await deleteDoc(docRef);
+
+    // 2. Add tombstone
+    const delDocRef = doc(db, DELETED_SOWS_COLLECTION, sowId);
+    await setDoc(delDocRef, { sowId, deletedAt: new Date().toISOString() }, { merge: true });
+
+    // 3. Remove from project document if propertyId provided
+    if (propertyId) {
+      try {
+        const projRef = doc(db, PROJECTS_COLLECTION, propertyId);
+        const projSnap = await getDoc(projRef);
+        if (projSnap.exists()) {
+          const projData = projSnap.data() as OperationProject;
+          if (projData.sowSubmissions) {
+            const filtered = projData.sowSubmissions.filter((s) => s.id !== sowId);
+            await setDoc(projRef, { sowSubmissions: filtered }, { merge: true });
+          }
+        }
+      } catch (projErr) {
+        console.warn(`[Cloud Sync] Could not remove SOW ${sowId} from project doc ${propertyId}:`, projErr);
+      }
+    }
+
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    updateSyncStatus({
+      isConnected: true,
+      isSyncing: false,
+      lastSyncedAt: nowStr,
+      error: null,
+    });
+  } catch (err: any) {
+    console.error(`[Cloud Sync] Failed to delete SOW ${sowId}:`, err);
+    updateSyncStatus({
+      isSyncing: false,
+      error: err?.message || 'Failed to delete SOW from cloud',
+    });
+    throw err;
+  }
+}
+
+/**
+ * Seed initial SOW submissions (21 Pearl & Rivertown Commons) to Cloud Firestore if empty.
+ */
+export async function seedInitialSOWsToCloud(
+  sows: GoogleFormSubmission[] = [SEED_SOW_21_PEARL, SEED_SOW_RIVERTOWN_COMMONS]
+): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    sows.forEach((sow) => {
+      const clean = sanitizeForFirestore(sow);
+      const docRef = doc(db, SOW_SUBMISSIONS_COLLECTION, sow.id);
+      batch.set(docRef, clean, { merge: true });
+    });
+    await batch.commit();
+    console.log(`[Cloud Sync] Successfully seeded ${sows.length} initial SOWs to Cloud Firestore.`);
+  } catch (err) {
+    console.error('[Cloud Sync] Failed to seed initial SOWs to cloud:', err);
+  }
+}
+
+/**
+ * Subscribes to live SOW submissions collection in Cloud Firestore.
+ * Automatically synchronizes with local storage and notifies subscribers.
+ */
+export function subscribeToLiveSOWSubmissions(
+  onUpdate?: (sows: GoogleFormSubmission[]) => void
+): () => void {
+  const colRef = collection(db, SOW_SUBMISSIONS_COLLECTION);
+  const delColRef = collection(db, DELETED_SOWS_COLLECTION);
+  let isInitialLoad = true;
+  const cloudDeletedIds = new Set<string>();
+
+  // Real-time listener for deleted SOWs
+  const unsubDeleted = onSnapshot(
+    delColRef,
+    (delSnapshot) => {
+      delSnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && data.sowId) {
+          cloudDeletedIds.add(data.sowId);
+        }
+      });
+    },
+    (err) => console.warn('[Cloud Sync] Firestore deleted SOWs listener warning:', err)
+  );
+
+  // Real-time listener for SOW submissions
+  const unsubSows = onSnapshot(
+    colRef,
+    async (snapshot) => {
+      try {
+        if (snapshot.empty && isInitialLoad) {
+          isInitialLoad = false;
+          console.log('[Cloud Sync] Cloud SOWs empty. Seeding initial SOWs to Firestore...');
+          await seedInitialSOWsToCloud([SEED_SOW_21_PEARL, SEED_SOW_RIVERTOWN_COMMONS]);
+          return;
+        }
+
+        isInitialLoad = false;
+        const liveList: GoogleFormSubmission[] = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as GoogleFormSubmission;
+          if (data && data.id && !cloudDeletedIds.has(data.id)) {
+            liveList.push(data);
+          }
+        });
+
+        // Ensure 21 Pearl and Rivertown Commons are never missing unless explicitly deleted
+        const has21Pearl = liveList.some(
+          (s) =>
+            s.id === SEED_SOW_21_PEARL.id ||
+            (s.communityName || '').trim().toLowerCase() === '21 pearl'
+        );
+        if (!has21Pearl && !cloudDeletedIds.has(SEED_SOW_21_PEARL.id)) {
+          liveList.unshift(SEED_SOW_21_PEARL);
+        }
+
+        const hasRivertown = liveList.some(
+          (s) =>
+            s.id === SEED_SOW_RIVERTOWN_COMMONS.id ||
+            (s.communityName || '').trim().toLowerCase().includes('rivertown')
+        );
+        if (!hasRivertown && !cloudDeletedIds.has(SEED_SOW_RIVERTOWN_COMMONS.id)) {
+          liveList.push(SEED_SOW_RIVERTOWN_COMMONS);
+        }
+
+        // Sort descending by submission date
+        liveList.sort(
+          (a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
+        );
+
+        // Update local storage cache
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('quext_sow_google_form_submissions_v2', JSON.stringify(liveList));
+            window.dispatchEvent(new Event('quext_sow_submissions_updated'));
+            window.dispatchEvent(new Event('storage'));
+          }
+        } catch (e) {
+          console.warn('[Cloud Sync] Error updating localStorage with live SOWs:', e);
+        }
+
+        if (onUpdate) {
+          onUpdate(liveList);
+        }
+      } catch (err) {
+        console.error('[Cloud Sync] Error processing live SOW snapshot:', err);
+      }
+    },
+    (err) => {
+      console.warn('[Cloud Sync] Firestore live SOW listener error:', err);
+    }
+  );
+
+  return () => {
+    unsubSows();
+    unsubDeleted();
+  };
+}
+
+/**
+ * Direct active fetch of all live SOW submissions from Cloud Firestore.
+ * Performs deep reconciliation with cloud deleted tombstones, seeds any missing default SOWs
+ * (Rivertown Commons, 21 Pearl), and synchronizes with local storage.
+ */
+export async function fetchLiveSOWSubmissionsFromCloud(): Promise<GoogleFormSubmission[]> {
+  try {
+    const [sowSnap, delSnap] = await Promise.all([
+      getDocs(collection(db, SOW_SUBMISSIONS_COLLECTION)),
+      getDocs(collection(db, DELETED_SOWS_COLLECTION)),
+    ]);
+
+    const cloudDeletedIds = new Set<string>();
+    delSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data && data.sowId) cloudDeletedIds.add(data.sowId);
+    });
+
+    const liveList: GoogleFormSubmission[] = [];
+    sowSnap.forEach((docSnap) => {
+      const data = docSnap.data() as GoogleFormSubmission;
+      if (data && data.id && !cloudDeletedIds.has(data.id)) {
+        liveList.push(data);
+      }
+    });
+
+    // Ensure 21 Pearl and Rivertown Commons are never missing unless explicitly deleted
+    const has21Pearl = liveList.some(
+      (s) =>
+        s.id === SEED_SOW_21_PEARL.id ||
+        (s.communityName || '').trim().toLowerCase() === '21 pearl'
+    );
+    if (!has21Pearl && !cloudDeletedIds.has(SEED_SOW_21_PEARL.id)) {
+      liveList.unshift(SEED_SOW_21_PEARL);
+      saveLiveSOWSubmission(SEED_SOW_21_PEARL).catch(() => {});
+    }
+
+    const hasRivertown = liveList.some(
+      (s) =>
+        s.id === SEED_SOW_RIVERTOWN_COMMONS.id ||
+        (s.communityName || '').trim().toLowerCase().includes('rivertown')
+    );
+    if (!hasRivertown && !cloudDeletedIds.has(SEED_SOW_RIVERTOWN_COMMONS.id)) {
+      liveList.push(SEED_SOW_RIVERTOWN_COMMONS);
+      saveLiveSOWSubmission(SEED_SOW_RIVERTOWN_COMMONS).catch(() => {});
+    }
+
+    // Sort descending by date
+    liveList.sort(
+      (a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
+    );
+
+    // Cache to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('quext_sow_google_form_submissions_v2', JSON.stringify(liveList));
+        window.dispatchEvent(new Event('quext_sow_submissions_updated'));
+      } catch (err) {
+        console.warn('[Cloud Sync] Failed to cache live SOWs to localStorage:', err);
+      }
+    }
+
+    return liveList;
+  } catch (err) {
+    console.error('[Cloud Sync] Failed to fetch live SOWs from cloud:', err);
+    return [SEED_SOW_21_PEARL, SEED_SOW_RIVERTOWN_COMMONS];
+  }
 }

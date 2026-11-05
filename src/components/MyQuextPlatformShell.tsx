@@ -51,6 +51,7 @@ import {
   AlertTriangle,
   GitMerge,
   KeyRound,
+  FileCheck,
   ChevronDown,
   FileSpreadsheet,
   Download,
@@ -783,6 +784,28 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
                           </div>
                           <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-cyan-200 text-cyan-900 rounded-md">
                             Codes &amp; Links
+                          </span>
+                        </button>
+                      )}
+
+                      {/* OneQuext SOW Creation Hub */}
+                      {onOpenSowAutomation && (
+                        <button
+                          type="button"
+                          data-tutorial-id="profile-dropdown-sow-hub-btn"
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            onOpenSowAutomation();
+                          }}
+                          className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-teal-950 bg-teal-50/70 hover:bg-teal-100/90 border border-teal-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                          title="Open Onsite Visit Scheduling & SOW Creation Hub to generate official SOW PDFs and dispatch to partner integrators"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <FileCheck className="w-4 h-4 text-teal-600 shrink-0" />
+                            <span className="font-bold text-teal-950">OneQuext SOW Hub</span>
+                          </div>
+                          <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-teal-200 text-teal-900 rounded-md">
+                            SOW Hub
                           </span>
                         </button>
                       )}

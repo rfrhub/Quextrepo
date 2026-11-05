@@ -1,6 +1,7 @@
 import { GoogleFormSubmission, FieldTechContact } from '../types/sowForm';
 import { sendRealGmailEmail, getAccessToken } from './gmailService';
 import { getSowPdfBase64, downloadSowPdf } from '../utils/generateSowPdf';
+import { saveLiveSOWSubmission, deleteLiveSOWSubmission } from './realtimeSyncService';
 
 const STORAGE_KEY = 'quext_sow_google_form_submissions_v2';
 
@@ -158,6 +159,63 @@ export const SEED_SOW_21_PEARL: GoogleFormSubmission = {
   integratorPartners: ['Spirit Security'],
 };
 
+export const SEED_SOW_RIVERTOWN_COMMONS: GoogleFormSubmission = {
+  id: 'sow-rivertown-commons-master',
+  submittedAt: '2026-11-02T16:15:00.000Z',
+  source: 'simulator',
+  status: 'sent_to_tech',
+  orderStatus: 'Scheduled',
+  scheduledDate: '2026-05-11',
+  propertyId: 'proj-master-1793739220206',
+  communityName: 'Rivertown Commons',
+  workSiteAddress: '100 Main St, Dallas, TX 75201',
+  datePrepared: '2026-11-02',
+  installDate: '2026-05-11',
+  preparedBy: 'Raul Recalde',
+  sowReferenceNumber: 'SOW-2026-RTC-QXT',
+  pocName: 'Danielle Miller',
+  pocTitle: 'Senior Community General Manager',
+  pocPhone: '(214) 555-0142',
+  pocEmail: 'danielle.miller@trilogyre.com',
+  alternateContact: 'Carlos Mendez (Lead Maintenance Supervisor) (214) 555-0149',
+  unitLocksIssue:
+    'Full property retrofit across 408 residential units: Deploy Quext Smart Deadbolts (QXT-DL-900). Pre-commission BLE pairing, verify interior thumbturn throw, strike plate mortise clearance, and gateway packet capture across all residential corridors.',
+  accessControlIssue:
+    'Common Areas: Clubhouse Main Entry and Fitness Center Entry access control reader wiring, electrified mortise latch integration, and Knox Box master emergency override fob testing.',
+  camerasIssue:
+    'Clubhouse and Amenity Center: Verify PoE network switch uplink and verify RTSP feed transmission to cloud video management.',
+  residentWifiIssue:
+    'Resident common amenity spaces Wi-Fi mesh optimization and guest portal onboarding verification.',
+  communityWifiIssue: '',
+  staffWifiIssue: 'Property management leasing office admin network isolation and secure VLAN configuration.',
+  thermostatsIssue:
+    '408 Residential Units: Deploy Quext IoT Smart Thermostat (QXT-TH-300). Perform LoRaWAN sub-GHz network join, verify HVAC 24V C-wire voltage supply, and test heat/cool operational relays.',
+  leakSensorsIssue: 'Water heater closet sensors inspection and battery telemetry baseline check.',
+  equipmentNeedsShipping: 'Yes',
+  equipmentToShip:
+    '408x Quext Smart Deadbolts (QXT-DL-900), 408x Quext Smart Thermostats (QXT-TH-300), 7x LoRaWAN Outdoor Gateways (QXT-GW-LR8), mounting brackets, strike plates, and hardware install kits',
+  equipmentQuantityAndLocation:
+    '408 Units (Locks & Thermostats), 7 Gateways (Clubhouse Rooftop & Central Buildings), 2 Readers (Clubhouse & Fitness Center)',
+  shippingRecipient: 'Danielle Miller (Attn: Maintenance Shop Staging Area)',
+  shippingPhone: '(214) 555-0142',
+  shippingEmail: 'danielle.miller@trilogyre.com',
+  shippingMethod: 'Ground',
+  primaryContactMethod: 'Cell Phone & Text/SMS',
+  backupContactMethod: 'Email to Site POC',
+  checkInFrequency: 'Upon site arrival and before leaving site',
+  escalationContact: 'Nicole Franklin (Quext CSM) & Hector Lopez (Field Ops Lead)',
+  integratorPartners: ['SKBM'],
+  assignedTechName: 'SKBM (Partner Integrator)',
+  assignedTechEmail: 'hector.lopez@onequext.com',
+  dispatchedAt: '2026-11-02T17:00:00.000Z',
+  dispatchedMessageId: 'live-dispatched-rtc-01',
+};
+
+export const INITIAL_SOW_SUBMISSIONS: GoogleFormSubmission[] = [
+  SEED_SOW_21_PEARL,
+  SEED_SOW_RIVERTOWN_COMMONS,
+];
+
 export const loadSubmissions = (): GoogleFormSubmission[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -179,6 +237,20 @@ export const loadSubmissions = (): GoogleFormSubmission[] => {
     );
     if (!has21Pearl) {
       parsed.unshift(SEED_SOW_21_PEARL);
+    }
+
+    // Ensure Rivertown Commons SOW is always present
+    const hasRivertown = parsed.some(
+      (s) =>
+        (s.communityName || '').trim().toLowerCase().includes('rivertown') ||
+        (s.sowReferenceNumber || '').includes('RTC') ||
+        s.id === 'sow-rivertown-commons-master'
+    );
+    if (!hasRivertown) {
+      parsed.push(SEED_SOW_RIVERTOWN_COMMONS);
+    }
+
+    if (!has21Pearl || !hasRivertown) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       } catch {
@@ -188,7 +260,7 @@ export const loadSubmissions = (): GoogleFormSubmission[] => {
     return parsed;
   } catch (err) {
     console.error('Failed to load SOW submissions from localStorage:', err);
-    return [SEED_SOW_21_PEARL];
+    return INITIAL_SOW_SUBMISSIONS;
   }
 };
 
@@ -248,6 +320,10 @@ export const addSubmission = (
 
   const updated = [newSubmission, ...current];
   saveSubmissions(updated);
+  // Live Cloud Firestore synchronization across all browsers and devices
+  saveLiveSOWSubmission(newSubmission).catch((err) =>
+    console.warn('[Cloud Sync] Background live SOW creation save failed:', err)
+  );
   return newSubmission;
 };
 
@@ -262,13 +338,23 @@ export const updateSubmission = (
   const updatedItem = { ...current[index], ...updates };
   current[index] = updatedItem;
   saveSubmissions(current);
+  // Live Cloud Firestore synchronization across all browsers and devices
+  saveLiveSOWSubmission(updatedItem).catch((err) =>
+    console.warn(`[Cloud Sync] Background live SOW update for ${id} failed:`, err)
+  );
   return updatedItem;
 };
 
-export const deleteSubmission = (id: string): void => {
+export const deleteSubmission = (id: string, propertyId?: string): void => {
   const current = loadSubmissions();
+  const target = current.find((s) => s.id === id);
+  const resolvedPropertyId = propertyId || target?.propertyId;
   const filtered = current.filter((s) => s.id !== id);
   saveSubmissions(filtered);
+  // Live Cloud Firestore deletion & tombstone across all browsers and devices
+  deleteLiveSOWSubmission(id, resolvedPropertyId).catch((err) =>
+    console.warn(`[Cloud Sync] Background live SOW delete for ${id} failed:`, err)
+  );
 };
 
 export const buildPartnerVendorPlainTextEmail = (

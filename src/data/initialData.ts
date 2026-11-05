@@ -18,7 +18,7 @@ import {
 } from '../types';
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
-import { SEED_SOW_21_PEARL } from '../services/sowFormService';
+import { SEED_SOW_21_PEARL, SEED_SOW_RIVERTOWN_COMMONS } from '../services/sowFormService';
 import { MASTER_TRACKER_PROJECTS } from './masterTrackerData';
 
 export const INITIAL_QUOTES: Quote[] = MYQUEXT_QUOTES;
@@ -2165,6 +2165,16 @@ export function loadStoredProjects(): OperationProject[] {
         if (pearlProj && (!pearlProj.sowSubmissions || pearlProj.sowSubmissions.length === 0)) {
           pearlProj.sowSubmissions = [SEED_SOW_21_PEARL];
         }
+      }
+
+      // Ensure Rivertown Commons has its SOW present
+      const rtcProj = sanitizedList.find(
+        (p) =>
+          (p.propertyName || '').trim().toLowerCase().includes('rivertown') ||
+          p.id === 'proj-master-1793739220206'
+      );
+      if (rtcProj && (!rtcProj.sowSubmissions || rtcProj.sowSubmissions.length === 0)) {
+        rtcProj.sowSubmissions = [SEED_SOW_RIVERTOWN_COMMONS];
       }
 
       // Merge any new Master Tracker projects that haven't yet been cached locally
