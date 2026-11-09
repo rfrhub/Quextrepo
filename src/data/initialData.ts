@@ -2,6 +2,7 @@ import {
   Quote,
   OperationProject,
   ProjectMilestone,
+  ProjectNote,
   OperationMilestoneTitle,
   SOWForecastItem,
   ShippingDockItem,
@@ -1780,6 +1781,71 @@ export function normalizeProjectMilestones(
       targetDate: defaultM.targetDate,
     };
   });
+}
+
+export function resetProjectMilestonesToKickoff(
+  project: OperationProject,
+  kickoffStatus: 'In Progress' | 'Upcoming' = 'In Progress',
+  pmName: string = 'Project Manager',
+  addNote: boolean = true
+): OperationProject {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const standardMilestones = normalizeProjectMilestones(
+    project.milestones,
+    project.id,
+    project.startDate,
+    project.targetCompletionDate
+  );
+
+  const updatedMilestones: ProjectMilestone[] = standardMilestones.map((m, idx) => {
+    const isFirst =
+      idx === 0 ||
+      m.title === 'Project kickoff' ||
+      m.title.toLowerCase().includes('kickoff');
+    if (isFirst) {
+      return {
+        ...m,
+        status: kickoffStatus,
+        startedAt: kickoffStatus === 'In Progress' ? m.startedAt || todayStr : undefined,
+        completedDate: undefined,
+      };
+    }
+    return {
+      ...m,
+      status: 'Upcoming' as const,
+      startedAt: undefined,
+      completedDate: undefined,
+    };
+  });
+
+  let updatedNotes = project.notes || [];
+  if (addNote) {
+    const now = new Date();
+    const formattedTimestamp = now.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const resetNote: ProjectNote = {
+      id: `note-milestone-reset-${Date.now()}`,
+      projectId: project.id,
+      author: pmName || 'Project Manager',
+      timestamp: formattedTimestamp,
+      category: 'General Context',
+      text: `PM Reset: Milestone progress was reset back to the beginning (Project kickoff — ${kickoffStatus}). All subsequent milestones returned to Upcoming status.`,
+      isPinned: false,
+    };
+    updatedNotes = [resetNote, ...updatedNotes];
+  }
+
+  return {
+    ...project,
+    milestones: updatedMilestones,
+    csmHandoffEnteredAt: undefined,
+    notes: updatedNotes,
+    lastUpdated: new Date().toISOString(),
+  };
 }
 
 export function enrichProjectDefaults(p: OperationProject): OperationProject {

@@ -48,7 +48,9 @@ import {
   ChevronLeft,
   LayoutGrid,
   CalendarDays,
+  RotateCcw,
 } from 'lucide-react';
+import { ResetMilestonesModal } from './ResetMilestonesModal';
 import { formatShortDate } from '../utils/generateOmarDashboardPdf';
 
 interface InstallationTimelineProps {
@@ -110,6 +112,7 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
   const [trackerPropertyFilter, setTrackerPropertyFilter] = useState<string>('all');
   const [trackerCategoryFilter, setTrackerCategoryFilter] = useState<string>('all');
   const [isDailyLogModalOpen, setIsDailyLogModalOpen] = useState<boolean>(false);
+  const [resetMilestonesTargetProject, setResetMilestonesTargetProject] = useState<OperationProject | null>(null);
 
   // New Daily Log Form State
   const [newLogProjectId, setNewLogProjectId] = useState<string>(projects[0]?.id || '');
@@ -2733,9 +2736,25 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                         ({totalInstalled.toLocaleString()} / {totalQuoted.toLocaleString()} devices installed)
                       </span>
                     </span>
-                    <span className="text-[11px] font-mono text-slate-500">
-                      Target: {project.targetCompletionDate}
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] font-mono text-slate-500">
+                        Target: {project.targetCompletionDate}
+                      </span>
+                      {onUpdateProject && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setResetMilestonesTargetProject(project);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border border-slate-300 bg-white hover:bg-rose-50 hover:border-rose-300 text-slate-600 hover:text-rose-700 transition shadow-2xs cursor-pointer"
+                          title="Reset milestone progress back to Project kickoff"
+                        >
+                          <RotateCcw className="w-2.5 h-2.5 text-slate-500 group-hover:text-rose-600" />
+                          <span>Reset Milestones</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
@@ -3360,6 +3379,20 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reset Milestones to Project Kickoff Modal */}
+      {resetMilestonesTargetProject && onUpdateProject && (
+        <ResetMilestonesModal
+          isOpen={!!resetMilestonesTargetProject}
+          onClose={() => setResetMilestonesTargetProject(null)}
+          project={resetMilestonesTargetProject}
+          currentUserName="Project Manager"
+          onConfirmReset={(updated) => {
+            onUpdateProject(updated);
+            setResetMilestonesTargetProject(null);
+          }}
+        />
       )}
     </div>
   );

@@ -61,6 +61,7 @@ import { ManualLinkProjectPanel } from './ManualLinkProjectPanel';
 import { PMPMitigationPlanPanel } from './PMPMitigationPlanPanel';
 import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
+import { ResetMilestonesModal } from './ResetMilestonesModal';
 import {
   Building2,
   Mail,
@@ -108,6 +109,7 @@ import {
   ShieldAlert,
   Download,
   Upload,
+  RotateCcw,
 } from 'lucide-react';
 import { exportSingleProject, openImportModal } from '../utils/projectBackupService';
 import { formatShortDate } from '../utils/generateOmarDashboardPdf';
@@ -186,7 +188,19 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const [isPmEditMode, setIsPmEditMode] = useState<boolean>(false);
   const effectivePmEditMode = isPM && isPmEditMode;
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
+  const [showResetMilestonesModal, setShowResetMilestonesModal] = useState<boolean>(false);
+  const [resetMilestonesSuccessToast, setResetMilestonesSuccessToast] = useState<string | null>(null);
   const [rmaPreselectedBomId, setRmaPreselectedBomId] = useState<string | null>(null);
+
+  const handleConfirmResetMilestones = (updatedProject: OperationProject) => {
+    onUpdateProject(updatedProject);
+    setResetMilestonesSuccessToast(
+      `✓ Milestones on "${updatedProject.propertyName}" successfully reset back to Project kickoff.`
+    );
+    setTimeout(() => {
+      setResetMilestonesSuccessToast(null);
+    }, 6000);
+  };
 
   const handleUpdatePropertyName = (newName: string) => {
     onUpdateProject({
@@ -2131,6 +2145,15 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-center">
                   <button
                     type="button"
+                    onClick={() => setShowResetMilestonesModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-800 hover:text-rose-700 border border-slate-300 hover:border-rose-300 font-bold text-xs shadow-xs cursor-pointer transition-all"
+                    title="Reset all milestone progress for this project back to the beginning (Project kickoff)"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Reset Milestones to Kickoff</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={openImportModal}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs shadow-xs cursor-pointer transition-all"
                     title="Restore project from JSON backup or spreadsheet"
@@ -2773,6 +2796,22 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             );
           })()}
 
+          {resetMilestonesSuccessToast && (
+            <div className="mt-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span className="text-xs font-bold">{resetMilestonesSuccessToast}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResetMilestonesSuccessToast(null)}
+                className="text-emerald-700 hover:text-emerald-900 text-xs font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Unified Panel: Deployment Progress & Milestones (Left) + Project Health Tag (Right) */}
           <div data-tutorial-id="milestones-tracker-rail" className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
             {/* Left Side inside Panel: Deployment Progress Bar & Project Milestones */}
@@ -2785,7 +2824,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     ({totalInstalledDevices.toLocaleString()} / {totalQuotedDevices.toLocaleString()} devices installed)
                   </span>
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <span className="text-[11px] text-slate-500">
                     {effectivePmEditMode ? (
                       <span className="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
@@ -2798,6 +2837,18 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   <span className="text-[11px] font-mono text-slate-500">
                     Target: {project.targetCompletionDate}
                   </span>
+                  {isPM && (
+                    <button
+                      type="button"
+                      data-testid="reset-milestones-button"
+                      onClick={() => setShowResetMilestonesModal(true)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-rose-50 hover:border-rose-300 text-slate-700 hover:text-rose-700 transition shadow-2xs cursor-pointer"
+                      title="Reset project milestone progress back to Project kickoff"
+                    >
+                      <RotateCcw className="w-3 h-3 text-slate-500 group-hover:text-rose-600" />
+                      <span>Reset to Kickoff</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -4857,6 +4908,17 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reset Milestones to Project Kickoff Modal */}
+      {showResetMilestonesModal && (
+        <ResetMilestonesModal
+          isOpen={showResetMilestonesModal}
+          onClose={() => setShowResetMilestonesModal(false)}
+          project={project}
+          currentUserName={currentUserName}
+          onConfirmReset={handleConfirmResetMilestones}
+        />
       )}
 
     </div>
