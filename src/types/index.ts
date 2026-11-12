@@ -983,6 +983,14 @@ export interface EntrataCredentials {
 
 export type CustomerEmailCadence = 'none' | 'weekly' | 'biweekly';
 
+export interface Stage1And2CustomOutstandingItem {
+  id: string;
+  stageNumber: 1 | 2;
+  title: string;
+  promptOrDetailNeeded: string;
+  replyPlaceholder?: string;
+}
+
 export interface CommsTunnelConfiguration {
   pmPersonalMessage?: string;
   pmPersonalMessageTitle?: string;
@@ -1000,6 +1008,20 @@ export interface CommsTunnelConfiguration {
     sentAt: string;
     sentBy?: string;
   };
+  // Stage 1 (Project kickoff) & Stage 2 (Portal Buildout) Outstanding Customer Finalization Items
+  includeStage1And2OutstandingCard?: boolean;
+  selectedStage1And2ItemIds?: string[];
+  stage1And2ItemCustomPrompts?: Record<string, string>;
+  customStage1And2Items?: Stage1And2CustomOutstandingItem[];
+  finalizedViaEmailReplyItemIds?: Record<
+    string,
+    {
+      responseText: string;
+      finalizedAt: string;
+      respondentEmail?: string;
+    }
+  >;
+  // Stage 3–7 Field & Operations Card Inclusions
   includeInstalledBomCard?: boolean;
   selectedBomItemIds?: string[];
   includeShippingDockCard?: boolean;

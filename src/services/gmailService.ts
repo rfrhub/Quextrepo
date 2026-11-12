@@ -239,6 +239,7 @@ export interface SendGmailParams {
   to: string | string[];
   subject: string;
   htmlBody: string;
+  replyTo?: string;
   attachments?: EmailAttachment[];
 }
 
@@ -252,6 +253,7 @@ export const sendRealGmailEmail = async ({
   to,
   subject,
   htmlBody,
+  replyTo,
   attachments,
 }: SendGmailParams): Promise<SendGmailResult> => {
   const token = await getAccessToken();
@@ -291,6 +293,7 @@ export const sendRealGmailEmail = async ({
 
     mimeLines = [
       `To: ${recipientList.join(', ')}`,
+      ...(replyTo && replyTo.trim() ? [`Reply-To: ${replyTo.trim()}`] : []),
       `Subject: ${encodeMimeHeaderUtf8(subject)}`,
       'MIME-Version: 1.0',
       `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
@@ -353,6 +356,7 @@ export const sendRealGmailEmail = async ({
 
     mimeLines = [
       `To: ${recipientList.join(', ')}`,
+      ...(replyTo && replyTo.trim() ? [`Reply-To: ${replyTo.trim()}`] : []),
       `Subject: ${encodeMimeHeaderUtf8(subject)}`,
       'MIME-Version: 1.0',
       `Content-Type: multipart/related; boundary="${boundary}"`,
@@ -376,6 +380,7 @@ export const sendRealGmailEmail = async ({
   } else {
     mimeLines = [
       `To: ${recipientList.join(', ')}`,
+      ...(replyTo && replyTo.trim() ? [`Reply-To: ${replyTo.trim()}`] : []),
       `Subject: ${encodeMimeHeaderUtf8(subject)}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset="UTF-8"',

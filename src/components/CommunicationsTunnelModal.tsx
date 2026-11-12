@@ -4,6 +4,7 @@ import {
   CustomerCommsLog,
   CustomerEmailCadence,
   CommsTunnelConfiguration,
+  Stage1And2CustomOutstandingItem,
   getDockItemTrackingNumbers,
 } from '../types';
 import {
@@ -36,6 +37,9 @@ import {
   extractGenuineProjectRecipientEntries,
   searchGenuinePortfolioEmails,
   getAllProjectInstallLogs,
+  isStageOneOrTwo,
+  getStage1And2CustomerFinalizationItems,
+  parseAndApplyCustomerEmailReplyToProject,
   isStageThreeToSeven,
   buildDigestibleMilestoneCardEmailContent,
   buildRecipientPortfolioWideCardEmail,
@@ -97,6 +101,31 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
   const [pmPersonalMessageDeliveryMode, setPmPersonalMessageDeliveryMode] = useState<
     'one_time' | 'recurring_cadence'
   >(project.commsTunnelConfig?.pmPersonalMessageDeliveryMode || 'one_time');
+
+  // Stage 1 (Project kickoff) & Stage 2 (Portal Buildout) Outstanding Customer Finalization Items State
+  const [includeStage1And2OutstandingCard, setIncludeStage1And2OutstandingCard] = useState<boolean>(
+    project.commsTunnelConfig?.includeStage1And2OutstandingCard ?? false
+  );
+  const [selectedStage1And2ItemIds, setSelectedStage1And2ItemIds] = useState<string[]>(
+    project.commsTunnelConfig?.selectedStage1And2ItemIds || []
+  );
+  const [stage1And2ItemCustomPrompts, setStage1And2ItemCustomPrompts] = useState<
+    Record<string, string>
+  >(project.commsTunnelConfig?.stage1And2ItemCustomPrompts || {});
+  const [customStage1And2Items, setCustomStage1And2Items] = useState<
+    Stage1And2CustomOutstandingItem[]
+  >(project.commsTunnelConfig?.customStage1And2Items || []);
+  const [stage1And2StageFilter, setStage1And2StageFilter] = useState<'all' | 1 | 2>('all');
+  const [forceShowStage1And2OnLaterStage, setForceShowStage1And2OnLaterStage] =
+    useState<boolean>(false);
+  const [editingPromptItemId, setEditingPromptItemId] = useState<string | null>(null);
+  const [showAddCustomStage1And2Form, setShowAddCustomStage1And2Form] = useState<boolean>(false);
+  const [newCustomItemStage, setNewCustomItemStage] = useState<1 | 2>(1);
+  const [newCustomItemTitle, setNewCustomItemTitle] = useState<string>('');
+  const [newCustomItemPrompt, setNewCustomItemPrompt] = useState<string>('');
+  const [showCustomerReplyProcessor, setShowCustomerReplyProcessor] = useState<boolean>(false);
+  const [customerReplyInputText, setCustomerReplyInputText] = useState<string>('');
+  const [customerReplySenderEmail, setCustomerReplySenderEmail] = useState<string>('');
 
   // Stage 3–7 Field & Operations Card Inclusion State
   const [activeOpsSelectorTab, setActiveOpsSelectorTab] = useState<
@@ -168,6 +197,22 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       setPmPersonalMessageDeliveryMode(
         project.commsTunnelConfig?.pmPersonalMessageDeliveryMode || 'one_time'
       );
+      const initialStage1And2Items = getStage1And2CustomerFinalizationItems(
+        project,
+        project.commsTunnelConfig
+      );
+      setIncludeStage1And2OutstandingCard(
+        project.commsTunnelConfig?.includeStage1And2OutstandingCard ?? false
+      );
+      setSelectedStage1And2ItemIds(
+        project.commsTunnelConfig?.selectedStage1And2ItemIds ||
+          initialStage1And2Items.filter((it) => !it.isAlreadyProvidedOnProject).map((it) => it.id)
+      );
+      setStage1And2ItemCustomPrompts(
+        project.commsTunnelConfig?.stage1And2ItemCustomPrompts || {}
+      );
+      setCustomStage1And2Items(project.commsTunnelConfig?.customStage1And2Items || []);
+      setCustomerReplySenderEmail(project.customerIntake?.communityEmail || '');
       setIncludeInstalledBomCard(project.commsTunnelConfig?.includeInstalledBomCard ?? false);
       setSelectedBomItemIds(
         project.commsTunnelConfig?.selectedBomItemIds ||
@@ -290,6 +335,14 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
     );
   }, [sharedRecipientsDetection.matchedContacts, selectedSharedRecipientEmail]);
 
+  // Check if active milestone or previewed milestone is Stage 1 (Project kickoff) or Stage 2 (Portal Buildout)
+  const isCurrentOrPreviewStage1Or2 = useMemo(() => {
+    return (
+      isStageOneOrTwo(selectedPreviewMilestone, project) ||
+      isStageOneOrTwo(currentMilestoneObj?.title, project)
+    );
+  }, [selectedPreviewMilestone, currentMilestoneObj?.title, project]);
+
   // Check if active milestone or previewed milestone is between Stage 3 and Stage 7
   const isCurrentOrPreviewStage3To7 = useMemo(() => {
     return (
@@ -306,6 +359,11 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       pmPersonalMessageStyle,
       pmPersonalMessageDeliveryMode,
       lastSentOneTimePmMessage: project.commsTunnelConfig?.lastSentOneTimePmMessage,
+      includeStage1And2OutstandingCard,
+      selectedStage1And2ItemIds,
+      stage1And2ItemCustomPrompts,
+      customStage1And2Items,
+      finalizedViaEmailReplyItemIds: project.commsTunnelConfig?.finalizedViaEmailReplyItemIds,
       includeInstalledBomCard,
       selectedBomItemIds,
       includeShippingDockCard,
@@ -321,6 +379,11 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       pmPersonalMessageStyle,
       pmPersonalMessageDeliveryMode,
       project.commsTunnelConfig?.lastSentOneTimePmMessage,
+      includeStage1And2OutstandingCard,
+      selectedStage1And2ItemIds,
+      stage1And2ItemCustomPrompts,
+      customStage1And2Items,
+      project.commsTunnelConfig?.finalizedViaEmailReplyItemIds,
       includeInstalledBomCard,
       selectedBomItemIds,
       includeShippingDockCard,
@@ -331,6 +394,17 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       selectedProjectNoteIds,
     ]
   );
+
+  // Live Stage 1 & 2 Customer Finalization Items list
+  const stage1And2Items = useMemo(
+    () => getStage1And2CustomerFinalizationItems(project, activeCommsConfig),
+    [project, activeCommsConfig]
+  );
+
+  const filteredStage1And2Items = useMemo(() => {
+    if (stage1And2StageFilter === 'all') return stage1And2Items;
+    return stage1And2Items.filter((it) => it.stageNumber === stage1And2StageFilter);
+  }, [stage1And2Items, stage1And2StageFilter]);
 
   const triggerToast = (msg: string) => {
     setToastBanner(msg);
@@ -376,8 +450,78 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
           '⚡ Staged One-Time Unique PM Message Card for the next update only (will auto-clear after send so it never repeats on the cadence)!'
         );
       } else {
-        triggerToast('Saved PM Personal Message & Stage 3–7 Card Selections to Communications Tunnel!');
+        triggerToast('Saved Communications Tunnel configuration to project!');
       }
+    }
+  };
+
+  // Add a custom Stage 1 or Stage 2 item waiting on customer finalization
+  const handleAddCustomStage1And2Item = () => {
+    const cleanTitle = newCustomItemTitle.trim();
+    const cleanPrompt = newCustomItemPrompt.trim();
+    if (!cleanTitle) {
+      setErrorBanner('Please enter a title for the custom Stage 1/2 item waiting on the customer.');
+      return;
+    }
+    const newItem: Stage1And2CustomOutstandingItem = {
+      id: `custom_stage${newCustomItemStage}_${Date.now()}`,
+      stageNumber: newCustomItemStage,
+      title: cleanTitle,
+      promptOrDetailNeeded:
+        cleanPrompt || `Please finalize "${cleanTitle}" for Stage ${newCustomItemStage} (${project.propertyName}).`,
+      replyPlaceholder: `${cleanTitle} Confirmation`,
+    };
+    const nextCustomList = [...customStage1And2Items, newItem];
+    const nextSelectedIds = Array.from(new Set([...selectedStage1And2ItemIds, newItem.id]));
+    setCustomStage1And2Items(nextCustomList);
+    setSelectedStage1And2ItemIds(nextSelectedIds);
+    setIncludeStage1And2OutstandingCard(true);
+    setNewCustomItemTitle('');
+    setNewCustomItemPrompt('');
+    setShowAddCustomStage1And2Form(false);
+    handleSaveCommsConfigToProject(
+      {
+        customStage1And2Items: nextCustomList,
+        selectedStage1And2ItemIds: nextSelectedIds,
+        includeStage1And2OutstandingCard: true,
+      },
+      true
+    );
+    triggerToast(
+      `Added custom Stage ${newCustomItemStage} item "${cleanTitle}" & embedded it into the customer email reply card!`
+    );
+  };
+
+  // Process & apply a customer's email reply back to the PM for Stage 1 & 2 outstanding items
+  const handleApplyCustomerEmailReply = () => {
+    const cleanReply = customerReplyInputText.trim();
+    if (!cleanReply) {
+      setErrorBanner('Please paste or load the customer email reply text to apply their finalized details.');
+      return;
+    }
+    setErrorBanner(null);
+
+    const { updatedProject, updatedCommsConfig, finalizedCount, finalizedTitles } =
+      parseAndApplyCustomerEmailReplyToProject(
+        project,
+        cleanReply,
+        customerReplySenderEmail.trim() || project.customerIntake?.communityEmail || project.clientName,
+        activeCommsConfig
+      );
+
+    setSelectedStage1And2ItemIds(updatedCommsConfig.selectedStage1And2ItemIds || []);
+    setCustomerReplyInputText('');
+    setShowCustomerReplyProcessor(false);
+    persistProjectUpdate(updatedProject);
+
+    if (finalizedCount > 0) {
+      triggerToast(
+        `✓ Processed customer email reply! Finalized ${finalizedCount} Stage 1 & 2 item(s) (${finalizedTitles.join(
+          ', '
+        )}) and synced to project!`
+      );
+    } else {
+      triggerToast('Logged customer email reply to project notes & communication history!');
     }
   };
 
@@ -708,6 +852,7 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
         to: targetEmail,
         subject: emailPayload.subject,
         htmlBody: emailPayload.htmlBody,
+        replyTo: project.assignedPM.email,
       });
 
       logPortfolioDispatchAcrossProjects({
@@ -824,6 +969,7 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
         to: recipientList.join(', '),
         subject: singleProjectCardDigest.subject,
         htmlBody: singleProjectCardDigest.htmlBody,
+        replyTo: project.assignedPM.email,
       });
 
       const newLog: CustomerCommsLog = {
@@ -1580,13 +1726,466 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
               )}
             </div>
 
-            {/* Step 4: STAGES 3–7 FIELD & OPERATIONS CARDS SELECTOR (Installed BOM, Shipping Dock, Installer Logs, Project Notes) */}
+            {/* Step 4: STAGE 1 & 2 ITEMS WAITING ON CUSTOMER FINALIZATION (With Direct Email Reply to PM) */}
+            <div
+              data-testid="comms-tunnel-stage1and2-panel"
+              className="bg-white p-4 rounded-xl border border-amber-200/90 shadow-2xs space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                      4. Stage 1 &amp; 2 Items Waiting on Customer Finalization
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                        isCurrentOrPreviewStage1Or2
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      {isCurrentOrPreviewStage1Or2 ? 'Active Stage 1–2' : 'Stages 1–2'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Highlight items you are waiting on the customer to finalize in Project Kickoff (Stage 1) or Portal Buildout (Stage 2). Embeds 1-click email reply buttons &amp; an inline reply checklist that routes back to <strong>{project.assignedPM.email}</strong>.
+                  </p>
+                </div>
+                {!isCurrentOrPreviewStage1Or2 && (
+                  <button
+                    type="button"
+                    onClick={() => setForceShowStage1And2OnLaterStage((prev) => !prev)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold shrink-0 cursor-pointer"
+                  >
+                    {forceShowStage1And2OnLaterStage ? 'Hide Selector' : 'Configure Stage 1–2'}
+                  </button>
+                )}
+              </div>
+
+              {!isCurrentOrPreviewStage1Or2 && !forceShowStage1And2OnLaterStage ? (
+                <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200/80 text-[11px] text-slate-600 flex items-center justify-between gap-2">
+                  <span>
+                    Currently previewing <strong>{selectedPreviewMilestone}</strong>. Switch preview to Stage 1 (<em>Project kickoff</em>) or Stage 2 (<em>Portal Buildout</em>) or click <strong>Configure Stage 1–2</strong> to highlight pending customer items.
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {/* Master Toggle + Action Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-900 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        data-testid="toggle-include-stage1and2-card"
+                        checked={includeStage1And2OutstandingCard}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setIncludeStage1And2OutstandingCard(checked);
+                          handleSaveCommsConfigToProject(
+                            { includeStage1And2OutstandingCard: checked },
+                            true
+                          );
+                        }}
+                        className="w-3.5 h-3.5 rounded text-amber-600 cursor-pointer"
+                      />
+                      <span>
+                        Highlight Waiting Customer Items Card in Email ({selectedStage1And2ItemIds.length} Selected)
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const missingIds = stage1And2Items
+                            .filter((it) => !it.isAlreadyProvidedOnProject)
+                            .map((it) => it.id);
+                          setSelectedStage1And2ItemIds(missingIds);
+                          setIncludeStage1And2OutstandingCard(true);
+                          handleSaveCommsConfigToProject(
+                            {
+                              selectedStage1And2ItemIds: missingIds,
+                              includeStage1And2OutstandingCard: true,
+                            },
+                            true
+                          );
+                        }}
+                        className="px-2 py-0.5 rounded bg-white border border-amber-300 text-[10px] font-bold text-amber-900 hover:bg-amber-100 cursor-pointer"
+                      >
+                        Select Pending ({stage1And2Items.filter((it) => !it.isAlreadyProvidedOnProject).length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allIds = stage1And2Items.map((it) => it.id);
+                          setSelectedStage1And2ItemIds(allIds);
+                          setIncludeStage1And2OutstandingCard(true);
+                          handleSaveCommsConfigToProject(
+                            {
+                              selectedStage1And2ItemIds: allIds,
+                              includeStage1And2OutstandingCard: true,
+                            },
+                            true
+                          );
+                        }}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                      >
+                        All ({stage1And2Items.length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stage Filter Pills & Custom Item / Process Reply Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-[10px]">
+                      {(
+                        [
+                          { id: 'all', label: `All (${stage1And2Items.length})` },
+                          {
+                            id: 1,
+                            label: `Stage 1: Kickoff (${stage1And2Items.filter((i) => i.stageNumber === 1).length})`,
+                          },
+                          {
+                            id: 2,
+                            label: `Stage 2: Portal (${stage1And2Items.filter((i) => i.stageNumber === 2).length})`,
+                          },
+                        ] as const
+                      ).map((tab) => (
+                        <button
+                          key={String(tab.id)}
+                          type="button"
+                          onClick={() => setStage1And2StageFilter(tab.id)}
+                          className={`py-1 px-2 rounded-md font-extrabold transition-all cursor-pointer ${
+                            stage1And2StageFilter === tab.id
+                              ? 'bg-white text-slate-900 shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        data-testid="toggle-add-custom-stage1and2-btn"
+                        onClick={() => setShowAddCustomStage1And2Form((prev) => !prev)}
+                        className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add Custom Item</span>
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="toggle-customer-email-reply-processor"
+                        onClick={() => setShowCustomerReplyProcessor((prev) => !prev)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border cursor-pointer transition-colors ${
+                          showCustomerReplyProcessor
+                            ? 'bg-emerald-900 text-white border-emerald-900'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-300'
+                        }`}
+                        title="Paste or process a customer's email reply back to the PM to automatically finalize these items on the project"
+                      >
+                        <Mail className="w-3 h-3" />
+                        <span>Process Customer Email Reply</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Add Custom Outstanding Item Drawer */}
+                  {showAddCustomStage1And2Form && (
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                          Add Custom Stage 1 or 2 Item Waiting on Customer
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddCustomStage1And2Form(false)}
+                          className="text-[10px] text-slate-400 hover:text-slate-700 font-bold cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <select
+                          value={newCustomItemStage}
+                          onChange={(e) => setNewCustomItemStage(Number(e.target.value) as 1 | 2)}
+                          className="px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
+                        >
+                          <option value={1}>Stage 1: Project kickoff</option>
+                          <option value={2}>Stage 2: Portal Buildout</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={newCustomItemTitle}
+                          onChange={(e) => setNewCustomItemTitle(e.target.value)}
+                          placeholder="Item title (e.g., Elevator Access Relay Spec)"
+                          className="col-span-2 px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 font-semibold"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newCustomItemPrompt}
+                          onChange={(e) => setNewCustomItemPrompt(e.target.value)}
+                          placeholder="What specific details should the customer reply with by email?"
+                          className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-800"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomStage1And2Item}
+                          className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shrink-0 cursor-pointer"
+                        >
+                          + Add &amp; Highlight
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Customer Email Reply Processor Drawer */}
+                  {showCustomerReplyProcessor && (
+                    <div
+                      data-testid="customer-email-reply-processor-drawer"
+                      className="p-3 rounded-xl bg-emerald-50/90 border border-emerald-300 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-[11px] font-black text-emerald-950 flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Apply Customer Email Reply Back to Project</span>
+                          </div>
+                          <p className="text-[10px] text-emerald-800">
+                            When the customer replies by email to <strong>{project.assignedPM.email}</strong> (using the 1-click reply buttons or inline checklist), paste their reply below to automatically finalize the items &amp; update the project.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid="load-sample-customer-email-reply-btn"
+                          onClick={() => {
+                            const activeWaiting = stage1And2Items.filter((it) =>
+                              selectedStage1And2ItemIds.includes(it.id)
+                            );
+                            const sampleItems =
+                              activeWaiting.length > 0 ? activeWaiting : stage1And2Items.slice(0, 3);
+                            const sampleLines = [
+                              `From: ${project.customerIntake?.communityEmail || 'customer@property.com'}`,
+                              `To: ${project.assignedPM.email}`,
+                              `Subject: Re: [Customer Finalization • ${project.propertyName}] Finalized Stage 1 & 2 Details`,
+                              '',
+                              ...sampleItems.flatMap((it, idx) => {
+                                let sampleAns = 'Confirmed and approved by onsite property manager.';
+                                if (it.id === 'stage1_pms_credentials') {
+                                  sampleAns = `Yardi Voyager — Property Code: ${project.propertyName
+                                    .slice(0, 4)
+                                    .toUpperCase()}-100 (API sync approved)`;
+                                } else if (it.id === 'stage1_common_doors') {
+                                  sampleAns =
+                                    'Clubhouse Main Entry, 24hr Fitness Center, Pool East Gate, Leasing Office Side Door';
+                                } else if (it.id === 'stage1_staff_roles') {
+                                  sampleAns = `Hannah Galarneau (${
+                                    project.customerIntake?.communityEmail || 'manager@property.com'
+                                  }) — Property Manager (Full Portal Admin)`;
+                                } else if (it.id === 'stage1_site_maps_gateway') {
+                                  sampleAns =
+                                    'Clubhouse 2nd floor IDF closet and Building B roof parapet approved with PoE ethernet.';
+                                } else if (it.id === 'stage1_thermostat_vacant_temp') {
+                                  sampleAns = '64°F Heating / 76°F Cooling for all vacant units';
+                                } else if (it.id === 'stage1_fire_keys_knox') {
+                                  sampleAns =
+                                    'Fire Marshal Knox Box #2 at main gate; 3 master fobs staged in Leasing Office safe.';
+                                } else if (it.id === 'stage2_lock_finish_trim') {
+                                  sampleAns =
+                                    'Matte Black (622) finish with Century Trim and Latitude Lever confirmed for all units.';
+                                } else if (it.id === 'stage2_nfc_wallet_art') {
+                                  sampleAns =
+                                    'Yes — Apple & Google NFC Wallet enabled with primary navy/emerald community branding.';
+                                } else if (it.id === 'stage2_qr_intercom_logo') {
+                                  sampleAns =
+                                    'Yes — QR Video Intercom confirmed for main entry & pool gate.';
+                                }
+                                return [
+                                  `${idx + 1}. [${it.title}] (Ref: ${it.id})`,
+                                  `👉 ${it.replyFieldLabel}: ${sampleAns}`,
+                                  '',
+                                ];
+                              }),
+                            ];
+                            setCustomerReplyInputText(sampleLines.join('\n'));
+                          }}
+                          className="px-2 py-1 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold shrink-0 cursor-pointer"
+                        >
+                          Pre-Fill Sample Reply
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={customerReplySenderEmail}
+                        onChange={(e) => setCustomerReplySenderEmail(e.target.value)}
+                        placeholder={`Customer sender email (e.g., ${project.customerIntake?.communityEmail || 'manager@property.com'})`}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-emerald-300 rounded-lg text-slate-900 font-semibold"
+                      />
+
+                      <textarea
+                        data-testid="customer-email-reply-textarea"
+                        rows={4}
+                        value={customerReplyInputText}
+                        onChange={(e) => setCustomerReplyInputText(e.target.value)}
+                        placeholder="Paste the customer's email reply body here..."
+                        className="w-full px-2.5 py-2 text-xs bg-white border border-emerald-300 rounded-lg text-slate-900 font-mono"
+                      />
+
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomerReplyProcessor(false)}
+                          className="px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          Close
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="apply-customer-email-reply-btn"
+                          onClick={handleApplyCustomerEmailReply}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Apply Customer Email Reply to Project</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stage 1 & 2 Checklist Items */}
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                    {filteredStage1And2Items.map((item) => {
+                      const isChecked = selectedStage1And2ItemIds.includes(item.id);
+                      const isEditingPrompt = editingPromptItemId === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          className={`p-2.5 rounded-xl border text-[11px] transition-colors ${
+                            isChecked
+                              ? 'bg-amber-50/70 border-amber-300'
+                              : item.isFinalizedViaEmailReply
+                              ? 'bg-emerald-50/50 border-emerald-200'
+                              : 'bg-slate-50 border-slate-200 opacity-85'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div
+                              onClick={() => {
+                                const next = isChecked
+                                  ? selectedStage1And2ItemIds.filter((id) => id !== item.id)
+                                  : [...selectedStage1And2ItemIds, item.id];
+                                setSelectedStage1And2ItemIds(next);
+                                const nextInclude =
+                                  next.length > 0 ? true : includeStage1And2OutstandingCard;
+                                if (next.length > 0 && !includeStage1And2OutstandingCard) {
+                                  setIncludeStage1And2OutstandingCard(true);
+                                }
+                                handleSaveCommsConfigToProject(
+                                  {
+                                    selectedStage1And2ItemIds: next,
+                                    includeStage1And2OutstandingCard: nextInclude,
+                                  },
+                                  true
+                                );
+                              }}
+                              className="flex items-start gap-2 min-w-0 flex-1 cursor-pointer"
+                            >
+                              {isChecked ? (
+                                <CheckSquare className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                              ) : (
+                                <Square className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                                      item.stageNumber === 1
+                                        ? 'bg-amber-100 text-amber-900'
+                                        : 'bg-indigo-100 text-indigo-900'
+                                    }`}
+                                  >
+                                    Stage {item.stageNumber}
+                                  </span>
+                                  <span className="font-bold text-slate-900">{item.title}</span>
+                                </div>
+                                <div className="text-[10px] text-slate-600 mt-0.5 line-clamp-2">
+                                  {item.promptOrDetailNeeded}
+                                </div>
+                                <div className="text-[10px] text-slate-500 mt-0.5">
+                                  Status: <strong className="text-slate-700">{item.currentValueSummary}</strong>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                                  item.isFinalizedViaEmailReply
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : item.isAlreadyProvidedOnProject
+                                    ? 'bg-slate-200 text-slate-700'
+                                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                }`}
+                              >
+                                {item.isFinalizedViaEmailReply
+                                  ? '✓ Finalized via Email'
+                                  : item.isAlreadyProvidedOnProject
+                                  ? '✓ On Project'
+                                  : '⏳ Waiting on Customer'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingPromptItemId(isEditingPrompt ? null : item.id)
+                                }
+                                className="text-[9px] font-bold text-amber-800 hover:underline cursor-pointer"
+                              >
+                                {isEditingPrompt ? 'Done Editing' : 'Edit Question'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {isEditingPrompt && (
+                            <div className="mt-2 pt-2 border-t border-amber-200/80 flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={
+                                  stage1And2ItemCustomPrompts[item.id] ?? item.promptOrDetailNeeded
+                                }
+                                onChange={(e) => {
+                                  const nextPrompts = {
+                                    ...stage1And2ItemCustomPrompts,
+                                    [item.id]: e.target.value,
+                                  };
+                                  setStage1And2ItemCustomPrompts(nextPrompts);
+                                  handleSaveCommsConfigToProject(
+                                    { stage1And2ItemCustomPrompts: nextPrompts },
+                                    true
+                                  );
+                                }}
+                                className="flex-1 px-2 py-1 text-[11px] bg-white border border-amber-300 rounded-lg text-slate-900"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step 5: STAGES 3–7 FIELD & OPERATIONS CARDS SELECTOR (Installed BOM, Shipping Dock, Installer Logs, Project Notes) */}
             <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                      4. Stage 3–7 Field &amp; Operations Cards
+                      5. Stage 3–7 Field &amp; Operations Cards
                     </h3>
                     <span
                       className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${

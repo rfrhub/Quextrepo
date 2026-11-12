@@ -428,6 +428,348 @@ export function getAllProjectInstallLogs(project: OperationProject): InstallLogE
 }
 
 /**
+ * Determines whether a milestone title (or index) is Stage 1 (Project kickoff) or Stage 2 (Portal Buildout).
+ */
+export function isStageOneOrTwo(
+  milestoneTitle?: string | null,
+  project?: OperationProject
+): boolean {
+  if (!milestoneTitle) return false;
+  const norm = milestoneTitle.trim().toLowerCase();
+  if (norm.includes('kickoff') || norm.includes('portal')) {
+    return true;
+  }
+  if (project && project.milestones) {
+    const idx = project.milestones.findIndex(
+      (m) => m.title.trim().toLowerCase() === norm
+    );
+    if (idx === 0 || idx === 1) return true;
+  }
+  return false;
+}
+
+export interface Stage1And2FinalizationItem {
+  id: string;
+  stageNumber: 1 | 2;
+  stageLabel: 'Stage 1: Project kickoff' | 'Stage 2: Portal Buildout';
+  title: string;
+  categoryLabel: string;
+  promptOrDetailNeeded: string;
+  replyFieldLabel: string;
+  currentValueSummary: string;
+  isAlreadyProvidedOnProject: boolean;
+  isFinalizedViaEmailReply: boolean;
+  emailReplyDetails?: {
+    responseText: string;
+    finalizedAt: string;
+    respondentEmail?: string;
+  };
+  isCustom?: boolean;
+}
+
+/**
+ * Evaluates all real Stage 1 (Project kickoff) and Stage 2 (Portal Buildout) items that a PM may be
+ * waiting on the customer to finalize, along with live project status and any custom items added by the PM.
+ */
+export function getStage1And2CustomerFinalizationItems(
+  project: OperationProject,
+  commsConfig?: CommsTunnelConfiguration
+): Stage1And2FinalizationItem[] {
+  const cfg = commsConfig || project.commsTunnelConfig;
+  const customPrompts = cfg?.stage1And2ItemCustomPrompts || {};
+  const finalizedMap = cfg?.finalizedViaEmailReplyItemIds || {};
+  const intake = project.customerIntake;
+
+  const pmsName = intake?.pmsSoftware && intake.pmsSoftware !== 'None' ? intake.pmsSoftware : '';
+  const hasPmsCreds = Boolean(
+    pmsName &&
+      (intake?.pmsNoticeAcknowledged ||
+        intake?.entrataCredentials?.username ||
+        finalizedMap['stage1_pms_credentials'])
+  );
+
+  const commonDoorsCount = intake?.commonAreaDoors?.length || 0;
+  const hasDoorsFinalized = Boolean(
+    (commonDoorsCount > 0 && intake?.doorsConfirmedByCustomer) ||
+      finalizedMap['stage1_common_doors']
+  );
+
+  const staffCount = intake?.staffRoles?.length || 0;
+  const hasStaffFinalized = Boolean(staffCount > 0 || finalizedMap['stage1_staff_roles']);
+
+  const hasSiteMap = Boolean(
+    intake?.sitePlanPdfName ||
+      intake?.sitePlanConfirmedEdited ||
+      finalizedMap['stage1_site_maps_gateway']
+  );
+
+  const hasThermostatRange = Boolean(
+    (intake?.thermostatTempRange && intake.thermostatTempRange.trim()) ||
+      finalizedMap['stage1_thermostat_vacant_temp']
+  );
+
+  const hasFireKeys = Boolean(
+    (intake?.fireKeysFobs && intake.fireKeysFobs.trim()) ||
+      (project.communityDetails?.masterFobsKnoxBox &&
+        project.communityDetails.masterFobsKnoxBox.trim()) ||
+      finalizedMap['stage1_fire_keys_knox']
+  );
+
+  const lockBomItems = (project.bomItems || []).filter((b) => isLockBOMItem(b));
+  const configuredLocks = lockBomItems.filter((b) => Boolean(b.lockFinishConfig));
+  const hasLockFinishesFinalized = Boolean(
+    (lockBomItems.length > 0 && configuredLocks.length === lockBomItems.length) ||
+      finalizedMap['stage2_lock_finish_trim']
+  );
+  const lockFinishSummary =
+    configuredLocks.length > 0
+      ? configuredLocks
+          .map((b) => getLockFinishSummaryTag(b.lockFinishConfig))
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(', ')
+      : '';
+
+  const hasNfcFinalized = Boolean(
+    intake?.nfcWalletConfirmedByCustomer ||
+      intake?.nfcCardArtPhotoName ||
+      finalizedMap['stage2_nfc_wallet_art']
+  );
+
+  const hasQrFinalized = Boolean(
+    intake?.qrIntercomConfirmedByCustomer ||
+      intake?.qrIntercomLogoName ||
+      finalizedMap['stage2_qr_intercom_logo']
+  );
+
+  const hasUnitHierarchyFinalized = Boolean(
+    intake?.walkthroughCompleted || finalizedMap['stage2_unit_hierarchy_pms_sync']
+  );
+
+  const hasCustomGroupsFinalized = Boolean(
+    (intake?.customGroupsNotes && intake.customGroupsNotes.trim()) ||
+      finalizedMap['stage2_custom_access_groups']
+  );
+
+  const builtInItems: Omit<Stage1And2FinalizationItem, 'isFinalizedViaEmailReply' | 'emailReplyDetails'>[] = [
+    // STAGE 1: PROJECT KICKOFF ITEMS
+    {
+      id: 'stage1_pms_credentials',
+      stageNumber: 1,
+      stageLabel: 'Stage 1: Project kickoff',
+      title: 'PMS Software & API Integration Credentials',
+      categoryLabel: 'PMS Integration',
+      promptOrDetailNeeded:
+        customPrompts['stage1_pms_credentials'] ||
+        `Please confirm your Property Management Software (${pmsName || 'Yardi / Entrata / RealPage / AppFolio'}) and reply with your property code or API integration credentials so we can sync your unit roster.`,
+      replyFieldLabel: 'PMS Software Name & Property Code / API Contact',
+      currentValueSummary: pmsName
+        ? `PMS: ${pmsName}${intake?.pmsNoticeAcknowledged ? ' (Notice Acknowledged)' : ' (Awaiting API Credentials)'}`
+        : 'Not finalized yet',
+      isAlreadyProvidedOnProject: hasPmsCreds,
+    },
+    {
+      id: 'stage1_common_doors',
+      stageNumber: 1,
+      stageLabel: 'Stage 1: Project kickoff',
+      title: 'Common Area Doors & Access Control Schedule',
+      categoryLabel: 'Common Doors',
+      promptOrDetailNeeded:
+        customPrompts['stage1_common_doors'] ||
+        `Please finalize the names and building/area locations for all common area doors (e.g., Clubhouse, Fitness Center, Pool Gates, Leasing Office)${
+          intake?.doorNamesFollowUpDate ? ` — target follow-up date: ${intake.doorNamesFollowUpDate}` : ''
+        }.`,
+      replyFieldLabel: 'Common Area Door Names & Building/Zone Locations',
+      currentValueSummary:
+        commonDoorsCount > 0
+          ? `${commonDoorsCount} door(s) listed (${intake?.commonAreaDoors
+              ?.slice(0, 3)
+              .map((d) => d.doorName)
+              .join(', ')})`
+          : '0 common doors confirmed',
+      isAlreadyProvidedOnProject: hasDoorsFinalized,
+    },
+    {
+      id: 'stage1_staff_roles',
+      stageNumber: 1,
+      stageLabel: 'Stage 1: Project kickoff',
+      title: 'Onsite Staff Roles & Portal Admin Roster',
+      categoryLabel: 'Staff Roster',
+      promptOrDetailNeeded:
+        customPrompts['stage1_staff_roles'] ||
+        'Please provide the full name, email address, phone number, role/title, and requested door permissions for each onsite staff member needing Quext Portal access.',
+      replyFieldLabel: 'Staff Member Name, Email, Title & Door Permissions',
+      currentValueSummary:
+        staffCount > 0
+          ? `${staffCount} staff member(s) on file (${intake?.staffRoles
+              ?.slice(0, 2)
+              .map((s) => `${s.firstName} ${s.lastName}`.trim())
+              .join(', ')})`
+          : 'No staff admin logins finalized',
+      isAlreadyProvidedOnProject: hasStaffFinalized,
+    },
+    {
+      id: 'stage1_site_maps_gateway',
+      stageNumber: 1,
+      stageLabel: 'Stage 1: Project kickoff',
+      title: 'Site Maps & Gateway Mounting Locations',
+      categoryLabel: 'Site Plan & Gateways',
+      promptOrDetailNeeded:
+        customPrompts['stage1_site_maps_gateway'] ||
+        'Please reply with your community site map PDF or confirm the clubhouse/building roof & IDF closet locations with power and ethernet for LoRaWAN gateway mounting.',
+      replyFieldLabel: 'Site Map / Gateway Roof & IDF Location Confirmation',
+      currentValueSummary: intake?.sitePlanPdfName
+        ? `Uploaded: ${intake.sitePlanPdfName}`
+        : 'Awaiting site map / gateway location confirmation',
+      isAlreadyProvidedOnProject: hasSiteMap,
+    },
+    {
+      id: 'stage1_thermostat_vacant_temp',
+      stageNumber: 1,
+      stageLabel: 'Stage 1: Project kickoff',
+      title: 'Vacant Unit Thermostat Temperature Range',
+      categoryLabel: 'Energy Policy',
+      promptOrDetailNeeded:
+        customPrompts['stage1_thermostat_vacant_temp'] ||
+        'Please confirm your preferred vacant unit temperature range (e.g., 62°F Heat / 78°F Cool) for automated vacant unit climate control.',
+      replyFieldLabel: 'Approved Vacant Unit Heat °F / Cool °F Range',
+      currentValueSummary: intake?.thermostatTempRange
+        ? `Current: ${intake.thermostatTempRange}`
+        : 'Awaiting temperature range confirmation',
+      isAlreadyProvidedOnProject: hasThermostatRange,
+    },
+    {
+      id: 'stage1_fire_keys_knox',
+      stageNumber: 1,
+      stageLabel: 'Stage 1: Project kickoff',
+      title: 'Fire Marshal Knox Box & Master Fobs / Keys',
+      categoryLabel: 'Site Access & Fire Keys',
+      promptOrDetailNeeded:
+        customPrompts['stage1_fire_keys_knox'] ||
+        'Please confirm local Fire Marshal Knox Box requirements and how our field crew will check out master keys/fobs onsite.',
+      replyFieldLabel: 'Fire Knox Box & Master Key/Fob Instructions',
+      currentValueSummary:
+        intake?.fireKeysFobs || project.communityDetails?.masterFobsKnoxBox || 'Awaiting confirmation',
+      isAlreadyProvidedOnProject: hasFireKeys,
+    },
+
+    // STAGE 2: PORTAL BUILDOUT ITEMS
+    {
+      id: 'stage2_lock_finish_trim',
+      stageNumber: 2,
+      stageLabel: 'Stage 2: Portal Buildout',
+      title: 'Smart Lock Color Finish, Trim & Lever Style',
+      categoryLabel: 'Hardware Finishes',
+      promptOrDetailNeeded:
+        customPrompts['stage2_lock_finish_trim'] ||
+        'Please finalize your smart lock color finish (e.g., Satin Nickel, Matte Black, Aged Bronze), escutcheon trim, and lever design so we can lock in Portal Buildout & hardware fulfillment.',
+      replyFieldLabel: 'Confirmed Lock Finish, Trim & Lever Selection',
+      currentValueSummary: lockFinishSummary || 'Awaiting customer finish sign-off',
+      isAlreadyProvidedOnProject: hasLockFinishesFinalized,
+    },
+    {
+      id: 'stage2_nfc_wallet_art',
+      stageNumber: 2,
+      stageLabel: 'Stage 2: Portal Buildout',
+      title: 'Apple / Google NFC Mobile Wallet & Card Artwork',
+      categoryLabel: 'NFC Wallet Credentials',
+      promptOrDetailNeeded:
+        customPrompts['stage2_nfc_wallet_art'] ||
+        'Please confirm your Apple Wallet / Google Wallet NFC credential selection (Yes/No) and reply with your community card artwork or brand color preference.',
+      replyFieldLabel: 'NFC Wallet Confirmation (Yes/No) & Card Artwork Details',
+      currentValueSummary: intake?.nfcCardArtPhotoName
+        ? `Artwork: ${intake.nfcCardArtPhotoName}`
+        : intake?.nfcWalletConfirmedByCustomer
+        ? `Confirmed: ${intake.nfcWalletConfirmedByCustomer.toUpperCase()}`
+        : project.useNfcWallet
+        ? 'NFC Enabled — Awaiting Card Art / Customer Confirmation'
+        : 'Awaiting NFC Wallet confirmation',
+      isAlreadyProvidedOnProject: hasNfcFinalized,
+    },
+    {
+      id: 'stage2_qr_intercom_logo',
+      stageNumber: 2,
+      stageLabel: 'Stage 2: Portal Buildout',
+      title: 'QR Video Intercom Directory & Community Logo',
+      categoryLabel: 'QR Intercom Branding',
+      promptOrDetailNeeded:
+        customPrompts['stage2_qr_intercom_logo'] ||
+        'Please confirm QR Video Intercom directory settings for entry doors/gates and reply with your high-resolution community logo.',
+      replyFieldLabel: 'QR Intercom Confirmation (Yes/No) & Logo / Directory Notes',
+      currentValueSummary: intake?.qrIntercomLogoName
+        ? `Logo: ${intake.qrIntercomLogoName}`
+        : intake?.qrIntercomConfirmedByCustomer
+        ? `Confirmed: ${intake.qrIntercomConfirmedByCustomer.toUpperCase()}`
+        : project.useQrIntercom
+        ? 'QR Intercom Enabled — Awaiting Community Logo'
+        : 'Awaiting QR Intercom confirmation',
+      isAlreadyProvidedOnProject: hasQrFinalized,
+    },
+    {
+      id: 'stage2_unit_hierarchy_pms_sync',
+      stageNumber: 2,
+      stageLabel: 'Stage 2: Portal Buildout',
+      title: 'Building & Unit Numbering Hierarchy Verification',
+      categoryLabel: 'Portal Unit Tree',
+      promptOrDetailNeeded:
+        customPrompts['stage2_unit_hierarchy_pms_sync'] ||
+        `Please confirm that your building numbers and ${project.unitsCount}-unit numbering format match your ${pmsName || 'PMS'} resident roster so resident invites route to the right doors.`,
+      replyFieldLabel: 'Building & Unit Numbering Hierarchy Confirmation',
+      currentValueSummary: intake?.walkthroughCompleted
+        ? `Verified (${project.unitsCount} units)`
+        : `Awaiting verification for ${project.unitsCount} units`,
+      isAlreadyProvidedOnProject: hasUnitHierarchyFinalized,
+    },
+    {
+      id: 'stage2_custom_access_groups',
+      stageNumber: 2,
+      stageLabel: 'Stage 2: Portal Buildout',
+      title: 'Custom Amenity Access Groups & Operating Hours',
+      categoryLabel: 'Access Schedules',
+      promptOrDetailNeeded:
+        customPrompts['stage2_custom_access_groups'] ||
+        'Please confirm resident access hours for shared amenities (Pool, Fitness Center, Clubhouse, Package Room) and any custom staff/vendor access schedules.',
+      replyFieldLabel: 'Amenity Operating Hours & Custom Access Group Schedule',
+      currentValueSummary: intake?.customGroupsNotes
+        ? intake.customGroupsNotes
+        : 'Awaiting amenity hours & custom access group rules',
+      isAlreadyProvidedOnProject: hasCustomGroupsFinalized,
+    },
+  ];
+
+  const customItems: Omit<Stage1And2FinalizationItem, 'isFinalizedViaEmailReply' | 'emailReplyDetails'>[] = (
+    cfg?.customStage1And2Items || []
+  ).map((ci) => ({
+    id: ci.id,
+    stageNumber: ci.stageNumber,
+    stageLabel:
+      ci.stageNumber === 1 ? 'Stage 1: Project kickoff' : 'Stage 2: Portal Buildout',
+    title: ci.title,
+    categoryLabel: `Custom Stage ${ci.stageNumber} Item`,
+    promptOrDetailNeeded: customPrompts[ci.id] || ci.promptOrDetailNeeded,
+    replyFieldLabel: ci.replyPlaceholder || `${ci.title} — Customer Response`,
+    currentValueSummary: finalizedMap[ci.id]
+      ? `Finalized: ${finalizedMap[ci.id].responseText}`
+      : 'Waiting on customer response',
+    isAlreadyProvidedOnProject: Boolean(finalizedMap[ci.id]),
+    isCustom: true,
+  }));
+
+  return [...builtInItems, ...customItems].map((item) => {
+    const replyRecord = finalizedMap[item.id];
+    return {
+      ...item,
+      currentValueSummary: replyRecord
+        ? `✓ Finalized via Email (${replyRecord.finalizedAt}): "${replyRecord.responseText}"`
+        : item.currentValueSummary,
+      isAlreadyProvidedOnProject: item.isAlreadyProvidedOnProject || Boolean(replyRecord),
+      isFinalizedViaEmailReply: Boolean(replyRecord),
+      emailReplyDetails: replyRecord,
+    };
+  });
+}
+
+/**
  * Determines whether a milestone title (or index) is between Stage 3 and Stage 7:
  * Stage 3: Product Acquisition
  * Stage 4: CSM Intro - Pre-implementation
@@ -1318,6 +1660,511 @@ export function consumeOneTimePmMessageConfig(
 }
 
 /**
+ * Builds the Stage 1 (Project kickoff) & Stage 2 (Portal Buildout) "Items Waiting on Customer Finalization"
+ * interactive email card, complete with:
+ *  - Per-item 1-click `mailto:` email reply buttons addressed directly to the PM
+ *  - A master 1-click `mailto:` button ("Reply by Email to Finalize All Outstanding Items")
+ *  - An inline fill-in-the-blank reply checklist box so if the customer simply hits "Reply" in Gmail,
+ *    Outlook, or Apple Mail, they can type their answers directly in the quoted email and send back to the PM.
+ */
+export function buildStage1And2CustomerActionCardHtml(
+  project: OperationProject,
+  commsConfig?: CommsTunnelConfiguration,
+  senderEmailOverride?: string
+): string {
+  const cfg = commsConfig || project.commsTunnelConfig;
+  if (!cfg?.includeStage1And2OutstandingCard) return '';
+
+  const allItems = getStage1And2CustomerFinalizationItems(project, cfg);
+  const selectedIds = new Set(cfg.selectedStage1And2ItemIds || []);
+
+  // If PM has explicitly selected items, use those; otherwise default to items not yet provided on project
+  const highlightedItems =
+    selectedIds.size > 0
+      ? allItems.filter((it) => selectedIds.has(it.id))
+      : allItems.filter((it) => !it.isAlreadyProvidedOnProject);
+
+  if (highlightedItems.length === 0) return '';
+
+  const pmName = project.assignedPM?.name || 'Quext Project Manager';
+  const pmEmail = project.assignedPM?.email || senderEmailOverride || 'operations@onequext.com';
+  const portalUrl = buildCustomerKickoffPortalUrl(project.id);
+
+  // Build master mailto link covering all highlighted items
+  const masterSubject = `Re: [Customer Finalization • ${project.propertyName} (#${
+    project.quoteNumber || project.id
+  })] Finalized Stage 1 & 2 Details for ${pmName}`;
+
+  const masterBodyLines = [
+    `Hi ${pmName},`,
+    '',
+    `Here are our finalized responses for the outstanding items on ${project.propertyName} (Quote #${project.quoteNumber}):`,
+    '',
+    ...highlightedItems.flatMap((it, idx) => [
+      `${idx + 1}. [${it.title}] (Ref: ${it.id})`,
+      `   Prompt: ${it.promptOrDetailNeeded}`,
+      `   👉 ${it.replyFieldLabel}: [TYPE YOUR RESPONSE HERE]`,
+      '',
+    ]),
+    '---',
+    `Submitted by (${project.clientName}): `,
+    'Title / Contact Phone: ',
+  ];
+
+  const masterMailtoHref = `mailto:${encodeURIComponent(pmEmail)}?subject=${encodeURIComponent(
+    masterSubject
+  )}&body=${encodeURIComponent(masterBodyLines.join('\r\n'))}`;
+
+  const itemRowsHtml = highlightedItems
+    .map((item, idx) => {
+      const singleSubject = `Re: [${project.propertyName} • ${item.title}] Customer Finalization (${item.id})`;
+      const singleBodyLines = [
+        `Hi ${pmName},`,
+        '',
+        `Here is our finalized information for "${item.title}" on ${project.propertyName} (Ref: ${item.id}):`,
+        '',
+        `👉 ${item.replyFieldLabel}: `,
+        '',
+        'Additional Notes / Attachments: ',
+      ];
+      const singleMailtoHref = `mailto:${encodeURIComponent(pmEmail)}?subject=${encodeURIComponent(
+        singleSubject
+      )}&body=${encodeURIComponent(singleBodyLines.join('\r\n'))}`;
+
+      const stageBadgeBg = item.stageNumber === 1 ? '#fef3c7' : '#e0e7ff';
+      const stageBadgeText = item.stageNumber === 1 ? '#92400e' : '#3730a3';
+      const stageBadgeBorder = item.stageNumber === 1 ? '#fde68a' : '#c7d2fe';
+
+      return `
+        <div style="padding: 12px 14px; background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 10px; margin-bottom: 10px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="vertical-align: top;">
+                <div style="margin-bottom: 4px;">
+                  <span style="display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; background-color: ${stageBadgeBg}; color: ${stageBadgeText}; border: 1px solid ${stageBadgeBorder}; padding: 2px 7px; border-radius: 999px; margin-right: 5px;">
+                    STAGE ${item.stageNumber} • ${item.categoryLabel}
+                  </span>
+                  <span style="display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; background-color: #fee2e2; color: #991b1b; padding: 2px 7px; border-radius: 999px;">
+                    ⏳ WAITING ON CUSTOMER TO FINALIZE
+                  </span>
+                </div>
+                <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-bottom: 3px;">
+                  ${idx + 1}. ${item.title}
+                </div>
+                <div style="font-size: 12px; color: #334155; line-height: 1.45; margin-bottom: 6px;">
+                  ${item.promptOrDetailNeeded}
+                </div>
+                <div style="font-size: 10px; color: #64748b;">
+                  <strong>Current Status on Project:</strong> ${item.currentValueSummary}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top: 8px;">
+                <a href="${singleMailtoHref}" style="display: inline-block; background-color: #0f172a; color: #ffffff; font-size: 11px; font-weight: 800; padding: 6px 12px; border-radius: 7px; text-decoration: none; margin-right: 6px;">
+                  ✉️ Reply by Email for Item #${idx + 1} (${pmName.split(' ')[0]}) &rarr;
+                </a>
+                <a href="${portalUrl}" style="display: inline-block; background-color: #ffffff; color: #0f172a; border: 1px solid #cbd5e1; font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 7px; text-decoration: none;">
+                  🔗 Complete in Portal
+                </a>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+    })
+    .join('');
+
+  const inlineReplyChecklistHtml = highlightedItems
+    .map(
+      (item, idx) => `
+      <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1;">
+        <div style="font-size: 11px; font-weight: 900; color: #0f172a;">
+          [${idx + 1}] ${item.title} <span style="font-weight: 600; color: #64748b;">(Ref: ${item.id})</span>
+        </div>
+        <div style="font-size: 11px; color: #047857; font-weight: 800; margin-top: 2px;">
+          👉 ${item.replyFieldLabel}: <span style="color: #94a3b8; font-weight: 500;">[Type your answer here when replying]</span>
+        </div>
+      </div>
+    `
+    )
+    .join('');
+
+  return `
+    <!-- STAGE 1 & 2 CUSTOMER FINALIZATION ACTION CARD -->
+    <div data-testid="email-card-stage1and2-outstanding" style="background-color: #ffffff; border: 2px solid #f59e0b; border-radius: 14px; overflow: hidden; margin-bottom: 14px; box-shadow: 0 3px 8px rgba(245, 158, 11, 0.10);">
+      <div style="background: linear-gradient(135deg, #78350f 0%, #92400e 100%); color: #ffffff; padding: 13px 18px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td>
+              <span style="display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; background-color: #fef3c7; color: #78350f; padding: 2px 8px; border-radius: 999px; margin-bottom: 3px;">
+                ⚠️ CUSTOMER ACTION REQUESTED • STAGE 1 &amp; 2 FINALIZATION
+              </span>
+              <div style="font-size: 15px; font-weight: 900; color: #ffffff;">
+                Items Waiting on Your Team to Finalize (${highlightedItems.length})
+              </div>
+              <div style="font-size: 11px; color: #fde68a; margin-top: 2px;">
+                Reply directly to this email (<strong style="color: #ffffff;">${pmEmail}</strong>) or click any button below to send your answers back to ${pmName}.
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="padding: 14px 18px;">
+        ${itemRowsHtml}
+
+        <!-- MASTER EMAIL REPLY CTA + INLINE QUOTED REPLY TEMPLATE -->
+        <div style="margin-top: 12px; padding: 14px; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px;">
+          <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin-bottom: 6px;">
+            📬 Two Easy Ways to Respond by Email Back to ${pmName} (${pmEmail}):
+          </div>
+          <div style="margin-bottom: 12px;">
+            <a href="${masterMailtoHref}" style="display: inline-block; background-color: #01C38D; color: #0f172a; font-size: 12px; font-weight: 900; padding: 10px 16px; border-radius: 9px; text-decoration: none; margin-right: 8px; margin-bottom: 6px;">
+              ✉️ Option 1: Click to Open Pre-Filled Email Reply (${highlightedItems.length} Item${
+                highlightedItems.length === 1 ? '' : 's'
+              }) &rarr;
+            </a>
+            <a href="${portalUrl}" style="display: inline-block; background-color: #0f172a; color: #ffffff; font-size: 12px; font-weight: 800; padding: 10px 14px; border-radius: 9px; text-decoration: none; margin-bottom: 6px;">
+              🔗 Option 2: Submit in Live Kickoff Portal &rarr;
+            </a>
+          </div>
+
+          <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+            <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #475569; margin-bottom: 6px;">
+              📋 Or Simply Hit &ldquo;Reply&rdquo; in Your Email Client &amp; Fill In Below (Routes Directly to ${pmEmail}):
+            </div>
+            ${inlineReplyChecklistHtml}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Parses a customer's email reply back to the PM (whether sent via the pre-filled `mailto:` checklist
+ * or a standard inline reply) and applies the finalized answers directly to the project and CommsTunnelConfiguration.
+ */
+export function parseAndApplyCustomerEmailReplyToProject(
+  project: OperationProject,
+  rawReplyText: string,
+  respondentEmail?: string,
+  commsConfig?: CommsTunnelConfiguration
+): {
+  updatedProject: OperationProject;
+  updatedCommsConfig: CommsTunnelConfiguration;
+  finalizedCount: number;
+  finalizedTitles: string[];
+} {
+  const cfg: CommsTunnelConfiguration = {
+    ...(project.commsTunnelConfig || {}),
+    ...(commsConfig || {}),
+  };
+  const allItems = getStage1And2CustomerFinalizationItems(project, cfg);
+  const selectedIds = new Set(cfg.selectedStage1And2ItemIds || []);
+  const targetItems =
+    selectedIds.size > 0
+      ? allItems.filter((it) => selectedIds.has(it.id))
+      : allItems.filter((it) => !it.isAlreadyProvidedOnProject);
+
+  const nowFormatted = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const nextFinalizedMap = { ...(cfg.finalizedViaEmailReplyItemIds || {}) };
+  const nextIntake = {
+    pmsSoftware: project.customerIntake?.pmsSoftware || ('Yardi' as const),
+    commonAreaDoors: [...(project.customerIntake?.commonAreaDoors || [])],
+    staffRoles: [...(project.customerIntake?.staffRoles || [])],
+    ...(project.customerIntake || {}),
+  };
+
+  let nextUseNfcWallet = project.useNfcWallet;
+  let nextUseQrIntercom = project.useQrIntercom;
+  const finalizedTitles: string[] = [];
+
+  const cleanText = rawReplyText.trim();
+  const lines = cleanText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  // Match answers per item by Ref ID, title, replyFieldLabel, or keyword
+  const candidatePool = targetItems.length > 0 ? targetItems : allItems;
+
+  candidatePool.forEach((item) => {
+    let extractedAnswer = '';
+
+    // 1. Check if line references item.id or item.replyFieldLabel or item.title
+    const refIdx = lines.findIndex(
+      (l) =>
+        l.toLowerCase().includes(item.id.toLowerCase()) ||
+        l.toLowerCase().includes(item.title.toLowerCase())
+    );
+
+    if (refIdx !== -1) {
+      // Look at the same line or the next 1-3 lines for 👉 or colon answer
+      for (let offset = 0; offset <= 3 && refIdx + offset < lines.length; offset++) {
+        const line = lines[refIdx + offset];
+        if (line.includes('👉') || line.toLowerCase().includes(item.replyFieldLabel.toLowerCase())) {
+          const parts = line.split(':');
+          if (parts.length > 1) {
+            const candidate = parts.slice(1).join(':').replace(/\[TYPE YOUR RESPONSE HERE\]/gi, '').replace(/\[Type your answer here when replying\]/gi, '').trim();
+            if (candidate) {
+              extractedAnswer = candidate;
+              break;
+            }
+          }
+        } else if (offset > 0 && !line.startsWith('Prompt:') && !line.startsWith('[')) {
+          const colonParts = line.split(':');
+          const candidate = (colonParts.length > 1 ? colonParts.slice(1).join(':') : line)
+            .replace(/\[TYPE YOUR RESPONSE HERE\]/gi, '')
+            .trim();
+          if (candidate && candidate.length > 2) {
+            extractedAnswer = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    // 2. Keyword fallback for natural freeform email replies
+    if (!extractedAnswer) {
+      for (const line of lines) {
+        const lower = line.toLowerCase();
+        if (
+          item.id === 'stage1_pms_credentials' &&
+          (lower.includes('yardi') ||
+            lower.includes('entrata') ||
+            lower.includes('realpage') ||
+            lower.includes('appfolio') ||
+            lower.includes('resman') ||
+            lower.includes('pms:'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage1_common_doors' &&
+          (lower.includes('door') ||
+            lower.includes('clubhouse') ||
+            lower.includes('pool') ||
+            lower.includes('fitness') ||
+            lower.includes('gate'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage1_staff_roles' &&
+          (lower.includes('staff') ||
+            lower.includes('manager') ||
+            lower.includes('maintenance') ||
+            lower.includes('admin'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage1_site_maps_gateway' &&
+          (lower.includes('roof') ||
+            lower.includes('gateway') ||
+            lower.includes('idf') ||
+            lower.includes('site map') ||
+            lower.includes('attic'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage1_thermostat_vacant_temp' &&
+          (lower.includes('temp') ||
+            lower.includes('cool') ||
+            lower.includes('heat') ||
+            /\b(6\d|7\d)\s*°?f?\b/i.test(lower))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage1_fire_keys_knox' &&
+          (lower.includes('knox') || lower.includes('fire') || lower.includes('fob') || lower.includes('master key'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage2_lock_finish_trim' &&
+          (lower.includes('satin') ||
+            lower.includes('matte black') ||
+            lower.includes('bronze') ||
+            lower.includes('chrome') ||
+            lower.includes('finish') ||
+            lower.includes('lever'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage2_nfc_wallet_art' &&
+          (lower.includes('nfc') || lower.includes('apple wallet') || lower.includes('wallet') || lower.includes('card art'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage2_qr_intercom_logo' &&
+          (lower.includes('qr') || lower.includes('intercom') || lower.includes('logo'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage2_unit_hierarchy_pms_sync' &&
+          (lower.includes('hierarchy') || lower.includes('unit number') || lower.includes('roster') || lower.includes('verified'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+        if (
+          item.id === 'stage2_custom_access_groups' &&
+          (lower.includes('amenity') || lower.includes('hours') || lower.includes('access group'))
+        ) {
+          extractedAnswer = line.replace(/^[-*•\d.)\s]+/, '');
+          break;
+        }
+      }
+    }
+
+    // 3. If single item selected and customer sent a short direct reply, associate the full reply with that item
+    if (!extractedAnswer && targetItems.length === 1 && cleanText.length > 0) {
+      extractedAnswer = cleanText.split(/\r?\n/)[0];
+    }
+
+    if (extractedAnswer) {
+      nextFinalizedMap[item.id] = {
+        responseText: extractedAnswer,
+        finalizedAt: nowFormatted,
+        respondentEmail: respondentEmail || project.customerIntake?.communityEmail || project.clientName,
+      };
+      finalizedTitles.push(item.title);
+      selectedIds.delete(item.id);
+
+      // Also sync structured fields onto project.customerIntake so the entire project reflects the customer's email reply
+      if (item.id === 'stage1_pms_credentials') {
+        if (/entrata/i.test(extractedAnswer)) nextIntake.pmsSoftware = 'Entrata';
+        else if (/realpage/i.test(extractedAnswer)) nextIntake.pmsSoftware = 'Realpage';
+        else if (/appfolio/i.test(extractedAnswer)) nextIntake.pmsSoftware = 'Appfolio';
+        else if (/resman/i.test(extractedAnswer)) nextIntake.pmsSoftware = 'ResMan';
+        else if (/yardi/i.test(extractedAnswer)) nextIntake.pmsSoftware = 'Yardi';
+        nextIntake.pmsNoticeAcknowledged = true;
+      } else if (item.id === 'stage1_common_doors') {
+        nextIntake.doorsConfirmedByCustomer = true;
+        if (nextIntake.commonAreaDoors.length === 0) {
+          const doorTokens = extractedAnswer
+            .split(/[,;]+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          nextIntake.commonAreaDoors = doorTokens.slice(0, 8).map((dName, i) => ({
+            id: `door-email-${Date.now()}-${i}`,
+            doorName: dName,
+            buildingOrArea: 'Confirmed via Email Reply',
+            installedStatus: 'Pending',
+          }));
+        }
+      } else if (item.id === 'stage1_staff_roles') {
+        if (nextIntake.staffRoles.length === 0) {
+          nextIntake.staffRoles = [
+            {
+              id: `staff-email-${Date.now()}`,
+              firstName: extractedAnswer.split(' ')[0] || 'Onsite',
+              lastName: extractedAnswer.split(' ').slice(1, 3).join(' ') || 'Admin',
+              email: respondentEmail || project.customerIntake?.communityEmail || '',
+              roleOrTitle: extractedAnswer,
+              doorsAccessRequested: 'All Common Doors',
+            },
+          ];
+        }
+      } else if (item.id === 'stage1_site_maps_gateway') {
+        nextIntake.sitePlanConfirmedEdited = true;
+        if (!nextIntake.sitePlanPdfName) {
+          nextIntake.sitePlanPdfName = `Confirmed via Email: ${extractedAnswer.slice(0, 48)}`;
+        }
+      } else if (item.id === 'stage1_thermostat_vacant_temp') {
+        nextIntake.thermostatTempRange = extractedAnswer;
+      } else if (item.id === 'stage1_fire_keys_knox') {
+        nextIntake.fireKeysFobs = extractedAnswer;
+      } else if (item.id === 'stage2_nfc_wallet_art') {
+        const isNo = /\bno\b/i.test(extractedAnswer);
+        nextIntake.nfcWalletConfirmedByCustomer = isNo ? 'no' : 'yes';
+        nextUseNfcWallet = !isNo;
+      } else if (item.id === 'stage2_qr_intercom_logo') {
+        const isNo = /\bno\b/i.test(extractedAnswer);
+        nextIntake.qrIntercomConfirmedByCustomer = isNo ? 'no' : 'yes';
+        nextUseQrIntercom = !isNo;
+      } else if (item.id === 'stage2_unit_hierarchy_pms_sync') {
+        nextIntake.walkthroughCompleted = true;
+      } else if (item.id === 'stage2_custom_access_groups') {
+        nextIntake.customGroupsNotes = extractedAnswer;
+      }
+    }
+  });
+
+  const updatedCommsConfig: CommsTunnelConfiguration = {
+    ...cfg,
+    selectedStage1And2ItemIds: Array.from(selectedIds),
+    finalizedViaEmailReplyItemIds: nextFinalizedMap,
+  };
+
+  const replyNoteSummary =
+    finalizedTitles.length > 0
+      ? `Customer replied by email to finalize ${finalizedTitles.length} Stage 1 & 2 item(s) (${finalizedTitles.join(', ')}): "${cleanText.slice(0, 260)}"`
+      : `Customer email reply logged on Stage 1 & 2 checklist: "${cleanText.slice(0, 260)}"`;
+
+  const newNote = {
+    id: `note-email-reply-${Date.now()}`,
+    author: respondentEmail || project.customerIntake?.communityEmail || project.clientName,
+    timestamp: nowFormatted,
+    content: replyNoteSummary,
+    category: 'Customer' as const,
+  };
+
+  const newCommLog: CustomerCommsLog = {
+    id: `comm-reply-${Date.now()}`,
+    projectId: project.id,
+    timestamp: nowFormatted,
+    type: 'kickoff_submission',
+    recipientEmail: respondentEmail || project.customerIntake?.communityEmail || project.assignedPM.email,
+    subject: `Re: [Customer Email Reply] Stage 1 & 2 Finalization — ${project.propertyName}`,
+    summary: replyNoteSummary,
+    sentBy: respondentEmail || project.clientName,
+    status: 'Delivered',
+  };
+
+  const updatedProject: OperationProject = {
+    ...project,
+    useNfcWallet: nextUseNfcWallet,
+    useQrIntercom: nextUseQrIntercom,
+    customerIntake: nextIntake,
+    commsTunnelConfig: updatedCommsConfig,
+    notes: [newNote, ...(project.notes || [])],
+    customerCommsLogs: [newCommLog, ...(project.customerCommsLogs || [])],
+    lastUpdated: new Date().toISOString(),
+  };
+
+  return {
+    updatedProject,
+    updatedCommsConfig,
+    finalizedCount: finalizedTitles.length,
+    finalizedTitles,
+  };
+}
+
+/**
  * Builds the optional Stage 3–7 Operational Cards (Installed BOM Line Items, Shipping Dock Line Items,
  * Installer Log Line Items, and Project Notes) when selected by the PM.
  */
@@ -1676,6 +2523,11 @@ export function buildDigestibleMilestoneCardEmailContent({
     .join('');
 
   const pmPersonalMessageCardHtml = buildPmPersonalMessageCardHtml(project, commsConfig);
+  const stage1And2ActionCardHtml = buildStage1And2CustomerActionCardHtml(
+    project,
+    commsConfig,
+    project.assignedPM?.email
+  );
   const stage3To7OperationalCardsHtml = buildStage3To7OperationalCardsHtml(project, commsConfig);
 
   const htmlBody = `
@@ -1718,6 +2570,8 @@ export function buildDigestibleMilestoneCardEmailContent({
       </div>
 
       ${pmPersonalMessageCardHtml}
+
+      ${stage1And2ActionCardHtml}
 
       <!-- CARD 1: ACTIVE MILESTONE & 7-STAGE ROADMAP CARD -->
       <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
@@ -2039,6 +2893,11 @@ export function buildRecipientPortfolioWideCardEmail({
     .join('');
 
   const pmPersonalMessageCardHtml = buildPmPersonalMessageCardHtml(primaryProject, commsConfig);
+  const stage1And2ActionCardHtml = buildStage1And2CustomerActionCardHtml(
+    primaryProject,
+    commsConfig,
+    senderEmail
+  );
   const stage3To7OperationalCardsHtml = buildStage3To7OperationalCardsHtml(primaryProject, commsConfig);
 
   const htmlBody = `
@@ -2106,6 +2965,8 @@ export function buildRecipientPortfolioWideCardEmail({
       </div>
 
       ${pmPersonalMessageCardHtml}
+
+      ${stage1And2ActionCardHtml}
 
       <!-- EMBEDDED PROJECT CARDS -->
       ${projectCardsHtml}
