@@ -56,6 +56,7 @@ import {
   buildPortfolioUpdateEmailContent,
   buildDigestibleMilestoneCardEmailContent,
   logPortfolioDispatchAcrossProjects,
+  consumeOneTimePmMessageConfig,
 } from '../services/portfolioEmailService';
 import { CommunicationsTunnelModal } from './CommunicationsTunnelModal';
 
@@ -699,6 +700,11 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           onUpdateProject,
         });
       } else {
+        const senderIdentity = gmailUserEmail || project.assignedPM.name;
+        const { nextConfig: consumedConfig } = consumeOneTimePmMessageConfig(
+          project.commsTunnelConfig,
+          senderIdentity
+        );
         const newLog: CustomerCommsLog = {
           id: `comm-${Date.now()}`,
           projectId: project.id,
@@ -707,13 +713,14 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           recipientEmail: gmailResult.recipients.join(', '),
           subject,
           summary: `${summary} [Live Gmail ID: ${gmailResult.id}]`,
-          sentBy: gmailUserEmail || project.assignedPM.name,
+          sentBy: senderIdentity,
           cadence,
           status: 'Delivered',
         };
 
         onUpdateProject({
           ...project,
+          commsTunnelConfig: consumedConfig || project.commsTunnelConfig,
           customerCommsLogs: [newLog, ...logs],
           lastUpdated: new Date().toISOString(),
         });
@@ -773,6 +780,11 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         onUpdateProject,
       });
     } else {
+      const senderIdentity = gmailUserEmail || project.assignedPM.name;
+      const { nextConfig: consumedConfig } = consumeOneTimePmMessageConfig(
+        project.commsTunnelConfig,
+        senderIdentity
+      );
       const newLog: CustomerCommsLog = {
         id: `comm-${Date.now()}`,
         projectId: project.id,
@@ -781,13 +793,14 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         recipientEmail: finalRecipients.join(', '),
         subject,
         summary: viaComposeTab ? `${summary} [Opened in Gmail Web Compose]` : summary,
-        sentBy: gmailUserEmail || project.assignedPM.name,
+        sentBy: senderIdentity,
         cadence,
         status: 'Delivered',
       };
 
       onUpdateProject({
         ...project,
+        commsTunnelConfig: consumedConfig || project.commsTunnelConfig,
         customerCommsLogs: [newLog, ...logs],
         lastUpdated: new Date().toISOString(),
       });
@@ -810,6 +823,11 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     const { subject, summary, htmlBody, logType } = buildEmailContent('digest');
     const recipientsList = defaultRecipients;
     const cadenceSubject = `[Automated ${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Cadence] ${subject}`;
+    const senderIdentity = gmailUserEmail || project.assignedPM.name;
+    const { nextConfig: consumedConfig, wasOneTimeConsumed } = consumeOneTimePmMessageConfig(
+      project.commsTunnelConfig,
+      senderIdentity
+    );
 
     setIsSendingLiveEmail(true);
     try {
@@ -834,20 +852,25 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           type: logType,
           recipientEmail: gmailResult.recipients.join(', '),
           subject: cadenceSubject,
-          summary: `Automated ${cadence} cadence triggered. Delivered to ${gmailResult.recipients.length} customer recipient(s) [Gmail ID: ${gmailResult.id}].`,
-          sentBy: gmailUserEmail || project.assignedPM.name,
+          summary: `Automated ${cadence} cadence triggered. Delivered to ${gmailResult.recipients.length} customer recipient(s)${
+            wasOneTimeConsumed ? ' (One-Time PM Message included & auto-cleared)' : ''
+          } [Gmail ID: ${gmailResult.id}].`,
+          sentBy: senderIdentity,
           cadence,
           status: 'Delivered',
         };
 
         onUpdateProject({
           ...project,
+          commsTunnelConfig: consumedConfig || project.commsTunnelConfig,
           customerCommsLogs: [newLog, ...logs],
           lastUpdated: new Date().toISOString(),
         });
 
         triggerToast(
-          `Automated ${cadence} cadence delivered via Gmail to ${gmailResult.recipients.join(', ')}!`
+          wasOneTimeConsumed
+            ? `Automated ${cadence} cadence delivered & One-Time PM Message automatically cleared from future runs!`
+            : `Automated ${cadence} cadence delivered via Gmail to ${gmailResult.recipients.join(', ')}!`
         );
       } else {
         const nowStr = new Date().toLocaleDateString('en-US', {
@@ -864,20 +887,25 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           type: logType,
           recipientEmail: recipientsList.join(', '),
           subject: cadenceSubject,
-          summary: `Automated ${cadence} cadence triggered. Dispatched to ${recipientsList.length} customer recipient(s).`,
-          sentBy: gmailUserEmail || project.assignedPM.name,
+          summary: `Automated ${cadence} cadence triggered. Dispatched to ${recipientsList.length} customer recipient(s)${
+            wasOneTimeConsumed ? ' (One-Time PM Message included & auto-cleared)' : ''
+          }.`,
+          sentBy: senderIdentity,
           cadence,
           status: 'Delivered',
         };
 
         onUpdateProject({
           ...project,
+          commsTunnelConfig: consumedConfig || project.commsTunnelConfig,
           customerCommsLogs: [newLog, ...logs],
           lastUpdated: new Date().toISOString(),
         });
 
         triggerToast(
-          `Automated ${cadence} cadence triggered & logged for ${recipientsList.join(', ')}!`
+          wasOneTimeConsumed
+            ? `Automated ${cadence} cadence triggered & One-Time PM Message automatically cleared from future runs!`
+            : `Automated ${cadence} cadence triggered & logged for ${recipientsList.join(', ')}!`
         );
       }
     } catch (err: any) {

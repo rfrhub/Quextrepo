@@ -987,6 +987,19 @@ export interface CommsTunnelConfiguration {
   pmPersonalMessage?: string;
   pmPersonalMessageTitle?: string;
   pmPersonalMessageStyle?: 'pm_note' | 'action_required' | 'milestone_highlight';
+  /**
+   * Controls whether the PM Personal Message Card is a one-time unique update (included in the
+   * next dispatch only and automatically cleared afterward so it is not sent repeatedly on the cadence)
+   * or a standing note kept on every recurring cadence update. Defaults to 'one_time'.
+   */
+  pmPersonalMessageDeliveryMode?: 'one_time' | 'recurring_cadence';
+  lastSentOneTimePmMessage?: {
+    message: string;
+    title?: string;
+    style?: 'pm_note' | 'action_required' | 'milestone_highlight';
+    sentAt: string;
+    sentBy?: string;
+  };
   includeInstalledBomCard?: boolean;
   selectedBomItemIds?: string[];
   includeShippingDockCard?: boolean;

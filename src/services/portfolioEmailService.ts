@@ -1182,11 +1182,16 @@ export function buildPmPersonalMessageCardHtml(
     .toUpperCase();
 
   const styleType = cfg?.pmPersonalMessageStyle || 'pm_note';
+  const deliveryMode = cfg?.pmPersonalMessageDeliveryMode || 'one_time';
+  const isOneTime = deliveryMode === 'one_time';
+
   const defaultTitle =
     styleType === 'action_required'
       ? `Coordination & Action Note from ${pmName}`
       : styleType === 'milestone_highlight'
       ? `Milestone Spotlight from ${pmName}`
+      : isOneTime
+      ? `Special Update from Your Project Manager`
       : `A Personal Note from Your Project Manager`;
 
   const cardTitle = cfg?.pmPersonalMessageTitle?.trim() || defaultTitle;
@@ -1219,6 +1224,10 @@ export function buildPmPersonalMessageCardHtml(
           avatarBg: '#0f172a',
         };
 
+  const deliveryBadgeHtml = isOneTime
+    ? `<span style="display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; padding: 2px 7px; border-radius: 999px; margin-left: 6px; margin-bottom: 2px;">⚡ ONE-TIME UPDATE</span>`
+    : `<span style="display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background-color: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 999px; margin-left: 6px; margin-bottom: 2px;">STANDING CADENCE NOTE</span>`;
+
   const formattedParagraphs = rawMessage
     .split(/\n+/)
     .map((line) => line.trim())
@@ -1241,9 +1250,12 @@ export function buildPmPersonalMessageCardHtml(
               </div>
             </td>
             <td style="vertical-align: middle;">
-              <span style="display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; background-color: ${palette.badgeBg}; color: ${palette.badgeText}; padding: 2px 7px; border-radius: 999px; margin-bottom: 2px;">
-                ${palette.badgeLabel}
-              </span>
+              <div>
+                <span style="display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; background-color: ${palette.badgeBg}; color: ${palette.badgeText}; padding: 2px 7px; border-radius: 999px; margin-bottom: 2px;">
+                  ${palette.badgeLabel}
+                </span>
+                ${deliveryBadgeHtml}
+              </div>
               <div style="font-size: 14px; font-weight: 900; color: #0f172a;">
                 ${cardTitle}
               </div>
@@ -1259,6 +1271,50 @@ export function buildPmPersonalMessageCardHtml(
       </div>
     </div>
   `;
+}
+
+/**
+ * Consumes a one-time PM personal message after an email update is sent/logged so that
+ * update-specific notes are never accidentally sent over and over again on future cadence runs.
+ */
+export function consumeOneTimePmMessageConfig(
+  config?: CommsTunnelConfiguration,
+  sentBy?: string
+): {
+  nextConfig: CommsTunnelConfiguration | undefined;
+  wasOneTimeConsumed: boolean;
+} {
+  if (!config) {
+    return { nextConfig: undefined, wasOneTimeConsumed: false };
+  }
+  const trimmedMsg = (config.pmPersonalMessage || '').trim();
+  const mode = config.pmPersonalMessageDeliveryMode || 'one_time';
+  if (!trimmedMsg || mode !== 'one_time') {
+    return { nextConfig: config, wasOneTimeConsumed: false };
+  }
+
+  const nowFormatted = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return {
+    wasOneTimeConsumed: true,
+    nextConfig: {
+      ...config,
+      pmPersonalMessage: '',
+      pmPersonalMessageTitle: '',
+      lastSentOneTimePmMessage: {
+        message: trimmedMsg,
+        title: config.pmPersonalMessageTitle?.trim() || undefined,
+        style: config.pmPersonalMessageStyle || 'pm_note',
+        sentAt: nowFormatted,
+        sentBy,
+      },
+    },
+  };
 }
 
 /**

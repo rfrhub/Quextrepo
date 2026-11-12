@@ -40,6 +40,7 @@ import {
   buildDigestibleMilestoneCardEmailContent,
   buildRecipientPortfolioWideCardEmail,
   logPortfolioDispatchAcrossProjects,
+  consumeOneTimePmMessageConfig,
   AiEmailTone,
 } from '../services/portfolioEmailService';
 import {
@@ -93,6 +94,9 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
   const [pmPersonalMessageStyle, setPmPersonalMessageStyle] = useState<
     'pm_note' | 'action_required' | 'milestone_highlight'
   >(project.commsTunnelConfig?.pmPersonalMessageStyle || 'pm_note');
+  const [pmPersonalMessageDeliveryMode, setPmPersonalMessageDeliveryMode] = useState<
+    'one_time' | 'recurring_cadence'
+  >(project.commsTunnelConfig?.pmPersonalMessageDeliveryMode || 'one_time');
 
   // Stage 3–7 Field & Operations Card Inclusion State
   const [activeOpsSelectorTab, setActiveOpsSelectorTab] = useState<
@@ -161,6 +165,9 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       setPmPersonalMessage(project.commsTunnelConfig?.pmPersonalMessage || '');
       setPmPersonalMessageTitle(project.commsTunnelConfig?.pmPersonalMessageTitle || '');
       setPmPersonalMessageStyle(project.commsTunnelConfig?.pmPersonalMessageStyle || 'pm_note');
+      setPmPersonalMessageDeliveryMode(
+        project.commsTunnelConfig?.pmPersonalMessageDeliveryMode || 'one_time'
+      );
       setIncludeInstalledBomCard(project.commsTunnelConfig?.includeInstalledBomCard ?? false);
       setSelectedBomItemIds(
         project.commsTunnelConfig?.selectedBomItemIds ||
@@ -297,6 +304,8 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       pmPersonalMessage,
       pmPersonalMessageTitle,
       pmPersonalMessageStyle,
+      pmPersonalMessageDeliveryMode,
+      lastSentOneTimePmMessage: project.commsTunnelConfig?.lastSentOneTimePmMessage,
       includeInstalledBomCard,
       selectedBomItemIds,
       includeShippingDockCard,
@@ -310,6 +319,8 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       pmPersonalMessage,
       pmPersonalMessageTitle,
       pmPersonalMessageStyle,
+      pmPersonalMessageDeliveryMode,
+      project.commsTunnelConfig?.lastSentOneTimePmMessage,
       includeInstalledBomCard,
       selectedBomItemIds,
       includeShippingDockCard,
@@ -357,7 +368,16 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
     };
     persistProjectUpdate(updatedProject);
     if (!silent) {
-      triggerToast('Saved PM Personal Message & Stage 3–7 Card Selections to Communications Tunnel!');
+      if (
+        (nextConfig.pmPersonalMessage || '').trim() &&
+        (nextConfig.pmPersonalMessageDeliveryMode || 'one_time') === 'one_time'
+      ) {
+        triggerToast(
+          '⚡ Staged One-Time Unique PM Message Card for the next update only (will auto-clear after send so it never repeats on the cadence)!'
+        );
+      } else {
+        triggerToast('Saved PM Personal Message & Stage 3–7 Card Selections to Communications Tunnel!');
+      }
     }
   };
 
@@ -643,6 +663,12 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       commsConfig: activeCommsConfig,
     });
 
+    const senderIdentity = gmailUserEmail || project.assignedPM.name;
+    const { nextConfig: consumedConfig, wasOneTimeConsumed } = consumeOneTimePmMessageConfig(
+      activeCommsConfig,
+      senderIdentity
+    );
+
     if (!viaGmailApi) {
       logPortfolioDispatchAcrossProjects({
         includedProjects: sharedList,
@@ -651,12 +677,19 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
         subject: emailPayload.subject,
         summary: `${emailPayload.summary} [Logged Separate Portfolio-Wide Update]`,
         logType: emailPayload.logType,
-        sentBy: gmailUserEmail || project.assignedPM.name,
+        sentBy: senderIdentity,
         cadence: cadence === 'none' ? 'biweekly' : cadence,
         onUpdateProject,
       });
+      if (wasOneTimeConsumed && consumedConfig) {
+        setPmPersonalMessage('');
+        setPmPersonalMessageTitle('');
+        handleSaveCommsConfigToProject(consumedConfig, true);
+      }
       triggerToast(
-        `Logged separate Portfolio-Wide Update for ${targetEmail} across ${sharedList.length} shared projects!`
+        wasOneTimeConsumed
+          ? `Logged separate Portfolio-Wide Update for ${targetEmail} & auto-cleared your One-Time PM Message so it won't repeat on future cadence runs!`
+          : `Logged separate Portfolio-Wide Update for ${targetEmail} across ${sharedList.length} shared projects!`
       );
       return;
     }
@@ -684,13 +717,21 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
         subject: emailPayload.subject,
         summary: emailPayload.summary,
         logType: emailPayload.logType,
-        sentBy: sendResult.senderEmail || gmailUserEmail || project.assignedPM.name,
+        sentBy: sendResult.senderEmail || senderIdentity,
         cadence: cadence === 'none' ? 'biweekly' : cadence,
         onUpdateProject,
       });
 
+      if (wasOneTimeConsumed && consumedConfig) {
+        setPmPersonalMessage('');
+        setPmPersonalMessageTitle('');
+        handleSaveCommsConfigToProject(consumedConfig, true);
+      }
+
       triggerToast(
-        `Sent separate Portfolio-Wide Update to ${targetEmail} covering ${sharedList.length} shared projects!`
+        wasOneTimeConsumed
+          ? `Sent separate Portfolio-Wide Update to ${targetEmail} & auto-cleared your One-Time PM Message so it won't repeat on future cadence runs!`
+          : `Sent separate Portfolio-Wide Update to ${targetEmail} covering ${sharedList.length} shared projects!`
       );
     } catch (err: any) {
       setErrorBanner(
@@ -725,6 +766,12 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
       minute: '2-digit',
     });
 
+    const senderIdentity = gmailUserEmail || project.assignedPM.name;
+    const { nextConfig: consumedConfig, wasOneTimeConsumed } = consumeOneTimePmMessageConfig(
+      activeCommsConfig,
+      senderIdentity
+    );
+
     if (!viaGmailApi) {
       const newLog: CustomerCommsLog = {
         id: `comm-tunnel-${Date.now()}`,
@@ -733,23 +780,32 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
         type: 'deployment_overview_email',
         recipientEmail: recipientList.join(', '),
         subject: singleProjectCardDigest.subject,
-        summary: `${singleProjectCardDigest.summary} [Communications Tunnel]`,
-        sentBy: gmailUserEmail || project.assignedPM.name,
+        summary: `${singleProjectCardDigest.summary}${
+          wasOneTimeConsumed ? ' [Included One-Time PM Message Card • Auto-Cleared]' : ''
+        } [Communications Tunnel]`,
+        sentBy: senderIdentity,
         cadence: cadence === 'none' ? 'biweekly' : cadence,
         status: 'Sent',
       };
+
+      if (wasOneTimeConsumed) {
+        setPmPersonalMessage('');
+        setPmPersonalMessageTitle('');
+      }
 
       const updatedProj: OperationProject = {
         ...project,
         commsTunnelAiTone: aiTone,
         commsTunnelAiCustomSummary: customExecutiveSummary,
-        commsTunnelConfig: activeCommsConfig,
+        commsTunnelConfig: consumedConfig || activeCommsConfig,
         customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
         lastUpdated: new Date().toISOString(),
       };
       persistProjectUpdate(updatedProj);
       triggerToast(
-        `Saved & logged Bi-Weekly Card Digest for ${recipientList.length} recipient(s) (${recipientList.join(', ')})!`
+        wasOneTimeConsumed
+          ? `Dispatched One-Time Unique Update for ${recipientList.length} recipient(s) & automatically cleared the PM Message Card from future cadence runs!`
+          : `Saved & logged Bi-Weekly Card Digest for ${recipientList.length} recipient(s) (${recipientList.join(', ')})!`
       );
       return;
     }
@@ -777,23 +833,32 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
         type: 'deployment_overview_email',
         recipientEmail: sendResult.recipients.join(', '),
         subject: singleProjectCardDigest.subject,
-        summary: singleProjectCardDigest.summary,
-        sentBy: sendResult.senderEmail || gmailUserEmail || project.assignedPM.name,
+        summary: `${singleProjectCardDigest.summary}${
+          wasOneTimeConsumed ? ' [Included One-Time PM Message Card • Auto-Cleared]' : ''
+        }`,
+        sentBy: sendResult.senderEmail || senderIdentity,
         cadence: cadence === 'none' ? 'biweekly' : cadence,
         status: 'Delivered',
       };
+
+      if (wasOneTimeConsumed) {
+        setPmPersonalMessage('');
+        setPmPersonalMessageTitle('');
+      }
 
       const updatedProj: OperationProject = {
         ...project,
         commsTunnelAiTone: aiTone,
         commsTunnelAiCustomSummary: customExecutiveSummary,
-        commsTunnelConfig: activeCommsConfig,
+        commsTunnelConfig: consumedConfig || activeCommsConfig,
         customerCommsLogs: [newLog, ...(project.customerCommsLogs || [])],
         lastUpdated: new Date().toISOString(),
       };
       persistProjectUpdate(updatedProj);
       triggerToast(
-        `Dispatched Bi-Weekly Card Digest via Gmail to ${sendResult.recipients.length} recipient(s)!`
+        wasOneTimeConsumed
+          ? `Dispatched update via Gmail & automatically cleared your One-Time PM Message so it won't repeat on future cadence emails!`
+          : `Dispatched Bi-Weekly Card Digest via Gmail to ${sendResult.recipients.length} recipient(s)!`
       );
     } catch (err: any) {
       setErrorBanner(
@@ -1257,16 +1322,32 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
             </div>
 
             {/* Step 3: PM PERSONAL MESSAGE CARD COMPOSER */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
+            <div
+              data-testid="pm-personal-message-card-section"
+              className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5"
+            >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-slate-900 text-[#01C38D] flex items-center justify-center shrink-0">
                     <MessageSquare className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                      3. PM Personal Message Card
-                    </h3>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                        3. PM Personal Message Card
+                      </h3>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                          pmPersonalMessageDeliveryMode === 'one_time'
+                            ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                            : 'bg-slate-100 text-slate-700 border border-slate-300'
+                        }`}
+                      >
+                        {pmPersonalMessageDeliveryMode === 'one_time'
+                          ? '⚡ One-Time Unique Update'
+                          : '🔁 Standing Cadence Note'}
+                      </span>
+                    </div>
                     <p className="text-[11px] text-slate-500">
                       Add your personal note — rendered as a signed executive card alongside the milestone cards.
                     </p>
@@ -1274,6 +1355,7 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
                 </div>
                 <button
                   type="button"
+                  data-testid="comms-tunnel-ai-draft-pm-note-btn"
                   onClick={handleAiPolishPmMessage}
                   className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-black flex items-center gap-1 shrink-0 cursor-pointer"
                   title="Generate or polish your personal PM message into a client-ready card"
@@ -1281,6 +1363,70 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
                   <Sparkles className="w-3 h-3 text-purple-600" />
                   <span>{pmPersonalMessage.trim() ? 'AI Polish Note' : 'AI Draft Note'}</span>
                 </button>
+              </div>
+
+              {/* Delivery Frequency Mode Selector: One-Time Unique Update vs. Recurring Cadence Note */}
+              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                    Message Card Persistence Mode:
+                  </span>
+                  {pmPersonalMessageDeliveryMode === 'one_time' && (
+                    <span className="text-[9px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                      Protected: Auto-Clears After 1 Send
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                  <button
+                    type="button"
+                    data-testid="pm-message-mode-one-time"
+                    onClick={() => {
+                      setPmPersonalMessageDeliveryMode('one_time');
+                      handleSaveCommsConfigToProject(
+                        { pmPersonalMessageDeliveryMode: 'one_time' },
+                        true
+                      );
+                    }}
+                    className={`py-1.5 px-2.5 rounded-lg font-extrabold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                      pmPersonalMessageDeliveryMode === 'one_time'
+                        ? 'bg-purple-900 text-white border-purple-900 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>⚡ One-Time Unique Update</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="pm-message-mode-recurring"
+                    onClick={() => {
+                      setPmPersonalMessageDeliveryMode('recurring_cadence');
+                      handleSaveCommsConfigToProject(
+                        { pmPersonalMessageDeliveryMode: 'recurring_cadence' },
+                        true
+                      );
+                    }}
+                    className={`py-1.5 px-2.5 rounded-lg font-extrabold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                      pmPersonalMessageDeliveryMode === 'recurring_cadence'
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>🔁 Recurring on Cadence</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-600 leading-snug">
+                  {pmPersonalMessageDeliveryMode === 'one_time' ? (
+                    <>
+                      <strong className="text-purple-900">One-Time Unique Update:</strong> Included in the{' '}
+                      <strong>next dispatch only</strong>, then automatically cleared so you never send an update-specific message over and over on the cadence.
+                    </>
+                  ) : (
+                    <>
+                      <strong className="text-slate-900">Standing Cadence Note:</strong> Remains pinned to every recurring bi-weekly/weekly cadence update until you edit or clear it.
+                    </>
+                  )}
+                </p>
               </div>
 
               {/* Card Style Selector */}
@@ -1311,7 +1457,11 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
                 type="text"
                 value={pmPersonalMessageTitle}
                 onChange={(e) => setPmPersonalMessageTitle(e.target.value)}
-                placeholder={`Optional card heading (defaults to "A Personal Note from Your Project Manager")`}
+                placeholder={
+                  pmPersonalMessageDeliveryMode === 'one_time'
+                    ? 'Optional card heading (defaults to "Special Update from Your Project Manager")'
+                    : 'Optional card heading (defaults to "A Personal Note from Your Project Manager")'
+                }
                 className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-semibold focus:outline-none focus:bg-white focus:border-emerald-600"
               />
 
@@ -1320,36 +1470,114 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
                 rows={3}
                 value={pmPersonalMessage}
                 onChange={(e) => setPmPersonalMessage(e.target.value)}
-                placeholder={`Write a personal note from ${project.assignedPM.name} to embed as a professional card at the top of the email...`}
+                placeholder={
+                  pmPersonalMessageDeliveryMode === 'one_time'
+                    ? `Write a one-time unique update from ${project.assignedPM.name} for this specific dispatch (auto-clears after send)...`
+                    : `Write a standing personal note from ${project.assignedPM.name} to embed on recurring cadence updates...`
+                }
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600 font-medium"
               />
 
-              <div className="flex items-center justify-between pt-0.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                 <span className="text-[10px] text-slate-500">
                   Signed by <strong>{project.assignedPM.name}</strong> ({project.assignedPM.role})
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {pmPersonalMessage.trim() && (
                     <button
                       type="button"
                       onClick={() => {
                         setPmPersonalMessage('');
-                        handleSaveCommsConfigToProject({ pmPersonalMessage: '' }, true);
+                        setPmPersonalMessageTitle('');
+                        handleSaveCommsConfigToProject(
+                          { pmPersonalMessage: '', pmPersonalMessageTitle: '' },
+                          true
+                        );
                       }}
                       className="text-[10px] font-bold text-slate-400 hover:text-rose-600 px-2 py-1 cursor-pointer"
                     >
                       Clear
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => handleSaveCommsConfigToProject()}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black cursor-pointer"
-                  >
-                    Save to Cadence
-                  </button>
+
+                  {pmPersonalMessageDeliveryMode === 'one_time' ? (
+                    <>
+                      <button
+                        type="button"
+                        data-testid="stage-one-time-pm-message-btn"
+                        onClick={() =>
+                          handleSaveCommsConfigToProject({
+                            pmPersonalMessageDeliveryMode: 'one_time',
+                          })
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 text-[10px] font-black cursor-pointer"
+                        title="Queue this message card for the next cadence send only; it will automatically clear after that dispatch"
+                      >
+                        Queue for Next Send Only
+                      </button>
+                      {pmPersonalMessage.trim() && (
+                        <button
+                          type="button"
+                          data-testid="send-one-time-pm-message-now-btn"
+                          onClick={() => handleSendProjectDigestToAll(false)}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black flex items-center gap-1 cursor-pointer shadow-2xs"
+                          title="Send this update with your One-Time Message Card right now and automatically clear it from future cadence runs"
+                        >
+                          <Send className="w-2.5 h-2.5" />
+                          <span>Send 1-Time Update &amp; Auto-Clear</span>
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid="save-recurring-pm-message-btn"
+                      onClick={() =>
+                        handleSaveCommsConfigToProject({
+                          pmPersonalMessageDeliveryMode: 'recurring_cadence',
+                        })
+                      }
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black cursor-pointer"
+                    >
+                      Pin to Recurring Cadence
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {/* Last Sent One-Time Message Auto-Cleared Confirmation Banner */}
+              {project.commsTunnelConfig?.lastSentOneTimePmMessage && (
+                <div
+                  data-testid="last-sent-one-time-pm-message-banner"
+                  className="mt-1.5 p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-[10px] text-emerald-950 space-y-1"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-black text-emerald-800 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      Last One-Time Message Sent &amp; Cleared from Cadence (
+                      {project.commsTunnelConfig.lastSentOneTimePmMessage.sentAt})
+                    </span>
+                    <button
+                      type="button"
+                      data-testid="reuse-last-one-time-pm-message-btn"
+                      onClick={() => {
+                        const prev = project.commsTunnelConfig?.lastSentOneTimePmMessage;
+                        if (!prev) return;
+                        setPmPersonalMessage(prev.message);
+                        setPmPersonalMessageTitle(prev.title || '');
+                        if (prev.style) setPmPersonalMessageStyle(prev.style);
+                        setPmPersonalMessageDeliveryMode('one_time');
+                      }}
+                      className="px-2 py-0.5 rounded bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold shrink-0 cursor-pointer"
+                    >
+                      Load / Edit Again
+                    </button>
+                  </div>
+                  <div className="text-slate-600 italic line-clamp-2 bg-white/80 px-2 py-1 rounded border border-emerald-100">
+                    &ldquo;{project.commsTunnelConfig.lastSentOneTimePmMessage.message}&rdquo;
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Step 4: STAGES 3–7 FIELD & OPERATIONS CARDS SELECTOR (Installed BOM, Shipping Dock, Installer Logs, Project Notes) */}
