@@ -31,6 +31,11 @@ import {
   buildCustomerKickoffPortalUrl,
   buildPartnerAcademyPortalUrl,
   CustomerCommsLog,
+  CustomerEmailCadence,
+  CadenceWeekday,
+  ALL_CADENCE_WEEKDAYS,
+  DEFAULT_MULTI_DAY_WEEKDAYS,
+  formatCustomerEmailCadenceLabel,
   getLockFinishSummaryTag,
   isLockBOMItem,
   isDiyPartner,
@@ -194,6 +199,75 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const [showResetMilestonesModal, setShowResetMilestonesModal] = useState<boolean>(false);
   const [resetMilestonesSuccessToast, setResetMilestonesSuccessToast] = useState<string | null>(null);
   const [rmaPreselectedBomId, setRmaPreselectedBomId] = useState<string | null>(null);
+  const [isCadencePillMenuOpen, setIsCadencePillMenuOpen] = useState<boolean>(false);
+
+  const activeCommsCadence: CustomerEmailCadence =
+    project.emailOverviewCadence ||
+    project.customerIntake?.emailUpdatesCadence ||
+    'weekly';
+  const activeCadenceWeekdays: CadenceWeekday[] =
+    project.emailCadenceWeekdays && project.emailCadenceWeekdays.length > 0
+      ? project.emailCadenceWeekdays
+      : project.customerIntake?.emailCadenceWeekdays &&
+        project.customerIntake.emailCadenceWeekdays.length > 0
+      ? project.customerIntake.emailCadenceWeekdays
+      : DEFAULT_MULTI_DAY_WEEKDAYS;
+  const isCommsCadenceLive = activeCommsCadence !== 'none';
+  const commsCadenceShortLabel = formatCustomerEmailCadenceLabel(
+    activeCommsCadence,
+    activeCadenceWeekdays,
+    true
+  );
+
+  const handleUpdateWorkspaceCadence = (
+    nextCadence: CustomerEmailCadence,
+    customDays?: CadenceWeekday[]
+  ) => {
+    const daysToSave =
+      customDays && customDays.length > 0 ? customDays : activeCadenceWeekdays;
+    const rememberedActive: Exclude<CustomerEmailCadence, 'none'> =
+      nextCadence !== 'none'
+        ? nextCadence
+        : project.lastActiveEmailCadence ||
+          (activeCommsCadence !== 'none' ? activeCommsCadence : 'weekly');
+
+    onUpdateProject({
+      ...project,
+      emailOverviewCadence: nextCadence,
+      emailCadenceWeekdays: daysToSave,
+      lastActiveEmailCadence: rememberedActive,
+      customerIntake: {
+        ...(project.customerIntake || {
+          pmsSoftware: 'Yardi',
+          commonAreaDoors: [],
+          staffRoles: [],
+        }),
+        emailUpdatesCadence: nextCadence,
+        emailCadenceWeekdays: daysToSave,
+        lastActiveEmailCadence: rememberedActive,
+      },
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleToggleWorkspaceCadenceWeekday = (day: CadenceWeekday) => {
+    const orderMap: Record<CadenceWeekday, number> = {
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+      Sun: 7,
+    };
+    const exists = activeCadenceWeekdays.includes(day);
+    if (exists && activeCadenceWeekdays.length <= 1) return;
+    const nextDays = exists
+      ? activeCadenceWeekdays.filter((d) => d !== day)
+      : [...activeCadenceWeekdays, day];
+    nextDays.sort((a, b) => orderMap[a] - orderMap[b]);
+    handleUpdateWorkspaceCadence('multi_day', nextDays);
+  };
 
   const handleConfirmResetMilestones = (updatedProject: OperationProject) => {
     onUpdateProject(updatedProject);
@@ -3448,8 +3522,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab('customer-comms');
-                  setIsCommsDropdownOpen((prev) => !prev);
+                  if (activeTab !== 'customer-comms') {
+                    setActiveTab('customer-comms');
+                    setIsCommsDropdownOpen(false);
+                  } else {
+                    setIsCommsDropdownOpen((prev) => !prev);
+                  }
                 }}
                 className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 ease-in-out active:scale-95 whitespace-nowrap cursor-pointer ${
                   activeTab === 'customer-comms' || activeTab === 'customer-kickoff'
@@ -3583,6 +3661,201 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               <Radio className="w-3.5 h-3.5 shrink-0" />
               <span>Communications Tunnel</span>
             </button>
+
+            {/* Interactive Communications Cadence Status Pill (Live vs Paused + Multi-Day / Weekly / Bi-Weekly Switcher) */}
+            <div className="relative inline-block">
+              <div
+                data-testid="workspace-bar-cadence-status-pill"
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-black border transition-all shadow-2xs ${
+                  isCommsCadenceLive
+                    ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                    : 'bg-amber-50 text-amber-900 border-amber-300'
+                }`}
+              >
+                <button
+                  type="button"
+                  data-testid="workspace-bar-cadence-pill-trigger"
+                  onClick={() => {
+                    setIsCommsDropdownOpen(false);
+                    setIsCadencePillMenuOpen((prev) => !prev);
+                  }}
+                  className="inline-flex items-center gap-1.5 cursor-pointer"
+                  title="Click to configure Communications Cadence (Multiple Days in a Week, Weekly, Bi-Weekly, or Pause)"
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      isCommsCadenceLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                    }`}
+                  />
+                  <span>
+                    {isCommsCadenceLive
+                      ? `Cadence: LIVE • ${commsCadenceShortLabel}`
+                      : 'Cadence: PAUSED (Not Live)'}
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform ${
+                      isCadencePillMenuOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                <button
+                  type="button"
+                  data-testid="workspace-bar-cadence-quick-pause-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isCommsCadenceLive) {
+                      handleUpdateWorkspaceCadence('none');
+                    } else {
+                      handleUpdateWorkspaceCadence(
+                        project.lastActiveEmailCadence ||
+                          project.customerIntake?.lastActiveEmailCadence ||
+                          'weekly'
+                      );
+                    }
+                  }}
+                  className={`ml-0.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase transition-colors cursor-pointer ${
+                    isCommsCadenceLive
+                      ? 'bg-amber-200/80 hover:bg-amber-300 text-amber-950'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  }`}
+                >
+                  {isCommsCadenceLive ? 'Pause' : 'Go Live'}
+                </button>
+              </div>
+
+              {isCadencePillMenuOpen && (
+                <div
+                  data-testid="workspace-bar-cadence-popover"
+                  className="absolute left-0 top-full mt-1.5 z-50 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-2xl p-3.5 space-y-3 ring-1 ring-slate-900/10"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full ${
+                          isCommsCadenceLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                        }`}
+                      />
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-900">
+                        {isCommsCadenceLive ? 'Cadence is LIVE' : 'Cadence is PAUSED'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCadencePillMenuOpen(false)}
+                      className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                      Select Automated Cadence Schedule
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(
+                        [
+                          { id: 'multi_day', label: 'Multiple Days / Wk', sub: 'Pick specific days' },
+                          { id: 'weekly', label: 'Weekly', sub: 'Once every week' },
+                          { id: 'biweekly', label: 'Bi-Weekly', sub: 'Every 2 weeks' },
+                          { id: 'none', label: 'Paused', sub: 'Turn off live cadence' },
+                        ] as const
+                      ).map((opt) => {
+                        const active = activeCommsCadence === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            data-testid={`workspace-cadence-opt-${opt.id}`}
+                            onClick={() => handleUpdateWorkspaceCadence(opt.id)}
+                            className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                              active
+                                ? opt.id === 'none'
+                                  ? 'bg-amber-50 border-amber-400 text-amber-950 ring-1 ring-amber-400'
+                                  : 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-1 ring-emerald-500'
+                                : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <div className="text-xs font-black">{opt.label}</div>
+                            <div className="text-[10px] text-slate-500">{opt.sub}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {activeCommsCadence === 'multi_day' && (
+                    <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-950">
+                          Active Days ({activeCadenceWeekdays.length}x / Week)
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateWorkspaceCadence('multi_day', ['Tue', 'Thu'])}
+                            className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white text-emerald-800 border border-emerald-300 cursor-pointer"
+                          >
+                            Tue/Thu
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateWorkspaceCadence('multi_day', ['Mon', 'Wed', 'Fri'])
+                            }
+                            className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white text-emerald-800 border border-emerald-300 cursor-pointer"
+                          >
+                            Mon/Wed/Fri
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {ALL_CADENCE_WEEKDAYS.map((d) => {
+                          const selected = activeCadenceWeekdays.includes(d.id);
+                          return (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => handleToggleWorkspaceCadenceWeekday(d.id)}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer border ${
+                                selected
+                                  ? 'bg-emerald-600 text-white border-emerald-700'
+                                  : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-400'
+                              }`}
+                            >
+                              {d.short}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('customer-comms');
+                        setIsCadencePillMenuOpen(false);
+                      }}
+                      className="text-[11px] font-bold text-sky-700 hover:underline cursor-pointer"
+                    >
+                      Open Full Communications Panel →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCadencePillMenuOpen(false);
+                        setIsCommsTunnelModalOpen(true);
+                      }}
+                      className="text-[11px] font-black text-emerald-700 hover:underline cursor-pointer"
+                    >
+                      Open Tunnel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Direct 1-Tap Kickoff Walkthrough Button */}
             <button
@@ -4012,7 +4285,10 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     </div>
                   </div>
                   <div className="text-[10px] text-slate-500 font-mono">
-                    Cadence: <strong className="text-sky-700 uppercase">{project.customerIntake?.emailUpdatesCadence || 'WEEKLY'}</strong>
+                    Cadence:{' '}
+                    <strong className={isCommsCadenceLive ? 'text-emerald-700 uppercase' : 'text-amber-700 uppercase'}>
+                      {isCommsCadenceLive ? `LIVE • ${commsCadenceShortLabel}` : 'PAUSED'}
+                    </strong>
                   </div>
                 </div>
               </div>

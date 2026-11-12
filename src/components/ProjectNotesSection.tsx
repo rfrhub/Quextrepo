@@ -271,12 +271,13 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
           </div>
         ) : (
           sortedNotes.map((note) => {
+            const noteBodyText = String(note.text || (note as any).content || '');
             const isNotePinned = Boolean(note.isPinned);
             const isPostItNote = Boolean(
               note.isPostIt ||
               note.postItLogId ||
-              note.id.startsWith('note-postit-') ||
-              note.text.startsWith('📌 Post-It Note')
+              String(note.id || '').startsWith('note-postit-') ||
+              noteBodyText.startsWith('📌 Post-It Note')
             );
 
             return (
@@ -439,7 +440,7 @@ export const ProjectNotesSection: React.FC<ProjectNotesSectionProps> = ({
                     </div>
                   </form>
                 ) : (
-                  <p className="text-xs text-slate-700 leading-relaxed pl-0.5 whitespace-pre-wrap">{note.text}</p>
+                  <p className="text-xs text-slate-700 leading-relaxed pl-0.5 whitespace-pre-wrap">{noteBodyText}</p>
                 )}
               </div>
             );

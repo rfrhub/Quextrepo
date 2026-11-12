@@ -3,6 +3,10 @@ import {
   OperationProject,
   CustomerCommsLog,
   CustomerEmailCadence,
+  CadenceWeekday,
+  ALL_CADENCE_WEEKDAYS,
+  DEFAULT_MULTI_DAY_WEEKDAYS,
+  formatCustomerEmailCadenceLabel,
   CommsTunnelConfiguration,
   Stage1And2CustomOutstandingItem,
   getDockItemTrackingNumbers,
@@ -247,6 +251,15 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
     project.emailOverviewCadence ||
     project.customerIntake?.emailUpdatesCadence ||
     'biweekly';
+  const selectedWeekdays: CadenceWeekday[] = useMemo(() => {
+    const raw =
+      project.emailCadenceWeekdays ||
+      project.customerIntake?.emailCadenceWeekdays ||
+      DEFAULT_MULTI_DAY_WEEKDAYS;
+    return raw.length > 0 ? raw : DEFAULT_MULTI_DAY_WEEKDAYS;
+  }, [project.emailCadenceWeekdays, project.customerIntake?.emailCadenceWeekdays]);
+  const isCadenceLive = cadence !== 'none';
+  const cadenceShortLabel = formatCustomerEmailCadenceLabel(cadence, selectedWeekdays, true);
 
   const additionalCustomerEmails = useMemo(() => {
     return (
@@ -675,10 +688,23 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
     persistProjectUpdate(updatedProject);
   };
 
-  const handleCadenceChange = (newCadence: CustomerEmailCadence) => {
+  const handleCadenceChange = (
+    newCadence: CustomerEmailCadence,
+    customWeekdays?: CadenceWeekday[]
+  ) => {
+    const daysToSave =
+      customWeekdays && customWeekdays.length > 0 ? customWeekdays : selectedWeekdays;
+    const rememberedActive: Exclude<CustomerEmailCadence, 'none'> =
+      newCadence !== 'none'
+        ? newCadence
+        : project.lastActiveEmailCadence ||
+          (cadence !== 'none' ? cadence : 'biweekly');
+
     const updatedProject: OperationProject = {
       ...project,
       emailOverviewCadence: newCadence,
+      emailCadenceWeekdays: daysToSave,
+      lastActiveEmailCadence: rememberedActive,
       customerIntake: {
         ...(project.customerIntake || {
           pmsSoftware: 'Yardi',
@@ -686,19 +712,43 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
           staffRoles: [],
         }),
         emailUpdatesCadence: newCadence,
+        emailCadenceWeekdays: daysToSave,
+        lastActiveEmailCadence: rememberedActive,
       },
       lastUpdated: new Date().toISOString(),
     };
     persistProjectUpdate(updatedProject);
     triggerToast(
-      `Automated Communications Tunnel cadence set to ${
-        newCadence === 'biweekly'
-          ? 'BI-WEEKLY (Every 2 Weeks)'
-          : newCadence === 'weekly'
-          ? 'WEEKLY'
-          : 'PAUSED'
-      }.`
+      newCadence === 'none'
+        ? 'Automated Communications Tunnel cadence PAUSED (Not Live).'
+        : `Automated Communications Tunnel cadence is LIVE: ${formatCustomerEmailCadenceLabel(
+            newCadence,
+            daysToSave,
+            false
+          )}.`
     );
+  };
+
+  const handleToggleTunnelWeekday = (day: CadenceWeekday) => {
+    const orderMap: Record<CadenceWeekday, number> = {
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+      Sun: 7,
+    };
+    const exists = selectedWeekdays.includes(day);
+    if (exists && selectedWeekdays.length <= 1) {
+      triggerToast('Keep at least 1 day selected for Multiple Days / Week cadence.');
+      return;
+    }
+    const nextDays = exists
+      ? selectedWeekdays.filter((d) => d !== day)
+      : [...selectedWeekdays, day];
+    nextDays.sort((a, b) => orderMap[a] - orderMap[b]);
+    handleCadenceChange('multi_day', nextDays);
   };
 
   const handleAiRegenerateCards = () => {
@@ -1045,46 +1095,93 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
                 <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
                   Communications Tunnel
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#01C38D]/20 text-[#01C38D] border border-[#01C38D]/40">
-                  Bi-Weekly Milestone Automation
+                <span
+                  data-testid="tunnel-modal-live-status-pill"
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                    isCadenceLive
+                      ? 'bg-[#01C38D]/20 text-[#01C38D] border-[#01C38D]/40'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isCadenceLive ? 'bg-[#01C38D] animate-pulse' : 'bg-amber-400'
+                    }`}
+                  />
+                  <span>
+                    {isCadenceLive ? `LIVE • ${cadenceShortLabel}` : 'PAUSED • NOT LIVE'}
+                  </span>
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-200 border border-white/15">
                   {allProjectRecipients.length} Active Recipient{allProjectRecipients.length === 1 ? '' : 's'}
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                <strong className="text-white">{project.propertyName}</strong> • Configure multi-recipient bi-weekly milestone updates, add PM personal messaging &amp; Stage 3–7 field details, and consolidate shared portfolio contacts.
+                <strong className="text-white">{project.propertyName}</strong> • Configure multi-recipient milestone updates, add PM personal messaging &amp; Stage 1–7 cards, and consolidate shared portfolio contacts.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            {/* Cadence Pill Selector */}
-            <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700 text-[11px]">
-              {(['biweekly', 'weekly', 'none'] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => handleCadenceChange(opt)}
-                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    cadence === opt
-                      ? 'bg-[#01C38D] text-slate-950 font-black shadow-2xs'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  {opt === 'biweekly' ? 'Every 2 Weeks' : opt === 'weekly' ? 'Weekly' : 'Paused'}
-                </button>
-              ))}
+          <div className="flex flex-col items-end gap-1.5 self-end sm:self-center">
+            <div className="flex items-center gap-2">
+              {/* Cadence Pill Selector */}
+              <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700 text-[11px]">
+                {(['multi_day', 'weekly', 'biweekly', 'none'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleCadenceChange(opt)}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                      cadence === opt
+                        ? opt === 'none'
+                          ? 'bg-amber-400 text-slate-950 font-black shadow-2xs'
+                          : 'bg-[#01C38D] text-slate-950 font-black shadow-2xs'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {opt === 'multi_day'
+                      ? 'Multi-Day'
+                      : opt === 'biweekly'
+                      ? 'Bi-Weekly'
+                      : opt === 'weekly'
+                      ? 'Weekly'
+                      : 'Paused'}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Close Communications Tunnel"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              title="Close Communications Tunnel"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {cadence === 'multi_day' && (
+              <div className="flex items-center gap-1 bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-700">
+                <span className="text-[9px] font-black uppercase text-[#01C38D] mr-1">Days:</span>
+                {ALL_CADENCE_WEEKDAYS.map((d) => {
+                  const active = selectedWeekdays.includes(d.id);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => handleToggleTunnelWeekday(d.id)}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
+                        active
+                          ? 'bg-[#01C38D] text-slate-950'
+                          : 'text-slate-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {d.short}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 

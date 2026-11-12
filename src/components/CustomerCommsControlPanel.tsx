@@ -3,6 +3,10 @@ import {
   OperationProject,
   CustomerCommsLog,
   CustomerEmailCadence,
+  CadenceWeekday,
+  ALL_CADENCE_WEEKDAYS,
+  DEFAULT_MULTI_DAY_WEEKDAYS,
+  formatCustomerEmailCadenceLabel,
   getCsmHandoffAutoCloseInfo,
   getCSMCalendarBookingProfile,
   CSM_CALENDAR_BOOKING_DIRECTORY,
@@ -47,6 +51,9 @@ import {
   ChevronDown,
   ChevronUp,
   Radio,
+  Pause,
+  Play,
+  CalendarDays,
 } from 'lucide-react';
 import { loadStoredProjects, saveStoredProjects } from '../data/initialData';
 import { saveLiveProject } from '../services/realtimeSyncService';
@@ -145,6 +152,16 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     project.emailOverviewCadence ||
     project.customerIntake?.emailUpdatesCadence ||
     'weekly';
+  const selectedWeekdays: CadenceWeekday[] = useMemo(() => {
+    const raw =
+      project.emailCadenceWeekdays ||
+      project.customerIntake?.emailCadenceWeekdays ||
+      DEFAULT_MULTI_DAY_WEEKDAYS;
+    return raw.length > 0 ? raw : DEFAULT_MULTI_DAY_WEEKDAYS;
+  }, [project.emailCadenceWeekdays, project.customerIntake?.emailCadenceWeekdays]);
+  const isCadenceLive = cadence !== 'none';
+  const cadenceDisplayLabel = formatCustomerEmailCadenceLabel(cadence, selectedWeekdays, false);
+  const cadenceShortLabel = formatCustomerEmailCadenceLabel(cadence, selectedWeekdays, true);
   const logs: CustomerCommsLog[] = project.customerCommsLogs || [];
   const sowForecastCadenceEnabled = project.sowForecastCadenceEnabled ?? true;
 
@@ -330,10 +347,34 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     setTimeout(() => setToastMessage(null), 5000);
   };
 
-  const handleCadenceChange = (newCadence: CustomerEmailCadence) => {
-    onUpdateProject({
+  const persistProjectState = (updatedProj: OperationProject) => {
+    onUpdateProject(updatedProj);
+    saveLiveProject(updatedProj).catch(() => {});
+    try {
+      const stored = loadStoredProjects();
+      saveStoredProjects(stored.map((p) => (p.id === updatedProj.id ? updatedProj : p)));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const handleCadenceChange = (
+    newCadence: CustomerEmailCadence,
+    customWeekdays?: CadenceWeekday[]
+  ) => {
+    const daysToSave =
+      customWeekdays && customWeekdays.length > 0 ? customWeekdays : selectedWeekdays;
+    const rememberedActive: Exclude<CustomerEmailCadence, 'none'> =
+      newCadence !== 'none'
+        ? newCadence
+        : project.lastActiveEmailCadence ||
+          (cadence !== 'none' ? cadence : 'weekly');
+
+    const updatedProj: OperationProject = {
       ...project,
       emailOverviewCadence: newCadence,
+      emailCadenceWeekdays: daysToSave,
+      lastActiveEmailCadence: rememberedActive,
       customerIntake: {
         ...(project.customerIntake || {
           pmsSoftware: 'Yardi',
@@ -341,10 +382,61 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           staffRoles: [],
         }),
         emailUpdatesCadence: newCadence,
+        emailCadenceWeekdays: daysToSave,
+        lastActiveEmailCadence: rememberedActive,
       },
       lastUpdated: new Date().toISOString(),
-    });
-    triggerToast(`Automated progress cadence updated to ${newCadence.toUpperCase()}.`);
+    };
+
+    persistProjectState(updatedProj);
+
+    if (newCadence === 'none') {
+      triggerToast('Communications cadence PAUSED — automated updates are currently not live.');
+    } else {
+      const formatted = formatCustomerEmailCadenceLabel(newCadence, daysToSave, false);
+      triggerToast(`Communications cadence is now LIVE on ${formatted} schedule!`);
+    }
+  };
+
+  const handleTogglePauseResumeCadence = () => {
+    if (isCadenceLive) {
+      handleCadenceChange('none');
+    } else {
+      const resumeMode =
+        project.lastActiveEmailCadence ||
+        project.customerIntake?.lastActiveEmailCadence ||
+        'weekly';
+      handleCadenceChange(resumeMode, selectedWeekdays);
+    }
+  };
+
+  const handleToggleCadenceWeekday = (day: CadenceWeekday) => {
+    const orderMap: Record<CadenceWeekday, number> = {
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+      Sun: 7,
+    };
+    const exists = selectedWeekdays.includes(day);
+    let nextDays: CadenceWeekday[];
+    if (exists) {
+      if (selectedWeekdays.length <= 1) {
+        triggerToast('Please keep at least 1 day selected for Multiple Days / Week cadence.');
+        return;
+      }
+      nextDays = selectedWeekdays.filter((d) => d !== day);
+    } else {
+      nextDays = [...selectedWeekdays, day];
+    }
+    nextDays.sort((a, b) => orderMap[a] - orderMap[b]);
+    handleCadenceChange('multi_day', nextDays);
+  };
+
+  const handleSelectWeekdayPreset = (presetDays: CadenceWeekday[]) => {
+    handleCadenceChange('multi_day', presetDays);
   };
 
   const handleToggleSowForecastCadence = () => {
@@ -822,7 +914,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
 
     const { subject, summary, htmlBody, logType } = buildEmailContent('digest');
     const recipientsList = defaultRecipients;
-    const cadenceSubject = `[Automated ${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Cadence] ${subject}`;
+    const cadenceSubject = `[Automated ${cadenceShortLabel} Cadence] ${subject}`;
     const senderIdentity = gmailUserEmail || project.assignedPM.name;
     const { nextConfig: consumedConfig, wasOneTimeConsumed } = consumeOneTimePmMessageConfig(
       project.commsTunnelConfig,
@@ -926,10 +1018,46 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
             <BellRing className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-[#01C38D]/20 text-[#01C38D] border border-[#01C38D]/30">
                 Customer Experience &amp; Automation Hub
               </span>
+              {/* Header Communications Cadence Live / Paused Status Pill */}
+              <div
+                data-testid="comms-panel-header-cadence-pill"
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
+                  isCadenceLive
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isCadenceLive ? 'bg-[#01C38D] animate-pulse' : 'bg-amber-400'
+                  }`}
+                />
+                <span>
+                  {isCadenceLive
+                    ? `LIVE CADENCE • ${cadenceShortLabel}`
+                    : 'CADENCE PAUSED • NOT LIVE'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleTogglePauseResumeCadence}
+                  className={`ml-1 px-1.5 py-0.2 rounded text-[9px] font-black uppercase transition-colors cursor-pointer ${
+                    isCadenceLive
+                      ? 'bg-white/15 hover:bg-amber-500/30 text-white hover:text-amber-200'
+                      : 'bg-[#01C38D] hover:bg-[#00b07f] text-slate-950'
+                  }`}
+                  title={
+                    isCadenceLive
+                      ? 'Pause automated communications cadence'
+                      : 'Resume live automated communications cadence'
+                  }
+                >
+                  {isCadenceLive ? 'Pause' : 'Go Live'}
+                </button>
+              </div>
               <span className="text-xs text-slate-400 font-medium">
                 • {defaultRecipients.length} Active Stakeholder Recipient
                 {defaultRecipients.length === 1 ? '' : 's'}
@@ -939,7 +1067,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
               Customer Communications &amp; Milestone Digest Control Panel
             </h3>
             <p className="text-xs text-slate-300 mt-0.5">
-              Dispatch real Gmail client kickoff packets, weekly/bi-weekly milestone progress emails, SOW Forecaster overviews, and CSM handoff introductions.
+              Dispatch real Gmail client kickoff packets, multiple days/week, weekly, or bi-weekly milestone progress emails, SOW Forecaster overviews, and CSM handoff introductions.
             </p>
           </div>
         </div>
@@ -1068,9 +1196,171 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
 
           <div className="text-left sm:text-right shrink-0">
             <span className="text-[11px] font-medium text-slate-500">
-              Active Cadence: <strong className="text-slate-900 font-bold uppercase">{cadence === 'biweekly' ? 'Bi-Weekly' : cadence === 'none' ? 'Paused' : 'Weekly'}</strong>
+              Active Cadence:{' '}
+              <strong
+                className={`font-bold uppercase ${
+                  isCadenceLive ? 'text-emerald-700' : 'text-amber-700'
+                }`}
+              >
+                {isCadenceLive ? `LIVE • ${cadenceDisplayLabel}` : 'PAUSED (Not Live)'}
+              </strong>
             </span>
           </div>
+        </div>
+
+        {/* Interactive Communications Cadence Status & Schedule Pill Control */}
+        <div
+          data-testid="comms-panel-cadence-status-pill"
+          className={`mb-4 p-3 rounded-2xl border transition-all shadow-2xs ${
+            isCadenceLive
+              ? 'bg-gradient-to-r from-emerald-50/90 via-white to-teal-50/70 border-emerald-300'
+              : 'bg-gradient-to-r from-amber-50/90 via-white to-slate-50 border-amber-300'
+          }`}
+        >
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            {/* Left: Live / Paused Status Pill + 1-Click Pause/Resume */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div
+                data-testid="comms-cadence-live-indicator-badge"
+                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black tracking-wide border shadow-2xs ${
+                  isCadenceLive
+                    ? 'bg-emerald-600 text-white border-emerald-700'
+                    : 'bg-amber-100 text-amber-950 border-amber-300'
+                }`}
+              >
+                <span
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                    isCadenceLive ? 'bg-[#01C38D] ring-4 ring-white/30 animate-pulse' : 'bg-amber-600'
+                  }`}
+                />
+                <span>
+                  {isCadenceLive ? 'COMMUNICATIONS CADENCE: LIVE' : 'COMMUNICATIONS CADENCE: PAUSED'}
+                </span>
+              </div>
+
+              <span className="text-xs font-bold text-slate-700">
+                {isCadenceLive ? (
+                  <>
+                    Sending <strong className="text-emerald-900">{cadenceDisplayLabel}</strong> to{' '}
+                    <strong>{allConfiguredCustomerRecipients.length}</strong> recipient
+                    {allConfiguredCustomerRecipients.length === 1 ? '' : 's'}
+                  </>
+                ) : (
+                  <span className="text-amber-900">
+                    Automated milestone cadence is paused (manual dispatches still available)
+                  </span>
+                )}
+              </span>
+
+              <button
+                type="button"
+                data-testid="comms-cadence-pause-resume-btn"
+                onClick={handleTogglePauseResumeCadence}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer border shadow-2xs ${
+                  isCadenceLive
+                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+                }`}
+              >
+                {isCadenceLive ? (
+                  <>
+                    <Pause className="w-3 h-3" />
+                    <span>Pause Cadence</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3" />
+                    <span>Resume Live Cadence</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Right: Segmented Cadence Frequency Pill Switcher */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1 rounded-full border border-slate-800 self-start xl:self-center">
+              {(
+                [
+                  { id: 'multi_day', label: 'Multiple Days / Wk' },
+                  { id: 'weekly', label: 'Weekly' },
+                  { id: 'biweekly', label: 'Bi-Weekly' },
+                  { id: 'none', label: 'Paused' },
+                ] as const
+              ).map((opt) => {
+                const isSelected = cadence === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    data-testid={`cadence-pill-option-${opt.id}`}
+                    onClick={() => handleCadenceChange(opt.id)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer ${
+                      isSelected
+                        ? opt.id === 'none'
+                          ? 'bg-amber-400 text-slate-950 shadow-xs'
+                          : 'bg-[#01C38D] text-slate-950 shadow-xs'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Multi-Day Weekday Picker Row (shown when Multiple Days / Wk is active) */}
+          {cadence === 'multi_day' && (
+            <div
+              data-testid="comms-cadence-weekday-picker"
+              className="mt-3 pt-2.5 border-t border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-950 flex items-center gap-1 mr-1">
+                  <CalendarDays className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Select Days of Week ({selectedWeekdays.length}x/Week):</span>
+                </span>
+                {ALL_CADENCE_WEEKDAYS.map((day) => {
+                  const active = selectedWeekdays.includes(day.id);
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      data-testid={`cadence-weekday-btn-${day.id}`}
+                      onClick={() => handleToggleCadenceWeekday(day.id)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer border ${
+                        active
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
+                          : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-400 hover:text-emerald-900'
+                      }`}
+                      title={`Toggle ${day.full}`}
+                    >
+                      {active ? `✓ ${day.short}` : day.short}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold text-slate-500">Quick Presets:</span>
+                <button
+                  type="button"
+                  data-testid="cadence-preset-tue-thu"
+                  onClick={() => handleSelectWeekdayPreset(['Tue', 'Thu'])}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 cursor-pointer"
+                >
+                  Tue &amp; Thu (2x/Wk)
+                </button>
+                <button
+                  type="button"
+                  data-testid="cadence-preset-mon-wed-fri"
+                  onClick={() => handleSelectWeekdayPreset(['Mon', 'Wed', 'Fri'])}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 cursor-pointer"
+                >
+                  Mon, Wed &amp; Fri (3x/Wk)
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Recipient Badges / Chips */}
@@ -1358,24 +1648,69 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
 
             {/* Cadence Selector */}
             <div className="mb-4">
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5">
-                Delivery Frequency
-              </label>
-              <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                {(['weekly', 'biweekly', 'none'] as const).map((option) => (
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  Delivery Frequency
+                </label>
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                    isCadenceLive
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isCadenceLive ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'
+                    }`}
+                  />
+                  {isCadenceLive ? `Live • ${cadenceShortLabel}` : 'Paused'}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                {(['multi_day', 'weekly', 'biweekly', 'none'] as const).map((option) => (
                   <button
                     key={option}
+                    type="button"
                     onClick={() => handleCadenceChange(option)}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                    className={`py-1.5 px-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                       cadence === option
                         ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    {option === 'biweekly' ? 'Bi-Weekly' : option === 'none' ? 'Paused' : 'Weekly'}
+                    {option === 'multi_day'
+                      ? 'Multi-Day'
+                      : option === 'biweekly'
+                      ? 'Bi-Weekly'
+                      : option === 'none'
+                      ? 'Paused'
+                      : 'Weekly'}
                   </button>
                 ))}
               </div>
+              {cadence === 'multi_day' && (
+                <div className="mt-2 flex flex-wrap items-center gap-1 bg-emerald-50/70 p-2 rounded-xl border border-emerald-200">
+                  <span className="text-[10px] font-bold text-emerald-900 mr-1">Days:</span>
+                  {ALL_CADENCE_WEEKDAYS.map((d) => {
+                    const active = selectedWeekdays.includes(d.id);
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => handleToggleCadenceWeekday(d.id)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
+                          active
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:border-emerald-400'
+                        }`}
+                      >
+                        {d.short}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70 mb-4 space-y-1.5 text-[11px]">
@@ -1418,9 +1753,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
               >
                 <Zap className="w-3 h-3 text-amber-400 shrink-0" />
                 <span className="truncate">
-                  {cadence === 'none'
-                    ? 'Cadence Paused'
-                    : `Trigger ${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'}`}
+                  {cadence === 'none' ? 'Cadence Paused' : `Trigger ${cadenceShortLabel}`}
                 </span>
               </button>
               <button

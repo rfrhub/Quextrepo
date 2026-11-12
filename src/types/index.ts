@@ -981,7 +981,42 @@ export interface EntrataCredentials {
   notes?: string;
 }
 
-export type CustomerEmailCadence = 'none' | 'weekly' | 'biweekly';
+export type CustomerEmailCadence = 'none' | 'multi_day' | 'weekly' | 'biweekly';
+
+export type CadenceWeekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+
+export const ALL_CADENCE_WEEKDAYS: { id: CadenceWeekday; short: string; full: string }[] = [
+  { id: 'Mon', short: 'Mon', full: 'Monday' },
+  { id: 'Tue', short: 'Tue', full: 'Tuesday' },
+  { id: 'Wed', short: 'Wed', full: 'Wednesday' },
+  { id: 'Thu', short: 'Thu', full: 'Thursday' },
+  { id: 'Fri', short: 'Fri', full: 'Friday' },
+  { id: 'Sat', short: 'Sat', full: 'Saturday' },
+  { id: 'Sun', short: 'Sun', full: 'Sunday' },
+];
+
+export const DEFAULT_MULTI_DAY_WEEKDAYS: CadenceWeekday[] = ['Tue', 'Thu'];
+
+export function formatCustomerEmailCadenceLabel(
+  cadence?: CustomerEmailCadence,
+  weekdays?: CadenceWeekday[],
+  short: boolean = false
+): string {
+  if (!cadence || cadence === 'none') {
+    return 'Paused';
+  }
+  if (cadence === 'multi_day') {
+    const activeDays =
+      weekdays && weekdays.length > 0 ? weekdays : DEFAULT_MULTI_DAY_WEEKDAYS;
+    return short
+      ? `${activeDays.length}x/Wk (${activeDays.join(', ')})`
+      : `Multiple Days/Wk (${activeDays.join(', ')})`;
+  }
+  if (cadence === 'biweekly') {
+    return short ? 'Bi-Weekly' : 'Bi-Weekly (Every 2 Wks)';
+  }
+  return 'Weekly';
+}
 
 export interface Stage1And2CustomOutstandingItem {
   id: string;
@@ -1203,6 +1238,8 @@ export interface KickoffCustomerIntake {
   walkthroughCompleted?: boolean;
   subscriberEmail?: string;
   emailUpdatesCadence?: CustomerEmailCadence;
+  emailCadenceWeekdays?: CadenceWeekday[];
+  lastActiveEmailCadence?: Exclude<CustomerEmailCadence, 'none'>;
   doorsConfirmedByCustomer?: boolean;
   doorNamesNotAvailableNow?: boolean;
   doorNamesFollowUpDate?: string;
@@ -1390,6 +1427,8 @@ export interface OperationProject {
   customerCommsLogs?: CustomerCommsLog[];
   sowSubmissions?: GoogleFormSubmission[];
   emailOverviewCadence?: CustomerEmailCadence;
+  emailCadenceWeekdays?: CadenceWeekday[]; // Selected weekdays when emailOverviewCadence === 'multi_day' (e.g. ['Tue', 'Thu'])
+  lastActiveEmailCadence?: Exclude<CustomerEmailCadence, 'none'>; // Previous active cadence remembered when paused
   emailCadenceStartDate?: string; // Fillable start date for weekly/biweekly overview cadence
   additionalCustomerEmails?: string[]; // PM manually added customer emails for automated digests & manual dispatches
   portfolioConsolidatedEmails?: string[]; // Recipients opted into receiving a single consolidated Portfolio-Wide Update across shared projects

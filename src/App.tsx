@@ -294,7 +294,6 @@ export default function App() {
 
     return () => {
       unsubProjects();
-      unsubQuotes();
       unsubPartners();
       unsubSows();
       window.removeEventListener('quext-open-sow-hub', handleOpenSowHub);

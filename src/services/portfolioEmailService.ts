@@ -2,6 +2,7 @@ import {
   OperationProject,
   CustomerCommsLog,
   CustomerEmailCadence,
+  formatCustomerEmailCadenceLabel,
   CommsTunnelConfiguration,
   InstallLogEntry,
   buildCustomerKickoffPortalUrl,
@@ -2129,8 +2130,9 @@ export function parseAndApplyCustomerEmailReplyToProject(
     id: `note-email-reply-${Date.now()}`,
     author: respondentEmail || project.customerIntake?.communityEmail || project.clientName,
     timestamp: nowFormatted,
+    text: replyNoteSummary,
     content: replyNoteSummary,
-    category: 'Customer' as const,
+    category: 'General Context' as const,
   };
 
   const newCommLog: CustomerCommsLog = {
@@ -2476,8 +2478,20 @@ export function buildDigestibleMilestoneCardEmailContent({
       ? customAiSummary.trim()
       : aiData.aiExecutiveHeadline;
 
-  const cadenceLabel = cadence === 'biweekly' ? 'Bi-Weekly (Every 2 Weeks)' : cadence === 'weekly' ? 'Weekly' : 'Milestone';
-  const shortCadence = cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly';
+  const cadenceLabel =
+    cadence === 'biweekly'
+      ? 'Bi-Weekly (Every 2 Weeks)'
+      : cadence === 'multi_day'
+      ? formatCustomerEmailCadenceLabel('multi_day', project.emailCadenceWeekdays, false)
+      : cadence === 'weekly'
+      ? 'Weekly'
+      : 'Milestone';
+  const shortCadence =
+    cadence === 'biweekly'
+      ? 'Bi-Weekly'
+      : cadence === 'multi_day'
+      ? formatCustomerEmailCadenceLabel('multi_day', project.emailCadenceWeekdays, true)
+      : 'Weekly';
   const clientPortalUrl = buildCustomerKickoffPortalUrl(project.id);
   const csmProfile = getCSMCalendarBookingProfile(project.assignedCSM);
 
@@ -2779,7 +2793,12 @@ export function buildRecipientPortfolioWideCardEmail({
   const overallHwPct =
     totalDevicesAll > 0 ? Math.round((totalInstalledAll / totalDevicesAll) * 100) : 0;
 
-  const shortCadence = cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly';
+  const shortCadence =
+    cadence === 'biweekly'
+      ? 'Bi-Weekly'
+      : cadence === 'multi_day'
+      ? formatCustomerEmailCadenceLabel('multi_day', primaryProject.emailCadenceWeekdays, true)
+      : 'Weekly';
   const projectNamesList =
     projects.length <= 3
       ? projects.map((p) => p.propertyName).join(', ')
