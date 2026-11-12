@@ -983,6 +983,20 @@ export interface EntrataCredentials {
 
 export type CustomerEmailCadence = 'none' | 'weekly' | 'biweekly';
 
+export interface CommsTunnelConfiguration {
+  pmPersonalMessage?: string;
+  pmPersonalMessageTitle?: string;
+  pmPersonalMessageStyle?: 'pm_note' | 'action_required' | 'milestone_highlight';
+  includeInstalledBomCard?: boolean;
+  selectedBomItemIds?: string[];
+  includeShippingDockCard?: boolean;
+  selectedShippingDockIds?: string[];
+  includeInstallerLogCard?: boolean;
+  selectedInstallLogIds?: string[];
+  includeProjectNotesCard?: boolean;
+  selectedProjectNoteIds?: string[];
+}
+
 export interface CustomerCommsLog {
   id: string;
   projectId: string;
@@ -1346,6 +1360,7 @@ export interface OperationProject {
   portfolioConsolidatedEmails?: string[]; // Recipients opted into receiving a single consolidated Portfolio-Wide Update across shared projects
   commsTunnelAiCustomSummary?: string; // Optional AI-generated or PM-customized executive summary for milestone cadence emails
   commsTunnelAiTone?: 'executive' | 'action_oriented' | 'technical';
+  commsTunnelConfig?: CommsTunnelConfiguration; // PM-configured personal message & selected BOM / Shipping / Installer Log / Project Note cards for Stages 3-7
   sowForecastCadenceEnabled?: boolean; // Automated weekly/biweekly SOW Forecast overview dispatch when on CSM Intro - Pre-implementation
   useNfcWallet?: boolean; // PM Checkbox: NFC Wallet Upgrade
   useQrIntercom?: boolean; // PM Checkbox: QR Intercom Feature

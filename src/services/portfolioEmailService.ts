@@ -1,4 +1,15 @@
-import { OperationProject, CustomerCommsLog, CustomerEmailCadence, buildCustomerKickoffPortalUrl, getCSMCalendarBookingProfile, isLockBOMItem } from '../types';
+import {
+  OperationProject,
+  CustomerCommsLog,
+  CustomerEmailCadence,
+  CommsTunnelConfiguration,
+  InstallLogEntry,
+  buildCustomerKickoffPortalUrl,
+  getCSMCalendarBookingProfile,
+  isLockBOMItem,
+  getLockFinishSummaryTag,
+  getDockItemTrackingNumbers,
+} from '../types';
 import { loadStoredProjects, saveStoredProjects } from '../data/initialData';
 import { saveLiveProject } from './realtimeSyncService';
 
@@ -24,29 +35,249 @@ export interface PortfolioDetectionResult {
   allTiedProjects: OperationProject[];
 }
 
+const IGNORED_PLACEHOLDER_EMAILS = new Set([
+  'property@client.com',
+  'asset.manager@equitylifestyle.com',
+  'vip.investor@realestatecorp.com',
+  'pending-intake@onequext.com',
+  'stakeholder@property.com',
+  'regional@property.com',
+  'vp@equity.com',
+  'owner@property.com',
+  'unk',
+  'n/a',
+  'none',
+  'tbd',
+]);
+
+export function isGenuineStakeholderEmail(email?: string | null): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  if (!clean || !clean.includes('@')) return false;
+  if (IGNORED_PLACEHOLDER_EMAILS.has(clean)) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
+}
+
 /**
- * Scans candidate projects to detect if any of the recipient emails are Community Site Contacts,
- * onsite staff members, digest subscribers, or configured customer contacts across OTHER properties.
+ * Merges live React/Firestore projects (`allProjects`) with `loadStoredProjects()` (`localStorage`)
+ * so that any recipient email added or updated on any project is genuinely and immediately discoverable.
+ */
+export function getUnifiedGenuineProjectsPool(
+  allProjects?: OperationProject[],
+  currentProjectOverride?: OperationProject
+): OperationProject[] {
+  const stored = loadStoredProjects();
+  const map = new Map<string, OperationProject>();
+
+  stored.forEach((p) => {
+    map.set(p.id, p);
+  });
+
+  if (allProjects && allProjects.length > 0) {
+    allProjects.forEach((liveProj) => {
+      const existing = map.get(liveProj.id);
+      if (!existing) {
+        map.set(liveProj.id, liveProj);
+      } else {
+        const liveTime = liveProj.lastUpdated ? new Date(liveProj.lastUpdated).getTime() : 0;
+        const storedTime = existing.lastUpdated ? new Date(existing.lastUpdated).getTime() : 0;
+        const newer = liveTime >= storedTime ? liveProj : existing;
+        const older = liveTime >= storedTime ? existing : liveProj;
+
+        // Preserve any genuine communityEmail / staffRoles / additionalCustomerEmails if one side was empty
+        const mergedAdditional = Array.from(
+          new Set([
+            ...(newer.additionalCustomerEmails || []),
+            ...(newer.customerIntake?.additionalCustomerEmails || []),
+            ...(liveTime === storedTime ? older.additionalCustomerEmails || [] : []),
+          ])
+        ).filter((em) => isGenuineStakeholderEmail(em));
+
+        map.set(liveProj.id, {
+          ...newer,
+          additionalCustomerEmails: mergedAdditional,
+          customerIntake: {
+            ...(newer.customerIntake || {
+              pmsSoftware: 'None',
+              commonAreaDoors: [],
+              staffRoles: [],
+            }),
+            communityEmail:
+              newer.customerIntake?.communityEmail ||
+              older.customerIntake?.communityEmail ||
+              '',
+            subscriberEmail:
+              newer.customerIntake?.subscriberEmail ||
+              older.customerIntake?.subscriberEmail ||
+              '',
+            additionalCustomerEmails: mergedAdditional,
+          },
+        });
+      }
+    });
+  }
+
+  if (currentProjectOverride) {
+    map.set(currentProjectOverride.id, currentProjectOverride);
+  }
+
+  return Array.from(map.values());
+}
+
+export interface GenuineProjectEmailEntry {
+  email: string;
+  roleOrTitle: string;
+  contactName?: string;
+  isCommunitySiteContact: boolean;
+  isStaffMember: boolean;
+  isExplicitTunnelRecipient: boolean;
+}
+
+/**
+ * Extracts all genuine customer/stakeholder email addresses configured on a project across all real fields:
+ * - customerIntake.communityEmail
+ * - customerIntake.subscriberEmail
+ * - customerIntake.staffRoles
+ * - additionalCustomerEmails & customerIntake.additionalCustomerEmails
+ * - productAcceptanceSubmission.signedByEmail
+ * - sowSubmissions (customerContactEmail / respondentEmail)
+ */
+export function extractGenuineProjectRecipientEntries(
+  proj: OperationProject
+): GenuineProjectEmailEntry[] {
+  const results = new Map<string, GenuineProjectEmailEntry>();
+  const isMockProject = (proj.propertyName || '').toUpperCase().includes('MOCK PROJECT');
+
+  const addTokens = (
+    raw: string | undefined | null,
+    meta: Omit<GenuineProjectEmailEntry, 'email'>
+  ) => {
+    if (!raw) return;
+    const tokens = raw.split(/[,;\s\n]+/).map((t) => t.trim());
+    for (const token of tokens) {
+      if (!isGenuineStakeholderEmail(token)) continue;
+      const lower = token.toLowerCase();
+      // For the seeded mock project, ignore canned mock emails unless explicitly added to additionalCustomerEmails
+      if (
+        isMockProject &&
+        !meta.isExplicitTunnelRecipient &&
+        (lower === 'pm@sageinvestment.com' ||
+          lower.includes('@oonequext') ||
+          lower.includes('@onequext.com'))
+      ) {
+        continue;
+      }
+      if (!results.has(lower)) {
+        results.set(lower, {
+          email: lower,
+          ...meta,
+        });
+      }
+    }
+  };
+
+  // 1. Community Site Contact & Digest Subscriber
+  addTokens(proj.customerIntake?.communityEmail, {
+    roleOrTitle: 'Community Site Contact',
+    contactName: proj.clientName,
+    isCommunitySiteContact: true,
+    isStaffMember: false,
+    isExplicitTunnelRecipient: false,
+  });
+
+  addTokens(proj.customerIntake?.subscriberEmail, {
+    roleOrTitle: 'Digest Subscriber Contact',
+    contactName: proj.clientName,
+    isCommunitySiteContact: true,
+    isStaffMember: false,
+    isExplicitTunnelRecipient: false,
+  });
+
+  // 2. Onsite Staff Roles (Community Manager, Regional PM, Property POC, etc.)
+  (proj.customerIntake?.staffRoles || []).forEach((s) => {
+    const fullName = `${s.firstName || ''} ${s.lastName || ''}`.trim();
+    const cleanName =
+      fullName && !['unk', 'n/a', 'contact'].includes(fullName.toLowerCase())
+        ? fullName
+        : proj.clientName;
+    addTokens(s.email, {
+      roleOrTitle: s.roleOrTitle || `${s.permissionLevel || 'Property'} Staff Role`,
+      contactName: cleanName,
+      isCommunitySiteContact: false,
+      isStaffMember: true,
+      isExplicitTunnelRecipient: false,
+    });
+  });
+
+  // 3. Communications Tunnel / Additional Customer Distribution Emails
+  const additionalList = [
+    ...(proj.additionalCustomerEmails || []),
+    ...(proj.customerIntake?.additionalCustomerEmails || []),
+    ...(proj.portfolioConsolidatedEmails || []),
+  ];
+  additionalList.forEach((em) => {
+    addTokens(em, {
+      roleOrTitle: 'Communications Tunnel Recipient',
+      contactName: proj.clientName,
+      isCommunitySiteContact: false,
+      isStaffMember: false,
+      isExplicitTunnelRecipient: true,
+    });
+  });
+
+  // 4. Product Acceptance Signer Email
+  if (proj.productAcceptanceSubmission?.signedByEmail) {
+    addTokens(proj.productAcceptanceSubmission.signedByEmail, {
+      roleOrTitle: proj.productAcceptanceSubmission.signedByTitle || 'Delivery Acceptance Signer',
+      contactName: proj.productAcceptanceSubmission.signedByName || proj.clientName,
+      isCommunitySiteContact: false,
+      isStaffMember: true,
+      isExplicitTunnelRecipient: false,
+    });
+  }
+
+  // 5. SOW Submissions Customer Email
+  (proj.sowSubmissions || []).forEach((sub: any) => {
+    const sowEmail = sub?.customerContactEmail || sub?.respondentEmail || sub?.contactEmail;
+    if (sowEmail) {
+      addTokens(sowEmail, {
+        roleOrTitle: 'SOW Submission Contact',
+        contactName: sub?.customerContactName || proj.clientName,
+        isCommunitySiteContact: true,
+        isStaffMember: false,
+        isExplicitTunnelRecipient: false,
+      });
+    }
+  });
+
+  return Array.from(results.values());
+}
+
+/**
+ * Scans all real candidate projects to detect if any of the recipient emails are genuinely registered
+ * on OTHER properties in the portfolio.
  */
 export function detectPortfolioContacts(
   recipientEmails: string[] | string,
   currentProjectId?: string,
   allProjects?: OperationProject[]
 ): PortfolioDetectionResult {
-  const projects = allProjects && allProjects.length > 0 ? allProjects : loadStoredProjects();
-  const candidateProjects = currentProjectId
-    ? projects.filter((p) => p.id !== currentProjectId)
-    : projects;
+  const projects = getUnifiedGenuineProjectsPool(allProjects);
+  const candidateProjects = projects.filter(
+    (p) =>
+      (!currentProjectId || p.id !== currentProjectId) &&
+      !(p.propertyName || '').toUpperCase().includes('MOCK PROJECT')
+  );
 
   const rawTokens = Array.isArray(recipientEmails)
-    ? recipientEmails.flatMap((r) => r.split(/[,;\s]+/))
-    : recipientEmails.split(/[,;\s]+/);
+    ? recipientEmails.flatMap((r) => r.split(/[,;\s\n]+/))
+    : recipientEmails.split(/[,;\s\n]+/);
 
   const normalizedRecipients = Array.from(
     new Set(
       rawTokens
         .map((r) => r.trim().toLowerCase())
-        .filter((r) => r && r.includes('@'))
+        .filter((r) => isGenuineStakeholderEmail(r))
     )
   );
 
@@ -59,61 +290,20 @@ export function detectPortfolioContacts(
     let detectedRole: string | undefined;
 
     for (const proj of candidateProjects) {
-      let isMatch = false;
-      let isCommunitySiteContact = false;
-      let isStaffMember = false;
-      let matchedRole: string | undefined;
-      let matchedName: string | undefined;
+      const entries = extractGenuineProjectRecipientEntries(proj);
+      const matchedEntry = entries.find((e) => e.email === email);
 
-      // 1. Check Community Site Contact and Subscriber emails
-      const communityEmail = proj.customerIntake?.communityEmail?.trim().toLowerCase();
-      const subscriberEmail = proj.customerIntake?.subscriberEmail?.trim().toLowerCase();
-
-      if (communityEmail && communityEmail === email) {
-        isMatch = true;
-        isCommunitySiteContact = true;
-        matchedRole = 'Community Site Contact';
-        matchedName = proj.clientName;
-      } else if (subscriberEmail && subscriberEmail === email) {
-        isMatch = true;
-        isCommunitySiteContact = true;
-        matchedRole = 'Digest Subscriber Contact';
-        matchedName = proj.clientName;
-      }
-
-      // 2. Check Onsite Staff Roles (Community Manager, Regional PM, Maintenance, etc.)
-      const matchingStaff = (proj.customerIntake?.staffRoles || []).find(
-        (s) => s.email && s.email.trim().toLowerCase() === email
-      );
-      if (matchingStaff) {
-        isMatch = true;
-        isStaffMember = true;
-        matchedRole = matchingStaff.roleOrTitle || 'Property Staff Member';
-        matchedName = `${matchingStaff.firstName} ${matchingStaff.lastName}`.trim();
-      }
-
-      // 3. Check Additional Customer Distribution Emails
-      const additionalEmails = [
-        ...(proj.additionalCustomerEmails || []),
-        ...(proj.customerIntake?.additionalCustomerEmails || []),
-      ].map((e) => e.trim().toLowerCase());
-
-      if (additionalEmails.includes(email)) {
-        isMatch = true;
-        matchedRole = matchedRole || 'Designated Customer Stakeholder';
-      }
-
-      if (isMatch) {
+      if (matchedEntry) {
         tiedProperties.push(proj);
         propertyDetails.push({
           project: proj,
-          roleOrTitle: matchedRole,
-          contactName: matchedName,
-          isCommunitySiteContact,
-          isStaffMember,
+          roleOrTitle: matchedEntry.roleOrTitle,
+          contactName: matchedEntry.contactName,
+          isCommunitySiteContact: matchedEntry.isCommunitySiteContact,
+          isStaffMember: matchedEntry.isStaffMember,
         });
-        if (!detectedName && matchedName) detectedName = matchedName;
-        if (!detectedRole && matchedRole) detectedRole = matchedRole;
+        if (!detectedName && matchedEntry.contactName) detectedName = matchedEntry.contactName;
+        if (!detectedRole && matchedEntry.roleOrTitle) detectedRole = matchedEntry.roleOrTitle;
       }
     }
 
@@ -139,6 +329,136 @@ export function detectPortfolioContacts(
     matchedContacts,
     allTiedProjects: Array.from(allTiedMap.values()),
   };
+}
+
+/**
+ * Genuine live search across all projects in the database for any customer email or domain.
+ * Never invents or mocks data — strictly returns real project associations from the database.
+ */
+export function searchGenuinePortfolioEmails(
+  searchQuery: string,
+  currentProjectId?: string,
+  allProjects?: OperationProject[]
+): {
+  email: string;
+  contactName?: string;
+  projects: { project: OperationProject; roleOrTitle: string }[];
+}[] {
+  const pool = getUnifiedGenuineProjectsPool(allProjects);
+  const byEmail = new Map<
+    string,
+    {
+      email: string;
+      contactName?: string;
+      projects: { project: OperationProject; roleOrTitle: string }[];
+    }
+  >();
+
+  pool.forEach((proj) => {
+    if (currentProjectId && proj.id === currentProjectId) return;
+    if ((proj.propertyName || '').toUpperCase().includes('MOCK PROJECT')) return;
+    const entries = extractGenuineProjectRecipientEntries(proj);
+    entries.forEach((entry) => {
+      const existing = byEmail.get(entry.email) || {
+        email: entry.email,
+        contactName: entry.contactName,
+        projects: [],
+      };
+      if (!existing.contactName && entry.contactName) {
+        existing.contactName = entry.contactName;
+      }
+      if (!existing.projects.some((p) => p.project.id === proj.id)) {
+        existing.projects.push({ project: proj, roleOrTitle: entry.roleOrTitle });
+      }
+      byEmail.set(entry.email, existing);
+    });
+  });
+
+  const q = searchQuery.trim().toLowerCase();
+  const allResults = Array.from(byEmail.values());
+  if (!q) {
+    // When no query is typed, only return genuine multi-project shared emails (>= 2 projects)
+    return allResults
+      .filter((item) => item.projects.length >= 2)
+      .sort((a, b) => b.projects.length - a.projects.length);
+  }
+
+  return allResults
+    .filter(
+      (item) =>
+        item.email.includes(q) ||
+        (item.contactName || '').toLowerCase().includes(q) ||
+        item.projects.some(
+          (p) =>
+            p.project.propertyName.toLowerCase().includes(q) ||
+            p.project.clientName.toLowerCase().includes(q)
+        )
+    )
+    .sort((a, b) => b.projects.length - a.projects.length);
+}
+
+/**
+ * Gathers all genuine installer logs on a project (combining project.installLogs and BOM item postItLogs).
+ */
+export function getAllProjectInstallLogs(project: OperationProject): InstallLogEntry[] {
+  const seen = new Set<string>();
+  const combined: InstallLogEntry[] = [];
+
+  (project.installLogs || []).forEach((log) => {
+    if (log && log.id && !seen.has(log.id)) {
+      seen.add(log.id);
+      combined.push(log);
+    }
+  });
+
+  (project.bomItems || []).forEach((bom) => {
+    (bom.postItLogs || []).forEach((log) => {
+      if (log && log.id && !seen.has(log.id)) {
+        seen.add(log.id);
+        combined.push({
+          ...log,
+          itemId: log.itemId || bom.id,
+          itemName: log.itemName || bom.name,
+        });
+      }
+    });
+  });
+
+  return combined;
+}
+
+/**
+ * Determines whether a milestone title (or index) is between Stage 3 and Stage 7:
+ * Stage 3: Product Acquisition
+ * Stage 4: CSM Intro - Pre-implementation
+ * Stage 5: Implementation
+ * Stage 6: CSM Handoff
+ * Stage 7: Project Closed
+ */
+export function isStageThreeToSeven(
+  milestoneTitle?: string | null,
+  project?: OperationProject
+): boolean {
+  if (!milestoneTitle) return false;
+  const norm = milestoneTitle.trim().toLowerCase();
+  if (
+    norm.includes('acquisition') ||
+    norm.includes('product') ||
+    norm.includes('csm intro') ||
+    norm.includes('pre-implementation') ||
+    norm.includes('implementation') ||
+    norm.includes('handoff') ||
+    norm.includes('closed')
+  ) {
+    return true;
+  }
+  if (project && project.milestones) {
+    const idx = project.milestones.findIndex(
+      (m) => m.title.trim().toLowerCase() === norm
+    );
+    if (idx >= 2) return true;
+  }
+  return false;
 }
 
 export type PortfolioCommunicationType =
@@ -840,6 +1160,344 @@ export function buildMilestoneSpecificCardHighlights(
 }
 
 /**
+ * Builds the HTML for the PM's Personal Message Card so it renders professionally alongside the other cards.
+ */
+export function buildPmPersonalMessageCardHtml(
+  project: OperationProject,
+  commsConfig?: CommsTunnelConfiguration
+): string {
+  const cfg = commsConfig || project.commsTunnelConfig;
+  const rawMessage = cfg?.pmPersonalMessage?.trim();
+  if (!rawMessage) return '';
+
+  const pmName = project.assignedPM?.name || 'Quext Project Manager';
+  const pmRole = project.assignedPM?.role || 'Project Manager';
+  const pmEmail = project.assignedPM?.email || 'operations@onequext.com';
+  const pmPhone = project.assignedPM?.phone || '';
+  const initials = pmName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const styleType = cfg?.pmPersonalMessageStyle || 'pm_note';
+  const defaultTitle =
+    styleType === 'action_required'
+      ? `Coordination & Action Note from ${pmName}`
+      : styleType === 'milestone_highlight'
+      ? `Milestone Spotlight from ${pmName}`
+      : `A Personal Note from Your Project Manager`;
+
+  const cardTitle = cfg?.pmPersonalMessageTitle?.trim() || defaultTitle;
+
+  const palette =
+    styleType === 'action_required'
+      ? {
+          border: '#f59e0b',
+          headerBg: '#fffbeb',
+          badgeBg: '#fef3c7',
+          badgeText: '#92400e',
+          badgeLabel: 'PM COORDINATION CALLOUT',
+          avatarBg: '#d97706',
+        }
+      : styleType === 'milestone_highlight'
+      ? {
+          border: '#01C38D',
+          headerBg: '#ecfdf5',
+          badgeBg: '#d1fae5',
+          badgeText: '#065f46',
+          badgeLabel: 'PM MILESTONE SPOTLIGHT',
+          avatarBg: '#059669',
+        }
+      : {
+          border: '#0f172a',
+          headerBg: '#f8fafc',
+          badgeBg: '#e2e8f0',
+          badgeText: '#1e293b',
+          badgeLabel: 'PROJECT MANAGER MESSAGE',
+          avatarBg: '#0f172a',
+        };
+
+  const formattedParagraphs = rawMessage
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(
+      (line) =>
+        `<p style="margin: 0 0 8px 0; font-size: 13px; color: #1e293b; line-height: 1.55;">${line}</p>`
+    )
+    .join('');
+
+  return `
+    <!-- PM PERSONAL MESSAGE CARD -->
+    <div style="background-color: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid ${palette.border}; border-radius: 14px; overflow: hidden; margin-bottom: 14px; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);">
+      <div style="background-color: ${palette.headerBg}; padding: 12px 18px; border-bottom: 1px solid #e2e8f0;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 38px; vertical-align: middle;">
+              <div style="width: 32px; height: 32px; border-radius: 999px; background-color: ${palette.avatarBg}; color: #ffffff; font-size: 12px; font-weight: 900; text-align: center; line-height: 32px;">
+                ${initials}
+              </div>
+            </td>
+            <td style="vertical-align: middle;">
+              <span style="display: inline-block; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; background-color: ${palette.badgeBg}; color: ${palette.badgeText}; padding: 2px 7px; border-radius: 999px; margin-bottom: 2px;">
+                ${palette.badgeLabel}
+              </span>
+              <div style="font-size: 14px; font-weight: 900; color: #0f172a;">
+                ${cardTitle}
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div style="padding: 14px 18px 12px 18px;">
+        ${formattedParagraphs}
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #475569;">
+          <strong style="color: #0f172a;">${pmName}</strong> • ${pmRole} • <a href="mailto:${pmEmail}" style="color: #0284c7; text-decoration: none; font-weight: 700;">${pmEmail}</a>${pmPhone ? ` • ${pmPhone}` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Builds the optional Stage 3–7 Operational Cards (Installed BOM Line Items, Shipping Dock Line Items,
+ * Installer Log Line Items, and Project Notes) when selected by the PM.
+ */
+export function buildStage3To7OperationalCardsHtml(
+  project: OperationProject,
+  commsConfig?: CommsTunnelConfiguration
+): string {
+  const cfg = commsConfig || project.commsTunnelConfig;
+  if (!cfg) return '';
+
+  const sections: string[] = [];
+
+  // 1. Installed BOM Line Items Card
+  if (cfg.includeInstalledBomCard) {
+    const selectedIds = new Set(cfg.selectedBomItemIds || []);
+    const bomList = (project.bomItems || []).filter((item) =>
+      selectedIds.size > 0 ? selectedIds.has(item.id) : (Number(item.installedCount) || 0) > 0
+    );
+
+    if (bomList.length > 0) {
+      const rowsHtml = bomList
+        .map((item) => {
+          const qty = Number(item.quantity) || 0;
+          const inst = Number(item.installedCount) || 0;
+          const pct = qty > 0 ? Math.min(100, Math.round((inst / qty) * 100)) : 0;
+          const finishTag = item.lockFinishConfig
+            ? getLockFinishSummaryTag(item.lockFinishConfig)
+            : '';
+          const brandTag = item.thermostatBrand ? `${item.thermostatBrand} Thermostat` : '';
+          const metaExtras = [item.model, item.location, finishTag, brandTag, item.trackingNumber ? `Tracking: ${item.trackingNumber}` : '']
+            .filter(Boolean)
+            .join(' • ');
+
+          const statusBadgeBg = pct >= 100 ? '#ecfdf5' : inst > 0 ? '#eff6ff' : '#f8fafc';
+          const statusBadgeColor = pct >= 100 ? '#047857' : inst > 0 ? '#1d4ed8' : '#475569';
+          const statusLabel = pct >= 100 ? '✓ Installed' : inst > 0 ? `${pct}% Installed` : 'Staged';
+
+          return `
+            <tr>
+              <td style="padding: 9px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle;">
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${item.name}</div>
+                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${metaExtras || item.category}</div>
+              </td>
+              <td style="padding: 9px 10px; border-bottom: 1px solid #f1f5f9; text-align: right; vertical-align: middle; white-space: nowrap;">
+                <div style="font-size: 12px; font-weight: 900; color: #0f172a;">${inst.toLocaleString()} / ${qty.toLocaleString()}</div>
+                <span style="display: inline-block; margin-top: 2px; padding: 2px 6px; border-radius: 6px; background-color: ${statusBadgeBg}; color: ${statusBadgeColor}; font-size: 9px; font-weight: 800;">
+                  ${statusLabel}
+                </span>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      sections.push(`
+        <!-- EMBEDDED BOM LINE ITEMS CARD -->
+        <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #0284c7;">
+              📦 INSTALLED HARDWARE &amp; BOM LINE ITEMS (${bomList.length} SELECTED)
+            </span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; background-color: #f8fafc; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <thead>
+              <tr style="background-color: #f1f5f9; text-align: left; font-size: 9px; font-weight: 900; text-transform: uppercase; color: #475569;">
+                <th style="padding: 7px 10px;">Hardware Line Item &amp; Location</th>
+                <th style="padding: 7px 10px; text-align: right;">Installed / Scope</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `);
+    }
+  }
+
+  // 2. Shipping Dock Line Items Card
+  if (cfg.includeShippingDockCard) {
+    const selectedDockIds = new Set(cfg.selectedShippingDockIds || []);
+    const dockItems = (project.shippingDockItems || []).filter((d) =>
+      selectedDockIds.size > 0 ? selectedDockIds.has(d.id) : true
+    );
+
+    if (dockItems.length > 0) {
+      const dockCardsHtml = dockItems
+        .map((dock) => {
+          const trackNums = getDockItemTrackingNumbers(dock);
+          const trackingText = trackNums.length > 0 ? trackNums.join(', ') : dock.trackingNumber || 'Pending Carrier Scan';
+          const isDelivered =
+            dock.status === 'Delivered to Site' || dock.status === 'Accepted by Customer' || dock.customerAccepted;
+          const badgeBg = isDelivered ? '#ecfdf5' : '#fffbeb';
+          const badgeColor = isDelivered ? '#047857' : '#b45309';
+
+          return `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td>
+                    <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #d97706;">
+                      ${dock.shipmentBatchLabel || 'Shipment Batch'} • ${dock.carrier}
+                    </span>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                      ${dock.bomItemName} (${dock.shippedQuantity.toLocaleString()} units)
+                    </div>
+                    <div style="font-size: 10px; color: #475569; margin-top: 3px;">
+                      <strong>Tracking #:</strong> <span style="font-family: monospace; color: #0f172a;">${trackingText}</span> • Shipped: ${dock.shippedDate || 'N/A'} • ETA: <strong>${dock.estimatedArrivalDate || 'TBD'}</strong>
+                    </div>
+                  </td>
+                  <td style="text-align: right; vertical-align: top;">
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; background-color: ${badgeBg}; color: ${badgeColor}; font-size: 9px; font-weight: 800;">
+                      ${dock.customerAccepted ? '✓ Accepted on Site' : dock.status}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          `;
+        })
+        .join('');
+
+      sections.push(`
+        <!-- EMBEDDED SHIPPING DOCK CARD -->
+        <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #d97706; margin-bottom: 8px;">
+            🚚 SHIPPING DOCK &amp; CARRIER TRACKING DETAILS (${dockItems.length})
+          </div>
+          ${dockCardsHtml}
+        </div>
+      `);
+    }
+  }
+
+  // 3. Installer Logs Card
+  if (cfg.includeInstallerLogCard) {
+    const allLogs = getAllProjectInstallLogs(project);
+    const selectedLogIds = new Set(cfg.selectedInstallLogIds || []);
+    const chosenLogs = allLogs.filter((l) =>
+      selectedLogIds.size > 0 ? selectedLogIds.has(l.id) : true
+    );
+
+    if (chosenLogs.length > 0) {
+      const logItemsHtml = chosenLogs
+        .map((log) => {
+          const noteLines: string[] = [];
+          if (log.notes && log.notes.trim()) noteLines.push(log.notes.trim());
+          if (log.itemNotes && log.itemNotes.trim() && log.itemNotes.trim() !== log.notes?.trim()) {
+            noteLines.push(log.itemNotes.trim());
+          }
+          if (log.fieldTechNotes && log.fieldTechNotes.trim()) {
+            noteLines.push(
+              `Field Tech Note (${log.fieldTechNoteAuthor || 'Field Ops'}): ${log.fieldTechNotes.trim()}`
+            );
+          }
+
+          return `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td>
+                    <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #059669;">
+                      ${log.timestamp} • Logged by ${log.installerName}
+                    </span>
+                    <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                      +${log.quantityCompleted} ${log.itemName} — <span style="color: #0284c7;">${log.locationCompleted}</span>
+                    </div>
+                  </td>
+                  <td style="text-align: right; vertical-align: top;">
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; background-color: #ecfdf5; color: #047857; font-size: 9px; font-weight: 800;">
+                      ✓ ${log.statusCheck}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+              ${
+                noteLines.length > 0
+                  ? `<div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e2e8f0; font-size: 11px; color: #334155; line-height: 1.4;">${noteLines.join(' • ')}</div>`
+                  : ''
+              }
+            </div>
+          `;
+        })
+        .join('');
+
+      sections.push(`
+        <!-- EMBEDDED INSTALLER LOGS CARD -->
+        <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #059669; margin-bottom: 8px;">
+            🔧 FIELD INSTALLER LOG &amp; VERIFICATION ACTIVITY (${chosenLogs.length})
+          </div>
+          ${logItemsHtml}
+        </div>
+      `);
+    }
+  }
+
+  // 4. Project Notes Card
+  if (cfg.includeProjectNotesCard) {
+    const selectedNoteIds = new Set(cfg.selectedProjectNoteIds || []);
+    const chosenNotes = (project.notes || []).filter((n) =>
+      selectedNoteIds.size > 0 ? selectedNoteIds.has(n.id) : true
+    );
+
+    if (chosenNotes.length > 0) {
+      const notesHtml = chosenNotes
+        .map(
+          (note) => `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #6366f1; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
+              <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #4f46e5; margin-bottom: 3px;">
+                ${note.category || 'Project Note'} • ${note.author} (${note.timestamp})
+              </div>
+              <div style="font-size: 12px; color: #1e293b; line-height: 1.45;">
+                ${note.text}
+              </div>
+            </div>
+          `
+        )
+        .join('');
+
+      sections.push(`
+        <!-- EMBEDDED PROJECT NOTES CARD -->
+        <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #4f46e5; margin-bottom: 8px;">
+            📝 RELEVANT PROJECT NOTES &amp; SITE UPDATES (${chosenNotes.length})
+          </div>
+          ${notesHtml}
+        </div>
+      `);
+    }
+  }
+
+  return sections.join('\n');
+}
+
+/**
  * Builds an AI-generated, visually digestible Card-Based HTML email for a project's automated bi-weekly / weekly milestone cadence.
  */
 export function buildDigestibleMilestoneCardEmailContent({
@@ -849,6 +1507,7 @@ export function buildDigestibleMilestoneCardEmailContent({
   aiTone = 'executive',
   customAiSummary,
   variantSeed = 0,
+  commsConfig,
 }: {
   project: OperationProject;
   cadence?: CustomerEmailCadence;
@@ -856,6 +1515,7 @@ export function buildDigestibleMilestoneCardEmailContent({
   aiTone?: AiEmailTone;
   customAiSummary?: string;
   variantSeed?: number;
+  commsConfig?: CommsTunnelConfiguration;
 }): GeneratedAiCardDigest {
   const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 26px; width: auto; display: inline-block; vertical-align: middle;" />`;
 
@@ -959,6 +1619,9 @@ export function buildDigestibleMilestoneCardEmailContent({
     )
     .join('');
 
+  const pmPersonalMessageCardHtml = buildPmPersonalMessageCardHtml(project, commsConfig);
+  const stage3To7OperationalCardsHtml = buildStage3To7OperationalCardsHtml(project, commsConfig);
+
   const htmlBody = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 660px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
       
@@ -997,6 +1660,8 @@ export function buildDigestibleMilestoneCardEmailContent({
           ${finalHeadline}
         </div>
       </div>
+
+      ${pmPersonalMessageCardHtml}
 
       <!-- CARD 1: ACTIVE MILESTONE & 7-STAGE ROADMAP CARD -->
       <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
@@ -1084,6 +1749,8 @@ export function buildDigestibleMilestoneCardEmailContent({
         </table>
       </div>
 
+      ${stage3To7OperationalCardsHtml}
+
       <!-- CARD 4: NEXT 2 WEEKS FOCUS & STAKEHOLDER ACTION CARD -->
       <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
         <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
@@ -1158,6 +1825,7 @@ export function buildRecipientPortfolioWideCardEmail({
   customNote,
   senderName,
   senderEmail,
+  commsConfig,
 }: {
   recipientEmail: string;
   recipientName?: string;
@@ -1168,6 +1836,7 @@ export function buildRecipientPortfolioWideCardEmail({
   customNote?: string;
   senderName?: string;
   senderEmail?: string;
+  commsConfig?: CommsTunnelConfiguration;
 }): {
   subject: string;
   summary: string;
@@ -1313,6 +1982,9 @@ export function buildRecipientPortfolioWideCardEmail({
     })
     .join('');
 
+  const pmPersonalMessageCardHtml = buildPmPersonalMessageCardHtml(primaryProject, commsConfig);
+  const stage3To7OperationalCardsHtml = buildStage3To7OperationalCardsHtml(primaryProject, commsConfig);
+
   const htmlBody = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
       <!-- PORTFOLIO HEADER CARD -->
@@ -1377,8 +2049,12 @@ export function buildRecipientPortfolioWideCardEmail({
         </table>
       </div>
 
+      ${pmPersonalMessageCardHtml}
+
       <!-- EMBEDDED PROJECT CARDS -->
       ${projectCardsHtml}
+
+      ${stage3To7OperationalCardsHtml}
 
       <!-- FOOTER -->
       <div style="text-align: center; font-size: 11px; color: #64748b; padding: 8px 12px;">

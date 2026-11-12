@@ -2155,6 +2155,24 @@ export function isFakeInstallLog(log: { id?: string; installerName?: string; not
   return false;
 }
 
+const FAKE_PLACEHOLDER_EMAILS = new Set([
+  'property@client.com',
+  'asset.manager@equitylifestyle.com',
+  'vip.investor@realestatecorp.com',
+  'pending-intake@onequext.com',
+  'unk',
+  'n/a',
+  'none',
+  'tbd',
+]);
+
+function isFakeOrPlaceholderEmail(email?: string | null): boolean {
+  if (!email) return true;
+  const clean = email.trim().toLowerCase();
+  if (!clean || !clean.includes('@')) return true;
+  return FAKE_PLACEHOLDER_EMAILS.has(clean);
+}
+
 export function sanitizeProjectRealTeamOnly(project: OperationProject): OperationProject {
   const cleanNotes = (project.notes || []).filter((n) => !isFakeNote(n));
   const cleanLogs = (project.installLogs || []).filter((l) => !isFakeInstallLog(l));
@@ -2192,6 +2210,29 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
     return true;
   });
 
+  // Clean out any synthetic/placeholder emails so PMs only ever see genuine customer emails
+  const cleanAdditionalEmails = (project.additionalCustomerEmails || []).filter(
+    (em) => !isFakeOrPlaceholderEmail(em)
+  );
+
+  const cleanIntake = project.customerIntake
+    ? {
+        ...project.customerIntake,
+        communityEmail: isFakeOrPlaceholderEmail(project.customerIntake.communityEmail)
+          ? ''
+          : project.customerIntake.communityEmail,
+        subscriberEmail: isFakeOrPlaceholderEmail(project.customerIntake.subscriberEmail)
+          ? ''
+          : project.customerIntake.subscriberEmail,
+        additionalCustomerEmails: (project.customerIntake.additionalCustomerEmails || []).filter(
+          (em) => !isFakeOrPlaceholderEmail(em)
+        ),
+        staffRoles: (project.customerIntake.staffRoles || []).filter(
+          (sr) => !isFakeOrPlaceholderEmail(sr.email)
+        ),
+      }
+    : project.customerIntake;
+
   return {
     ...project,
     notes: cleanNotes,
@@ -2200,6 +2241,8 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
     activityNotifications: cleanActivityNotifs,
     bomItems: cleanBom,
     statusReason,
+    additionalCustomerEmails: cleanAdditionalEmails,
+    customerIntake: cleanIntake,
   };
 }
 
@@ -2340,6 +2383,41 @@ export function loadStoredProjects(): OperationProject[] {
           } else if (initProj.needsVerifiedByPm && target.needsVerifiedByPm === undefined) {
             target.needsVerifiedByPm = true;
             hasVerificationTagChanges = true;
+          }
+        }
+      });
+
+      // Non-destructively ensure genuine Master Tracker communityEmail / staffRoles are preserved if missing locally
+      INITIAL_PROJECTS.forEach((initProj) => {
+        const target = sanitizedList.find((p) => p.id === initProj.id);
+        if (target && initProj.customerIntake) {
+          if (!target.customerIntake) {
+            target.customerIntake = {
+              pmsSoftware: 'None',
+              commonAreaDoors: [],
+              staffRoles: [],
+            };
+          }
+          if (
+            !target.customerIntake.communityEmail &&
+            initProj.customerIntake.communityEmail &&
+            !isFakeOrPlaceholderEmail(initProj.customerIntake.communityEmail)
+          ) {
+            target.customerIntake.communityEmail = initProj.customerIntake.communityEmail;
+            hasNotesChanges = true;
+          }
+          if (
+            (!target.customerIntake.staffRoles || target.customerIntake.staffRoles.length === 0) &&
+            initProj.customerIntake.staffRoles &&
+            initProj.customerIntake.staffRoles.length > 0
+          ) {
+            const validInitStaff = initProj.customerIntake.staffRoles.filter(
+              (sr) => !isFakeOrPlaceholderEmail(sr.email)
+            );
+            if (validInitStaff.length > 0) {
+              target.customerIntake.staffRoles = validInitStaff;
+              hasNotesChanges = true;
+            }
           }
         }
       });

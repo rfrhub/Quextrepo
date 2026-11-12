@@ -48,9 +48,11 @@ import {
   ChevronUp,
   Radio,
 } from 'lucide-react';
-import { loadStoredProjects } from '../data/initialData';
+import { loadStoredProjects, saveStoredProjects } from '../data/initialData';
+import { saveLiveProject } from '../services/realtimeSyncService';
 import {
   detectPortfolioContacts,
+  getUnifiedGenuineProjectsPool,
   buildPortfolioUpdateEmailContent,
   buildDigestibleMilestoneCardEmailContent,
   logPortfolioDispatchAcrossProjects,
@@ -95,9 +97,8 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   const [showPortfolioPropertyList, setShowPortfolioPropertyList] = useState<boolean>(false);
 
   const projectsPool = useMemo(() => {
-    if (allProjects && allProjects.length > 0) return allProjects;
-    return loadStoredProjects();
-  }, [allProjects]);
+    return getUnifiedGenuineProjectsPool(allProjects, project);
+  }, [allProjects, project]);
 
   const portfolioDetection = useMemo(() => {
     if (!modalRecipientInput.trim()) {
@@ -242,8 +243,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     }
 
     const updatedList = [...additionalCustomerEmails, ...toAdd];
-
-    onUpdateProject({
+    const updatedProj: OperationProject = {
       ...project,
       additionalCustomerEmails: updatedList,
       customerIntake: {
@@ -255,7 +255,16 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         additionalCustomerEmails: updatedList,
       },
       lastUpdated: new Date().toISOString(),
-    });
+    };
+
+    onUpdateProject(updatedProj);
+    saveLiveProject(updatedProj).catch(() => {});
+    try {
+      const stored = loadStoredProjects();
+      saveStoredProjects(stored.map((p) => (p.id === updatedProj.id ? updatedProj : p)));
+    } catch {
+      // ignore storage errors
+    }
 
     setNewCustomerEmailInput('');
     triggerToast(
@@ -267,8 +276,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     const updatedList = additionalCustomerEmails.filter(
       (em) => em.toLowerCase() !== emailToRemove.toLowerCase()
     );
-
-    onUpdateProject({
+    const updatedProj: OperationProject = {
       ...project,
       additionalCustomerEmails: updatedList,
       customerIntake: {
@@ -280,7 +288,16 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         additionalCustomerEmails: updatedList,
       },
       lastUpdated: new Date().toISOString(),
-    });
+    };
+
+    onUpdateProject(updatedProj);
+    saveLiveProject(updatedProj).catch(() => {});
+    try {
+      const stored = loadStoredProjects();
+      saveStoredProjects(stored.map((p) => (p.id === updatedProj.id ? updatedProj : p)));
+    } catch {
+      // ignore storage errors
+    }
 
     triggerToast(`Removed ${emailToRemove} from customer communications.`);
   };
@@ -388,6 +405,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         cadence: cadence === 'none' ? 'biweekly' : cadence,
         aiTone: project.commsTunnelAiTone || 'executive',
         customAiSummary: project.commsTunnelAiCustomSummary,
+        commsConfig: project.commsTunnelConfig,
       });
       return {
         subject: aiDigest.subject,
