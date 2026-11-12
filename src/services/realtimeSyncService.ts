@@ -26,6 +26,7 @@ import {
   INITIAL_QUOTES,
   enrichProjectDefaults,
   sanitizeProjectRealTeamOnly,
+  isMockOrSyntheticProject,
   saveStoredProjects,
   saveStoredQuotes,
   loadArchivedProjectIds,
@@ -128,8 +129,8 @@ export function subscribeToLiveProjects(
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as OperationProject;
           if (data && data.id) {
-            // If project is registered as merged/archived, purge it from Cloud Firestore and skip
-            if (archivedIds.has(data.id)) {
+            // If project is registered as merged/archived or is a mock/synthetic project, purge it from Cloud Firestore and skip
+            if (archivedIds.has(data.id) || isMockOrSyntheticProject(data)) {
               deleteDoc(doc(db, PROJECTS_COLLECTION, data.id)).catch(() => {});
               return;
             }
@@ -137,6 +138,11 @@ export function subscribeToLiveProjects(
             const hasInvalidLockTag = (data.bomItems || []).some(
               (b) => !isLockBOMItem(b) && Boolean(b.lockFinishConfig)
             );
+            const hadSampleReplyArtifact =
+              data.customerIntake?.pmsPropertyCode === 'ARBE-100 (API sync approved)' ||
+              (data.customerIntake?.gatewayLocationNotes || '').includes(
+                'Clubhouse 2nd floor IDF closet (PoE switch port 14 ready)'
+              );
             const enriched = sanitizeProjectRealTeamOnly(enrichProjectDefaults(data));
 
             // Merge imported sheet notes from canonical INITIAL_PROJECTS if not present
@@ -200,7 +206,7 @@ export function subscribeToLiveProjects(
                 enriched.sowSubmissions = [SEED_SOW_21_PEARL];
               }
             }
-            if (hasInvalidLockTag) {
+            if (hasInvalidLockTag || hadSampleReplyArtifact) {
               hadNonLockTagsInCloud = true;
               projectsToCleanseInCloud.push(enriched);
             }

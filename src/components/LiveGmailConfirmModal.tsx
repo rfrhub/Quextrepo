@@ -547,18 +547,20 @@ export const LiveGmailConfirmModal: React.FC<LiveGmailConfirmModalProps> = ({
                 <label className="font-bold text-slate-800">
                   To (Real Inbox Recipient Email(s)) *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = authUserEmail || 'RFRleasing@gmail.com';
-                    if (!recipientInput.toLowerCase().includes(target.toLowerCase())) {
-                      setRecipientInput((prev) => (prev.trim() ? `${prev.trim()}, ${target}` : target));
-                    }
-                  }}
-                  className="text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded cursor-pointer"
-                >
-                  + Add {authUserEmail || 'RFRleasing@gmail.com'}
-                </button>
+                {authUserEmail && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = authUserEmail;
+                      if (!recipientInput.toLowerCase().includes(target.toLowerCase())) {
+                        setRecipientInput((prev) => (prev.trim() ? `${prev.trim()}, ${target}` : target));
+                      }
+                    }}
+                    className="text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded cursor-pointer"
+                  >
+                    + Add {authUserEmail}
+                  </button>
+                )}
               </div>
               <input
                 type="text"

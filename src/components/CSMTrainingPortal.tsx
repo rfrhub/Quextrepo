@@ -61,7 +61,8 @@ export const CSMTrainingPortal: React.FC<CSMTrainingPortalProps> = ({
     project.customerIntake?.subscriberEmail ||
     project.customerIntake?.communityEmail ||
     project.customerIntake?.staffRoles?.[0]?.email ||
-    'RFRleasing@gmail.com';
+    project.assignedPM?.email ||
+    '';
 
   const handleSendCsmIntroCalendarAutomation = () => {
     const allCsmLinksHtml = CSM_CALENDAR_BOOKING_DIRECTORY.map(

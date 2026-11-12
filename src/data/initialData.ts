@@ -1967,14 +1967,8 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
         : hasIntercomOnBom,
     sowForecastCadenceEnabled:
       p.sowForecastCadenceEnabled !== undefined ? p.sowForecastCadenceEnabled : true,
-    sowForecastItems:
-      p.sowForecastItems && p.sowForecastItems.length > 0
-        ? p.sowForecastItems
-        : buildDefaultSOWForecastItems({ ...p, integratorPartners: partners }),
-    shippingDockItems:
-      p.shippingDockItems && p.shippingDockItems.length > 0
-        ? p.shippingDockItems
-        : buildDefaultShippingDockItems({ ...p, integratorPartners: partners }),
+    sowForecastItems: Array.isArray(p.sowForecastItems) ? p.sowForecastItems : [],
+    shippingDockItems: Array.isArray(p.shippingDockItems) ? p.shippingDockItems : [],
     milestones: normalizeProjectMilestones(p.milestones, p.id, p.startDate, p.targetCompletionDate),
     changeOrders: Array.isArray(p.changeOrders) ? p.changeOrders : [],
     customerIntake: {
@@ -2041,7 +2035,24 @@ export function addArchivedProjectId(id: string) {
   saveArchivedProjectIds(current);
 }
 
-export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v2';
+export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v3';
+
+export function isMockOrSyntheticProject(p?: Partial<OperationProject> | null): boolean {
+  if (!p) return true;
+  const id = (p.id || '').trim().toLowerCase();
+  const propName = (p.propertyName || '').trim().toLowerCase();
+  const clientName = (p.clientName || '').trim().toLowerCase();
+  const quoteNum = (p.quoteNumber || '').trim().toLowerCase();
+  if (
+    id.startsWith('mock-') ||
+    propName.includes('mock project') ||
+    clientName.includes('test ownership group') ||
+    quoteNum.includes('mock')
+  ) {
+    return true;
+  }
+  return false;
+}
 export const MASTER_NOTES_IMPORTED_VERSION_KEY = 'quext_master_notes_imported_v3';
 export const MASTER_MILESTONES_SYNC_VERSION_KEY = 'quext_master_milestones_sync_v2';
 export const STORAGE_CLEARED_PM_VERIFICATION_KEY = 'quext_cleared_pm_verification_ids_v1';
@@ -2160,6 +2171,7 @@ const FAKE_PLACEHOLDER_EMAILS = new Set([
   'asset.manager@equitylifestyle.com',
   'vip.investor@realestatecorp.com',
   'pending-intake@onequext.com',
+  'rfrleasing@gmail.com',
   'unk',
   'n/a',
   'none',
@@ -2174,7 +2186,17 @@ function isFakeOrPlaceholderEmail(email?: string | null): boolean {
 }
 
 export function sanitizeProjectRealTeamOnly(project: OperationProject): OperationProject {
-  const cleanNotes = (project.notes || []).filter((n) => !isFakeNote(n));
+  const cleanNotes = (project.notes || []).filter((n) => {
+    if (isFakeNote(n)) return false;
+    const text = String(n.text || (n as any).content || '').toLowerCase();
+    if (
+      text.includes('arbe-100 (api sync approved)') ||
+      text.includes('clubhouse 2nd floor idf closet (poe switch port 14 ready)')
+    ) {
+      return false;
+    }
+    return true;
+  });
   const cleanLogs = (project.installLogs || []).filter((l) => !isFakeInstallLog(l));
 
   const cleanPending = (project.pendingInstallationChanges || []).filter((pc) => {
@@ -2190,6 +2212,20 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
       installedCount: Math.max(0, Number(item.installedCount) || 0),
       postItLogs: cleanPostItLogs,
     };
+  });
+
+  // Strip synthetic auto-generated shipping dock items (QXT-TRK-...) and synthetic SOW forecast defaults
+  const cleanShippingDockItems = (project.shippingDockItems || []).filter((sd) => {
+    const trk = (sd.trackingNumber || '').trim();
+    if (trk.startsWith('QXT-TRK-') && sd.shippedDate === '2026-10-16') return false;
+    return true;
+  });
+
+  const cleanSowForecastItems = (project.sowForecastItems || []).filter((sf) => {
+    if (sf.notes === 'Matched directly to BOM line item scope.' && sf.scheduledStartDate === '2026-10-22') {
+      return false;
+    }
+    return true;
   });
 
   let statusReason = project.statusReason || '';
@@ -2215,6 +2251,17 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
     (em) => !isFakeOrPlaceholderEmail(em)
   );
 
+  // Strip synthetic stress-test / sample reply comms logs
+  const cleanCommsLogs = (project.customerCommsLogs || []).filter((log) => {
+    const rec = (log.recipient || '').toLowerCase();
+    const sum = (log.summary || '').toLowerCase();
+    const subj = (log.subject || '').toLowerCase();
+    if (rec.includes('rfrleasing@gmail.com')) return false;
+    if (subj.includes('stress-test') || sum.includes('stress-test')) return false;
+    if (sum.includes('arbe-100 (api sync approved)')) return false;
+    return true;
+  });
+
   const cleanIntake = project.customerIntake
     ? {
         ...project.customerIntake,
@@ -2224,6 +2271,19 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
         subscriberEmail: isFakeOrPlaceholderEmail(project.customerIntake.subscriberEmail)
           ? ''
           : project.customerIntake.subscriberEmail,
+        pmsPropertyCode:
+          project.customerIntake.pmsPropertyCode === 'ARBE-100 (API sync approved)'
+            ? undefined
+            : project.customerIntake.pmsPropertyCode,
+        gatewayLocationNotes:
+          (project.customerIntake.gatewayLocationNotes || '').includes(
+            'Clubhouse 2nd floor IDF closet (PoE switch port 14 ready)'
+          )
+            ? undefined
+            : project.customerIntake.gatewayLocationNotes,
+        commonAreaDoors: (project.customerIntake.commonAreaDoors || []).filter(
+          (d) => !String(d.id || '').startsWith('door-reply-')
+        ),
         additionalCustomerEmails: (project.customerIntake.additionalCustomerEmails || []).filter(
           (em) => !isFakeOrPlaceholderEmail(em)
         ),
@@ -2240,6 +2300,9 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
     pendingInstallationChanges: cleanPending,
     activityNotifications: cleanActivityNotifs,
     bomItems: cleanBom,
+    shippingDockItems: cleanShippingDockItems,
+    sowForecastItems: cleanSowForecastItems,
+    customerCommsLogs: cleanCommsLogs,
     statusReason,
     additionalCustomerEmails: cleanAdditionalEmails,
     customerIntake: cleanIntake,
@@ -2255,7 +2318,7 @@ export function loadStoredProjects(): OperationProject[] {
       const isAlreadyPurged = localStorage.getItem(REAL_TEAM_PURGE_VERSION_KEY) === 'true';
 
       const sanitizedList = parsed
-        .filter((p) => !archivedIds.has(p.id))
+        .filter((p) => !archivedIds.has(p.id) && !isMockOrSyntheticProject(p))
         .map((p) => {
           const enriched = enrichProjectDefaults(p);
           return sanitizeProjectRealTeamOnly(enriched);
@@ -2440,7 +2503,9 @@ export function loadStoredProjects(): OperationProject[] {
 
 export function saveStoredProjects(projects: OperationProject[]) {
   try {
-    const sanitized = projects.map((p) => sanitizeProjectRealTeamOnly(enrichProjectDefaults(p)));
+    const sanitized = projects
+      .filter((p) => !isMockOrSyntheticProject(p))
+      .map((p) => sanitizeProjectRealTeamOnly(enrichProjectDefaults(p)));
     localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(sanitized));
   } catch (e) {
     console.error('Failed to save projects', e);

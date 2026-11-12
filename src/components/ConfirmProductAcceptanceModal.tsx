@@ -61,7 +61,8 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
     project.customerIntake?.subscriberEmail ||
     project.customerIntake?.communityEmail ||
     project.customerIntake?.staffRoles?.[0]?.email ||
-    'RFRleasing@gmail.com';
+    project.assignedPM?.email ||
+    '';
 
   const customerContactName =
     project.customerIntake?.staffRoles?.[0]
@@ -481,21 +482,23 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                   <Mail className="w-3.5 h-3.5 text-slate-600" />
                   <span>Customer Recipient Email(s) *</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = authUserEmail || 'RFRleasing@gmail.com';
-                    if (!recipientInput.toLowerCase().includes(target.toLowerCase())) {
-                      setRecipientInput((prev) =>
-                        prev.trim() ? `${prev.trim()}, ${target}` : target
-                      );
-                    }
-                  }}
-                  className="text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded cursor-pointer flex items-center gap-1"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>+ Add My Inbox ({authUserEmail || 'RFRleasing@gmail.com'})</span>
-                </button>
+                {(authUserEmail || project.assignedPM?.email) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = authUserEmail || project.assignedPM?.email || '';
+                      if (target && !recipientInput.toLowerCase().includes(target.toLowerCase())) {
+                        setRecipientInput((prev) =>
+                          prev.trim() ? `${prev.trim()}, ${target}` : target
+                        );
+                      }
+                    }}
+                    className="text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded cursor-pointer flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>+ Add My Inbox ({authUserEmail || project.assignedPM?.email})</span>
+                  </button>
+                )}
               </div>
               <input
                 type="text"

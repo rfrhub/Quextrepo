@@ -101,23 +101,23 @@ export const ProductAcceptancePortalModal: React.FC<{
     existingSub?.signedByName ||
       (project.customerIntake?.staffRoles?.[0]
         ? `${project.customerIntake.staffRoles[0].firstName} ${project.customerIntake.staffRoles[0].lastName}`
-        : 'Elena Vance')
+        : '')
   );
   const [signedByTitle, setSignedByTitle] = useState<string>(
     existingSub?.signedByTitle ||
       project.customerIntake?.staffRoles?.[0]?.roleOrTitle ||
-      'Regional Property Manager'
+      ''
   );
   const [signedByEmail, setSignedByEmail] = useState<string>(
     existingSub?.signedByEmail ||
       project.customerIntake?.subscriberEmail ||
       project.customerIntake?.communityEmail ||
-      'leasing@property.com'
+      ''
   );
   const [signedByPhone, setSignedByPhone] = useState<string>(
     existingSub?.signedByPhone ||
       project.customerIntake?.sitePhoneNumber ||
-      '(555) 382-9102'
+      ''
   );
   const [signatureText, setSignatureText] = useState<string>(
     existingSub?.signatureText || ''

@@ -69,6 +69,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
   const [kickoffPmFilter, setKickoffPmFilter] = useState<string>('all');
   const [kickoffSearchTerm, setKickoffSearchTerm] = useState<string>('');
+  const [isPartnerCoursesExpanded, setIsPartnerCoursesExpanded] = useState<boolean>(false);
   const selectedProject = projects.find((p) => p.id === activeSubTab);
 
   const allKickoffAttentionProjects = useMemo(() => {
@@ -490,57 +491,54 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
             const courseEval = getProjectPartnerCourseCompletion(selectedProject, academyUsers);
 
             return (
-              <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-purple-500/40 rounded-xl p-4 sm:p-5 shadow-sm space-y-4">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                  <div className="flex items-start sm:items-center gap-3">
+              <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-purple-500/40 rounded-xl px-4 py-3 shadow-sm space-y-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
                         courseEval.isCompleted
                           ? 'bg-emerald-500/25 border-emerald-400/50 text-emerald-300'
                           : 'bg-amber-500/25 border-amber-400/50 text-amber-300'
                       }`}
                     >
-                      <GraduationCap className="w-5 h-5" />
+                      <GraduationCap className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="font-extrabold text-white text-sm">
-                          Assigned Integrator Course Completion Status
-                        </span>
-                        {courseEval.isCompleted ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/60 text-emerald-200 font-bold text-[11px]">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                            <span>
-                              ✓ Courses Completed ({courseEval.completedCoursesCount}/{courseEval.totalCoursesCount} Passed · 100%)
-                            </span>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-extrabold text-white text-xs sm:text-sm">
+                        Integrator Certification:
+                      </span>
+                      {courseEval.isCompleted ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/60 text-emerald-200 font-bold text-[11px]">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                          <span>
+                            ✓ Completed ({courseEval.completedCoursesCount}/{courseEval.totalCoursesCount} Passed)
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-400/60 text-amber-200 font-bold text-[11px]">
-                            <Clock className="w-3.5 h-3.5 text-amber-300" />
-                            <span>
-                              ⏳ Courses Not Completed — In Progress ({courseEval.completedCoursesCount}/{courseEval.totalCoursesCount} Done · {courseEval.overallProjectCoursePct}%)
-                            </span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-400/60 text-amber-200 font-bold text-[11px]">
+                          <Clock className="w-3.5 h-3.5 text-amber-300" />
+                          <span>
+                            ⏳ In Progress ({courseEval.completedCoursesCount}/{courseEval.totalCoursesCount} Done · {courseEval.overallProjectCoursePct}%)
                           </span>
-                        )}
-                        <span className="px-2 py-0.5 rounded bg-purple-500/25 border border-purple-400/40 text-purple-200 font-mono text-[10px] font-bold">
-                          Assigned Partner: {courseEval.assignedPartners.join(', ')}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 font-mono text-[10px]">
-                          {bundle.generationTrigger}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 mt-1">
-                        Pre-packaged for <strong>{selectedProject.propertyName}</strong> BOM:{' '}
-                        <strong>{courseEval.totalCoursesCount} Required Certification Courses</strong>,{' '}
-                        <strong>{bundle.guides.length} Interactive Field Guides &amp; Simulators</strong>, and{' '}
-                        <strong>
-                          {courseEval.checklistCompletedCount}/{courseEval.checklistTotalCount} Pre-Install Checklist Items
-                        </strong>.
-                      </p>
+                      )}
+                      <span className="px-2 py-0.5 rounded bg-purple-500/25 border border-purple-400/40 text-purple-200 font-mono text-[10px] font-bold">
+                        Partner: {courseEval.assignedPartners.join(', ')}
+                      </span>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 self-start lg:self-center shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsPartnerCoursesExpanded((prev) => !prev)}
+                      className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-slate-200 text-xs font-bold cursor-pointer transition-colors"
+                    >
+                      {isPartnerCoursesExpanded
+                        ? 'Hide Course Breakdown ▲'
+                        : `Course Breakdown (${courseEval.totalCoursesCount}) ▼`}
+                    </button>
+
                     {courseEval.partnerStatuses.map((ps) => (
                       <button
                         key={`toggle-complete-${ps.partnerShortName}`}
@@ -552,22 +550,17 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
                             !ps.isCompleted
                           )
                         }
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
                           ps.isCompleted
                             ? 'bg-emerald-600/30 hover:bg-emerald-600/40 border-emerald-400/50 text-emerald-100'
                             : 'bg-amber-500/30 hover:bg-amber-500/40 border-amber-400/50 text-amber-100'
                         }`}
-                        title={
-                          ps.isCompleted
-                            ? `Click to mark ${ps.partnerShortName}'s courses for this project as In Progress`
-                            : `Click to verify & mark all ${ps.partnerShortName} courses for this project as Completed`
-                        }
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>
                           {ps.isCompleted
-                            ? `${ps.partnerShortName}: Verified Complete`
-                            : `Mark ${ps.partnerShortName} Courses Complete`}
+                            ? `${ps.partnerShortName}: Verified`
+                            : `Mark ${ps.partnerShortName} Complete`}
                         </span>
                       </button>
                     ))}
@@ -576,91 +569,93 @@ export const OperationsView: React.FC<OperationsViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onOpenProjectInPartnerAcademy(selectedProject)}
-                        className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                        className="px-3 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                       >
                         <BookOpen className="w-3.5 h-3.5" />
-                        <span>Open Project in Partner Academy</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span>Partner Academy</span>
+                        <ArrowRight className="w-3 h-3" />
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Per-Partner & Per-Course Breakdown for this Project */}
-                <div className="grid grid-cols-1 gap-3 pt-3 border-t border-white/10">
-                  {courseEval.partnerStatuses.map((ps) => (
-                    <div
-                      key={ps.partnerShortName}
-                      className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2.5"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="px-2 py-0.5 rounded font-extrabold bg-indigo-500/30 border border-indigo-400/40 text-indigo-200">
-                            {ps.partnerShortName} ({ps.companyName})
-                          </span>
-                          <span className="text-slate-300 text-[11px]">
-                            Lead: <strong className="text-white">{ps.leadName}</strong> ({ps.email})
-                          </span>
+                {/* Expandable Per-Partner & Per-Course Breakdown for this Project */}
+                {isPartnerCoursesExpanded && (
+                  <div className="grid grid-cols-1 gap-3 pt-3 border-t border-white/10">
+                    {courseEval.partnerStatuses.map((ps) => (
+                      <div
+                        key={ps.partnerShortName}
+                        className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2.5"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2 py-0.5 rounded font-extrabold bg-indigo-500/30 border border-indigo-400/40 text-indigo-200">
+                              {ps.partnerShortName} ({ps.companyName})
+                            </span>
+                            <span className="text-slate-300 text-[11px]">
+                              Lead: <strong className="text-white">{ps.leadName}</strong> ({ps.email})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono text-slate-300">
+                              Overall Academy: <strong className="text-white">{ps.overallAcademyPct}%</strong>
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                                ps.isCompleted
+                                  ? 'bg-emerald-500/25 border-emerald-400/50 text-emerald-200'
+                                  : 'bg-amber-500/25 border-amber-400/50 text-amber-200'
+                              }`}
+                            >
+                              {ps.isCompleted
+                                ? `✓ All ${ps.totalCoursesCount}/${ps.totalCoursesCount} Project Courses Completed`
+                                : `⏳ ${ps.completedCoursesCount}/${ps.totalCoursesCount} Project Courses Completed (${ps.progressPct}%)`}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-slate-300">
-                            Overall Academy: <strong className="text-white">{ps.overallAcademyPct}%</strong>
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
-                              ps.isCompleted
-                                ? 'bg-emerald-500/25 border-emerald-400/50 text-emerald-200'
-                                : 'bg-amber-500/25 border-amber-400/50 text-amber-200'
-                            }`}
-                          >
-                            {ps.isCompleted
-                              ? `✓ All ${ps.totalCoursesCount}/${ps.totalCoursesCount} Project Courses Completed`
-                              : `⏳ ${ps.completedCoursesCount}/${ps.totalCoursesCount} Project Courses Completed (${ps.progressPct}%)`}
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Required Project Courses Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                        {ps.courseStatuses.map((cs) => (
-                          <button
-                            key={cs.moduleId}
-                            type="button"
-                            onClick={() =>
-                              togglePartnerSingleCourseCompletion(ps.partnerShortName, cs.moduleId)
-                            }
-                            title={`Click to toggle completion for ${cs.code}: ${cs.title}`}
-                            className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                              cs.isCompleted
-                                ? 'bg-emerald-950/50 border-emerald-500/40 hover:border-emerald-400'
-                                : 'bg-amber-950/40 border-amber-500/40 hover:border-amber-400'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-1.5">
-                              <span className="text-[10px] font-mono font-bold text-slate-300">
-                                {cs.code}
-                              </span>
-                              <span
-                                className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
-                                  cs.isCompleted
-                                    ? 'bg-emerald-500/30 text-emerald-200'
-                                    : 'bg-amber-500/30 text-amber-200'
-                                }`}
-                              >
-                                {cs.isCompleted
-                                  ? `✓ Completed${cs.quizScore ? ` (${cs.quizScore}%)` : ''}`
-                                  : `⏳ Incomplete (${cs.progressPct}%)`}
-                              </span>
-                            </div>
-                            <div className="text-xs font-bold text-white line-clamp-1">
-                              {cs.title}
-                            </div>
-                          </button>
-                        ))}
+                        {/* Required Project Courses Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                          {ps.courseStatuses.map((cs) => (
+                            <button
+                              key={cs.moduleId}
+                              type="button"
+                              onClick={() =>
+                                togglePartnerSingleCourseCompletion(ps.partnerShortName, cs.moduleId)
+                              }
+                              title={`Click to toggle completion for ${cs.code}: ${cs.title}`}
+                              className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                                cs.isCompleted
+                                  ? 'bg-emerald-950/50 border-emerald-500/40 hover:border-emerald-400'
+                                  : 'bg-amber-950/40 border-amber-500/40 hover:border-amber-400'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="text-[10px] font-mono font-bold text-slate-300">
+                                  {cs.code}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+                                    cs.isCompleted
+                                      ? 'bg-emerald-500/30 text-emerald-200'
+                                      : 'bg-amber-500/30 text-amber-200'
+                                  }`}
+                                >
+                                  {cs.isCompleted
+                                    ? `✓ Completed${cs.quizScore ? ` (${cs.quizScore}%)` : ''}`
+                                    : `⏳ Incomplete (${cs.progressPct}%)`}
+                                </span>
+                              </div>
+                              <div className="text-xs font-bold text-white line-clamp-1">
+                                {cs.title}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}

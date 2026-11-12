@@ -2055,64 +2055,6 @@ export const CommunicationsTunnelModal: React.FC<CommunicationsTunnelModalProps>
                             When the customer replies by email to <strong>{project.assignedPM.email}</strong> (using the 1-click reply buttons or inline checklist), paste their reply below to automatically finalize the items &amp; update the project.
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          data-testid="load-sample-customer-email-reply-btn"
-                          onClick={() => {
-                            const activeWaiting = stage1And2Items.filter((it) =>
-                              selectedStage1And2ItemIds.includes(it.id)
-                            );
-                            const sampleItems =
-                              activeWaiting.length > 0 ? activeWaiting : stage1And2Items.slice(0, 3);
-                            const sampleLines = [
-                              `From: ${project.customerIntake?.communityEmail || 'customer@property.com'}`,
-                              `To: ${project.assignedPM.email}`,
-                              `Subject: Re: [Customer Finalization • ${project.propertyName}] Finalized Stage 1 & 2 Details`,
-                              '',
-                              ...sampleItems.flatMap((it, idx) => {
-                                let sampleAns = 'Confirmed and approved by onsite property manager.';
-                                if (it.id === 'stage1_pms_credentials') {
-                                  sampleAns = `Yardi Voyager — Property Code: ${project.propertyName
-                                    .slice(0, 4)
-                                    .toUpperCase()}-100 (API sync approved)`;
-                                } else if (it.id === 'stage1_common_doors') {
-                                  sampleAns =
-                                    'Clubhouse Main Entry, 24hr Fitness Center, Pool East Gate, Leasing Office Side Door';
-                                } else if (it.id === 'stage1_staff_roles') {
-                                  sampleAns = `Hannah Galarneau (${
-                                    project.customerIntake?.communityEmail || 'manager@property.com'
-                                  }) — Property Manager (Full Portal Admin)`;
-                                } else if (it.id === 'stage1_site_maps_gateway') {
-                                  sampleAns =
-                                    'Clubhouse 2nd floor IDF closet and Building B roof parapet approved with PoE ethernet.';
-                                } else if (it.id === 'stage1_thermostat_vacant_temp') {
-                                  sampleAns = '64°F Heating / 76°F Cooling for all vacant units';
-                                } else if (it.id === 'stage1_fire_keys_knox') {
-                                  sampleAns =
-                                    'Fire Marshal Knox Box #2 at main gate; 3 master fobs staged in Leasing Office safe.';
-                                } else if (it.id === 'stage2_lock_finish_trim') {
-                                  sampleAns =
-                                    'Matte Black (622) finish with Century Trim and Latitude Lever confirmed for all units.';
-                                } else if (it.id === 'stage2_nfc_wallet_art') {
-                                  sampleAns =
-                                    'Yes — Apple & Google NFC Wallet enabled with primary navy/emerald community branding.';
-                                } else if (it.id === 'stage2_qr_intercom_logo') {
-                                  sampleAns =
-                                    'Yes — QR Video Intercom confirmed for main entry & pool gate.';
-                                }
-                                return [
-                                  `${idx + 1}. [${it.title}] (Ref: ${it.id})`,
-                                  `👉 ${it.replyFieldLabel}: ${sampleAns}`,
-                                  '',
-                                ];
-                              }),
-                            ];
-                            setCustomerReplyInputText(sampleLines.join('\n'));
-                          }}
-                          className="px-2 py-1 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold shrink-0 cursor-pointer"
-                        >
-                          Pre-Fill Sample Reply
-                        </button>
                       </div>
 
                       <input

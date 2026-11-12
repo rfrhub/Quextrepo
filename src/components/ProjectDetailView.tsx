@@ -1619,7 +1619,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     project.customerIntake?.subscriberEmail ||
     project.customerIntake?.communityEmail ||
     project.customerIntake?.staffRoles?.[0]?.email ||
-    'RFRleasing@gmail.com';
+    project.assignedPM?.email ||
+    '';
 
   // Implementation Active: Send BOM progress overview (high-level view + individual line item view WITHOUT internal notes)
   const handleSendImplementationBomProgressEmail = () => {
@@ -2040,95 +2041,6 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             )}
 
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              {isProjectClosed ? (
-                <button
-                  type="button"
-                  onClick={() => setIsClosureSummaryOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                  title="Generate official 1-page closure email"
-                >
-                  <FileCheck className="w-3.5 h-3.5" />
-                  <span>Closure Email</span>
-                </button>
-              ) : isTrainingCsmActive ? (
-                <button
-                  type="button"
-                  onClick={handleCopyCsmPortalLink}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-purple-900 bg-purple-100 hover:bg-purple-200 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer border border-purple-300"
-                  title="Copy CSM Onboarding & Training Portal link"
-                >
-                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-purple-700" />}
-                  <span>{copiedLink ? 'CSM Link Copied!' : 'Copy CSM Link'}</span>
-                </button>
-              ) : isImplementationActive ? (
-                <button
-                  type="button"
-                  onClick={handleSendImplementationBomProgressEmail}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                  title="Send Smart Community BOM progress overview (high-level cards & individual line items without notes) via Email"
-                >
-                  <Send className="w-3.5 h-3.5 text-white" />
-                  <span className="hidden sm:inline">Send Deployment Overview Email Now</span>
-                  <span className="sm:hidden">Send BOM Progress</span>
-                </button>
-              ) : isPortalBuildoutActive ? (
-                !isKickoffCompletedInEntirety ? (
-                  <button
-                    type="button"
-                    onClick={handleSendKickoffDocumentEmail}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                    title="Send Kickoff document link to customer to continue filling out"
-                  >
-                    <FileSignature className="w-3.5 h-3.5 text-white" />
-                    <span className="hidden sm:inline">Send Kickoff Document</span>
-                    <span className="sm:hidden">Kickoff Doc</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSendTouchBaseCheckinEmail}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                    title="Send touch base check-in email giving customer an overview of completed items and upcoming milestone transition"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                    <span className="hidden sm:inline">Touch base with customer</span>
-                    <span className="sm:hidden">Touch Base</span>
-                  </button>
-                )
-              ) : isProductAcquisitionActive ? (
-                <button
-                  type="button"
-                  onClick={handleSendShippingUpdateEmail}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                  title="Send full Shipping Dock update to customer via Gmail"
-                >
-                  <Truck className="w-3.5 h-3.5 text-white" />
-                  <span className="hidden sm:inline">Send Shipping update to Customer</span>
-                  <span className="sm:hidden">Shipping Update</span>
-                </button>
-              ) : isKickoffCompletedInEntirety ? (
-                <button
-                  type="button"
-                  onClick={handleSendImplementationBomProgressEmail}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                  title="Send Deployment Overview Email Now"
-                >
-                  <Send className="w-3.5 h-3.5 text-white" />
-                  <span className="hidden sm:inline">Send Deployment Overview Email Now</span>
-                  <span className="sm:hidden">Send Overview</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSendKickoffDocumentEmail}
-                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white backdrop-blur-md rounded-lg transition-colors shadow-sm cursor-pointer"
-                  title="Send Kickoff document to customer to continue filling out"
-                >
-                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <FileSignature className="w-3.5 h-3.5 text-amber-600" />}
-                  <span>{copiedLink ? 'Link Copied!' : 'Send Kickoff Document'}</span>
-                </button>
-              )}
-
               <span className="text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded bg-black/60 backdrop-blur-md border border-white/20 text-white font-mono font-medium">
                 Quote #{project.quoteNumber}
               </span>
@@ -2721,71 +2633,6 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   DIY Tag: {project.isDiyInstallation || getProjectIntegratorPartners(project).some(isDiyPartner) ? 'ON' : 'OFF'}
                 </span>
               </button>
-
-              {/* Assigned Integrator Partner Course Completion Status Badge */}
-              <div
-                className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border text-xs ${
-                  partnerCourseEvaluation.isCompleted
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                    : 'bg-amber-50 border-amber-300 text-amber-900'
-                }`}
-              >
-                <GraduationCap
-                  className={`w-3.5 h-3.5 shrink-0 ${
-                    partnerCourseEvaluation.isCompleted ? 'text-emerald-600' : 'text-amber-600'
-                  }`}
-                />
-                <span className="font-semibold">Integrator Courses:</span>
-                <span className="font-mono font-extrabold">
-                  {partnerCourseEvaluation.isCompleted
-                    ? `✓ Completed (${partnerCourseEvaluation.completedCoursesCount}/${partnerCourseEvaluation.totalCoursesCount} Passed)`
-                    : `⏳ Not Completed (${partnerCourseEvaluation.completedCoursesCount}/${partnerCourseEvaluation.totalCoursesCount} Done · ${partnerCourseEvaluation.overallProjectCoursePct}%)`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const primaryPartner =
-                      partnerCourseEvaluation.partnerStatuses[0]?.partnerShortName || 'SKBM';
-                    setPartnerCourseCompletionForProject(
-                      project,
-                      primaryPartner,
-                      !partnerCourseEvaluation.isCompleted
-                    );
-                  }}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                    partnerCourseEvaluation.isCompleted
-                      ? 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                      : 'bg-amber-200/80 text-amber-950 border-amber-400 hover:bg-amber-300'
-                  }`}
-                  title="Toggle assigned integrator course completion status for this project"
-                >
-                  {partnerCourseEvaluation.isCompleted ? 'Verified' : 'Mark Complete'}
-                </button>
-                {onOpenProjectInPartnerAcademy && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenProjectInPartnerAcademy(project)}
-                    className="text-[10px] font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer"
-                  >
-                    Academy View
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const primaryPartner =
-                      partnerCourseEvaluation.partnerStatuses[0]?.partnerShortName ||
-                      getProjectIntegratorPartners(project)[0] ||
-                      'SKBM';
-                    handleCopyPartnerAcademyLink(primaryPartner);
-                  }}
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-purple-800 bg-white hover:bg-purple-50 border border-purple-200 transition-colors cursor-pointer shadow-2xs"
-                  title="Copy shareable Partner Academy link for this project's assigned partner firm"
-                >
-                  <Share2 className="w-2.5 h-2.5 text-purple-600" />
-                  <span>{copiedPartnerAcademyLink ? 'Copied!' : 'Copy Partner Link'}</span>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -3223,7 +3070,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     project.customerIntake?.subscriberEmail ||
                     project.customerIntake?.communityEmail ||
                     project.customerIntake?.staffRoles?.[0]?.email ||
-                    'RFRleasing@gmail.com';
+                    project.assignedPM?.email ||
+                    '';
                   const allCsmLinksHtml = CSM_CALENDAR_BOOKING_DIRECTORY.map(
                     (csm) => `
                       <li style="margin-bottom: 10px;">
@@ -3512,144 +3360,30 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               <span>Operations &amp; Field BOM</span>
             </button>
 
-            {/* Customer Comms Control Panel Dropdown Tab */}
-            <div
-              ref={commsDropdownRef}
-              className="relative inline-block"
-              onMouseEnter={() => setIsCommsDropdownOpen(true)}
-              onMouseLeave={() => setIsCommsDropdownOpen(false)}
+            {/* Direct 1-Tap Customer Comms Control Panel Tab */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('customer-comms')}
+              className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 ease-in-out active:scale-95 whitespace-nowrap cursor-pointer ${
+                activeTab === 'customer-comms'
+                  ? 'bg-sky-600 text-white font-bold shadow-xs'
+                  : 'text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200'
+              }`}
             >
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeTab !== 'customer-comms') {
-                    setActiveTab('customer-comms');
-                    setIsCommsDropdownOpen(false);
-                  } else {
-                    setIsCommsDropdownOpen((prev) => !prev);
-                  }
-                }}
-                className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 ease-in-out active:scale-95 whitespace-nowrap cursor-pointer ${
-                  activeTab === 'customer-comms' || activeTab === 'customer-kickoff'
-                    ? 'bg-sky-600 text-white font-bold shadow-xs'
-                    : 'text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200'
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  {activeTab === 'customer-kickoff' ? 'Customer Kickoff Walkthrough' : 'Customer Comms'}
+              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+              <span>Customer Comms</span>
+              {(!project.customerIntake?.walkthroughCompleted || commonDoors.length === 0) && (
+                <span
+                  className={`hidden sm:inline text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                    activeTab === 'customer-comms'
+                      ? 'bg-amber-400 text-slate-950'
+                      : 'bg-amber-200 text-amber-900'
+                  }`}
+                >
+                  Action Needed
                 </span>
-                {(!project.customerIntake?.walkthroughCompleted || commonDoors.length === 0) && (
-                  <span className={`hidden sm:inline text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                    activeTab === 'customer-comms' || activeTab === 'customer-kickoff' ? 'bg-amber-400 text-slate-950' : 'bg-amber-200 text-amber-900'
-                  }`}>
-                    Action Needed
-                  </span>
-                )}
-                <ChevronDown className={`w-3.5 h-3.5 ml-0.5 transition-transform duration-200 ${isCommsDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Floating Dropdown Window */}
-              {isCommsDropdownOpen && (
-                <div className="absolute left-0 top-full pt-1.5 z-50 animate-fadeIn">
-                  <div className="w-[calc(100vw-2.5rem)] max-w-sm sm:w-96 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-2xl p-3 space-y-2 ring-1 ring-slate-900/10">
-                    <div className="px-2 py-1 flex items-center justify-between border-b border-slate-100 pb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        Customer Communications &amp; Kickoff
-                      </span>
-                    </div>
-
-                    {/* Option 1: Customer Comms Control Panel */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('customer-comms');
-                        setIsCommsDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
-                        activeTab === 'customer-comms'
-                          ? 'bg-sky-50 border border-sky-300 shadow-2xs'
-                          : 'hover:bg-slate-50 border border-transparent'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-sky-100 border border-sky-200 flex items-center justify-center shrink-0 mt-0.5">
-                        <MessageSquare className="w-4 h-4 text-sky-700" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-bold text-xs text-slate-900">Customer Comms Control Panel</span>
-                          {activeTab === 'customer-comms' && (
-                            <span className="text-[10px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.2 rounded">Active</span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                          Automated weekly email cadence, dispatch overview, telemetry updates &amp; PM audit log.
-                        </p>
-                      </div>
-                    </button>
-
-                    {/* Option 2: Customer Kickoff Walkthrough */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('customer-kickoff');
-                        setIsCommsDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
-                        activeTab === 'customer-kickoff'
-                          ? 'bg-purple-50 border border-purple-300 shadow-2xs'
-                          : 'hover:bg-slate-50 border border-transparent'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-purple-100 border border-purple-200 flex items-center justify-center shrink-0 mt-0.5">
-                        <Presentation className="w-4 h-4 text-purple-700" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-bold text-xs text-slate-900">Customer Kickoff Walkthrough</span>
-                          {project.customerIntake?.walkthroughCompleted ? (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">✓ Complete</span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">Pending Review</span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                          8-step interactive customer orientation: PMS selection, common door approvals &amp; staff permissions.
-                        </p>
-                      </div>
-                    </button>
-
-                    {/* Direct Link Action Bar */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 px-1">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsCommsDropdownOpen(false);
-                          setIsCommsTunnelModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-[#191E29] bg-[#01C38D] hover:bg-[#00b07f] rounded-lg transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <Radio className="w-3.5 h-3.5" />
-                        <span>Communications Tunnel</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('customer-kickoff');
-                          setIsCommsDropdownOpen(false);
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-sky-700 hover:text-sky-800 hover:underline cursor-pointer"
-                      >
-                        <span>Open Walkthrough</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
               )}
-            </div>
+            </button>
 
             {/* Direct 1-Tap Communications Tunnel Button */}
             <button

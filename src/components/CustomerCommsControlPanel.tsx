@@ -86,15 +86,14 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
 }) => {
   const [isCommsTunnelOpen, setIsCommsTunnelOpen] = useState<boolean>(initialOpenTunnel);
   const [showEmailPreviewModal, setShowEmailPreviewModal] = useState<
-    'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | 'stress_test' | null
+    'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | null
   >(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedPortalUrl, setCopiedPortalUrl] = useState(false);
 
-  // Live Gmail Authentication & Stress-Test Recipient State
+  // Live Gmail Authentication State
   const [needsAuth, setNeedsAuth] = useState<boolean>(true);
   const [gmailUserEmail, setGmailUserEmail] = useState<string | null>(null);
-  const [stressTestRecipient, setStressTestRecipient] = useState<string>('RFRleasing@gmail.com');
   const [modalRecipientInput, setModalRecipientInput] = useState<string>('');
   const [isSendingLiveEmail, setIsSendingLiveEmail] = useState<boolean>(false);
   const [sendErrorMessage, setSendErrorMessage] = useState<string | null>(null);
@@ -130,11 +129,6 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     const unsub = subscribeToGmailAuth(({ user, needsAuth: reqAuth }) => {
       setGmailUserEmail(user?.email || null);
       setNeedsAuth(reqAuth);
-      if (user?.email) {
-        setStressTestRecipient((prev) =>
-          prev === 'RFRleasing@gmail.com' || !prev.trim() ? user.email! : prev
-        );
-      }
     });
     return unsub;
   }, []);
@@ -205,8 +199,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     project.customerIntake?.subscriberEmail ||
     project.customerIntake?.communityEmail ||
     project.customerIntake?.staffRoles?.[0]?.email ||
-    stressTestRecipient ||
-    'RFRleasing@gmail.com';
+    '';
 
   // Comprehensive recipient list including primary, onsite staff, and PM-added customer emails
   const allConfiguredCustomerRecipients = useMemo(() => {
@@ -226,7 +219,9 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   const defaultRecipients =
     allConfiguredCustomerRecipients.length > 0
       ? allConfiguredCustomerRecipients
-      : [primaryRecipientEmail];
+      : primaryRecipientEmail
+      ? [primaryRecipientEmail]
+      : [];
 
   const csmBookingProfile = getCSMCalendarBookingProfile(project.assignedCSM);
 
@@ -321,24 +316,13 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   };
 
   const openModalWithRecipients = (
-    modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | 'stress_test'
+    modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast'
   ) => {
     setSendErrorMessage(null);
-    if (modalType === 'stress_test') {
-      setModalRecipientInput(stressTestRecipient || gmailUserEmail || 'RFRleasing@gmail.com');
-    } else {
-      const combined = Array.from(
-        new Set([
-          ...(stressTestRecipient.trim()
-            ? stressTestRecipient.split(/[,;]+/).map((s) => s.trim())
-            : []),
-          ...defaultRecipients,
-        ])
-      )
-        .filter(Boolean)
-        .join(', ');
-      setModalRecipientInput(combined);
-    }
+    const combined = Array.from(new Set(defaultRecipients))
+      .filter(Boolean)
+      .join(', ');
+    setModalRecipientInput(combined);
     setShowEmailPreviewModal(modalType);
   };
 
@@ -456,7 +440,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   const sowItems = project.sowForecastItems || [];
 
   const buildEmailContent = (
-    modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | 'stress_test'
+    modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast'
   ): { subject: string; summary: string; htmlBody: string; logType: CustomerCommsLog['type'] } => {
     const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />`;
 
@@ -648,31 +632,6 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
       return { subject, summary, htmlBody, logType: 'sow_forecast_email' };
     }
 
-    if (modalType === 'stress_test') {
-      const subject = `[Quext Live Inbox Stress-Test] Real Email Delivery Verification — ${project.propertyName}`;
-      const summary = `Dispatched live Gmail API stress-test email for ${project.propertyName} (Quote #${project.quoteNumber}).`;
-      const htmlBody = `
-        <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 2px solid #01C38D; border-radius: 12px; color: #1e293b;">
-          <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
-            ${logoImgTag}
-            <span style="float: right; font-size: 11px; color: #01C38D; font-weight: bold; text-transform: uppercase; line-height: 28px;">LIVE INBOX STRESS-TEST</span>
-          </div>
-          <p>Hello Quext Operations Team,</p>
-          <p>This is a <strong>real live email</strong> dispatched directly from the Quext Operations &amp; Deployment Hub via the Gmail API to verify end-to-end inbox delivery.</p>
-          <div style="background-color: #f0fdf4; padding: 14px; border-radius: 8px; border: 1px solid #bbf7d0; font-size: 13px; margin: 16px 0;">
-            <p style="margin: 0 0 6px 0;"><strong>Active Project:</strong> ${project.propertyName} (${project.city}, ${project.state})</p>
-            <p style="margin: 0 0 6px 0;"><strong>Quote Number:</strong> #${project.quoteNumber} (${project.unitsCount} Residential Units)</p>
-            <p style="margin: 0 0 6px 0;"><strong>Assigned PM:</strong> ${project.assignedPM.name} (${project.assignedPM.email})</p>
-            <p style="margin: 0;"><strong>Milestone Progress:</strong> ${completedMilestones}/${totalMilestones} Milestones (${progressPercent}%)</p>
-          </div>
-          <p style="font-size: 12px; color: #64748b;">
-            Customer Kickoff Link: <a href="${clientPortalUrl}">${clientPortalUrl}</a>
-          </p>
-        </div>
-      `;
-      return { subject, summary, htmlBody, logType: 'custom_email' };
-    }
-
     const subject = `[Milestone Reached: CSM Handoff] Meet Your Quext Customer Success Manager — ${project.propertyName}`;
     const summary = `Dispatched CSM Handoff introduction for ${project.assignedCSM || 'Nicole Franklin'} (handoff details only, 7-day auto-close armed).`;
     const htmlBody = `
@@ -711,7 +670,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   ]);
 
   const getActiveEmailContent = (
-    modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | 'stress_test'
+    modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast'
   ) => {
     const singleContent = buildEmailContent(modalType);
     if (
@@ -1073,102 +1032,32 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {!needsAuth ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-200 text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-[#01C38D]" />
+              <span>Gmail: {gmailUserEmail}</span>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="ml-1 px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold cursor-pointer"
+                title="Switch Google Account"
+              >
+                Switch
+              </button>
+            </div>
+          ) : (
+            <GoogleSignInButton />
+          )}
           <button
             type="button"
             data-testid="open-communications-tunnel-btn"
             onClick={() => setIsCommsTunnelOpen(true)}
-            className="inline-flex items-center px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#01C38D] to-teal-400 hover:from-[#00b07f] hover:to-teal-500 text-[#0f172a] text-xs font-black transition-all cursor-pointer shadow-md ring-2 ring-[#01C38D]/40"
-            title="Open Communications Tunnel to enter multiple recipients, preview AI card-based bi-weekly milestone updates, and consolidate shared portfolio contacts"
+            className="inline-flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#01C38D] to-teal-400 hover:from-[#00b07f] hover:to-teal-500 text-[#0f172a] text-xs font-black transition-all cursor-pointer shadow-md ring-2 ring-[#01C38D]/40"
+            title="Open Communications Tunnel to enter multiple recipients, preview AI card-based milestone updates, and consolidate shared portfolio contacts"
           >
             <Radio className="w-3.5 h-3.5 mr-1.5 text-[#0f172a]" />
             <span>Communications Tunnel</span>
           </button>
-          <button
-            onClick={onOpenKickoffWalkthrough}
-            className="inline-flex items-center px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 transition-colors cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5 mr-1.5 text-[#01C38D]" />
-            Launch Interactive Kickoff Doc
-          </button>
-          <button
-            onClick={handleCopyPortalUrl}
-            className="inline-flex items-center px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-400/30 transition-colors cursor-pointer"
-            title="Copy standalone client-only URL without internal PM controls"
-          >
-            {copiedPortalUrl ? (
-              <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
-            ) : (
-              <Copy className="w-3.5 h-3.5 mr-1.5" />
-            )}
-            {copiedPortalUrl ? 'Client Link Copied!' : 'Copy Client-Only Link'}
-          </button>
-          <button
-            onClick={() => onOpenCSMPortal()}
-            className="inline-flex items-center px-3.5 py-2 rounded-xl bg-[#01C38D] hover:bg-[#00b07f] text-[#191E29] text-xs font-black transition-colors cursor-pointer shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-            Preview CSM Booking &amp; Handoff Portal
-          </button>
-        </div>
-      </div>
-
-      {/* Live Inbox & Team Email Stress-Test Bar */}
-      <div className="px-6 py-3.5 bg-emerald-50/70 border-b border-emerald-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-            <Mail className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-black text-slate-900">
-                Live Gmail Inbox &amp; Team Stress-Test Mode
-              </span>
-              {!needsAuth ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  ✓ Connected as {gmailUserEmail}
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                  Sign in with Google to send real emails
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-600 mt-0.5">
-              Enter your email or comma-separated team member emails below to deliver real emails directly to your inbox when testing any module.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="text"
-            value={stressTestRecipient}
-            onChange={(e) => setStressTestRecipient(e.target.value)}
-            placeholder="e.g. RFRleasing@gmail.com, team@onequext.com"
-            className="px-3 py-1.5 text-xs bg-white border border-emerald-300 rounded-lg text-slate-900 font-medium w-64 focus:outline-none focus:border-emerald-600"
-            title="Test recipient email(s) (comma-separated for multiple team members)"
-          />
-          <button
-            type="button"
-            onClick={() => openModalWithRecipients('stress_test')}
-            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Send Live Test Email</span>
-          </button>
-          {needsAuth ? (
-            <GoogleSignInButton />
-          ) : (
-            <button
-              type="button"
-              onClick={() => logout()}
-              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold flex items-center gap-1 cursor-pointer"
-              title="Disconnect or switch Google account"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Switch Account</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -1189,22 +1078,9 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 mt-0.5">
-                All customer emails listed below automatically receive recurring Weekly / Bi-Weekly milestone progress digests when cadence triggers, as well as any manual updates dispatched by PMs.
+                All customer emails listed below automatically receive recurring milestone progress digests when cadence triggers, as well as any manual updates dispatched by PMs.
               </p>
             </div>
-          </div>
-
-          <div className="text-left sm:text-right shrink-0">
-            <span className="text-[11px] font-medium text-slate-500">
-              Active Cadence:{' '}
-              <strong
-                className={`font-bold uppercase ${
-                  isCadenceLive ? 'text-emerald-700' : 'text-amber-700'
-                }`}
-              >
-                {isCadenceLive ? `LIVE • ${cadenceDisplayLabel}` : 'PAUSED (Not Live)'}
-              </strong>
-            </span>
           </div>
         </div>
 
@@ -1452,7 +1328,7 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           )}
         </div>
 
-        {/* Add Customer Email Form + Communications Tunnel Launcher */}
+        {/* Add Customer Email Form */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <form onSubmit={handleAddCustomerEmail} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-xl">
             <div className="relative flex-1">
@@ -1473,15 +1349,6 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
               <span>Add Customer Email</span>
             </button>
           </form>
-
-          <button
-            type="button"
-            onClick={() => setIsCommsTunnelOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black transition-all shadow-xs cursor-pointer shrink-0"
-          >
-            <Radio className="w-3.5 h-3.5 text-[#01C38D]" />
-            <span>Communications Tunnel (Multi-Recipient &amp; AI Card Preview)</span>
-          </button>
         </div>
 
         {/* Inline Portfolio-Wide Suggestion when any configured recipient is found on other projects */}
@@ -1646,74 +1513,17 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
               Automatically emails property stakeholders a visual milestone progress tracker, current stage summary, and upcoming customer action items.
             </p>
 
-            {/* Cadence Selector */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  Delivery Frequency
-                </label>
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70 mb-4 space-y-1.5 text-[11px]">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Cadence Status:</span>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                    isCadenceLive
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                      : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  className={`font-black uppercase ${
+                    isCadenceLive ? 'text-emerald-700' : 'text-amber-700'
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isCadenceLive ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'
-                    }`}
-                  />
                   {isCadenceLive ? `Live • ${cadenceShortLabel}` : 'Paused'}
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                {(['multi_day', 'weekly', 'biweekly', 'none'] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => handleCadenceChange(option)}
-                    className={`py-1.5 px-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                      cadence === option
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    {option === 'multi_day'
-                      ? 'Multi-Day'
-                      : option === 'biweekly'
-                      ? 'Bi-Weekly'
-                      : option === 'none'
-                      ? 'Paused'
-                      : 'Weekly'}
-                  </button>
-                ))}
-              </div>
-              {cadence === 'multi_day' && (
-                <div className="mt-2 flex flex-wrap items-center gap-1 bg-emerald-50/70 p-2 rounded-xl border border-emerald-200">
-                  <span className="text-[10px] font-bold text-emerald-900 mr-1">Days:</span>
-                  {ALL_CADENCE_WEEKDAYS.map((d) => {
-                    const active = selectedWeekdays.includes(d.id);
-                    return (
-                      <button
-                        key={d.id}
-                        type="button"
-                        onClick={() => handleToggleCadenceWeekday(d.id)}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
-                          active
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-white text-slate-600 border border-slate-200 hover:border-emerald-400'
-                        }`}
-                      >
-                        {d.short}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/70 mb-4 space-y-1.5 text-[11px]">
               <div className="flex justify-between">
                 <span className="text-slate-500 font-medium">Active Milestone:</span>
                 <span className="font-bold text-emerald-700">{currentMilestone?.title}</span>
@@ -1738,10 +1548,10 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
             <button
               type="button"
               onClick={() => setIsCommsTunnelOpen(true)}
-              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#01C38D] to-teal-400 hover:from-[#00b07f] hover:to-teal-300 text-[#191E29] text-xs font-black flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-sm"
+              className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-xs font-black flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
             >
-              <Radio className="w-3.5 h-3.5" />
-              <span>Communications Tunnel (Multi-Recipient &amp; AI Cards)</span>
+              <Radio className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Customize AI Cards in Tunnel</span>
             </button>
             <div className="grid grid-cols-2 gap-1.5">
               <button
@@ -2038,8 +1848,6 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
                       'Confirm & Dispatch CSM Calendar Booking Link (Pre-Implementation)'}
                     {showEmailPreviewModal === 'csm' &&
                       'Confirm & Dispatch CSM Handoff Introduction'}
-                    {showEmailPreviewModal === 'stress_test' &&
-                      'Confirm & Send Live Inbox Stress-Test Email'}
                   </span>
                 </h3>
               </div>
@@ -2200,8 +2008,8 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
                     <button
                       type="button"
                       onClick={() => {
-                        const myEmail = gmailUserEmail || 'RFRleasing@gmail.com';
-                        if (!modalRecipientInput.toLowerCase().includes(myEmail.toLowerCase())) {
+                        const myEmail = gmailUserEmail || project.assignedPM.email;
+                        if (myEmail && !modalRecipientInput.toLowerCase().includes(myEmail.toLowerCase())) {
                           setModalRecipientInput((prev) =>
                             prev.trim() ? `${prev.trim()}, ${myEmail}` : myEmail
                           );
@@ -2209,14 +2017,14 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
                       }}
                       className="text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded cursor-pointer"
                     >
-                      + Add {gmailUserEmail || 'RFRleasing@gmail.com'}
+                      + CC Myself ({gmailUserEmail || project.assignedPM.email})
                     </button>
                   </div>
                   <input
                     type="text"
                     value={modalRecipientInput}
                     onChange={(e) => setModalRecipientInput(e.target.value)}
-                    placeholder="e.g. RFRleasing@gmail.com, teammate@onequext.com"
+                    placeholder="e.g. manager@property.com, owner@client.com"
                     className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-semibold focus:outline-none focus:border-sky-500"
                   />
                 </div>

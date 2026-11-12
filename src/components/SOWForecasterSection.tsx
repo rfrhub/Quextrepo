@@ -604,7 +604,7 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
     extra.forEach((e) => list.add(e));
     const primary = project.customerIntake?.subscriberEmail || project.customerIntake?.communityEmail || project.customerIntake?.staffRoles?.[0]?.email;
     if (primary) list.add(primary.trim());
-    if (list.size === 0) list.add('RFRleasing@gmail.com');
+    if (list.size === 0 && project.assignedPM?.email) list.add(project.assignedPM.email);
     return Array.from(list).join(', ');
   };
 
