@@ -26,6 +26,24 @@ export interface MyQuextCatalogProduct {
  */
 export const MYQUEXT_FULL_PRODUCT_CATALOG: MyQuextCatalogProduct[] = [
   {
+    id: 'QXT-DL-900',
+    name: "Quext Smart Deadbolt Lock",
+    category: "Access Control",
+    bomCategory: "Smart Access Control",
+    pricingModel: "One-Time",
+    brandName: "Quext",
+    sku: "QXT-DL-900",
+    cost: 165.0,
+    msrp: 245.0,
+    sellPrice: 245.0,
+    description: "Commercial smart deadbolt lock with Bluetooth Low Energy (BLE) and Apple Wallet NFC credentialing.",
+    shortDescription: "In-unit commercial smart deadbolt with BLE & Apple Wallet support.",
+    isBilledPerUnit: true,
+    billingCycle: "One-Time",
+    supportedProtocols: ["BLE", "NFC", "Apple Wallet"],
+    specifications: ["Protocols: BLE, NFC, Apple Wallet", "Manufacturer: Quext", "Category: Access Control"],
+  },
+  {
     id: 'oCEpNTYqXRdaI2vCFcpj',
     name: "Apartment Unit Access Control",
     category: "Access Control",
@@ -1528,3 +1546,205 @@ export const QUEUXT_SOFTWARE_CATALOG: SoftwareCatalogItem[] = MYQUEXT_FULL_PRODU
     description: p.description,
     features: [p.category, p.brandName, p.billingCycle || 'Monthly Subscription'],
   }));
+
+/**
+ * Canonical rules mapping legacy or shorthand BOM line item names directly
+ * to the exact, official naming convention found in the Quext Product Catalog.
+ */
+export const CANONICAL_BOM_NAME_RULES: Array<[RegExp, string]> = [
+  // Quext Smart Deadbolt Lock variants
+  [/^Quext Smart Deadbolt/i, 'Quext Smart Deadbolt Lock'],
+  [/^In-Unit Smart Lock$/i, 'Quext Smart Deadbolt Lock'],
+  [/^Smart Lock$/i, 'Quext Smart Deadbolt Lock'],
+
+  // Quext Gateway variants
+  [/^Quext LoRaWAN.*Gateway/i, 'Quext Gateway'],
+  [/^Gateway Quext IoT/i, 'Quext Gateway'],
+  [/^Quext Gateway/i, 'Quext Gateway'],
+
+  // Quext Thermostats variants
+  [/^Quext IoT Smart Thermostat/i, 'Quext Thermostats'],
+  [/^Quext Thermostat$/i, 'Quext Thermostats'],
+  [/^Quext Thermostats$/i, 'Quext Thermostats'],
+  [/^Quext Thermostat v2$/i, 'Quext Thermostat v2'],
+  [/^Smart Thermostat$/i, 'Quext Thermostats'],
+
+  // Honeywell T6
+  [/^Honeywell Home T6/i, 'Honeywell T6'],
+  [/^Honeywell T6/i, 'Honeywell T6'],
+
+  // Leak Sensors
+  [/^Resideo L1/i, 'Resideo L1 WiFi Water Leak & Freeze Detector'],
+  [/^Smart Flood & Water Leak/i, 'Resideo L1 WiFi Water Leak & Freeze Detector'],
+  [/^Resideo L2/i, 'Resideo L2 WiFi Water Sensor and Switch'],
+  [/^Resideo L5/i, 'Resideo L2 WiFi Water Sensor and Switch'],
+  [/^Aeotec Leak Sensor/i, 'Aeotec Leak Sensor - Zwave'],
+  [/^Leak Sensor$/i, 'Aeotec Leak Sensor - Zwave'],
+
+  // Intercoms
+  [/^Quext Perimeter Access Reader/i, 'QR Intercom'],
+  [/^QR Intercom/i, 'QR Intercom'],
+  [/^Smart Intercom$/i, 'QR Intercom'],
+  [/^Video Intercom/i, 'QR Intercom'],
+
+  // Pro Services & Fees
+  [/^Pro Services Silver$/i, 'Pro Services - Silver'],
+  [/^Pro Services - Silver$/i, 'Pro Services - Silver'],
+  [/^Pro Services Bronze$/i, 'Pro Services - Bronze'],
+  [/^Pro Services - Bronze$/i, 'Pro Services - Bronze'],
+  [/^Pro Services Gold$/i, 'Pro Services - Gold'],
+  [/^Pro Services - Gold$/i, 'Pro Services - Gold'],
+  [/^Project Management$/i, 'Project Management Fee'],
+  [/^Project Management Fee$/i, 'Project Management Fee'],
+  [/^Installation Fee$/i, 'Activation and Deployment'],
+  [/^Activation and Deployment$/i, 'Activation and Deployment'],
+  [/^Access Controll? Installation/i, 'Activation and Deployment'],
+  [/^Video Camera Installation/i, 'Activation and Deployment'],
+  [/^Custom Hardware Product$/i, 'Activation and Deployment'],
+  [/^Shipping$/i, 'Activation and Deployment'],
+
+  // Schlage items
+  [/^Schlage Enrollment Reader.*MT20/i, 'Schlage Enrollment Reader MT20W'],
+  [/^Schlage Key Fobs/i, 'Schlage Multi-technology fob thin - 50 pack'],
+  [/^Key Fobs$/i, 'Schlage Multi-technology fob thin - 50 pack'],
+  [/^Schlage BE467/i, 'Schlage BE467 Deadbolt'],
+  [/^Schlage FE410/i, 'Schlage FE410 Interconnected Deadbolt'],
+  [/^Schlage XE360 Tubular/i, 'Schlage XE360 Tubular'],
+  [/^Schlage XE360 Mortise/i, 'Schlage XE360 Mortise'],
+  [/^Schlage XE360 Exit Trim/i, 'Schlage XE360 Exit Trim'],
+  [/^Schlage NDEB/i, 'Schlage NDEB Tubular'],
+  [/^Schlage F10 Passage Handle/i, 'Door Lever'],
+  [/^Passage handle$/i, 'Door Lever'],
+  [/^Door Lever$/i, 'Door Lever'],
+  [/^Schlage Electrified Reader - RC15/i, 'Schlage Electrified Reader - RC15'],
+  [/^RC15$/i, 'Schlage Electrified Reader - RC15'],
+  [/^Door Reader$/i, 'Schlage Electrified Reader - RC15'],
+  [/^Access Control Readers$/i, 'Schlage Electrified Reader - RC15'],
+  [/^Schlage Electrified Reader - RC11/i, 'Schlage Electrified Reader - RC11 Mullion'],
+  [/^Schlage Electrified Reader - RCK15/i, 'Schlage Electrified Reader - RCK15 With Keypad'],
+  [/^Vehicle Gate Access Control$/i, 'Long Range Reader'],
+
+  // Wi-Fi & Switches
+  [/^GFiber.*Wi-Fi/i, 'GFiber Managed Wifi'],
+  [/^Managed Wi-Fi 7 Access Point/i, 'GFiber Managed Wifi'],
+  [/^[12]\.?5?G PoE Switch$/i, 'Zyxel Cloud Managed 8 Port Switch'],
+  [/^Structured Media Enclosures$/i, 'LoRaWAN Bridge (Range Extension)'],
+
+  // Cameras
+  [/^Eagle Eye Security Cameras - DF03/i, 'Eagle Eye Security Cameras - DD08'],
+  [/^Eagle Eye Security Cameras - DD11/i, 'Eagle Eye Security Cameras - DD08'],
+  [/^Eagle Eye Security Cameras - DB13/i, 'EEN - Standard Bullet Security Camera - DB11'],
+  [/^Eagle Eye Security Cameras - DB14$/i, 'Eagle Eye Security Cameras - DB14 (LPR)'],
+  [/^Eagle Eye Security Cameras$/i, 'EEN - Standard Turret Security Camera DT01'],
+  [/^IP Camera$/i, 'EEN - Standard Turret Security Camera DT01'],
+  [/^Security Cameras$/i, 'EEN - Standard Turret Security Camera DT01'],
+  [/^7 Day Camera Recording$/i, 'Standard Video'],
+  [/^NVR$/i, 'Eagle Eye Bridge'],
+
+  // Software & Recurring
+  [/^Monthly Licensing Fee - NFC Wallet/i, 'NFC Wallet'],
+  [/^Monthly NFC Fee/i, 'NFC Wallet'],
+  [/^Monthly Recurring Fee$/i, 'Apartment Unit Access Control'],
+  [/^Smart Communities IoT Service Fee/i, 'Smart Communities IoT Service Fee Student Housing Hubless'],
+
+  // Platform Partners
+  [/^Homebase Wireless Smart Lock$/i, 'Homebase Unit Access Control'],
+  [/^Homebase Hubless Smart Thermostat$/i, 'Apartment Unit IoT Control'],
+  [/^Geokey Mobile-BLE Mortise/i, 'Apartment Unit Access Control'],
+];
+
+/**
+ * Normalizes any legacy or variant BOM line item name to the exact naming convention
+ * found in the official Quext Product Catalog.
+ */
+export function normalizeBomItemNameToCatalog(name?: string, model?: string): string {
+  if (!name || typeof name !== 'string') return '';
+  const trimmed = name.trim();
+  for (const [regex, canonical] of CANONICAL_BOM_NAME_RULES) {
+    if (regex.test(trimmed)) {
+      return canonical;
+    }
+  }
+  // Model-based fallbacks if name is ambiguous or generic
+  if (model) {
+    const m = model.trim().toUpperCase();
+    if (m === 'QXT-DL-900') return 'Quext Smart Deadbolt Lock';
+    if (m === 'QXT-TH-300') return 'Quext Thermostats';
+    if (m === 'QXT-GW-LR8') return 'Quext Gateway';
+    if (m === 'QXT-IC-20') return 'QR Intercom';
+    if (m === 'QXT-LK-100') return 'Resideo L1 WiFi Water Leak & Freeze Detector';
+    if (m === 'QXT-WF7-WP' || m === 'CAM-XV2-2T') return 'GFiber Managed Wifi';
+  }
+  return trimmed;
+}
+
+/**
+ * Clean and align an entire project's BOM line items, shipping dock batches, SOW scope items,
+ * and RMA items to match the exact Product Catalog naming conventions.
+ */
+export function normalizeProjectBomLineItems<
+  T extends {
+    bomItems?: any[];
+    shippingDockItems?: any[];
+    sowForecastItems?: any[];
+    rmaTickets?: any[];
+    changeOrders?: any[];
+  }
+>(project: T): T {
+  if (!project) return project;
+
+  const bomIdToNameMap = new Map<string, string>();
+
+  const normalizedBomItems = (project.bomItems || []).map((b) => {
+    const canonicalName = normalizeBomItemNameToCatalog(b.name, b.model);
+    bomIdToNameMap.set(b.id, canonicalName);
+    return {
+      ...b,
+      name: canonicalName,
+    };
+  });
+
+  const normalizedShippingDockItems = (project.shippingDockItems || []).map((d) => {
+    const matchedName =
+      (d.bomItemId && bomIdToNameMap.get(d.bomItemId)) ||
+      normalizeBomItemNameToCatalog(d.bomItemName, d.bomItemModel);
+    return {
+      ...d,
+      bomItemName: matchedName,
+    };
+  });
+
+  const normalizedSowItems = (project.sowForecastItems || []).map((s) => {
+    const matchedName =
+      (s.bomItemId && bomIdToNameMap.get(s.bomItemId)) ||
+      normalizeBomItemNameToCatalog(s.bomItemName);
+    const oldName = s.bomItemName || '';
+    let updatedWorkDesc = s.workDescription || '';
+    if (oldName && matchedName && oldName !== matchedName && updatedWorkDesc.includes(oldName)) {
+      updatedWorkDesc = updatedWorkDesc.split(oldName).join(matchedName);
+    }
+    return {
+      ...s,
+      bomItemName: matchedName,
+      workDescription: updatedWorkDesc,
+    };
+  });
+
+  const normalizedRmaTickets = (project.rmaTickets || []).map((r) => {
+    const matchedName =
+      (r.bomItemId && bomIdToNameMap.get(r.bomItemId)) ||
+      normalizeBomItemNameToCatalog(r.bomItemName, r.bomItemModel);
+    return {
+      ...r,
+      bomItemName: matchedName,
+    };
+  });
+
+  return {
+    ...project,
+    bomItems: normalizedBomItems,
+    shippingDockItems: normalizedShippingDockItems,
+    sowForecastItems: normalizedSowItems,
+    rmaTickets: normalizedRmaTickets,
+  };
+}

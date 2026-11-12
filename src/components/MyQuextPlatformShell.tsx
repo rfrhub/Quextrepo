@@ -390,7 +390,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
       bomItems: [
         {
           id: `bom-${id}-1`,
-          name: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet)',
+          name: 'Quext Smart Deadbolt Lock',
           model: 'QXT-DL-900',
           category: 'Smart Access Control',
           location: 'All Residential Units',
@@ -400,7 +400,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
         },
         {
           id: `bom-${id}-2`,
-          name: 'Quext IoT Smart Thermostat (LoRaWAN)',
+          name: 'Quext Thermostats',
           model: 'QXT-TH-300',
           category: 'Smart Thermostats & HVAC',
           location: 'All Residential Units',
@@ -410,7 +410,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
         },
         {
           id: `bom-${id}-3`,
-          name: 'Quext LoRaWAN Outdoor Gateway Base Station',
+          name: 'Quext Gateway',
           model: 'QXT-GW-LR8',
           category: 'IoT Gateways & Mesh',
           location: 'Rooftop & Clubhouse',
@@ -420,7 +420,7 @@ export const MyQuextPlatformShell: React.FC<MyQuextPlatformShellProps> = ({
         },
         {
           id: `bom-${id}-4`,
-          name: 'Smart Flood & Water Leak Detector',
+          name: 'Resideo L1 WiFi Water Leak & Freeze Detector',
           model: 'QXT-LK-100',
           category: 'Sensors & Leak Protection',
           location: 'Unit Utility Closets',

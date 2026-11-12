@@ -573,10 +573,10 @@ export function convertRowToOperationProject(row: ParsedProjectRow, idx: number)
       id: `bom-imp-lock-${timestamp}`,
       name:
         row.platform === 'Geokey'
-          ? 'Geokey Mobile-BLE Mortise & Deadbolt Lock'
+          ? 'Apartment Unit Access Control'
           : row.platform === 'Homebase'
-          ? 'Homebase Wireless Smart Lock'
-          : 'Quext Smart Deadbolt Lock (BLE & Apple Wallet NFC)',
+          ? 'Homebase Unit Access Control'
+          : 'Quext Smart Deadbolt Lock',
       model: row.platform === 'Geokey' ? 'GEO-LK-200' : row.platform === 'Homebase' ? 'HB-LK-100' : 'QXT-DL-900',
       category: 'Smart Access Control',
       location: 'All Residential Units',
@@ -592,8 +592,8 @@ export function convertRowToOperationProject(row: ParsedProjectRow, idx: number)
       id: `bom-imp-therm-${timestamp}`,
       name:
         row.platform === 'Homebase'
-          ? 'Homebase Hubless Smart Thermostat'
-          : 'Quext IoT Smart Thermostat (LoRaWAN Hubless)',
+          ? 'Apartment Unit IoT Control'
+          : 'Quext Thermostats',
       model: row.platform === 'Homebase' ? 'HB-TH-50' : 'QXT-TH-300',
       category: 'Smart Thermostats & HVAC',
       location: 'All Residential Units',
@@ -607,7 +607,7 @@ export function convertRowToOperationProject(row: ParsedProjectRow, idx: number)
     },
     {
       id: `bom-imp-gw-${timestamp}`,
-      name: 'Quext LoRaWAN Outdoor Gateway Base Station (8-Channel)',
+      name: 'Quext Gateway',
       model: 'QXT-GW-LR8',
       category: 'IoT Gateways & Mesh',
       location: 'Clubhouse Rooftop & Central Buildings',

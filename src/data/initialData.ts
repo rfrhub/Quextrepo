@@ -20,6 +20,10 @@ import {
 import { buildProjectPrePackagedBundle } from '../partner-academy/utils/projectCoursePackager';
 import { MYQUEXT_QUOTES, MYQUEXT_PROJECTS } from './myquextOpportunities';
 import { SEED_SOW_21_PEARL, SEED_SOW_RIVERTOWN_COMMONS } from '../services/sowFormService';
+import {
+  normalizeBomItemNameToCatalog,
+  normalizeProjectBomLineItems,
+} from './catalogData';
 import { MASTER_TRACKER_PROJECTS } from './masterTrackerData';
 
 export const INITIAL_QUOTES: Quote[] = MYQUEXT_QUOTES;
@@ -1586,16 +1590,17 @@ export function buildDefaultSOWForecastItems(project: Partial<OperationProject>)
   return bom.slice(0, 4).map((item, idx) => {
     const remaining = Math.max(0, item.quantity - (item.installedCount || 0));
     const forecastedQty = remaining > 0 ? remaining : item.quantity;
+    const canonicalName = normalizeBomItemNameToCatalog(item.name, item.model);
     return {
       id: `sow-${project.id || 'proj'}-${idx + 1}`,
       bomItemId: item.id,
-      bomItemName: item.name,
+      bomItemName: canonicalName,
       workDescription:
         idx === 0
-          ? `Mount, calibrate, and commission ${item.name} across remaining residential corridors`
+          ? `Mount, calibrate, and commission ${canonicalName} across remaining residential corridors`
           : idx === 1
-          ? `Wire 24VAC HVAC backplates and pair ${item.name} to LoRaWAN mesh`
-          : `Install and signal-verify ${item.name} at ${item.location}`,
+          ? `Wire 24VAC HVAC backplates and pair ${canonicalName} to LoRaWAN mesh`
+          : `Install and signal-verify ${canonicalName} at ${item.location}`,
       buildingOrArea: item.location || `Buildings ${idx + 1} - ${idx + 2}`,
       assignedInstaller: `${installer} Field Crew`,
       forecastedQuantity: forecastedQty,
@@ -1611,22 +1616,25 @@ export function buildDefaultShippingDockItems(project: Partial<OperationProject>
   const bom = project.bomItems || [];
   if (bom.length === 0) return [];
   const integrator = (project.integratorPartners && project.integratorPartners[0]) || 'SKBM';
-  return bom.map((item, idx) => ({
-    id: `dock-${project.id || 'proj'}-${idx + 1}`,
-    shipmentBatchLabel: idx < 2 ? 'Batch #1 - Primary Hardware Pallet' : 'Batch #2 - Secondary Staging Shipment',
-    integratorName: integrator,
-    bomItemId: item.id,
-    bomItemName: item.name,
-    bomItemModel: item.model,
-    shippedQuantity: item.quantity + (item.sparesCount || 0),
-    carrier: idx % 2 === 0 ? 'FedEx Freight' : 'UPS Supply Chain',
-    trackingNumber: `QXT-TRK-${(project.quoteNumber || '8841').replace(/[^0-9]/g, '')}-${100 + idx + 1}`,
-    shippedDate: '2026-10-16',
-    estimatedArrivalDate: '2026-10-20',
-    status: (item.installedCount || 0) > 0 ? 'Delivered to Site' : 'Shipped / In Transit',
-    customerAccepted: false,
-    customerScenarioNotes: '',
-  }));
+  return bom.map((item, idx) => {
+    const canonicalName = normalizeBomItemNameToCatalog(item.name, item.model);
+    return {
+      id: `dock-${project.id || 'proj'}-${idx + 1}`,
+      shipmentBatchLabel: idx < 2 ? 'Batch #1 - Primary Hardware Pallet' : 'Batch #2 - Secondary Staging Shipment',
+      integratorName: integrator,
+      bomItemId: item.id,
+      bomItemName: canonicalName,
+      bomItemModel: item.model,
+      shippedQuantity: item.quantity + (item.sparesCount || 0),
+      carrier: idx % 2 === 0 ? 'FedEx Freight' : 'UPS Supply Chain',
+      trackingNumber: `QXT-TRK-${(project.quoteNumber || '8841').replace(/[^0-9]/g, '')}-${100 + idx + 1}`,
+      shippedDate: '2026-10-16',
+      estimatedArrivalDate: '2026-10-20',
+      status: (item.installedCount || 0) > 0 ? 'Delivered to Site' : 'Shipped / In Transit',
+      customerAccepted: false,
+      customerScenarioNotes: '',
+    };
+  });
 }
 
 export function loadStoredQuotes(): Quote[] {
@@ -1895,14 +1903,15 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
           fixedModel = 'SCH-NDEB';
         }
       }
+      const canonicalName = normalizeBomItemNameToCatalog(b.name, fixedModel);
       // If it is NOT a lock (e.g. Schlage Enrollment Reader MT20W, Readers, Gate Readers, Intercoms), strip any mistakenly applied lockFinishConfig
       if (!isLockBOMItem({ ...b, model: fixedModel }) && b.lockFinishConfig) {
-        const cleaned = { ...b, id: uniqueId, model: fixedModel };
+        const cleaned = { ...b, id: uniqueId, name: canonicalName, model: fixedModel };
         delete cleaned.lockFinishConfig;
         return cleaned;
       }
       if (b.lockFinishConfig) {
-        const itemObj = { ...b, id: uniqueId, model: fixedModel };
+        const itemObj = { ...b, id: uniqueId, name: canonicalName, model: fixedModel };
         const trueFamily = detectLockFamily(itemObj);
         const splits = b.lockFinishConfig.splits
           ? sanitizeLockSplits(b.lockFinishConfig.splits, trueFamily)
@@ -1910,6 +1919,7 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
         return {
           ...b,
           id: uniqueId,
+          name: canonicalName,
           model: fixedModel,
           lockFinishConfig: {
             family: trueFamily,
@@ -1938,10 +1948,7 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
           },
         };
       }
-      if (fixedModel !== b.model || uniqueId !== b.id) {
-        return { ...b, id: uniqueId, model: fixedModel };
-      }
-      return b;
+      return { ...b, id: uniqueId, name: canonicalName, model: fixedModel };
     }),
     installLogs:
       p.installLogs && p.installLogs.length > 0
@@ -1999,7 +2006,7 @@ export function enrichProjectDefaults(p: OperationProject): OperationProject {
 
   enriched.partnerCourseBundle = buildProjectPrePackagedBundle(enriched);
 
-  return enriched;
+  return normalizeProjectBomLineItems(enriched);
 }
 
 export const STORAGE_KEY_ARCHIVED_PROJECTS = 'quext_archived_project_ids_v1';
@@ -2547,6 +2554,7 @@ export function createProjectFromQuote(quote: Quote): OperationProject {
     lastUpdated: new Date().toISOString(),
     bomItems: quote.bomItems.map((item) => ({
       ...item,
+      name: normalizeBomItemNameToCatalog(item.name, item.model),
       installedCount: 0,
       postItLogs: [],
     })),

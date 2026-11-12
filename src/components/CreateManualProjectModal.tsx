@@ -94,7 +94,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
     }>
   >([
     {
-      name: 'Quext Smart Deadbolt Lock (BLE & Apple Wallet NFC)',
+      name: 'Quext Smart Deadbolt Lock',
       model: 'QXT-DL-900',
       category: 'Smart Access Control',
       quantity: 200,
@@ -104,7 +104,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
       description: 'Integrated digital key deadbolt with NFC/BLE reader.',
     },
     {
-      name: 'Quext IoT Smart Thermostat (LoRaWAN Hubless)',
+      name: 'Quext Thermostats',
       model: 'QXT-TH-300',
       category: 'Smart Thermostats & HVAC',
       quantity: 200,
@@ -114,7 +114,7 @@ export const CreateManualProjectModal: React.FC<CreateManualProjectModalProps> =
       description: 'Hubless LoRaWAN thermostat with dual humidity sensing.',
     },
     {
-      name: 'Quext LoRaWAN Outdoor Gateway Base Station (8-Channel)',
+      name: 'Quext Gateway',
       model: 'QXT-GW-LR8',
       category: 'IoT Gateways & Mesh',
       quantity: 3,
