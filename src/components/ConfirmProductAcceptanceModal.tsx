@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   OperationProject,
   ShippingDockItem,
   buildProductAcceptancePortalUrl,
-  getLockFinishSummaryTag,
-  isLockBOMItem,
 } from '../types';
 import {
   subscribeToGmailAuth,
@@ -14,7 +12,6 @@ import {
   logout,
 } from '../services/gmailService';
 import { GoogleSignInButton } from './GoogleSignInButton';
-import { getDockRowBomQuantities } from './ShippingDockSection';
 import { ProductAcceptanceQRCode } from './ProductAcceptanceQRCode';
 import { buildShippingAndAcceptanceCardEmail } from '../services/portfolioEmailService';
 import {
@@ -34,6 +31,10 @@ import {
   Building2,
   User,
   Package,
+  QrCode,
+  Layers,
+  MessageSquare,
+  FileCheck2,
 } from 'lucide-react';
 
 interface ConfirmProductAcceptanceModalProps {
@@ -49,6 +50,21 @@ interface ConfirmProductAcceptanceModalProps {
   }) => void;
 }
 
+const PM_NOTE_PRESETS = [
+  {
+    label: 'Dock Arrival - Please Inspect & Sign',
+    note: 'Hardware batches have arrived at the shipping dock. Please have on-site staff inspect pallets, upload photos of any damaged cartons, and submit your digital acceptance signature.',
+  },
+  {
+    label: 'Shipment Dispatched Notice',
+    note: 'Shipment is currently en route to your property. Please review the batch tracking below and be prepared to confirm pallet receipt using the digital portal upon arrival.',
+  },
+  {
+    label: 'Final Staging Sign-Off',
+    note: 'All remaining project hardware has been delivered to site. Please complete your final digital acceptance sign-off so our certified installation technicians can begin deployment.',
+  },
+];
+
 export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceModalProps> = ({
   project,
   isOpen,
@@ -57,7 +73,6 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
   onDispatched,
 }) => {
   const dockItems: ShippingDockItem[] = project.shippingDockItems || [];
-  const bomItems = project.bomItems || [];
   const defaultCustomerEmail =
     project.customerIntake?.subscriberEmail ||
     project.customerIntake?.communityEmail ||
@@ -79,6 +94,8 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
 
   const [recipientInput, setRecipientInput] = useState<string>(defaultCustomerEmail);
   const [subjectInput, setSubjectInput] = useState<string>(defaultSubject);
+  const [customPmNote, setCustomPmNote] = useState<string>('');
+  const [activePreviewTab, setActivePreviewTab] = useState<'rendered_cards' | 'dock_qr'>('rendered_cards');
   const [authUserEmail, setAuthUserEmail] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState<boolean>(true);
   const [isSending, setIsSending] = useState<boolean>(false);
@@ -103,9 +120,22 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
     if (isOpen) {
       setRecipientInput(defaultCustomerEmail);
       setSubjectInput(defaultSubject);
+      setCustomPmNote('');
       setErrorMsg(null);
     }
   }, [isOpen, defaultCustomerEmail, defaultSubject]);
+
+  // Dynamically generate card email body so preview EXACTLY matches what the client receives
+  const cardEmailData = useMemo(() => {
+    return buildShippingAndAcceptanceCardEmail({
+      project,
+      items: dockItems,
+      includeQrCode: true,
+      customPmNote: customPmNote.trim() || undefined,
+    });
+  }, [project, dockItems, customPmNote]);
+
+  const emailHtmlBody = cardEmailData.htmlBody;
 
   if (!isOpen) return null;
 
@@ -120,95 +150,6 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
       .split(/[,;]+/)
       .map((r) => r.trim())
       .filter(Boolean);
-
-  // Build shipment table for HTML email
-  const buildShipmentHtmlTable = () => {
-    if (dockItems.length === 0) {
-      return `<p style="font-size: 13px; color: #64748b; margin: 12px 0;">No shipment batches logged yet.</p>`;
-    }
-
-    const tableRows = dockItems
-      .map((item) => {
-        const rowBomIds =
-          item.bomItemIds && item.bomItemIds.length > 0
-            ? item.bomItemIds
-            : [item.bomItemId];
-        const matchedBoms = bomItems.filter((b) => rowBomIds.includes(b.id));
-        const qtyMap = getDockRowBomQuantities(item, bomItems);
-
-        const hardwareItemsHtml =
-          matchedBoms.length > 0
-            ? matchedBoms
-                .map(
-                  (b) =>
-                    `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}${
-                      isLockBOMItem(b) && b.lockFinishConfig
-                        ? `<br/><span style="font-size: 11px; color: #475569; font-weight: normal;">Finish: ${getLockFinishSummaryTag(
-                            b.lockFinishConfig
-                          )}</span>`
-                        : ''
-                    }</div>`
-                )
-                .join('')
-            : `<div style="font-weight: 600; color: #0f172a;">${item.bomItemName}</div>`;
-
-        const quantityHtml =
-          matchedBoms.length > 0
-            ? matchedBoms
-                .map(
-                  (b) =>
-                    `<div style="margin-bottom: 3px; font-family: monospace; font-weight: 700; color: #059669;">${
-                      qtyMap[b.id] ?? 0
-                    } units</div>`
-                )
-                .join('')
-            : `<div style="font-family: monospace; font-weight: 700; color: #059669;">${item.shippedQuantity} units</div>`;
-
-        return `
-          <tr>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px;">
-              ${hardwareItemsHtml}
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${item.shipmentBatchLabel}</div>
-            </td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px; white-space: nowrap;">
-              ${quantityHtml}
-            </td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #1e293b;">
-              <div style="font-weight: 600;">${item.carrier}</div>
-              <div style="font-family: monospace; font-size: 11px; color: #0284c7; margin-top: 2px;">${item.trackingNumber}</div>
-            </td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #334155; white-space: nowrap;">
-              <div><strong>Shipped:</strong> ${item.shippedDate || 'TBD'}</div>
-              <div style="margin-top: 2px;"><strong>ETA:</strong> ${item.estimatedArrivalDate || 'TBD'}</div>
-              <div style="margin-top: 4px; display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #ecfdf5; color: #065f46; font-size: 10px; font-weight: 700;">${item.status}</div>
-            </td>
-          </tr>
-        `;
-      })
-      .join('');
-
-    return `
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-        <thead>
-          <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
-            <th style="padding: 10px 12px; border-bottom: 2px solid #e2e8f0;">Hardware Line Item</th>
-            <th style="padding: 10px 12px; border-bottom: 2px solid #e2e8f0;">Quantity</th>
-            <th style="padding: 10px 12px; border-bottom: 2px solid #e2e8f0;">Carrier &amp; Tracking</th>
-            <th style="padding: 10px 12px; border-bottom: 2px solid #e2e8f0;">Ship Date &amp; ETA</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-    `;
-  };
-
-  const emailHtmlBody = buildShippingAndAcceptanceCardEmail({
-    project,
-    items: dockItems,
-    includeQrCode: true,
-  }).htmlBody;
 
   const handleConfirmAndSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,19 +237,24 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs animate-fadeIn font-['Inter']">
-      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh]">
+      <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh]">
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-emerald-950 text-white px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
-              <FileSignature className="w-4 h-4 sm:w-5 sm:h-5" />
+        <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-emerald-950 text-white px-5 sm:px-6 py-4 flex items-center justify-between shrink-0 border-b border-emerald-500/30">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
+              <FileSignature className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-xs sm:text-base text-white">
-                Confirm &amp; Send Product Acceptance Portal
-              </h3>
-              <p className="text-[10px] sm:text-[11px] text-slate-300">
-                Confirm customer details, shipment scope, and message before emailing
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm sm:text-base text-white tracking-tight">
+                  Product Acceptance Portal &mdash; Customer Card Dispatch
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  Live Card Preview
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300">
+                Optimized card email digest with on-site smartphone QR code and digital acceptance sign-off
               </p>
             </div>
           </div>
@@ -321,7 +267,7 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
           </button>
         </div>
 
-        <form onSubmit={handleConfirmAndSend} className="p-3.5 sm:p-6 space-y-4 overflow-y-auto text-xs flex-1">
+        <form onSubmit={handleConfirmAndSend} className="p-4 sm:p-6 space-y-4 overflow-y-auto text-xs flex-1">
           {/* Google Account Connection Banner */}
           <div
             className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
@@ -348,7 +294,7 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                 </div>
                 <p className="text-[11px] opacity-90 mt-0.5">
                   {!needsAuth
-                    ? 'Emails will be sent from your Google Account directly to the customer.'
+                    ? 'Emails will be sent from your Google Account directly to the customer inbox.'
                     : isUnauthorizedDomain
                     ? 'Direct popup sign-in is restricted by Firebase on local network IPs. You can email the customer with 1-click via Gmail Web below!'
                     : 'Sign in with Google for direct delivery, or use "Open in Gmail Web" below.'}
@@ -403,9 +349,14 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                 <Building2 className="w-4 h-4 text-sky-600" />
                 <span>Project &amp; Associated Customer</span>
               </div>
-              <span className="font-mono text-[11px] px-2 py-0.5 bg-white border border-slate-300 rounded font-bold text-slate-700">
-                Quote #{project.quoteNumber}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] px-2 py-0.5 bg-white border border-slate-300 rounded font-bold text-slate-700">
+                  Quote #{project.quoteNumber}
+                </span>
+                <span className="text-[11px] font-semibold text-slate-500">
+                  {project.city}, {project.state}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -457,13 +408,74 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:outline-none focus:border-emerald-600"
               />
               <p className="text-[10px] text-slate-500 mt-1">
-                This email will be delivered to the client so they can open their portal, check delivery notes, and sign.
+                Delivered to the client so on-site staff can open their portal, inspect delivery notes, and sign.
               </p>
             </div>
           </div>
 
-          {/* Portal Scope Header */}
-          <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+          {/* Email Subject Line & Custom PM Note Card (Communications Tunnel Style) */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <div>
+              <label className="block font-bold text-slate-800 mb-1">Email Subject Line *</label>
+              <input
+                type="text"
+                required
+                value={subjectInput}
+                onChange={(e) => setSubjectInput(e.target.value)}
+                className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-semibold focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+
+            {/* PM Personal Message Card Input */}
+            <div className="pt-2 border-t border-slate-200 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Personalized PM Note for On-Site Customer Staff (Optional)</span>
+                </label>
+                {customPmNote && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomPmNote('')}
+                    className="text-[11px] text-rose-600 hover:text-rose-800 underline font-semibold cursor-pointer"
+                  >
+                    Clear Note
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">
+                  Quick Presets:
+                </span>
+                {PM_NOTE_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCustomPmNote(preset.note)}
+                    className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-indigo-400 transition-colors cursor-pointer"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows={2}
+                value={customPmNote}
+                onChange={(e) => setCustomPmNote(e.target.value)}
+                placeholder="e.g. Hi Team, our carrier has docked pallets 1-4. Please verify carton condition and sign the digital acceptance portal below."
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-emerald-600 leading-relaxed"
+              />
+              <p className="text-[10px] text-slate-500">
+                This note will be highlighted in a dedicated card at the top of the email so the customer knows exactly what to do.
+              </p>
+            </div>
+          </div>
+
+          {/* Portal Scope Bar & Actions */}
+          <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-emerald-700" />
               <span className="font-bold text-slate-900 text-xs">
@@ -472,61 +484,85 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
             </div>
             <div className="flex items-center gap-2">
               {project.productAcceptanceSubmission ? (
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[11px] font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3" />
+                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md text-[11px] font-bold flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
                   Signed by {project.productAcceptanceSubmission.signedByName}
                 </span>
               ) : (
-                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded text-[11px] font-bold">
+                <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-md text-[11px] font-bold">
                   Pending Customer Sign-off
                 </span>
               )}
               <button
                 type="button"
-                onClick={() => {
-                  onPreviewPortal();
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition-colors cursor-pointer"
+                onClick={handleCopyLink}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-md transition-colors cursor-pointer"
+                title="Copy portal link to clipboard"
+              >
+                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedLink ? 'Copied Link' : 'Copy Link'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onPreviewPortal}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/90 hover:bg-emerald-200 border border-emerald-300 rounded-md transition-colors cursor-pointer"
                 title="Open interactive preview of the Product Acceptance Portal"
               >
                 <Eye className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Preview Portal</span>
+                <span>Preview Customer Portal</span>
               </button>
             </div>
           </div>
 
-          {/* Dedicated Mobile Link and QR Code Card for On-Site Staff */}
-          <ProductAcceptanceQRCode
-            url={portalLink}
-            propertyName={project.propertyName}
-            quoteNumber={project.quoteNumber}
-            size={105}
-          />
-
-          {/* Subject Line */}
-          <div>
-            <label className="block font-bold text-slate-800 mb-1">Email Subject Line *</label>
-            <input
-              type="text"
-              required
-              value={subjectInput}
-              onChange={(e) => setSubjectInput(e.target.value)}
-              className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 font-semibold focus:outline-none focus:border-emerald-600"
-            />
-          </div>
-
-          {/* HTML Email Preview */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Message Preview (Customer Email Content)
+          {/* Interactive Preview Tabs */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActivePreviewTab('rendered_cards')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activePreviewTab === 'rendered_cards'
+                      ? 'bg-slate-900 text-emerald-400 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 bg-slate-100'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Rendered Email Cards (Exact Client View)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePreviewTab('dock_qr')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activePreviewTab === 'dock_qr'
+                      ? 'bg-slate-900 text-emerald-400 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 bg-slate-100'
+                  }`}
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>On-Site Dock QR Code Sheet</span>
+                </button>
+              </div>
+              <span className="text-[10px] font-mono text-slate-400 hidden sm:inline-block">
+                Matches outgoing customer email 1:1
               </span>
-              <span className="text-[10px] font-mono text-slate-400">HTML Format</span>
             </div>
-            <div
-              className="border border-slate-200 rounded-xl p-4 bg-white max-h-52 overflow-y-auto text-xs text-slate-700 leading-relaxed shadow-2xs"
-              dangerouslySetInnerHTML={{ __html: emailHtmlBody }}
-            />
+
+            {activePreviewTab === 'rendered_cards' ? (
+              <div
+                className="border border-slate-200 rounded-xl p-4 bg-white max-h-96 overflow-y-auto text-xs text-slate-700 leading-relaxed shadow-inner"
+                dangerouslySetInnerHTML={{ __html: emailHtmlBody }}
+              />
+            ) : (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <ProductAcceptanceQRCode
+                  url={portalLink}
+                  propertyName={project.propertyName}
+                  quoteNumber={project.quoteNumber}
+                  size={120}
+                />
+              </div>
+            )}
           </div>
 
           {errorMsg && (

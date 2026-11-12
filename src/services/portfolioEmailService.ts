@@ -3993,17 +3993,74 @@ export function buildShippingAndAcceptanceCardEmail({
 
   const qrCodeCardHtml = includeQrCode
     ? `
-      <!-- ON-SITE MOBILE QR CODE CARD -->
-      <div style="background-color: #ffffff; border: 1.5px dashed #059669; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; text-align: center;">
-        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #047857; margin-bottom: 4px;">
-          📱 ON-SITE PROPERTY STAFF MOBILE QR CODE CARD
+      <!-- CARD 4: ON-SITE MOBILE QR CODE CARD -->
+      <div style="background-color: #ffffff; border: 2px dashed #059669; border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #047857; margin-bottom: 4px;">
+          📱 CARD 4 • ON-SITE PROPERTY STAFF MOBILE QR CODE &amp; DIRECT ACCESS
         </div>
-        <div style="font-size: 12px; color: #334155; margin-bottom: 12px;">
-          Scan with your smartphone camera on the shipping dock to inspect pallets, note damaged boxes, and sign digitally.
+        <div style="font-size: 12px; color: #334155; margin-bottom: 14px; max-width: 480px; margin-left: auto; margin-right: auto;">
+          Point your smartphone camera at the QR code below on the shipping dock to inspect pallets, record box damage photos, and submit your digital acceptance signature.
         </div>
-        <div style="display: inline-block; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #a7f3d0;">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=8&data=${encodeURIComponent(portalLink)}" alt="Product Acceptance Portal QR Code" width="150" height="150" style="display: block; margin: 0 auto;" />
+        <div style="display: inline-block; background: #ffffff; padding: 12px; border-radius: 14px; border: 1.5px solid #a7f3d0; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.08);">
+          <img src="https://quickchart.io/qr?size=180&margin=2&text=${encodeURIComponent(portalLink)}" alt="Product Acceptance Portal QR Code: ${portalLink}" width="180" height="180" style="display: block; margin: 0 auto; width: 180px; height: 180px;" />
         </div>
+        <div style="margin-top: 14px;">
+          <a href="${portalLink}" style="display: inline-block; background-color: #01C38D; color: #0f172a; font-weight: 900; font-size: 13px; padding: 11px 24px; border-radius: 10px; text-decoration: none; box-shadow: 0 2px 8px rgba(1, 195, 141, 0.35);">
+            Open &amp; Sign Product Acceptance Portal →
+          </a>
+        </div>
+        <div style="margin-top: 10px; font-size: 11px; color: #64748b;">
+          Or open direct portal link: <a href="${portalLink}" style="color: #0284c7; font-family: monospace; font-size: 11px; word-break: break-all;">${portalLink}</a>
+        </div>
+      </div>
+    `
+    : '';
+
+  const customerChecklistCardHtml = includeQrCode
+    ? `
+      <!-- CARD 3: 4-STEP ACTION CHECKLIST FOR PROPERTY & DOCK TEAM -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 10px;">
+          CARD 3 • ON-SITE ACCEPTANCE ACTION CHECKLIST
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 0; vertical-align: top; width: 28px;">
+              <span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 6px; text-align: center; font-weight: 900; font-size: 11px;">1</span>
+            </td>
+            <td style="padding: 6px 0; vertical-align: top;">
+              <strong style="color: #0f172a; font-size: 12px;">Verify Pallet Count &amp; Box Manifest:</strong>
+              <div style="color: #475569; font-size: 11px; margin-top: 2px;">Confirm delivered batches match the bill of lading and shipment dock cards above.</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; vertical-align: top; width: 28px;">
+              <span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 6px; text-align: center; font-weight: 900; font-size: 11px;">2</span>
+            </td>
+            <td style="padding: 6px 0; vertical-align: top;">
+              <strong style="color: #0f172a; font-size: 12px;">Snap Photos of Any Damaged Cartons:</strong>
+              <div style="color: #475569; font-size: 11px; margin-top: 2px;">The mobile portal lets you upload smartphone dock photos instantly for any crushed or opened boxes.</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; vertical-align: top; width: 28px;">
+              <span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 6px; text-align: center; font-weight: 900; font-size: 11px;">3</span>
+            </td>
+            <td style="padding: 6px 0; vertical-align: top;">
+              <strong style="color: #0f172a; font-size: 12px;">Confirm Staging / Storage Location:</strong>
+              <div style="color: #475569; font-size: 11px; margin-top: 2px;">Record secure clubhouse or storage room location so installer crews can locate gear easily.</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; vertical-align: top; width: 28px;">
+              <span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 6px; text-align: center; font-weight: 900; font-size: 11px;">4</span>
+            </td>
+            <td style="padding: 6px 0; vertical-align: top;">
+              <strong style="color: #0f172a; font-size: 12px;">Submit Digital Acceptance Signature:</strong>
+              <div style="color: #475569; font-size: 11px; margin-top: 2px;">Sign directly with your finger on your smartphone screen or type name to finalize custody transfer.</div>
+            </td>
+          </tr>
+        </table>
       </div>
     `
     : '';
@@ -4086,6 +4143,8 @@ export function buildShippingAndAcceptanceCardEmail({
         </div>
         ${shipmentCardsHtml}
       </div>
+
+      ${customerChecklistCardHtml}
 
       ${qrCodeCardHtml}
 

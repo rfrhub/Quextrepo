@@ -2772,9 +2772,16 @@ export function getCategoryDisplayName(category: string): string {
   }
 }
 
-export function buildCustomerKickoffPortalUrl(projectId: string): string {
-  if (typeof window === 'undefined') return `#/customer-kickoff/${projectId}`;
+export function buildCustomerKickoffPortalUrl(
+  projectId: string,
+  options?: { forcePublicUrl?: boolean }
+): string {
+  if (typeof window === 'undefined') return `https://quextrepo.vercel.app/#/customer-kickoff/${projectId}`;
   const origin = window.location.origin;
+  const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+  if (options?.forcePublicUrl || isLocal) {
+    return `https://quextrepo.vercel.app/#/customer-kickoff/${projectId}`;
+  }
   let path = window.location.pathname || '/';
   path = path.replace(/index\.html$/i, '');
   if (!path.endsWith('/')) {
@@ -2783,9 +2790,16 @@ export function buildCustomerKickoffPortalUrl(projectId: string): string {
   return `${origin}${path}#/customer-kickoff/${projectId}`;
 }
 
-export function buildProductAcceptancePortalUrl(projectId: string): string {
-  if (typeof window === 'undefined') return `#/product-acceptance/${projectId}`;
+export function buildProductAcceptancePortalUrl(
+  projectId: string,
+  options?: { forcePublicUrl?: boolean }
+): string {
+  if (typeof window === 'undefined') return `https://quextrepo.vercel.app/#/product-acceptance/${projectId}`;
   const origin = window.location.origin;
+  const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+  if (options?.forcePublicUrl || isLocal) {
+    return `https://quextrepo.vercel.app/#/product-acceptance/${projectId}`;
+  }
   let path = window.location.pathname || '/';
   path = path.replace(/index\.html$/i, '');
   if (!path.endsWith('/')) {

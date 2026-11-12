@@ -3526,16 +3526,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
               BOM Table
             </a>
             <a
-              href="#change-order-workflow"
-              className="px-2.5 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold whitespace-nowrap shrink-0 transition-all duration-150 ease-in-out hover:shadow-2xs active:scale-95"
-            >
-              Product Acquisition &amp; Change Order
-            </a>
-            <a
               href="#shipping-dock-section"
               className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-800 font-semibold whitespace-nowrap shrink-0 transition-all duration-150 ease-in-out hover:shadow-2xs active:scale-95"
             >
               Shipping Dock
+            </a>
+            <a
+              href="#change-order-workflow"
+              className="px-2.5 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold whitespace-nowrap shrink-0 transition-all duration-150 ease-in-out hover:shadow-2xs active:scale-95"
+            >
+              Product Acquisition &amp; Change Order
             </a>
             <a
               href="#sow-forecaster-section"
@@ -4527,21 +4527,21 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             />
           </div>
 
-          {/* Product Acquisition and Change Order (Allows PMs to add Hardware & Software Catalog items outside of the baseline BOM) */}
-          <div className="scroll-mt-36">
-            <ChangeOrderSection
-              project={project}
-              onUpdateProject={onUpdateProject}
-              currentUserName={currentUserName || project.assignedPM?.name || 'Project Manager'}
-              contextLabel="Project"
-            />
-          </div>
-
           {/* Shipping Dock (Under BOM Section) + Product Acceptance Portal */}
           <div id="shipping-dock-section" data-tutorial-id="shipping-dock-section" className="scroll-mt-36">
             <ShippingDockSection
               project={project}
               onUpdateProject={onUpdateProject}
+            />
+          </div>
+
+          {/* Product Acquisition and Change Order (Allows PMs to add Hardware & Software Catalog items outside of the baseline BOM) */}
+          <div id="change-orders-section" data-tutorial-id="change-orders-section" className="scroll-mt-36">
+            <ChangeOrderSection
+              project={project}
+              onUpdateProject={onUpdateProject}
+              currentUserName={currentUserName || project.assignedPM?.name || 'Project Manager'}
+              contextLabel="Project"
             />
           </div>
 

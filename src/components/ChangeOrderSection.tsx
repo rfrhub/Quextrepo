@@ -214,6 +214,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
 
   // Expanded Order cards
   const [collapsedIds, setCollapsedIds] = useState<Record<string, boolean>>({});
+  // Section level collapse state - defaults to closed to reduce site clutter
+  const [isSectionCollapsed, setIsSectionCollapsed] = useState<boolean>(true);
 
   // Finish Options modal state for Staged or Existing Change Order line items
   const [finishModalTarget, setFinishModalTarget] = useState<{
@@ -399,6 +401,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     setCoPartners(getProjectIntegratorPartners(project));
     setCoFieldTech(normalizeFieldTech(project.assignedFieldTech));
     setStagedItems([]);
+    setIsSectionCollapsed(false);
     setIsBuilderOpen(true);
     setTimeout(() => {
       builderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -426,6 +429,7 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
     );
     setCoFieldTech(normalizeFieldTech(co.assignedFieldTech || project.assignedFieldTech));
     setStagedItems([]);
+    setIsSectionCollapsed(false);
     setIsBuilderOpen(true);
     setTimeout(() => {
       builderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -820,14 +824,22 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
       id="change-order-workflow"
       className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl overflow-hidden shadow-xl"
     >
-      {/* Header Banner */}
+      {/* Header Banner (Collapsible to reduce site clutter) */}
       <div className="p-5 sm:p-6 border-b border-slate-800 bg-gradient-to-r from-indigo-950/50 via-slate-900 to-slate-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <button
+              type="button"
+              onClick={() => setIsSectionCollapsed((prev) => !prev)}
+              className="w-9 h-9 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-400 transition-colors cursor-pointer"
+              title={isSectionCollapsed ? 'Click to expand' : 'Click to collapse'}
+            >
               <FilePlus2 className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-bold text-white tracking-tight">
+            </button>
+            <h3
+              onClick={() => setIsSectionCollapsed((prev) => !prev)}
+              className="text-lg font-bold text-white tracking-tight cursor-pointer hover:text-indigo-200 transition-colors"
+            >
               {sectionHeading}
             </h3>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
@@ -837,10 +849,42 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
               {contextLabel} Workspace
             </span>
+            {isSectionCollapsed && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800/80 text-amber-300/90 border border-amber-500/30">
+                Default Closed (Click to Expand)
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 max-w-3xl">
             Create multi-item supplemental orders selecting from both the Quext Hardware Catalog and Software/SaaS Catalog outside of the baseline Bill of Materials. Original BOM line items ({project.bomItems?.length || 0} items) remain untouched.
           </p>
+
+          {/* Quick Stats Pill Strip (Always visible, even when section is collapsed) */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
+            <span className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/80 text-slate-300 font-semibold flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <strong className="text-white">{summaryStats.totalChangeOrders}</strong> Orders
+              <span className="text-slate-400">({summaryStats.totalLineItems} Items)</span>
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/80 text-slate-300 font-semibold flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5 text-amber-400" />
+              <strong className="text-emerald-400">{summaryStats.installedHardwareUnits}</strong>
+              <span className="text-slate-500">/</span>
+              <strong className="text-white">{summaryStats.totalHardwareUnits}</strong> HW Units
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/80 text-slate-300 font-semibold flex items-center gap-1.5">
+              <Cloud className="w-3.5 h-3.5 text-sky-400" />
+              <strong className="text-sky-400">{summaryStats.activatedSoftwareLicenses}</strong>
+              <span className="text-slate-500">/</span>
+              <strong className="text-white">{summaryStats.totalSoftwareLicenses}</strong> SW Licenses
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/80 text-slate-300 font-semibold flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              <strong className="text-emerald-400">${summaryStats.totalHardwareValue.toLocaleString()}</strong> HW
+              <span className="text-slate-500">•</span>
+              <strong className="text-sky-400">+${summaryStats.monthlySoftwareRecurring.toLocaleString()}/mo</strong>
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
@@ -863,12 +907,33 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
             <Plus className="w-4 h-4" />
             {contextLabel === 'Project'
               ? '+ New Product Acquisition & Change Order'
-              : '+ New Supplemental Order'} (Hardware &amp; Software Catalog)
+              : '+ New Supplemental Order'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSectionCollapsed((prev) => !prev)}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            title={isSectionCollapsed ? 'Expand section' : 'Collapse section'}
+          >
+            {isSectionCollapsed ? (
+              <>
+                <ChevronDown className="w-4 h-4 text-indigo-400" />
+                <span>Expand ({changeOrders.length})</span>
+              </>
+            ) : (
+              <>
+                <ChevronUp className="w-4 h-4 text-indigo-400" />
+                <span>Collapse Card</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Summary KPI Bar */}
+      {/* Expandable Section Body */}
+      {(!isSectionCollapsed || isBuilderOpen) && (
+        <>
+          {/* Summary KPI Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 sm:p-5 bg-slate-950/60 border-b border-slate-800/80">
         <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between">
           <div>
@@ -2432,6 +2497,8 @@ export const ChangeOrderSection: React.FC<ChangeOrderSectionProps> = ({
           })
         )}
       </div>
+        </>
+      )}
 
       {/* Lock Finish & Hardware Options Modal for Staged or Existing Change Order Line Items */}
       {finishModalTarget && (

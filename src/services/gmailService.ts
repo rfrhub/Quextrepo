@@ -136,6 +136,7 @@ export const htmlToPlainText = (html: string): string => {
     .replace(/<\/(p|div|h1|h2|h3|h4|li|tr)>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<li>/gi, '• ')
+    .replace(/<img[^>]*alt=["']([^"']+)["'][^>]*>/gi, '[$1]')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
