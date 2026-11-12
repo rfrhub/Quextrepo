@@ -45,6 +45,9 @@ import {
   getPlatformBadgeStyle,
   getPropertyManagementCompany,
   isProjectGeneratedFromQuote,
+  evaluateKickoffIntake,
+  KickoffEvaluation,
+  KickoffItemStatus,
 } from '../types';
 import { markProjectAsPmVerified } from '../data/initialData';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
@@ -200,6 +203,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   const isPM = isPMUser !== undefined ? isPMUser : isUserPM(currentUserName);
   const [isPmEditMode, setIsPmEditMode] = useState<boolean>(false);
   const effectivePmEditMode = isPM && isPmEditMode;
+  const [isKickoffIntakeEditMode, setIsKickoffIntakeEditMode] = useState<boolean>(false);
+  const [isAddingStaffMember, setIsAddingStaffMember] = useState<boolean>(false);
+  const [newStaffMember, setNewStaffMember] = useState<Partial<StaffRoleSubmission>>({
+    firstName: '',
+    lastName: '',
+    roleOrTitle: '',
+    email: '',
+    phoneNumber: '',
+    permissionLevel: 'Staff',
+  });
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
   const [showResetMilestonesModal, setShowResetMilestonesModal] = useState<boolean>(false);
   const [resetMilestonesSuccessToast, setResetMilestonesSuccessToast] = useState<string | null>(null);
@@ -3592,429 +3605,882 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
       {/* VIEW 2: Technical Field BOM & Installer Logs */}
       {activeTab === 'field-bom' && (
         <>
-          {/* Customer Kickoff Intake Form Results (Project Manager Clean View) */}
-          <div id="pm-kickoff-intake" className="scroll-mt-36 bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
-              <div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-sky-600" />
-                  <h3 className="text-base font-bold text-slate-900">
-                    Customer Kickoff Intake Form Results (Project Manager View)
-                  </h3>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold border ${
-                    project.customerIntake?.walkthroughCompleted
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                      : 'bg-amber-50 text-amber-800 border-amber-300'
-                  }`}>
-                    {project.customerIntake?.walkthroughCompleted ? '✓ Customer Walkthrough Completed' : 'Pending Client Submission'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Complete intake records entered by client during the Kickoff Walkthrough. All credentials and configurations visible for PM staging.
-                </p>
-              </div>
+          {/* Customer Kickoff Intake Form Results (Project Manager Clean View & Interactive Edit Mode) */}
+          {(() => {
+            const kickoffEval = evaluateKickoffIntake(project);
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsPortalBuildOutOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-xs cursor-pointer"
-                  title="Open 18-question Portal Build Out form and export PDF"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Portal Build Out</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('customer-kickoff')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Presentation className="w-3.5 h-3.5" />
-                  <span>Open Client Walkthrough</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 4-Column High-Level Intake Data Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* Box 1: PMS Integration & Entrata Password (Visible to PMs) */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
-                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                  <span>PMS &amp; Mgmt Co.</span>
-                  <span className="font-mono text-[11px] font-bold text-sky-700 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    {pmsChoice}
-                  </span>
-                </div>
-
-                <div className="text-[11px] bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between gap-2">
-                  <span className="text-slate-500 font-medium shrink-0">Property Mgmt Co.:</span>
-                  <span className="font-bold text-slate-900 truncate">
-                    {getPropertyManagementCompany(project) || 'Not specified (Optional)'}
-                  </span>
-                </div>
-
-                {pmsChoice === 'Entrata' ? (
-                  <div className="space-y-2 text-xs">
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200 font-mono text-[11px] space-y-1.5 shadow-2xs">
-                      <div>
-                        <span className="text-slate-500">API URL:</span>{' '}
-                        <span className="text-slate-800 font-medium truncate block">
-                          {project.customerIntake?.entrataCredentials?.apiBaseUrl || 'https://api.entrata.com/v1'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Username:</span>{' '}
-                        <strong className="text-slate-900 font-bold">
-                          {project.customerIntake?.entrataCredentials?.username || 'quext_pms_sync'}
-                        </strong>
-                      </div>
-                      
-                      {/* Entrata Password (Explicitly Visible to Project Managers) */}
-                      <div className="pt-1.5 border-t border-slate-100">
-                        <div className="flex items-center justify-between">
-                          <span className="text-amber-900 font-bold">Entrata Password:</span>
-                          <button
-                            type="button"
-                            onClick={() => setShowEntrataPassword(!showEntrataPassword)}
-                            className="text-[10px] text-sky-700 hover:text-sky-900 font-semibold underline cursor-pointer"
-                          >
-                            {showEntrataPassword ? 'Mask' : 'Reveal'}
-                          </button>
-                        </div>
-                        <div className="mt-1 flex items-center justify-between bg-amber-50 px-2 py-1 rounded border border-amber-200">
-                          <span className="font-bold text-amber-950 font-mono select-all">
-                            {showEntrataPassword
-                              ? project.customerIntake?.entrataCredentials?.password || 'EntrataPass#2026!'
-                              : '••••••••••••••••'}
-                          </span>
-                          <span className="text-[9px] font-bold text-amber-800 uppercase">
-                            PM Visible
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
-                      <Check className="w-3 h-3" />
-                      <span>Ready for API bridge syncing</span>
-                    </div>
-                  </div>
-                ) : pmsChoice === 'None' ? (
-                  <p className="text-xs text-slate-500">
-                    Client selected &quot;None&quot; (Standalone Quext Cloud Tenant).
-                  </p>
-                ) : (
-                  <div className="space-y-1.5 text-xs">
-                    <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg text-[11px] text-amber-900">
-                      <strong>PMS Partner:</strong> Client instructed to authorize Quext in {pmsChoice} App Store.
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Box 2: Operational Parameters & Setpoints */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
-                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                  <span>Climate &amp; Keys</span>
-                  <Thermometer className="w-3.5 h-3.5 text-amber-600" />
-                </div>
-
-                <div className="space-y-1.5 text-[11px]">
+            return (
+              <div id="pm-kickoff-intake" className="scroll-mt-36 bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                   <div>
-                    <span className="text-slate-500">Thermostat Setpoints:</span>
-                    <div className="font-semibold text-slate-900 font-mono mt-0.5">
-                      {project.customerIntake?.thermostatTempRange || '65°F cool min / 75°F heat max'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Emergency Access &amp; Knox:</span>
-                    <div className="font-semibold text-slate-900 mt-0.5 truncate">
-                      {project.customerIntake?.fireKeysFobs || 'Fire Knox Box #4, 2 Master Fobs'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Access Groups / Notes:</span>
-                    <div className="font-semibold text-slate-800 mt-0.5 truncate">
-                      {project.customerIntake?.customGroupsNotes || 'Standard resident & amenity tiers'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Box 3: Community Site Contacts */}
-              <div className={`p-3.5 border rounded-xl space-y-2 text-xs transition-all ${
-                isPmEditMode ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-400/50' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span>Community Site Contact</span>
-                    {isPmEditMode && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-400 text-slate-950">
-                        Editable
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-sky-600" />
+                      <h3 className="text-base font-bold text-slate-900">
+                        Customer Kickoff Intake Form Results (Project Manager View)
+                      </h3>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold border ${
+                        kickoffEval.isFullyCompleted
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : kickoffEval.hasProductCorrection
+                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                          : 'bg-amber-50 text-amber-800 border-amber-300'
+                      }`}>
+                        {kickoffEval.isFullyCompleted
+                          ? '✓ All Kickoff Items Complete (6/6)'
+                          : kickoffEval.hasProductCorrection
+                          ? '⚠ Product Correction Requested'
+                          : `${kickoffEval.completedCount} of ${kickoffEval.totalItems} Items Completed (${kickoffEval.percentage}%)`}
                       </span>
-                    )}
-                  </span>
-                  <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                      {isKickoffIntakeEditMode && (
+                        <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-amber-400 text-slate-950 animate-pulse">
+                          ✎ Edit Mode Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Intake records entered by client during the Kickoff Walkthrough. Toggle edit mode below to update PMS credentials, common doors, staff roster, or resolve customer notes.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsKickoffIntakeEditMode(!isKickoffIntakeEditMode)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shadow-xs ${
+                        isKickoffIntakeEditMode
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400'
+                          : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold'
+                      }`}
+                      title={isKickoffIntakeEditMode ? 'Exit edit mode and lock intake' : 'Switch into PM editable mode to update intake fields'}
+                    >
+                      {isKickoffIntakeEditMode ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Save &amp; Lock Intake</span>
+                        </>
+                      ) : (
+                        <>
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit Intake Answers</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPortalBuildOutOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+                      title="Open 18-question Portal Build Out form and export PDF"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Portal Build Out</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('customer-kickoff')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Presentation className="w-3.5 h-3.5" />
+                      <span>Open Client Walkthrough</span>
+                    </button>
+                  </div>
                 </div>
 
-                {effectivePmEditMode ? (
-                  <div className="space-y-2 text-[11px]">
-                    <div>
-                      <label className="text-slate-600 block text-[10px] font-semibold">Site Phone Number:</label>
-                      <input
-                        type="text"
-                        value={project.customerIntake?.sitePhoneNumber || ''}
-                        onChange={(e) => handleUpdateCustomerIntake({ sitePhoneNumber: e.target.value })}
-                        className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        placeholder="(512) 555-8900"
-                      />
+                {/* Kickoff Documents & Items Completion Checklist Banner */}
+                <div className="bg-gradient-to-r from-slate-50 via-sky-50/30 to-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Kickoff Deliverables &amp; Intake Checklist
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-600">
+                        ({kickoffEval.completedCount}/{kickoffEval.totalItems} Items Ready)
+                      </span>
                     </div>
-                    <div>
-                      <label className="text-slate-600 block text-[10px] font-semibold">Community Email:</label>
-                      <input
-                        type="email"
-                        value={project.customerIntake?.communityEmail || ''}
-                        onChange={(e) => handleUpdateCustomerIntake({ communityEmail: e.target.value })}
-                        className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        placeholder="leasing@property.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-600 block text-[10px] font-semibold">Primary Site Contact Name:</label>
-                      <input
-                        type="text"
-                        value={project.customerIntake?.submittedBy || ''}
-                        onChange={(e) => handleUpdateCustomerIntake({ submittedBy: e.target.value })}
-                        className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        placeholder="Property Manager"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-600 block text-[10px] font-semibold">Time Zone &amp; Priority Dates:</label>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <select
-                          value={project.customerIntake?.timeZone || 'Central Time (CT)'}
-                          onChange={(e) => handleUpdateCustomerIntake({ timeZone: e.target.value })}
-                          className="w-full bg-white border border-amber-300 rounded px-1.5 py-1 text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        >
-                          <option value="Central Time (CT)">Central (CT)</option>
-                          <option value="Eastern Time (ET)">Eastern (ET)</option>
-                          <option value="Mountain Time (MT)">Mountain (MT)</option>
-                          <option value="Pacific Time (PT)">Pacific (PT)</option>
-                          <option value="Arizona (MST)">Arizona</option>
-                        </select>
-                        <input
-                          type="text"
-                          value={project.customerIntake?.priorityDating || ''}
-                          onChange={(e) => handleUpdateCustomerIntake({ priorityDating: e.target.value })}
-                          className="w-full bg-white border border-amber-300 rounded px-1.5 py-1 text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                          placeholder="Immediate"
+                    <div className="flex items-center gap-2 w-full sm:w-64">
+                      <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 ${
+                            kickoffEval.percentage === 100
+                              ? 'bg-emerald-600'
+                              : kickoffEval.percentage >= 60
+                              ? 'bg-sky-600'
+                              : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${kickoffEval.percentage}%` }}
                         />
                       </div>
+                      <span className="font-mono text-xs font-bold text-slate-700 shrink-0">
+                        {kickoffEval.percentage}%
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-1.5 text-[11px]">
-                    <div>
-                      <span className="text-slate-500">Site Phone Number:</span>
-                      <div className="font-bold text-slate-900 font-mono mt-0.5">
-                        {project.customerIntake?.sitePhoneNumber || '(512) 555-8900'}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Community Email:</span>
-                      <div className="font-semibold text-slate-900 mt-0.5 truncate">
-                        {project.customerIntake?.communityEmail || `${project.propertyName.toLowerCase().replace(/[^a-z0-9]/g, '')}@property.com`}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Time Zone &amp; Priority Dates:</span>
-                      <div className="font-semibold text-slate-800 mt-0.5">
-                        {project.customerIntake?.timeZone || 'Central Time (CT)'} · {project.customerIntake?.priorityDating || 'Immediate'}
-                      </div>
-                    </div>
-                    {project.customerIntake?.submittedBy && (
-                      <div>
-                        <span className="text-slate-500">Primary Contact:</span>
-                        <div className="font-semibold text-slate-800 mt-0.5">
-                          {project.customerIntake.submittedBy}
+
+                  {/* 6 Diagnostic Checklist Tiles */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                    {kickoffEval.items.map((item) => {
+                      const isComplete = item.isComplete;
+                      const isAttention = item.statusTag === 'attention';
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`p-2.5 rounded-lg border flex flex-col justify-between transition-colors ${
+                            isComplete
+                              ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                              : isAttention
+                              ? 'bg-amber-50 border-amber-300 text-amber-950'
+                              : 'bg-white border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider truncate" title={item.title}>
+                              {item.title}
+                            </span>
+                            {isComplete ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            ) : isAttention ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            ) : (
+                              <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            )}
+                          </div>
+                          <div className="mt-1">
+                            <div className="font-bold text-xs truncate" title={item.statusLabel}>
+                              {item.statusLabel}
+                            </div>
+                            <div className="text-[10px] text-slate-500 truncate mt-0.5" title={item.detail}>
+                              {item.detail}
+                            </div>
+                          </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Customer Reported Product List Correction Banner */}
+                {project.customerIntake?.customerProductListStatus === 'correction_requested' && (
+                  <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-xl space-y-2 animate-fadeIn">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                        <div>
+                          <h4 className="font-extrabold text-xs uppercase tracking-wider text-amber-950">
+                            Property Requested Product List / Hardware Scope Correction
+                          </h4>
+                          <p className="text-[11px] text-amber-800">
+                            The client indicated on the customer walkthrough that the hardware BOM list has a discrepancy requiring correction.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateCustomerIntake({ customerProductListStatus: 'confirmed' })}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors shrink-0 cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Mark Correction Resolved &amp; Approved</span>
+                      </button>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-lg border border-amber-200">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                        Client Note / Requested Changes:
+                      </span>
+                      {isKickoffIntakeEditMode ? (
+                        <textarea
+                          rows={2}
+                          value={project.customerIntake?.customerProductCorrectionNotes || ''}
+                          onChange={(e) => handleUpdateCustomerIntake({ customerProductCorrectionNotes: e.target.value })}
+                          className="w-full text-xs text-amber-950 bg-amber-50/50 border border-amber-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          placeholder="Type notes on the product correction resolution..."
+                        />
+                      ) : (
+                        <p className="text-xs font-medium text-amber-950 italic">
+                          &quot;{project.customerIntake?.customerProductCorrectionNotes || 'No specific notes provided by customer.'}&quot;
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Customer Project Notes & Special Instructions */}
+                {(project.customerIntake?.customerNotes || isKickoffIntakeEditMode) && (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-sky-600" />
+                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                          Customer Project Notes &amp; Special Site Instructions
+                        </span>
+                      </div>
+                      {isKickoffIntakeEditMode && (
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                          PM Editable
+                        </span>
+                      )}
+                    </div>
+                    {isKickoffIntakeEditMode ? (
+                      <textarea
+                        rows={2}
+                        value={project.customerIntake?.customerNotes || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ customerNotes: e.target.value })}
+                        className="w-full text-xs text-slate-900 bg-white border border-amber-300 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        placeholder="Add or refine customer special instructions, delivery preferences, access codes..."
+                      />
+                    ) : (
+                      <div className="bg-white p-3 rounded-lg border border-slate-200 text-xs text-slate-800 italic">
+                        &quot;{project.customerIntake?.customerNotes}&quot;
                       </div>
                     )}
                   </div>
                 )}
-              </div>
 
-              {/* Box 4: Common Doors & Walkthrough Subscription */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
-                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                  <span>Doors &amp; Subscription</span>
-                  <DoorOpen className="w-3.5 h-3.5 text-purple-600" />
-                </div>
+                {/* PM Internal Intake & Staging Notes */}
+                {(project.customerIntake?.pmIntakeNotes || isKickoffIntakeEditMode) && (
+                  <div className="p-3.5 bg-indigo-50/40 border border-indigo-200 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-indigo-600" />
+                        <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                          Internal PM Intake &amp; Staging Notes
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded border border-indigo-300">
+                        Quext Internal Only
+                      </span>
+                    </div>
+                    {isKickoffIntakeEditMode ? (
+                      <textarea
+                        rows={2}
+                        value={project.customerIntake?.pmIntakeNotes || ''}
+                        onChange={(e) => handleUpdateCustomerIntake({ pmIntakeNotes: e.target.value })}
+                        className="w-full text-xs text-slate-900 bg-white border border-indigo-300 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        placeholder="Add internal notes for field techs, staging logistics, or installer briefing..."
+                      />
+                    ) : (
+                      <div className="bg-white p-3 rounded-lg border border-indigo-200 text-xs text-slate-800">
+                        {project.customerIntake?.pmIntakeNotes}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                <div className="space-y-1.5 text-[11px]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Common Doors Tree:</span>
-                    <strong className="text-slate-900 font-mono">{commonDoors.length} Doors Configured</strong>
+                {/* 4-Column High-Level Intake Data Grid (Read-Only or Interactive PM Edit Mode) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  
+                  {/* Box 1: PMS Integration & Entrata Password */}
+                  <div className={`p-3.5 rounded-xl space-y-2.5 transition-all ${
+                    isKickoffIntakeEditMode ? 'bg-amber-50/50 border-2 border-amber-300 ring-1 ring-amber-400/50' : 'bg-slate-50 border border-slate-200'
+                  }`}>
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                      <span>PMS &amp; Mgmt Co.</span>
+                      {isKickoffIntakeEditMode ? (
+                        <select
+                          value={pmsChoice}
+                          onChange={(e) => handleUpdateCustomerIntake({ pmsSoftware: e.target.value as any })}
+                          className="font-mono text-[11px] font-bold text-sky-800 bg-white px-2 py-0.5 rounded border border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                        >
+                          <option value="Entrata">Entrata</option>
+                          <option value="RealPage">RealPage</option>
+                          <option value="Yardi">Yardi</option>
+                          <option value="ResMan">ResMan</option>
+                          <option value="RentManager">RentManager</option>
+                          <option value="None">None (Standalone)</option>
+                        </select>
+                      ) : (
+                        <span className="font-mono text-[11px] font-bold text-sky-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                          {pmsChoice}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-[11px] bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between gap-2">
+                      <span className="text-slate-500 font-medium shrink-0">Property Mgmt Co.:</span>
+                      {isKickoffIntakeEditMode ? (
+                        <input
+                          type="text"
+                          value={project.customerIntake?.propertyManagementCompany || ''}
+                          onChange={(e) => handleUpdateCustomerIntake({ propertyManagementCompany: e.target.value })}
+                          placeholder="e.g. Greystar, Lincoln"
+                          className="w-full text-right text-xs font-bold text-slate-900 border border-amber-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                      ) : (
+                        <span className="font-bold text-slate-900 truncate">
+                          {getPropertyManagementCompany(project) || 'Not specified (Optional)'}
+                        </span>
+                      )}
+                    </div>
+
+                    {pmsChoice === 'Entrata' ? (
+                      <div className="space-y-2 text-xs">
+                        <div className="bg-white p-2.5 rounded-lg border border-slate-200 font-mono text-[11px] space-y-1.5 shadow-2xs">
+                          <div>
+                            <span className="text-slate-500">API URL:</span>{' '}
+                            {isKickoffIntakeEditMode ? (
+                              <input
+                                type="text"
+                                value={project.customerIntake?.entrataCredentials?.apiBaseUrl || 'https://api.entrata.com/v1'}
+                                onChange={(e) =>
+                                  handleUpdateCustomerIntake({
+                                    entrataCredentials: {
+                                      apiBaseUrl: e.target.value,
+                                      username: project.customerIntake?.entrataCredentials?.username || 'quext_pms_sync',
+                                      password: project.customerIntake?.entrataCredentials?.password || 'EntrataPass#2026!',
+                                    },
+                                  })
+                                }
+                                className="w-full mt-0.5 text-[10px] text-slate-800 font-medium border border-amber-300 rounded px-1.5 py-0.5 focus:outline-none"
+                              />
+                            ) : (
+                              <span className="text-slate-800 font-medium truncate block">
+                                {project.customerIntake?.entrataCredentials?.apiBaseUrl || 'https://api.entrata.com/v1'}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Username:</span>{' '}
+                            {isKickoffIntakeEditMode ? (
+                              <input
+                                type="text"
+                                value={project.customerIntake?.entrataCredentials?.username || 'quext_pms_sync'}
+                                onChange={(e) =>
+                                  handleUpdateCustomerIntake({
+                                    entrataCredentials: {
+                                      apiBaseUrl: project.customerIntake?.entrataCredentials?.apiBaseUrl || 'https://api.entrata.com/v1',
+                                      username: e.target.value,
+                                      password: project.customerIntake?.entrataCredentials?.password || 'EntrataPass#2026!',
+                                    },
+                                  })
+                                }
+                                className="w-full mt-0.5 text-[10px] text-slate-900 font-bold border border-amber-300 rounded px-1.5 py-0.5 focus:outline-none"
+                              />
+                            ) : (
+                              <strong className="text-slate-900 font-bold">
+                                {project.customerIntake?.entrataCredentials?.username || 'quext_pms_sync'}
+                              </strong>
+                            )}
+                          </div>
+                          
+                          {/* Entrata Password */}
+                          <div className="pt-1.5 border-t border-slate-100">
+                            <div className="flex items-center justify-between">
+                              <span className="text-amber-900 font-bold">Entrata Password:</span>
+                              <button
+                                type="button"
+                                onClick={() => setShowEntrataPassword(!showEntrataPassword)}
+                                className="text-[10px] text-sky-700 hover:text-sky-900 font-semibold underline cursor-pointer"
+                              >
+                                {showEntrataPassword ? 'Mask' : 'Reveal'}
+                              </button>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                              {isKickoffIntakeEditMode ? (
+                                <input
+                                  type={showEntrataPassword ? 'text' : 'password'}
+                                  value={project.customerIntake?.entrataCredentials?.password || 'EntrataPass#2026!'}
+                                  onChange={(e) =>
+                                    handleUpdateCustomerIntake({
+                                      entrataCredentials: {
+                                        apiBaseUrl: project.customerIntake?.entrataCredentials?.apiBaseUrl || 'https://api.entrata.com/v1',
+                                        username: project.customerIntake?.entrataCredentials?.username || 'quext_pms_sync',
+                                        password: e.target.value,
+                                      },
+                                    })
+                                  }
+                                  className="w-full text-xs font-bold text-amber-950 font-mono bg-white border border-amber-300 rounded px-1.5 py-0.5 focus:outline-none"
+                                />
+                              ) : (
+                                <span className="font-bold text-amber-950 font-mono select-all">
+                                  {showEntrataPassword
+                                    ? project.customerIntake?.entrataCredentials?.password || 'EntrataPass#2026!'
+                                    : '••••••••••••••••'}
+                                </span>
+                              )}
+                              <span className="text-[9px] font-bold text-amber-800 uppercase ml-1 shrink-0">
+                                PM Visible
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          <span>Ready for API bridge syncing</span>
+                        </div>
+                      </div>
+                    ) : pmsChoice === 'None' ? (
+                      <p className="text-xs text-slate-500">
+                        Client selected &quot;None&quot; (Standalone Quext Cloud Tenant).
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 text-xs">
+                        <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg text-[11px] text-amber-900">
+                          <strong>PMS Partner:</strong> Client instructed to authorize Quext in {pmsChoice} App Store.
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Client Door Approval:</span>
-                    <span className="font-bold text-emerald-700">
-                      {project.customerIntake?.doorsConfirmedByCustomer ? '✓ Confirmed by Client' : 'Pending Client Review'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Email Updates Subscriber:</span>
-                    <div className="font-mono text-slate-900 text-[10px] truncate mt-0.5">
-                      {project.customerIntake?.subscriberEmail || project.assignedPM.email}
+
+                  {/* Box 2: Operational Parameters & Setpoints */}
+                  <div className={`p-3.5 rounded-xl space-y-2 text-xs transition-all ${
+                    isKickoffIntakeEditMode ? 'bg-amber-50/50 border-2 border-amber-300 ring-1 ring-amber-400/50' : 'bg-slate-50 border border-slate-200'
+                  }`}>
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                      <span>Climate &amp; Keys</span>
+                      <Thermometer className="w-3.5 h-3.5 text-amber-600" />
+                    </div>
+
+                    <div className="space-y-1.5 text-[11px]">
+                      <div>
+                        <span className="text-slate-500 font-medium">Thermostat Setpoints:</span>
+                        {isKickoffIntakeEditMode ? (
+                          <input
+                            type="text"
+                            value={project.customerIntake?.thermostatTempRange || ''}
+                            onChange={(e) => handleUpdateCustomerIntake({ thermostatTempRange: e.target.value })}
+                            placeholder="65°F cool min / 75°F heat max"
+                            className="w-full mt-0.5 bg-white border border-amber-300 rounded px-2 py-1 text-xs font-mono font-semibold text-slate-900 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="font-semibold text-slate-900 font-mono mt-0.5">
+                            {project.customerIntake?.thermostatTempRange || '65°F cool min / 75°F heat max'}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-medium">Emergency Access &amp; Knox:</span>
+                        {isKickoffIntakeEditMode ? (
+                          <input
+                            type="text"
+                            value={project.customerIntake?.fireKeysFobs || ''}
+                            onChange={(e) => handleUpdateCustomerIntake({ fireKeysFobs: e.target.value })}
+                            placeholder="Fire Knox Box #4, 2 Master Fobs"
+                            className="w-full mt-0.5 bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-900 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="font-semibold text-slate-900 mt-0.5 truncate">
+                            {project.customerIntake?.fireKeysFobs || 'Fire Knox Box #4, 2 Master Fobs'}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-medium">Access Groups / Notes:</span>
+                        {isKickoffIntakeEditMode ? (
+                          <input
+                            type="text"
+                            value={project.customerIntake?.customGroupsNotes || ''}
+                            onChange={(e) => handleUpdateCustomerIntake({ customGroupsNotes: e.target.value })}
+                            placeholder="Standard resident & amenity tiers"
+                            className="w-full mt-0.5 bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-800 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="font-semibold text-slate-800 mt-0.5 truncate">
+                            {project.customerIntake?.customGroupsNotes || 'Standard resident & amenity tiers'}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono">
-                    Cadence:{' '}
-                    <strong className={isCommsCadenceLive ? 'text-emerald-700 uppercase' : 'text-amber-700 uppercase'}>
-                      {isCommsCadenceLive ? `LIVE • ${commsCadenceShortLabel}` : 'PAUSED'}
-                    </strong>
-                  </div>
-                </div>
-              </div>
 
-            </div>
-
-            {/* Row 2: QR Intercom, NFC Wallet Upgrade, and Site Plan Gateway PDF Status */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div className="p-3 bg-indigo-50/50 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <div className="font-bold text-indigo-950 flex items-center gap-1.5">
-                    <QrCode className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>QR Intercom Feature</span>
-                  </div>
-                  <div className="text-[11px] text-slate-600">
-                    {project.customerIntake?.qrIntercomLogoName
-                      ? `Logo: ${project.customerIntake.qrIntercomLogoName}`
-                      : 'No QR Intercom logo uploaded yet'}
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  isQrIntercomEnabled
-                    ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200'
-                }`}>
-                  {isQrIntercomEnabled ? 'Active' : 'Off'}
-                </span>
-              </div>
-
-              <div className="p-3 bg-emerald-50/50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <div className="font-bold text-emerald-950 flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>NFC Wallet Upgrade</span>
-                  </div>
-                  <div className="text-[11px] text-slate-600">
-                    {project.customerIntake?.nfcCardArtPhotoName
-                      ? `Card Art: ${project.customerIntake.nfcCardArtPhotoName}`
-                      : 'No property card art photo uploaded yet'}
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  isNfcEnabled
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200'
-                }`}>
-                  {isNfcEnabled ? 'Active' : 'Off'}
-                </span>
-              </div>
-
-              {(() => {
-                const hasGateways = projectHasGatewayOrHubOnBOM(project.bomItems);
-                const hasPdf = Boolean(project.customerIntake?.sitePlanPdfName);
-                const isCompleted = !hasGateways || hasPdf;
-
-                return (
-                  <div className={`p-3 rounded-xl flex items-center justify-between text-xs border ${
-                    !hasGateways
-                      ? 'bg-emerald-50/50 border-emerald-200'
-                      : hasPdf
-                      ? 'bg-emerald-50/50 border-emerald-200'
-                      : 'bg-amber-50/50 border-amber-200'
+                  {/* Box 3: Community Site Contacts */}
+                  <div className={`p-3.5 border rounded-xl space-y-2 text-xs transition-all ${
+                    isKickoffIntakeEditMode ? 'bg-amber-50/50 border-2 border-amber-300 ring-1 ring-amber-400/50' : 'bg-slate-50 border border-slate-200'
                   }`}>
-                    <div className="space-y-0.5">
-                      <div className={`font-bold flex items-center gap-1.5 ${
-                        isCompleted ? 'text-emerald-950' : 'text-amber-950'
-                      }`}>
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span>Community Site Contact</span>
+                        {isKickoffIntakeEditMode && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-400 text-slate-950">
+                            Editable
+                          </span>
                         )}
-                        <span>Site Maps Gateway PDF</span>
+                      </span>
+                      <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                    </div>
+
+                    {isKickoffIntakeEditMode ? (
+                      <div className="space-y-2 text-[11px]">
+                        <div>
+                          <label className="text-slate-600 block text-[10px] font-semibold">Site Phone Number:</label>
+                          <input
+                            type="text"
+                            value={project.customerIntake?.sitePhoneNumber || ''}
+                            onChange={(e) => handleUpdateCustomerIntake({ sitePhoneNumber: e.target.value })}
+                            className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            placeholder="(512) 555-8900"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-slate-600 block text-[10px] font-semibold">Community Email:</label>
+                          <input
+                            type="email"
+                            value={project.customerIntake?.communityEmail || ''}
+                            onChange={(e) => handleUpdateCustomerIntake({ communityEmail: e.target.value })}
+                            className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            placeholder="leasing@property.com"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-slate-600 block text-[10px] font-semibold">Primary Site Contact Name:</label>
+                          <input
+                            type="text"
+                            value={project.customerIntake?.submittedBy || ''}
+                            onChange={(e) => handleUpdateCustomerIntake({ submittedBy: e.target.value })}
+                            className="w-full bg-white border border-amber-300 rounded px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            placeholder="Property Manager"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-slate-600 block text-[10px] font-semibold">Time Zone &amp; Priority Dates:</label>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <select
+                              value={project.customerIntake?.timeZone || 'Central Time (CT)'}
+                              onChange={(e) => handleUpdateCustomerIntake({ timeZone: e.target.value })}
+                              className="w-full bg-white border border-amber-300 rounded px-1.5 py-1 text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            >
+                              <option value="Central Time (CT)">Central (CT)</option>
+                              <option value="Eastern Time (ET)">Eastern (ET)</option>
+                              <option value="Mountain Time (MT)">Mountain (MT)</option>
+                              <option value="Pacific Time (PT)">Pacific (PT)</option>
+                              <option value="Arizona (MST)">Arizona</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={project.customerIntake?.priorityDating || ''}
+                              onChange={(e) => handleUpdateCustomerIntake({ priorityDating: e.target.value })}
+                              className="w-full bg-white border border-amber-300 rounded px-1.5 py-1 text-[11px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                              placeholder="Immediate"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 text-[11px]">
+                        <div>
+                          <span className="text-slate-500">Site Phone Number:</span>
+                          <div className="font-bold text-slate-900 font-mono mt-0.5">
+                            {project.customerIntake?.sitePhoneNumber || '(512) 555-8900'}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Community Email:</span>
+                          <div className="font-semibold text-slate-900 mt-0.5 truncate">
+                            {project.customerIntake?.communityEmail || `${project.propertyName.toLowerCase().replace(/[^a-z0-9]/g, '')}@property.com`}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Time Zone &amp; Priority Dates:</span>
+                          <div className="font-semibold text-slate-800 mt-0.5">
+                            {project.customerIntake?.timeZone || 'Central Time (CT)'} · {project.customerIntake?.priorityDating || 'Immediate'}
+                          </div>
+                        </div>
+                        {project.customerIntake?.submittedBy && (
+                          <div>
+                            <span className="text-slate-500">Primary Contact:</span>
+                            <div className="font-semibold text-slate-800 mt-0.5">
+                              {project.customerIntake.submittedBy}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Box 4: Common Doors & Walkthrough Subscription */}
+                  <div className={`p-3.5 rounded-xl space-y-2 text-xs transition-all ${
+                    isKickoffIntakeEditMode ? 'bg-amber-50/50 border-2 border-amber-300 ring-1 ring-amber-400/50' : 'bg-slate-50 border border-slate-200'
+                  }`}>
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                      <span>Doors &amp; Subscription</span>
+                      <DoorOpen className="w-3.5 h-3.5 text-purple-600" />
+                    </div>
+
+                    <div className="space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Common Doors:</span>
+                        <strong className="text-slate-900 font-mono">{commonDoors.length} Doors Configured</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Door Approval:</span>
+                        {isKickoffIntakeEditMode ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateCustomerIntake({
+                                doorsConfirmedByCustomer: !project.customerIntake?.doorsConfirmedByCustomer,
+                              })
+                            }
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                              project.customerIntake?.doorsConfirmedByCustomer
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}
+                          >
+                            {project.customerIntake?.doorsConfirmedByCustomer ? '✓ Confirmed' : 'Mark Approved'}
+                          </button>
+                        ) : (
+                          <span className={`font-bold ${
+                            project.customerIntake?.doorsConfirmedByCustomer ? 'text-emerald-700' : 'text-amber-700'
+                          }`}>
+                            {project.customerIntake?.doorsConfirmedByCustomer ? '✓ Confirmed' : 'Pending Review'}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Email Updates Subscriber:</span>
+                        {isKickoffIntakeEditMode ? (
+                          <input
+                            type="email"
+                            value={project.customerIntake?.subscriberEmail || ''}
+                            onChange={(e) => handleUpdateCustomerIntake({ subscriberEmail: e.target.value })}
+                            placeholder={project.assignedPM.email}
+                            className="w-full mt-0.5 bg-white border border-amber-300 rounded px-1.5 py-0.5 text-xs font-mono text-slate-900 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="font-mono text-slate-900 text-[10px] truncate mt-0.5">
+                            {project.customerIntake?.subscriberEmail || project.assignedPM.email}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono">
+                        Cadence:{' '}
+                        <strong className={isCommsCadenceLive ? 'text-emerald-700 uppercase' : 'text-amber-700 uppercase'}>
+                          {isCommsCadenceLive ? `LIVE • ${commsCadenceShortLabel}` : 'PAUSED'}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Row 2: QR Intercom, NFC Wallet Upgrade, and Gateway Engineering Note */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  <div className="p-3 bg-indigo-50/50 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-indigo-950 flex items-center gap-1.5">
+                        <QrCode className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>QR Intercom Feature</span>
                       </div>
                       <div className="text-[11px] text-slate-600">
-                        {!hasGateways
-                          ? 'Completed (Not required — No Gateway/Hub on BOM)'
-                          : hasPdf
-                          ? `${project.customerIntake?.sitePlanPdfName} (${project.customerIntake?.sitePlanConfirmedEdited ? 'Confirmed Edited' : 'Pending Edit Check'})`
-                          : 'Awaiting client Site Plan PDF upload'}
+                        {project.customerIntake?.qrIntercomLogoName
+                          ? `Logo: ${project.customerIntake.qrIntercomLogoName}`
+                          : 'No QR Intercom logo uploaded yet'}
                       </div>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      !hasGateways
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : hasPdf
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                      isQrIntercomEnabled
+                        ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200'
                     }`}>
-                      {!hasGateways ? 'Completed' : hasPdf ? 'Uploaded' : 'Pending'}
+                      {isQrIntercomEnabled ? 'Active' : 'Off'}
                     </span>
                   </div>
-                );
-              })()}
-            </div>
 
-            {/* Staff Roster & Access Permissions Table */}
-            {staffMembers.length > 0 && (
-              <div className="pt-3 border-t border-slate-200">
-                <div className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center justify-between">
-                  <span>Authorized Staff Roster &amp; Permissions ({staffMembers.length} Members)</span>
-                  <Users2 className="w-4 h-4 text-slate-400" />
+                  <div className="p-3 bg-emerald-50/50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>NFC Wallet Upgrade</span>
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        {project.customerIntake?.nfcCardArtPhotoName
+                          ? `Card Art: ${project.customerIntake.nfcCardArtPhotoName}`
+                          : 'No property card art photo uploaded yet'}
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      isNfcEnabled
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}>
+                      {isNfcEnabled ? 'Active' : 'Off'}
+                    </span>
+                  </div>
+
+                  {/* Gateway Location Engineering Confirmation Note */}
+                  <div className="p-3 bg-sky-50/50 border border-sky-200 rounded-xl flex items-center justify-between text-xs">
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-sky-950 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Gateway RF Placement</span>
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        Managed internally by Quext Engineering Team (not property).
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
+                      Engineering
+                    </span>
+                  </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border border-slate-200 rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50 text-slate-600 font-semibold text-[11px] border-b border-slate-200">
-                      <tr>
-                        <th className="py-2 px-3">Staff Name</th>
-                        <th className="py-2 px-3">Role / Title</th>
-                        <th className="py-2 px-3">Email Address</th>
-                        <th className="py-2 px-3">Phone</th>
-                        <th className="py-2 px-3 text-right">Permission Tier</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {staffMembers.map((st) => (
-                        <tr key={st.id} className="hover:bg-slate-50/70">
-                          <td className="py-2 px-3 font-bold text-slate-900">{st.firstName} {st.lastName}</td>
-                          <td className="py-2 px-3 text-slate-600">{st.roleOrTitle || 'Onsite Staff'}</td>
-                          <td className="py-2 px-3 font-mono text-[11px] text-slate-700">{st.email}</td>
-                          <td className="py-2 px-3 font-mono text-[11px] text-slate-600">{st.phoneNumber}</td>
-                          <td className="py-2 px-3 text-right">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                              st.permissionLevel === 'Manager'
-                                ? 'bg-purple-50 text-purple-800 border-purple-200'
-                                : st.permissionLevel === 'Staff'
-                                ? 'bg-blue-50 text-blue-800 border-blue-200'
-                                : 'bg-slate-100 text-slate-700 border-slate-200'
-                            }`}>
-                              {st.permissionLevel}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {/* Staff Roster & Access Permissions Table */}
+                <div className="pt-3 border-t border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <Users2 className="w-4 h-4 text-slate-500" />
+                      <span>Authorized Staff Roster &amp; Permissions ({staffMembers.length} Members)</span>
+                    </div>
+
+                    {isKickoffIntakeEditMode && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingStaffMember(!isAddingStaffMember)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-300 rounded-lg cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{isAddingStaffMember ? 'Cancel' : 'Add Staff Member'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quick Add Staff Member Form (When in PM edit mode) */}
+                  {isAddingStaffMember && isKickoffIntakeEditMode && (
+                    <div className="p-3 bg-amber-50/50 border border-amber-300 rounded-lg space-y-2">
+                      <div className="text-xs font-bold text-amber-950">Add Staff Member to Intake Roster</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                        <input
+                          type="text"
+                          placeholder="First Name *"
+                          value={newStaffMember.firstName || ''}
+                          onChange={(e) => setNewStaffMember({ ...newStaffMember, firstName: e.target.value })}
+                          className="px-2 py-1 text-xs bg-white border border-slate-300 rounded text-slate-900"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Last Name"
+                          value={newStaffMember.lastName || ''}
+                          onChange={(e) => setNewStaffMember({ ...newStaffMember, lastName: e.target.value })}
+                          className="px-2 py-1 text-xs bg-white border border-slate-300 rounded text-slate-900"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email *"
+                          value={newStaffMember.email || ''}
+                          onChange={(e) => setNewStaffMember({ ...newStaffMember, email: e.target.value })}
+                          className="px-2 py-1 text-xs bg-white border border-slate-300 rounded text-slate-900"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Role (e.g. Lead Maintenance)"
+                          value={newStaffMember.roleOrTitle || ''}
+                          onChange={(e) => setNewStaffMember({ ...newStaffMember, roleOrTitle: e.target.value })}
+                          className="px-2 py-1 text-xs bg-white border border-slate-300 rounded text-slate-900"
+                        />
+                        <select
+                          value={newStaffMember.permissionLevel || 'Staff'}
+                          onChange={(e) => setNewStaffMember({ ...newStaffMember, permissionLevel: e.target.value as any })}
+                          className="px-2 py-1 text-xs bg-white border border-slate-300 rounded text-slate-900"
+                        >
+                          <option value="Manager">Manager</option>
+                          <option value="Staff">Staff</option>
+                          <option value="Maintenance">Maintenance</option>
+                          <option value="Courtesy Officer">Courtesy Officer</option>
+                        </select>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingStaffMember(false)}
+                          className="px-3 py-1 text-xs text-slate-600 hover:text-slate-800"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newStaffMember.firstName?.trim() || !newStaffMember.email?.trim()) return;
+                            const newStaff: StaffRoleSubmission = {
+                              id: `staff-${Date.now()}`,
+                              firstName: newStaffMember.firstName.trim(),
+                              lastName: newStaffMember.lastName?.trim() || '',
+                              roleOrTitle: newStaffMember.roleOrTitle?.trim() || 'Property Staff',
+                              email: newStaffMember.email.trim(),
+                              phoneNumber: newStaffMember.phoneNumber?.trim() || '',
+                              permissionLevel: newStaffMember.permissionLevel || 'Staff',
+                            };
+                            handleUpdateCustomerIntake({
+                              staffRoles: [...staffMembers, newStaff],
+                            });
+                            setNewStaffMember({
+                              firstName: '',
+                              lastName: '',
+                              roleOrTitle: '',
+                              email: '',
+                              phoneNumber: '',
+                              permissionLevel: 'Staff',
+                            });
+                            setIsAddingStaffMember(false);
+                          }}
+                          className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-xs font-bold cursor-pointer"
+                        >
+                          Save Staff Member
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {staffMembers.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border border-slate-200 rounded-lg overflow-hidden">
+                        <thead className="bg-slate-50 text-slate-600 font-semibold text-[11px] border-b border-slate-200">
+                          <tr>
+                            <th className="py-2 px-3">Staff Name</th>
+                            <th className="py-2 px-3">Role / Title</th>
+                            <th className="py-2 px-3">Email Address</th>
+                            <th className="py-2 px-3">Phone</th>
+                            <th className="py-2 px-3 text-right">Permission Tier</th>
+                            {isKickoffIntakeEditMode && <th className="py-2 px-3 text-right">Action</th>}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {staffMembers.map((st) => (
+                            <tr key={st.id} className="hover:bg-slate-50/70">
+                              <td className="py-2 px-3 font-bold text-slate-900">{st.firstName} {st.lastName}</td>
+                              <td className="py-2 px-3 text-slate-600">{st.roleOrTitle || 'Onsite Staff'}</td>
+                              <td className="py-2 px-3 font-mono text-[11px] text-slate-700">{st.email}</td>
+                              <td className="py-2 px-3 font-mono text-[11px] text-slate-600">{st.phoneNumber || '—'}</td>
+                              <td className="py-2 px-3 text-right">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                  st.permissionLevel === 'Manager'
+                                    ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                    : st.permissionLevel === 'Staff'
+                                    ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                                }`}>
+                                  {st.permissionLevel}
+                                </span>
+                              </td>
+                              {isKickoffIntakeEditMode && (
+                                <td className="py-2 px-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateCustomerIntake({
+                                        staffRoles: staffMembers.filter((s) => s.id !== st.id),
+                                      })
+                                    }
+                                    className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"
+                                    title="Remove staff member"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-lg text-center text-xs text-slate-500">
+                      No staff members logged yet. Click &quot;Add Staff Member&quot; above to add property contacts.
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Visual Graph Showing Progress & Hardware Categories Progress Breakdown (with NFC Wallet Upgrade & QR Intercom Feature Checkboxes) */}
           <div id="pm-hardware-progress" className="scroll-mt-36">

@@ -1259,7 +1259,148 @@ export interface KickoffCustomerIntake {
   nfcCardArtPhotoName?: string;
   nfcCardArtPhotoDataUrl?: string;
   nfcCardArtUploadedAt?: string;
+  // Customer Product List Verification & Fillable Misc Notes
+  customerProductListStatus?: 'confirmed' | 'correction_requested';
+  customerProductCorrectionNotes?: string;
+  customerNotes?: string; // Fillable miscellaneous customer notes / special site instructions
+  pmIntakeNotes?: string; // Internal Project Manager notes on kickoff intake
   additionalCustomerEmails?: string[]; // PM manually added customer emails for automated digests & manual dispatches
+}
+
+export interface KickoffItemStatus {
+  id: 'walkthrough' | 'pms' | 'doors' | 'staff' | 'hardware' | 'contacts';
+  title: string;
+  isComplete: boolean;
+  statusTag: 'completed' | 'pending' | 'attention';
+  statusLabel: string;
+  detail: string;
+}
+
+export interface KickoffEvaluation {
+  totalItems: number;
+  completedCount: number;
+  percentage: number;
+  isFullyCompleted: boolean;
+  hasProductCorrection: boolean;
+  productCorrectionNotes?: string;
+  items: KickoffItemStatus[];
+}
+
+export function evaluateKickoffIntake(project: OperationProject): KickoffEvaluation {
+  const intake = project.customerIntake;
+  const walkthroughCompleted = Boolean(intake?.walkthroughCompleted);
+  const pmsChoice = intake?.pmsSoftware;
+  const isPmsConfigured = Boolean(pmsChoice && pmsChoice !== 'None') || pmsChoice === 'None';
+  const doorCount = intake?.commonAreaDoors?.length || 0;
+  const isDoorsConfirmed = doorCount > 0 && Boolean(intake?.doorsConfirmedByCustomer);
+  const staffCount = intake?.staffRoles?.length || 0;
+  const isStaffProvided = staffCount > 0;
+  const productStatus = intake?.customerProductListStatus;
+  const isHardwareConfirmed = productStatus === 'confirmed';
+  const hasHardwareCorrection = productStatus === 'correction_requested';
+  const hasContactsOrNotes = Boolean(
+    intake?.sitePhoneNumber ||
+    intake?.communityEmail ||
+    intake?.submittedBy ||
+    intake?.customerNotes
+  );
+
+  const items: KickoffItemStatus[] = [
+    {
+      id: 'walkthrough',
+      title: 'Walkthrough Submission',
+      isComplete: walkthroughCompleted,
+      statusTag: walkthroughCompleted ? 'completed' : 'pending',
+      statusLabel: walkthroughCompleted ? 'Submitted' : 'Pending',
+      detail: walkthroughCompleted
+        ? `Completed${intake?.submittedAt ? ` on ${new Date(intake.submittedAt).toLocaleDateString()}` : ''}`
+        : 'Awaiting client walkthrough completion',
+    },
+    {
+      id: 'pms',
+      title: 'PMS Integration',
+      isComplete: isPmsConfigured,
+      statusTag: isPmsConfigured ? 'completed' : 'pending',
+      statusLabel: pmsChoice ? (pmsChoice === 'None' ? 'Standalone' : pmsChoice) : 'Missing',
+      detail: pmsChoice
+        ? (pmsChoice === 'None' ? 'Standalone Quext Cloud Tenant' : `${pmsChoice} integration active`)
+        : 'PMS partner selection needed',
+    },
+    {
+      id: 'doors',
+      title: 'Common Area Doors',
+      isComplete: isDoorsConfirmed,
+      statusTag: isDoorsConfirmed ? 'completed' : doorCount > 0 ? 'attention' : 'pending',
+      statusLabel: isDoorsConfirmed
+        ? `${doorCount} Doors Confirmed`
+        : doorCount > 0
+        ? `${doorCount} Doors (Unconfirmed)`
+        : '0 Doors',
+      detail: isDoorsConfirmed
+        ? `${doorCount} common door locations approved by client`
+        : doorCount > 0
+        ? `${doorCount} door locations logged, pending client confirmation`
+        : intake?.doorNamesNotAvailableNow
+        ? `Deferred to ${intake.doorNamesFollowUpDate || 'TBD'}`
+        : 'No common area door locations identified yet',
+    },
+    {
+      id: 'staff',
+      title: 'Staff Access Roster',
+      isComplete: isStaffProvided,
+      statusTag: isStaffProvided ? 'completed' : 'pending',
+      statusLabel: isStaffProvided ? `${staffCount} Staff Members` : '0 Staff',
+      detail: isStaffProvided
+        ? `${staffCount} authorized staff profiles and permissions logged`
+        : 'Awaiting community staff list for credentials',
+    },
+    {
+      id: 'hardware',
+      title: 'Hardware Scope Sign-Off',
+      isComplete: isHardwareConfirmed,
+      statusTag: isHardwareConfirmed ? 'completed' : hasHardwareCorrection ? 'attention' : 'pending',
+      statusLabel: isHardwareConfirmed
+        ? 'Scope Confirmed'
+        : hasHardwareCorrection
+        ? 'Correction Requested'
+        : 'Pending Sign-Off',
+      detail: isHardwareConfirmed
+        ? 'Client confirmed hardware package matches community'
+        : hasHardwareCorrection
+        ? (intake?.customerProductCorrectionNotes || 'Client reported discrepancy in product scope')
+        : 'Awaiting customer review of hardware package',
+    },
+    {
+      id: 'contacts',
+      title: 'Property Contacts & Notes',
+      isComplete: hasContactsOrNotes,
+      statusTag: hasContactsOrNotes ? 'completed' : 'pending',
+      statusLabel: hasContactsOrNotes ? 'Documented' : 'Pending',
+      detail: hasContactsOrNotes
+        ? [
+            intake?.sitePhoneNumber && `Phone: ${intake.sitePhoneNumber}`,
+            intake?.communityEmail && `Email: ${intake.communityEmail}`,
+            intake?.submittedBy && `Contact: ${intake.submittedBy}`,
+            intake?.customerNotes && 'Special Notes provided',
+          ].filter(Boolean).join(' · ') || 'Site contact information logged'
+        : 'Property phone number and contact required',
+    },
+  ];
+
+  const completedCount = items.filter((i) => i.isComplete).length;
+  const totalItems = items.length;
+  const percentage = Math.round((completedCount / totalItems) * 100);
+  const isFullyCompleted = completedCount === totalItems;
+
+  return {
+    totalItems,
+    completedCount,
+    percentage,
+    isFullyCompleted,
+    hasProductCorrection: hasHardwareCorrection,
+    productCorrectionNotes: intake?.customerProductCorrectionNotes,
+    items,
+  };
 }
 
 export interface TeamAssistEntry {

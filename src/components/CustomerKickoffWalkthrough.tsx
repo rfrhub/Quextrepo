@@ -15,7 +15,8 @@ import {
   getLockFinishColorHex,
   isLockBOMItem,
 } from '../types';
-import { loadStoredQuotes } from '../data/initialData';
+import { loadStoredQuotes, loadStoredProjects, saveStoredProjects } from '../data/initialData';
+import { saveLiveProject } from '../services/realtimeSyncService';
 import {
   Building2,
   MapPin,
@@ -52,6 +53,8 @@ import {
   QrCode,
   Image as ImageIcon,
   FileText,
+  MessageSquare,
+  HelpCircle,
 } from 'lucide-react';
 
 interface CustomerKickoffWalkthroughProps {
@@ -137,17 +140,18 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
   );
   const [doorNamesValidationError, setDoorNamesValidationError] = useState<string | null>(null);
 
-  // Site Maps Gateway Location Confirmation state (only presented if Gateway or Hub on BOM)
-  const hasGatewayOrHubOnBOM = useMemo(
-    () => projectHasGatewayOrHubOnBOM(project.bomItems || []),
-    [project.bomItems]
+  // Customer Product List Verification & Misc Notes (Auto-saved consistently)
+  const [customerProductListStatus, setCustomerProductListStatus] = useState<'confirmed' | 'correction_requested' | undefined>(
+    existingIntake.customerProductListStatus
   );
-  const [sitePlanPdfName, setSitePlanPdfName] = useState<string>(existingIntake.sitePlanPdfName || '');
-  const [sitePlanPdfDataUrl, setSitePlanPdfDataUrl] = useState<string>(existingIntake.sitePlanPdfDataUrl || '');
-  const [sitePlanConfirmedEdited, setSitePlanConfirmedEdited] = useState<boolean>(
-    existingIntake.sitePlanConfirmedEdited || false
+  const [customerProductCorrectionNotes, setCustomerProductCorrectionNotes] = useState<string>(
+    existingIntake.customerProductCorrectionNotes || ''
   );
-  const [sitePlanUploadedAt, setSitePlanUploadedAt] = useState<string>(existingIntake.sitePlanUploadedAt || '');
+  const [customerNotes, setCustomerNotes] = useState<string>(
+    existingIntake.customerNotes || ''
+  );
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
 
   // QR Intercom & NFC Wallet Upgrade state
   const pmCheckedQrIntercom = Boolean(project.useQrIntercom);
@@ -341,60 +345,84 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
     doorsNotAvailable = doorNamesNotAvailableNow,
     followUpDate = doorNamesFollowUpDate,
     customNotification?: { title: string; details: string; isSubmission?: boolean },
-    updatedPropertyManagementCompany = propertyManagementCompany
+    updatedPropertyManagementCompany = propertyManagementCompany,
+    updatedProductListStatus = customerProductListStatus,
+    updatedProductCorrectionNotes = customerProductCorrectionNotes,
+    updatedCustomerNotes = customerNotes,
+    approvedDoorsMap = approvedDoorIds
   ) => {
-    if (onUpdateProject) {
-      const notif = buildCustomerNotification(
-        customNotification?.title ||
-          (submitted
-            ? `Customer Submitted Kickoff Walkthrough Form Answers`
-            : `Customer Updated Kickoff Walkthrough Form`),
-        customNotification?.details ||
-          `PMS: ${updatedPms}${
-            updatedPropertyManagementCompany
-              ? ` · Property Mgmt Co.: ${updatedPropertyManagementCompany}`
-              : ''
-          } · ${updatedDoors.length} Common Area Doors · ${
-            updatedStaff.length
-          } Staff Roles${subscriberEmail ? ` · Subscriber: ${subscriberEmail} (${cadence})` : ''}`,
-        Boolean(customNotification?.isSubmission ?? submitted)
-      );
+    setIsSaving(true);
+    const updatedCustomerIntake = {
+      ...project.customerIntake,
+      pmsSoftware: updatedPms,
+      propertyManagementCompany: updatedPropertyManagementCompany,
+      entrataCredentials: updatedEntrata,
+      commonAreaDoors: updatedDoors,
+      staffRoles: updatedStaff,
+      pmsNoticeAcknowledged: true,
+      walkthroughCompleted: submitted,
+      subscriberEmail,
+      emailUpdatesCadence: cadence,
+      doorNamesNotAvailableNow: doorsNotAvailable,
+      doorNamesFollowUpDate: followUpDate,
+      doorsConfirmedByCustomer: updatedDoors.length > 0 && updatedDoors.every((d) => approvedDoorsMap[d.id]),
+      customerProductListStatus: updatedProductListStatus,
+      customerProductCorrectionNotes: updatedProductCorrectionNotes,
+      customerNotes: updatedCustomerNotes,
+      useQrIntercom: customerQrIntercomChoice !== undefined ? customerQrIntercomChoice : project.useQrIntercom,
+      qrIntercomLogoName,
+      qrIntercomLogoDataUrl,
+      useNfcWallet: customerNfcWalletChoice !== undefined ? customerNfcWalletChoice : project.useNfcWallet,
+      nfcCardArtPhotoName,
+      nfcCardArtPhotoDataUrl,
+      submittedAt: submitted ? (project.customerIntake?.submittedAt || new Date().toISOString()) : project.customerIntake?.submittedAt,
+    };
 
-      onUpdateProject({
-        ...project,
-        propertyManagementCompany: updatedPropertyManagementCompany,
-        useQrIntercom: customerQrIntercomChoice !== undefined ? customerQrIntercomChoice : project.useQrIntercom,
-        useNfcWallet: customerNfcWalletChoice !== undefined ? customerNfcWalletChoice : project.useNfcWallet,
-        customerIntake: {
-          ...project.customerIntake,
-          pmsSoftware: updatedPms,
-          propertyManagementCompany: updatedPropertyManagementCompany,
-          entrataCredentials: updatedEntrata,
-          commonAreaDoors: updatedDoors,
-          staffRoles: updatedStaff,
-          pmsNoticeAcknowledged: true,
-          walkthroughCompleted: submitted,
-          subscriberEmail,
-          emailUpdatesCadence: cadence,
-          doorNamesNotAvailableNow: doorsNotAvailable,
-          doorNamesFollowUpDate: followUpDate,
-          doorsConfirmedByCustomer: updatedDoors.length > 0 && updatedDoors.every((d) => approvedDoorIds[d.id]),
-          sitePlanPdfName,
-          sitePlanPdfDataUrl,
-          sitePlanConfirmedEdited,
-          sitePlanUploadedAt,
-          useQrIntercom: customerQrIntercomChoice,
-          qrIntercomLogoName,
-          qrIntercomLogoDataUrl,
-          useNfcWallet: customerNfcWalletChoice,
-          nfcCardArtPhotoName,
-          nfcCardArtPhotoDataUrl,
-          submittedAt: submitted ? new Date().toISOString() : project.customerIntake?.submittedAt,
-        },
-        activityNotifications: [notif, ...(project.activityNotifications || [])],
-        lastUpdated: new Date().toISOString(),
-      });
+    const notif = buildCustomerNotification(
+      customNotification?.title ||
+        (submitted
+          ? `Customer Submitted Kickoff Walkthrough Form Answers`
+          : `Customer Updated Kickoff Walkthrough Form`),
+      customNotification?.details ||
+        `PMS: ${updatedPms}${
+          updatedPropertyManagementCompany
+            ? ` · Property Mgmt Co.: ${updatedPropertyManagementCompany}`
+            : ''
+        } · ${updatedDoors.length} Common Area Doors · ${
+          updatedStaff.length
+        } Staff Roles${
+          updatedProductListStatus === 'correction_requested' ? ' · Scope Correction Requested' : ''
+        }${subscriberEmail ? ` · Subscriber: ${subscriberEmail} (${cadence})` : ''}`,
+      Boolean(customNotification?.isSubmission ?? submitted)
+    );
+
+    const updatedProject: OperationProject = {
+      ...project,
+      propertyManagementCompany: updatedPropertyManagementCompany,
+      useQrIntercom: customerQrIntercomChoice !== undefined ? customerQrIntercomChoice : project.useQrIntercom,
+      useNfcWallet: customerNfcWalletChoice !== undefined ? customerNfcWalletChoice : project.useNfcWallet,
+      customerIntake: updatedCustomerIntake,
+      activityNotifications: [notif, ...(project.activityNotifications || [])],
+      lastUpdated: new Date().toISOString(),
+    };
+
+    if (onUpdateProject) {
+      onUpdateProject(updatedProject);
     }
+
+    // Consistently save all data entered by customer to Cloud Firestore & LocalStorage
+    saveLiveProject(updatedProject).catch((err) => console.warn('[Cloud Sync] Kickoff Walkthrough saveLiveProject error:', err));
+    try {
+      const stored = loadStoredProjects();
+      saveStoredProjects(stored.map((p) => (p.id === updatedProject.id ? updatedProject : p)));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+
+    setIsSaving(false);
+    setLastSavedTime(
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    );
   };
 
   const handleAddDoor = (e: React.FormEvent) => {
@@ -422,10 +450,28 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
   };
 
   const handleToggleDoorApproval = (doorId: string) => {
-    setApprovedDoorIds((prev) => ({
-      ...prev,
-      [doorId]: !prev[doorId],
-    }));
+    const nextApproved = {
+      ...approvedDoorIds,
+      [doorId]: !approvedDoorIds[doorId],
+    };
+    setApprovedDoorIds(nextApproved);
+    saveIntakeUpdates(
+      commonDoors,
+      staffList,
+      pmsChoice,
+      entrataCreds,
+      isWalkthroughSubmitted,
+      residentEmailForUpdates,
+      emailUpdateCadence,
+      doorNamesNotAvailableNow,
+      doorNamesFollowUpDate,
+      undefined,
+      propertyManagementCompany,
+      customerProductListStatus,
+      customerProductCorrectionNotes,
+      customerNotes,
+      nextApproved
+    );
   };
 
   const handleStartEditDoor = (door: CommonAreaDoor) => {
@@ -523,9 +569,15 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
           residentEmailForUpdates || staffList[0]?.email || project.clientName
         } · PMS: ${pmsChoice} · ${commonDoors.length} Common Area Doors · ${
           staffList.length
-        } Staff Access Roles (${emailUpdateCadence} email updates).`,
+        } Staff Access Roles${
+          customerProductListStatus === 'correction_requested' ? ' · Hardware Correction Requested' : ''
+        } (${emailUpdateCadence} email updates).`,
         isSubmission: true,
-      }
+      },
+      propertyManagementCompany,
+      customerProductListStatus,
+      customerProductCorrectionNotes,
+      customerNotes
     );
   };
 
@@ -609,7 +661,14 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
   </div>
 
   <div class="section">
-    <h2>5. Deployment Updates Subscription</h2>
+    <h2>5. Hardware Scope Verification &amp; Customer Notes</h2>
+    <div class="kv"><div class="kv-k">Scope Verification:</div><div class="kv-v"><strong>${customerProductListStatus === 'confirmed' ? '✓ Scope Confirmed Accurate' : customerProductListStatus === 'correction_requested' ? '⚠ Scope Correction Requested' : 'Pending Verification'}</strong></div></div>
+    ${customerProductCorrectionNotes ? `<div class="kv"><div class="kv-k">Requested Corrections:</div><div class="kv-v" style="color:#b45309;font-weight:600;">${customerProductCorrectionNotes}</div></div>` : ''}
+    ${customerNotes ? `<div class="kv"><div class="kv-k">Special Site Notes:</div><div class="kv-v">${customerNotes}</div></div>` : ''}
+  </div>
+
+  <div class="section">
+    <h2>6. Deployment Updates Subscription</h2>
     <div class="kv"><div class="kv-k">Subscriber Email:</div><div class="kv-v">${residentEmailForUpdates || 'Not specified'}</div></div>
     <div class="kv"><div class="kv-k">Cadence Preference:</div><div class="kv-v">${emailUpdateCadence.toUpperCase()}</div></div>
     <div class="kv"><div class="kv-k">Submission Status:</div><div class="kv-v">✓ Completed &amp; Archived</div></div>
@@ -815,6 +874,18 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          {/* Live Auto-Save Indicator (Note 1) */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/90 text-emerald-800 border border-emerald-300 shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>
+              {isSaving
+                ? 'Saving...'
+                : lastSavedTime
+                ? `Saved at ${lastSavedTime}`
+                : 'All changes saved automatically'}
+            </span>
+          </div>
+
           <button
             type="button"
             onClick={handleCopyLink}
@@ -2243,151 +2314,234 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
           </div>
 
           {/* ========================================================================= */}
-          {/* CONDITIONAL: SITE MAPS GATEWAY LOCATION CONFIRMATION (ONLY IF GATEWAY/HUB ON BOM) */}
+          {/* HARDWARE PACKAGE VERIFICATION & PRODUCT CORRECTION REQUEST (Note 4)        */}
           {/* ========================================================================= */}
-          {hasGatewayOrHubOnBOM ? (
-            <div className="pt-6 border-t border-slate-200">
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 via-white to-sky-50 border-2 border-amber-300/90 shadow-xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black uppercase tracking-wider mb-1">
-                        Gateway / Hub Detected on BOM • Action Required
-                      </div>
-                      <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
-                        Site Maps Gateway Location Confirmation
-                      </h3>
-                    </div>
+          <div className="pt-6 border-t border-slate-200 space-y-4">
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-50 via-white to-sky-50 border-2 border-sky-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                    <ShieldCheck className="w-5 h-5" />
                   </div>
-                  {sitePlanPdfName && sitePlanConfirmedEdited && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-xs shrink-0">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300 text-[10px] font-black uppercase tracking-wider mb-1">
+                      Customer Scope Verification
+                    </span>
+                    <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                      Hardware Package &amp; Product List Accuracy
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Please verify whether the hardware products, models, and quantities above accurately match your property deployment expectations.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="shrink-0">
+                  {customerProductListStatus === 'confirmed' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-xs">
                       <CheckCircle2 className="w-4 h-4" />
-                      Site Plan PDF Verified
+                      Scope Confirmed Accurate
+                    </span>
+                  ) : customerProductListStatus === 'correction_requested' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-xs">
+                      <AlertTriangle className="w-4 h-4" />
+                      Correction Requested
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 text-slate-700 text-xs font-bold">
+                      <HelpCircle className="w-4 h-4 text-slate-500" />
+                      Pending Customer Verification
                     </span>
                   )}
                 </div>
-
-                {/* Friendly Message to Customer */}
-                <div className="p-4 bg-white/90 rounded-xl border border-amber-200 text-xs text-slate-700 leading-relaxed flex items-start gap-3">
-                  <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold text-slate-900 mb-1">
-                      Friendly Reminder Before Uploading Your Property Site Plans:
-                    </p>
-                    <p>
-                      Because your Smart Community Bill of Materials includes LoRaWAN Gateways / Network Hubs, our engineering team needs your property site map to finalize RF coverage. <strong>Please confirm that you have edited or marked up the PDF documents you are uploading to clearly reflect the exact locations of the gateways needing to be installed on your site.</strong>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                  {/* PDF Upload Input */}
-                  <div>
-                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-sky-400 hover:border-sky-600 bg-white rounded-xl p-5 cursor-pointer transition-colors">
-                      <FileText className="w-6 h-6 text-sky-600 mb-1.5" />
-                      <span className="text-xs font-bold text-slate-900 text-center">
-                        {sitePlanPdfName
-                          ? `Uploaded PDF: ${sitePlanPdfName} (Click to Replace)`
-                          : 'Upload Site Plan PDF with Gateway Locations (.PDF)'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 mt-1">
-                        Accepts PDF architectural site maps & annotated property floorplans
-                      </span>
-                      <input
-                        type="file"
-                        accept=".pdf,application/pdf"
-                        onChange={handleSitePlanPdfUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Confirmation Checkbox */}
-                  <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
-                    <label className="flex items-start gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={sitePlanConfirmedEdited}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setSitePlanConfirmedEdited(checked);
-                          persistExtendedIntake({ sitePlanConfirmedEdited: checked });
-                        }}
-                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span className="text-xs font-semibold text-slate-800 leading-relaxed">
-                        I confirm that we have edited and annotated the uploaded Site Plan PDF document(s) to reflect the exact locations of the gateways needing to be installed on our site.
-                      </span>
-                    </label>
-                    {sitePlanPdfName && (
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
-                        <span className="font-mono truncate max-w-[220px]">{sitePlanPdfName}</span>
-                        <span className="text-emerald-700 font-bold">Uploaded {sitePlanUploadedAt}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
-            </div>
-          ) : (
-            <div className="pt-6 border-t border-slate-200">
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-slate-50 border-2 border-emerald-300 shadow-xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                      <CheckCircle2 className="w-5 h-5" />
+
+              {/* Radio Verification Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerProductListStatus('confirmed');
+                    saveIntakeUpdates(
+                      commonDoors,
+                      staffList,
+                      pmsChoice,
+                      entrataCreds,
+                      isWalkthroughSubmitted,
+                      residentEmailForUpdates,
+                      emailUpdateCadence,
+                      doorNamesNotAvailableNow,
+                      doorNamesFollowUpDate,
+                      {
+                        title: `Customer Confirmed Hardware Product List (${project.propertyName})`,
+                        details: `Customer reviewed and confirmed the ${bomItems.length} BOM hardware items as accurate.`,
+                      },
+                      propertyManagementCompany,
+                      'confirmed',
+                      customerProductCorrectionNotes,
+                      customerNotes
+                    );
+                  }}
+                  className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-3 ${
+                    customerProductListStatus === 'confirmed'
+                      ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 shadow-xs ring-1 ring-emerald-500'
+                      : 'bg-white border-slate-200 hover:border-emerald-300 text-slate-800'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                    customerProductListStatus === 'confirmed'
+                      ? 'border-emerald-600 bg-emerald-600 text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}>
+                    {customerProductListStatus === 'confirmed' && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-xs text-slate-900">
+                      ✓ Hardware Package Looks Correct &amp; Approved
                     </div>
-                    <div>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-black uppercase tracking-wider mb-1">
-                        ✓ Requirement Completed • No Gateway / Hub on BOM
-                      </div>
-                      <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
-                        Site Maps Gateway Location Confirmation
-                      </h3>
+                    <div className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                      All locks, thermostats, gateways, and accessories match the desired property scope.
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-xs shrink-0">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Completed as Requirement
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerProductListStatus('correction_requested');
+                    saveIntakeUpdates(
+                      commonDoors,
+                      staffList,
+                      pmsChoice,
+                      entrataCreds,
+                      isWalkthroughSubmitted,
+                      residentEmailForUpdates,
+                      emailUpdateCadence,
+                      doorNamesNotAvailableNow,
+                      doorNamesFollowUpDate,
+                      {
+                        title: `Customer Requested Product Correction (${project.propertyName})`,
+                        details: `Customer indicated hardware changes or discrepancies on the BOM.`,
+                      },
+                      propertyManagementCompany,
+                      'correction_requested',
+                      customerProductCorrectionNotes,
+                      customerNotes
+                    );
+                  }}
+                  className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-3 ${
+                    customerProductListStatus === 'correction_requested'
+                      ? 'bg-amber-50/80 border-amber-500 text-amber-950 shadow-xs ring-1 ring-amber-500'
+                      : 'bg-white border-slate-200 hover:border-amber-300 text-slate-800'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                    customerProductListStatus === 'correction_requested'
+                      ? 'border-amber-600 bg-amber-600 text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}>
+                    {customerProductListStatus === 'correction_requested' && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-xs text-slate-900">
+                      ✎ Report Product Correction / Request Changes
+                    </div>
+                    <div className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                      Something is missing, quantity differs, or hardware finish / model needs to be updated.
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Expandable Correction Details Box */}
+              {customerProductListStatus === 'correction_requested' && (
+                <div className="p-4 bg-amber-50/80 border border-amber-300 rounded-xl space-y-2 animate-fadeIn">
+                  <div className="flex items-center gap-2 font-bold text-amber-900 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Please describe what is incorrect or what changes are needed:</span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={customerProductCorrectionNotes}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCustomerProductCorrectionNotes(val);
+                      saveIntakeUpdates(
+                        commonDoors,
+                        staffList,
+                        pmsChoice,
+                        entrataCreds,
+                        isWalkthroughSubmitted,
+                        residentEmailForUpdates,
+                        emailUpdateCadence,
+                        doorNamesNotAvailableNow,
+                        doorNamesFollowUpDate,
+                        undefined,
+                        propertyManagementCompany,
+                        'correction_requested',
+                        val,
+                        customerNotes
+                      );
+                    }}
+                    placeholder="e.g. Unit count is 52 instead of 50; clubhouse front entry requires matte black finish; please add reader for fitness center back gate..."
+                    className="w-full p-3 bg-white border border-amber-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-400 font-medium leading-relaxed"
+                  />
+                  <span className="text-[11px] text-amber-800 block">
+                    Your assigned Project Manager ({project.assignedPM?.name}) will review this note immediately to adjust BOM procurement.
                   </span>
                 </div>
+              )}
+            </div>
 
-                <div className="p-4 bg-white/95 rounded-xl border border-emerald-200 text-xs text-slate-700 leading-relaxed flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            {/* Miscellaneous Fillable Customer Notes Card */}
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
                   <div>
-                    <p className="font-bold text-emerald-950 mb-1">
-                      No LoRaWAN Gateways or Hubs on your Smart Community Bill of Materials:
-                    </p>
-                    <p className="text-slate-600">
-                      Your community hardware package does not include gateways requiring roof or exterior wall mounts. Because antenna RF placement markup is not required, <strong>this question has been satisfied and completed for you automatically as an approved requirement.</strong>
+                    <h4 className="text-sm font-extrabold text-slate-900">
+                      Customer Project Notes &amp; Special Instructions (Optional)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Add any property notes, staging area preferences, gate access codes, delivery windows, or instructions for your Project Manager.
                     </p>
                   </div>
                 </div>
-
-                {/* Optional site map upload option for customers who still want to attach plans */}
-                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 border-t border-slate-100">
-                  <span className="text-[11px] text-slate-500">
-                    {sitePlanPdfName
-                      ? `Optional Site Map Attached: ${sitePlanPdfName}`
-                      : 'Have an architectural property layout you want to share for general reference? (Optional)'}
-                  </span>
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg font-semibold cursor-pointer text-xs transition-colors shrink-0">
-                    <FileText className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{sitePlanPdfName ? 'Replace Optional Site Map' : 'Attach Optional Site Map PDF'}</span>
-                    <input
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      onChange={handleSitePlanPdfUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                  Fillable Notes
+                </span>
               </div>
+
+              <textarea
+                rows={3}
+                value={customerNotes}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomerNotes(val);
+                  saveIntakeUpdates(
+                    commonDoors,
+                    staffList,
+                    pmsChoice,
+                    entrataCreds,
+                    isWalkthroughSubmitted,
+                    residentEmailForUpdates,
+                    emailUpdateCadence,
+                    doorNamesNotAvailableNow,
+                    doorNamesFollowUpDate,
+                    undefined,
+                    propertyManagementCompany,
+                    customerProductListStatus,
+                    customerProductCorrectionNotes,
+                    val
+                  );
+                }}
+                placeholder="e.g. Deliveries should go to leasing office bay rear entrance; contact maintenance supervisor Elena on site (512-555-0199); property staging room is Storage 26..."
+                className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 font-medium leading-relaxed"
+              />
             </div>
-          )}
+          </div>
 
           {viewMode === 'walkthrough' && (
             <div className="flex justify-between items-center pt-4 border-t border-slate-200">
@@ -2532,6 +2686,66 @@ export const CustomerKickoffWalkthrough: React.FC<CustomerKickoffWalkthroughProp
             <p className="text-xs sm:text-sm text-slate-600 mt-1">
               Review your kickoff configuration, subscribe for automated deployment updates, and submit your project details to your assigned Project Manager.
             </p>
+          </div>
+
+          {/* Intake Answers Summary Card */}
+          <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Submission Summary for {project.propertyName}
+              </span>
+              <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Auto-saved
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">PMS Choice</span>
+                <div className="font-bold text-slate-900 mt-0.5">{pmsChoice}</div>
+                <div className="text-[10px] text-slate-500 truncate">{propertyManagementCompany || 'Standalone Quext'}</div>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">Common Doors</span>
+                <div className="font-bold text-slate-900 mt-0.5">{commonDoors.length} Doors Configured</div>
+                <div className="text-[10px] text-emerald-700 font-medium">
+                  {commonDoors.length > 0 && commonDoors.every((d) => approvedDoorIds[d.id])
+                    ? '✓ All Approved'
+                    : doorNamesNotAvailableNow
+                    ? `Follow-up: ${doorNamesFollowUpDate}`
+                    : 'Pending client review'}
+                </div>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">Staff Access Roster</span>
+                <div className="font-bold text-slate-900 mt-0.5">{staffList.length} Team Members</div>
+                <div className="text-[10px] text-slate-500 truncate">{staffList[0]?.email || 'No emails added'}</div>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-500 font-semibold uppercase">Hardware Scope</span>
+                <div className="font-bold text-slate-900 mt-0.5">
+                  {customerProductListStatus === 'confirmed'
+                    ? '✓ Scope Approved'
+                    : customerProductListStatus === 'correction_requested'
+                    ? '⚠ Correction Requested'
+                    : 'Pending Sign-Off'}
+                </div>
+                <div className="text-[10px] text-slate-500 truncate">
+                  {customerProductCorrectionNotes || 'No corrections noted'}
+                </div>
+              </div>
+            </div>
+
+            {customerNotes && (
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Customer Project Notes:</span>
+                <p className="text-slate-800 mt-1 font-medium">{customerNotes}</p>
+              </div>
+            )}
           </div>
 
           {/* Requirement: Blue Banner Message at Bottom for Email Updates on Weekly or Biweekly Basis */}
