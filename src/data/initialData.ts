@@ -2039,18 +2039,6 @@ export const REAL_TEAM_PURGE_VERSION_KEY = 'quext_real_team_data_purged_v3';
 
 export function isMockOrSyntheticProject(p?: Partial<OperationProject> | null): boolean {
   if (!p) return true;
-  const id = (p.id || '').trim().toLowerCase();
-  const propName = (p.propertyName || '').trim().toLowerCase();
-  const clientName = (p.clientName || '').trim().toLowerCase();
-  const quoteNum = (p.quoteNumber || '').trim().toLowerCase();
-  if (
-    id.startsWith('mock-') ||
-    propName.includes('mock project') ||
-    clientName.includes('test ownership group') ||
-    quoteNum.includes('mock')
-  ) {
-    return true;
-  }
   return false;
 }
 export const MASTER_NOTES_IMPORTED_VERSION_KEY = 'quext_master_notes_imported_v3';
@@ -2214,14 +2202,24 @@ export function sanitizeProjectRealTeamOnly(project: OperationProject): Operatio
     };
   });
 
-  // Strip synthetic auto-generated shipping dock items (QXT-TRK-...) and synthetic SOW forecast defaults
+  const isCypressGrove =
+    project.id === 'proj-imported-1793160472955' ||
+    (project.propertyName || '').toLowerCase().includes('cypress grove');
+
+  // Strip synthetic auto-generated shipping dock items (QXT-TRK-...) unless modified/accepted by the team (e.g. Cypress Grove)
   const cleanShippingDockItems = (project.shippingDockItems || []).filter((sd) => {
+    if (isCypressGrove || sd.customerAccepted || sd.customerScenarioNotes || sd.lastNotifiedCustomerAt) {
+      return true;
+    }
     const trk = (sd.trackingNumber || '').trim();
     if (trk.startsWith('QXT-TRK-') && sd.shippedDate === '2026-10-16') return false;
     return true;
   });
 
   const cleanSowForecastItems = (project.sowForecastItems || []).filter((sf) => {
+    if (isCypressGrove || sf.lastNotifiedCustomerAt) {
+      return true;
+    }
     if (sf.notes === 'Matched directly to BOM line item scope.' && sf.scheduledStartDate === '2026-10-22') {
       return false;
     }

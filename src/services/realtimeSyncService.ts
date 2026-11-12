@@ -129,8 +129,8 @@ export function subscribeToLiveProjects(
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as OperationProject;
           if (data && data.id) {
-            // If project is registered as merged/archived or is a mock/synthetic project, purge it from Cloud Firestore and skip
-            if (archivedIds.has(data.id) || isMockOrSyntheticProject(data)) {
+            // If project is registered as merged/archived, purge it from Cloud Firestore and skip
+            if (archivedIds.has(data.id)) {
               deleteDoc(doc(db, PROJECTS_COLLECTION, data.id)).catch(() => {});
               return;
             }
