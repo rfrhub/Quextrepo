@@ -2010,7 +2010,13 @@ export function loadArchivedProjectIds(): Set<string> {
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) {
-        return new Set(arr);
+        const filtered = arr.filter(
+          (id) => id !== 'proj-imported-1793160472955' && id !== 'mock-pm-verified-1'
+        );
+        if (filtered.length !== arr.length) {
+          localStorage.setItem(STORAGE_KEY_ARCHIVED_PROJECTS, JSON.stringify(filtered));
+        }
+        return new Set(filtered);
       }
     }
   } catch (e) {
