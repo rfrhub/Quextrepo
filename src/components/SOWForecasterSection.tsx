@@ -22,6 +22,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
+import { buildSowForecasterCardEmail } from '../services/portfolioEmailService';
 
 interface SOWForecasterSectionProps {
   project: OperationProject;
@@ -623,29 +624,16 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
       )
       .join(' | ');
 
-    const tableHtml = buildSOWEmailTableHtml(sowItems);
-
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #4f46e5; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #4f46e5; font-weight: bold; text-transform: uppercase; line-height: 28px;">Installation Scope Summary</span>
-        </div>
-        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-        <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Here is the latest installation &amp; Scope of Work summary for <strong>${project.propertyName}</strong>:</p>
-        ${tableHtml}
-        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-          Best regards,<br/>
-          <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations (${project.assignedPM.email})
-        </p>
-      </div>
-    `;
+    const cardEmail = buildSowForecasterCardEmail({
+      project,
+      items: sowItems,
+    });
 
     setGmailModalPayload({
-      title: 'Confirm & Send SOW Forecaster Overview via Gmail',
+      title: 'Confirm & Send Card-Based SOW Forecaster Overview via Gmail',
       defaultRecipients: recipient,
-      subject: `Installation Scope Summary: ${project.propertyName}`,
-      htmlBody,
+      subject: cardEmail.subject,
+      htmlBody: cardEmail.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         const nowStr = new Date().toLocaleDateString('en-US', {
           month: 'short',
@@ -690,30 +678,18 @@ export const SOWForecasterSection: React.FC<SOWForecasterSectionProps> = ({
   // Send an individual SOW Forecaster line-item update to the customer via Gmail
   const handleSendSingleSOWItemToCustomer = (item: SOWForecastItem) => {
     const recipient = getDefaultCustomerRecipient();
-    const tableHtml = buildSOWEmailTableHtml([item]);
     const breakdownText = formatItem1To1BreakdownText(item);
-
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #4f46e5; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #4f46e5; font-weight: bold; text-transform: uppercase; line-height: 28px;">Installation Scope Update</span>
-        </div>
-        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-        <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Here is an installation &amp; Scope of Work update for <strong>${project.propertyName}</strong>:</p>
-        ${tableHtml}
-        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-          Best regards,<br/>
-          <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations (${project.assignedPM.email})
-        </p>
-      </div>
-    `;
+    const cardEmail = buildSowForecasterCardEmail({
+      project,
+      items: [item],
+      isSingleItem: true,
+    });
 
     setGmailModalPayload({
-      title: `Confirm & Send SOW Line Item Update (${item.bomItemName}) via Gmail`,
+      title: `Confirm & Send Card-Based SOW Update (${item.bomItemName}) via Gmail`,
       defaultRecipients: recipient,
-      subject: `Installation Scope Update (${item.bomItemName}): ${project.propertyName}`,
-      htmlBody,
+      subject: cardEmail.subject,
+      htmlBody: cardEmail.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         const nowStr = new Date().toLocaleDateString('en-US', {
           month: 'short',

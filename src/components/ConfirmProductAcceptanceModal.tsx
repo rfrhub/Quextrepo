@@ -16,6 +16,7 @@ import {
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { getDockRowBomQuantities } from './ShippingDockSection';
 import { ProductAcceptanceQRCode } from './ProductAcceptanceQRCode';
+import { buildShippingAndAcceptanceCardEmail } from '../services/portfolioEmailService';
 import {
   FileSignature,
   Mail,
@@ -203,64 +204,11 @@ export const ConfirmProductAcceptanceModal: React.FC<ConfirmProductAcceptanceMod
     `;
   };
 
-  const emailHtmlBody = `
-    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b; background-color: #ffffff;">
-      <div style="border-bottom: 2px solid #059669; padding-bottom: 14px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
-        <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-        <span style="font-size: 11px; color: #059669; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; float: right; line-height: 28px;">Product Acceptance Portal</span>
-      </div>
-
-      <p style="margin: 0 0 10px 0; font-size: 14px; color: #0f172a;">Hello <strong>${project.clientName}</strong> Team,</p>
-      
-      <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155; line-height: 1.6;">
-        Hardware shipments for <strong>${project.propertyName}</strong> (Quote #${project.quoteNumber}) have been dispatched and are arriving on site.
-      </p>
-
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: #334155; line-height: 1.6;">
-        Please access your dedicated <strong>Product Acceptance Portal</strong> to verify received shipment boxes, record any delivery scenario notes on individual line items (e.g. storage room location, partial arrivals), and submit your digital acceptance signature:
-      </p>
-
-      <div style="text-align: center; margin: 26px 0;">
-        <a href="${portalLink}" style="background-color: #059669; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          Open &amp; Sign Product Acceptance Portal &rarr;
-        </a>
-      </div>
-
-      <!-- Dedicated On-Site Mobile QR Code for Shipping Dock & Warehouse Staff -->
-      <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
-        <div style="font-size: 12px; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
-          📱 On-Site Property Staff Mobile QR Code
-        </div>
-        <p style="font-size: 12px; color: #047857; margin: 0 0 14px 0; line-height: 1.5;">
-          Point your smartphone camera at the QR code below while on the shipping dock to <strong>inspect pallets</strong>, <strong>upload photos of any damaged boxes</strong>, and <strong>sign digitally</strong> confirming delivered inventory.
-        </p>
-        <div style="display: inline-block; background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #a7f3d0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&data=${encodeURIComponent(portalLink)}" alt="Scan Product Acceptance Portal QR Code" width="160" height="160" style="display: block; margin: 0 auto;" />
-        </div>
-        <div style="margin-top: 10px; font-size: 11px; color: #065f46; font-weight: 600;">
-          Works directly with iOS Camera and Android QR Scanner · No App Download Required
-        </div>
-      </div>
-
-      <div style="margin: 20px 0;">
-        <div style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
-          Hardware Shipment Summary (${dockItems.length} Batches · ${totalShippedUnits} Total Units)
-        </div>
-        ${buildShipmentHtmlTable()}
-      </div>
-
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin: 16px 0; font-size: 12px; color: #64748b;">
-        <strong>Direct Portal URL:</strong><br/>
-        <a href="${portalLink}" style="color: #0284c7; word-break: break-all;">${portalLink}</a>
-      </div>
-
-      <p style="margin-top: 24px; font-size: 12px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 16px; line-height: 1.5;">
-        Best regards,<br/>
-        <strong style="color: #0f172a;">${project.assignedPM.name}</strong> • Quext Implementation Operations<br/>
-        <a href="mailto:${project.assignedPM.email || 'support@onequext.com'}" style="color: #0284c7; text-decoration: none;">${project.assignedPM.email || 'support@onequext.com'}</a>
-      </p>
-    </div>
-  `;
+  const emailHtmlBody = buildShippingAndAcceptanceCardEmail({
+    project,
+    items: dockItems,
+    includeQrCode: true,
+  }).htmlBody;
 
   const handleConfirmAndSend = async (e: React.FormEvent) => {
     e.preventDefault();

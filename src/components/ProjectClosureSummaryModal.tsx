@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { OperationProject } from '../types';
 import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
+import {
+  buildProjectClosureCardEmail,
+  AiEmailTone,
+} from '../services/portfolioEmailService';
 import {
   X,
   Mail,
   Printer,
   CheckCircle2,
-  ShieldCheck,
-  Building2,
-  Phone,
-  Send,
-  Calendar,
   Sparkles,
-  Download,
-  Copy,
+  Send,
+  Layers,
+  MessageSquarePlus,
 } from 'lucide-react';
 
 interface ProjectClosureSummaryModalProps {
@@ -34,8 +34,6 @@ export const ProjectClosureSummaryModal: React.FC<ProjectClosureSummaryModalProp
   onClose,
   onSendEmail,
 }) => {
-  if (!isOpen) return null;
-
   const csmName = project.assignedCSM || 'Nicole Franklin';
   const csmEmail = `${csmName.toLowerCase().replace(' ', '.')}@onequext.com`;
   const pmName = project.assignedPM.name;
@@ -43,68 +41,53 @@ export const ProjectClosureSummaryModal: React.FC<ProjectClosureSummaryModalProp
 
   const clientEmail =
     project.customerIntake?.communityEmail ||
+    project.customerIntake?.subscriberEmail ||
     project.customerIntake?.staffRoles?.[0]?.email ||
-    'client.operations@greystar.com';
+    project.assignedPM?.email ||
+    '';
 
   const [toEmail, setToEmail] = useState<string>(clientEmail);
   const [ccEmail, setCcEmail] = useState<string>(`${csmEmail}, ${pmEmail}`);
   const [subject, setSubject] = useState<string>(
     `Project Closure & Implementation Handover Certificate - ${project.propertyName}`
   );
+  const [aiTone, setAiTone] = useState<AiEmailTone>(project.commsTunnelAiTone || 'executive');
+  const [customHeadline, setCustomHeadline] = useState<string>('');
+  const [includePmNoteCard, setIncludePmNoteCard] = useState<boolean>(true);
+  const [pmHandoverNote, setPmHandoverNote] = useState<string>(
+    `It has been a pleasure partnering with the ${project.propertyName} team throughout your smart community deployment. All ${project.unitsCount} residential units, gateways, and portal integrations are verified online, and ${csmName} is ready to support your team moving forward!`
+  );
   const [isSent, setIsSent] = useState<boolean>(false);
+  const [gmailModalPayload, setGmailModalPayload] = useState<LiveGmailModalPayload | null>(null);
+
+  useEffect(() => {
+    setToEmail(clientEmail);
+    setCcEmail(`${csmEmail}, ${pmEmail}`);
+    setSubject(`Project Closure & Implementation Handover Certificate - ${project.propertyName}`);
+    setAiTone(project.commsTunnelAiTone || 'executive');
+    setPmHandoverNote(
+      `It has been a pleasure partnering with the ${project.propertyName} team throughout your smart community deployment. All ${project.unitsCount} residential units, gateways, and portal integrations are verified online, and ${csmName} is ready to support your team moving forward!`
+    );
+  }, [project.id, clientEmail, csmEmail, pmEmail, project.propertyName, project.unitsCount, csmName, project.commsTunnelAiTone]);
 
   const totalQuoted = project.bomItems.reduce((acc, i) => acc + i.quantity, 0);
   const totalInstalled = project.bomItems.reduce((acc, i) => acc + i.installedCount, 0);
 
-  const defaultMessage = `Dear ${project.clientName} and the ${project.propertyName} Team,
+  const closureCardEmail = useMemo(
+    () =>
+      buildProjectClosureCardEmail({
+        project,
+        customPmNote: includePmNoteCard ? pmHandoverNote : '',
+        customHeadline,
+        aiTone,
+      }),
+    [project, includePmNoteCard, pmHandoverNote, customHeadline, aiTone]
+  );
 
-We are thrilled to officially announce that the physical hardware deployment, network gateway commissioning, and Quext Portal setup for ${project.propertyName} (${project.unitsCount} units) is 100% COMPLETE and the project is now officially CLOSED!
-
-It has been an absolute pleasure working with your entire organization throughout this smart community rollout. Every device on your Bill of Materials—including your smart deadbolts, IoT thermostats, LoRaWAN gateways, and leak protection sensors—has been verified online and operational.
-
-OFFICIAL DEPARTMENT HANDOFF:
-Your implementation is now completely transitioned into the hands of your dedicated Customer Success Manager (CSM), ${csmName}.
-
-Your Dedicated CSM Contact Information:
-• Name: ${csmName}
-• Direct Email: ${csmEmail}
-• Direct Phone: (806) 555-0190
-• 24/7 Quext Support Desk: support@onequext.com | 1-800-555-QXT
-
-${csmName} and the Customer Success team will continue to be your direct point of contact moving forward for all staff onboarding, portal operations, resident mobile key workflows, and future enhancements.
-
-Thank you for your partnership and trust in Quext!
-
-Warmest regards,
-${pmName}
-Director of Implementation / Project Manager, Quext
-${pmEmail}`;
-
-  const [message, setMessage] = useState<string>(defaultMessage);
-  const [gmailModalPayload, setGmailModalPayload] = useState<LiveGmailModalPayload | null>(null);
+  if (!isOpen) return null;
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    const formattedParagraphs = message
-      .split('\n\n')
-      .map(
-        (para) =>
-          `<p style="margin: 0 0 12px 0; white-space: pre-line; line-height: 1.5;">${para
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')}</p>`
-      )
-      .join('');
-
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #047857; font-weight: bold; text-transform: uppercase; line-height: 28px;">Project Closure &amp; CSM Handover</span>
-        </div>
-        ${formattedParagraphs}
-      </div>
-    `;
 
     const allRecipients = [toEmail, ccEmail]
       .map((s) => s.trim())
@@ -112,17 +95,17 @@ ${pmEmail}`;
       .join(', ');
 
     setGmailModalPayload({
-      title: 'Confirm & Send Project Closure Summary Email via Gmail',
+      title: 'Confirm & Send Card-Based Project Closure Email via Gmail',
       defaultRecipients: allRecipients,
       subject,
-      htmlBody,
+      htmlBody: closureCardEmail.htmlBody,
       onDispatched: ({ recipients, subject: finalSubject }) => {
         if (onSendEmail) {
           onSendEmail({
             recipientEmail: recipients.join(', '),
             ccEmail,
             subject: finalSubject,
-            message,
+            message: closureCardEmail.summary,
           });
         }
         setIsSent(true);
@@ -319,30 +302,94 @@ ${pmEmail}`;
                   />
                 </div>
 
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Outgoing Customer Email Preview &amp; Message Content (Top-Left Quext Logo Branding)
-                  </label>
-                  <div className="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-2xs">
-                    {/* Top-Left Quext Logo Email Header */}
-                    <div className="px-4 py-3 border-b-2 border-[#01C38D] flex items-center justify-between bg-white">
-                      <img
-                        src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png"
-                        alt="Quext"
-                        className="h-7 w-auto object-contain"
-                      />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        Project Closure &amp; CSM Handover
-                      </span>
+                {/* AI Card Presentation Controls & Optional PM Handover Card */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                      <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Card-Based Closure Email Builder (Communications Tunnel Style)</span>
                     </div>
-                    <textarea
-                      rows={8}
-                      required
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      className="w-full px-4 py-3 bg-white border-0 text-slate-900 leading-relaxed font-mono text-[11px] focus:outline-none"
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                      {(
+                        [
+                          { id: 'executive', label: 'Executive Cards' },
+                          { id: 'action_oriented', label: 'Action Cards' },
+                          { id: 'technical', label: 'Technical Cards' },
+                        ] as { id: AiEmailTone; label: string }[]
+                      ).map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setAiTone(opt.id);
+                            setCustomHeadline('');
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                            aiTone === opt.id
+                              ? 'bg-slate-900 text-[#01C38D] shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">
+                      AI Executive Handover Summary Headline (Editable)
+                    </label>
+                    <input
+                      type="text"
+                      value={customHeadline || closureCardEmail.aiHeadline}
+                      onChange={(e) => setCustomHeadline(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs font-medium"
                     />
                   </div>
+
+                  <div className="pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-slate-800 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includePmNoteCard}
+                          onChange={(e) => setIncludePmNoteCard(e.target.checked)}
+                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <MessageSquarePlus className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Include Personal PM Handover Message Card</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        Embedded Card Preview
+                      </span>
+                    </div>
+                    {includePmNoteCard && (
+                      <textarea
+                        rows={2}
+                        value={pmHandoverNote}
+                        onChange={(e) => setPmHandoverNote(e.target.value)}
+                        placeholder="Add a warm personal handover note from the PM..."
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs leading-relaxed"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-bold text-slate-800 text-xs">
+                      Live Card-Based Customer Email Preview (Embedded Cards)
+                    </label>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full">
+                      Card-Based Digest
+                    </span>
+                  </div>
+                  <div
+                    data-testid="project-closure-card-email-preview"
+                    className="bg-slate-200/70 border border-slate-300 rounded-xl p-3 max-h-[420px] overflow-y-auto shadow-inner"
+                    dangerouslySetInnerHTML={{ __html: closureCardEmail.htmlBody }}
+                  />
                 </div>
 
                 <div className="flex justify-end pt-2">

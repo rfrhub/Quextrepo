@@ -25,6 +25,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
+import {
+  buildCsmIntroBookingCardEmail,
+  buildCsmHandoffCardEmail,
+} from '../services/portfolioEmailService';
 
 interface CSMTrainingPortalProps {
   project: OperationProject;
@@ -65,55 +69,13 @@ export const CSMTrainingPortal: React.FC<CSMTrainingPortalProps> = ({
     '';
 
   const handleSendCsmIntroCalendarAutomation = () => {
-    const allCsmLinksHtml = CSM_CALENDAR_BOOKING_DIRECTORY.map(
-      (csm) => `
-        <li style="margin-bottom: 10px;">
-          <strong>${csm.name}</strong> (${csm.title}) — <em>"${csm.quote}"</em><br/>
-          👉 <a href="${csm.bookingUrl}" style="color: #0284c7; font-weight: bold;">Click Here to Book a Session with ${csm.name}</a>
-        </li>
-      `
-    ).join('');
-
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #0284c7; text-transform: uppercase; line-height: 28px;">CSM Intro - Pre-Implementation</span>
-        </div>
-        <p>Hello <strong>${project.clientName}</strong> Team,</p>
-        <p><strong>${project.propertyName}</strong> has reached the <strong>CSM Intro - Pre-implementation</strong> milestone! Are you just getting started with Quext Smart Communities? Whether you're brand new or need a walkthrough, book time directly with your designated Customer Success Manager below.</p>
-        
-        <div style="background-color: #f0fdf4; padding: 16px; border-radius: 10px; border: 1px solid #bbf7d0; margin: 16px 0;">
-          <div style="font-size: 11px; text-transform: uppercase; color: #047857; font-weight: bold; margin-bottom: 4px;">Your Designated Customer Success Manager</div>
-          <div style="font-size: 16px; font-weight: bold; color: #0f172a;">${designatedCsm.name} — ${designatedCsm.title}</div>
-          <p style="font-style: italic; color: #334155; margin: 6px 0 12px 0;">"${designatedCsm.quote}"</p>
-          <p style="margin: 0;">
-            👉 <a href="${designatedCsm.bookingUrl}" style="display: inline-block; background-color: #01C38D; color: #191E29; font-weight: bold; padding: 10px 16px; border-radius: 8px; text-decoration: none;">Click Here to Book a Session with ${designatedCsm.name}</a>
-          </p>
-        </div>
-
-        <p style="font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 18px;">Full Quext CSM Booking Directory (<a href="${QUEXT_TRAINING_HELP_ARTICLE_URL}">Help Center Article</a>):</p>
-        <ul style="font-size: 12px; color: #334155; padding-left: 18px;">
-          ${allCsmLinksHtml}
-        </ul>
-
-        <div style="background-color: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 12px; margin-top: 16px;">
-          <strong>What We Can Help With:</strong> Getting started with your system • Feature walkthroughs and refreshers • Troubleshooting and questions • Best practices and tips.<br/>
-          <strong>Related Guides:</strong> <a href="https://help.quext.io/en/articles/10297981-staff-create-a-quext-pass">Staff - Create a Quext Pass</a> | <a href="https://help.quext.io/en/articles/13622261-residents-how-to-set-up-and-use-wallet-access">Residents - How to Set Up and Use Wallet Access</a>
-        </div>
-
-        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-          Best regards,<br/>
-          <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-        </p>
-      </div>
-    `;
+    const cardEmail = buildCsmIntroBookingCardEmail({ project });
 
     setGmailModalPayload({
-      title: `Confirm & Send CSM Calendar Booking Link (${designatedCsm.name})`,
+      title: `Confirm & Send CSM Calendar Booking Card Email (${designatedCsm.name})`,
       defaultRecipients: defaultRecipient,
-      subject: `[CSM Intro - Pre-Implementation] Schedule Your Training Session with ${designatedCsm.name} — ${project.propertyName}`,
-      htmlBody,
+      subject: cardEmail.subject,
+      htmlBody: cardEmail.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         if (onUpdateProject) {
           const newLog = {
@@ -145,24 +107,16 @@ export const CSMTrainingPortal: React.FC<CSMTrainingPortalProps> = ({
   };
 
   const handleSendHandoffCommunication = () => {
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #64748b; text-transform: uppercase; line-height: 28px;">CSM Handoff</span>
-        </div>
-        <p>Hello <strong>${project.clientName}</strong> Team,</p>
-        <p>Congratulations! <strong>${project.propertyName}</strong> has reached the <strong>CSM Handoff</strong> milestone. We are officially transitioning your property from Implementation Engineering to your dedicated Customer Success Manager, <strong>${designatedCsm.name}</strong> (${designatedCsm.email} • ${designatedCsm.phone}).</p>
-        ${customNote ? `<p style="background-color: #f8fafc; padding: 12px; border-radius: 8px; border-left: 4px solid #01C38D;"><strong>PM Note:</strong> ${customNote}</p>` : ''}
-        <p style="font-size: 12px; color: #64748b;">Note: Your implementation project record will automatically transition to Closed status 7 days following CSM Handoff initiation.</p>
-      </div>
-    `;
+    const cardEmail = buildCsmHandoffCardEmail({
+      project,
+      customPmNote: customNote,
+    });
 
     setGmailModalPayload({
-      title: 'Confirm & Send CSM Handoff Communication',
+      title: 'Confirm & Send Card-Based CSM Handoff Communication',
       defaultRecipients: defaultRecipient,
-      subject: `[Quext CSM Handoff] Welcome to Customer Success — ${project.propertyName}`,
-      htmlBody,
+      subject: cardEmail.subject,
+      htmlBody: cardEmail.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         if (onUpdateProject) {
           const newLog = {

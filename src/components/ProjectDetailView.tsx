@@ -69,6 +69,11 @@ import { ChangeOrderSection } from './ChangeOrderSection';
 import { ResetMilestonesModal } from './ResetMilestonesModal';
 import { CommunicationsTunnelModal } from './CommunicationsTunnelModal';
 import {
+  buildDigestibleMilestoneCardEmailContent,
+  buildKickoffWalkthroughCardEmail,
+  buildCsmIntroBookingCardEmail,
+} from '../services/portfolioEmailService';
+import {
   Building2,
   Mail,
   QrCode,
@@ -1686,83 +1691,37 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
       })
       .join('');
 
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #0284c7; font-weight: bold; text-transform: uppercase; line-height: 28px;">Deployment Progress Overview</span>
-        </div>
-        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-        <p style="margin: 0 0 16px 0; font-size: 13px; color: #334155;">
-          Here is your live Smart Community hardware installation progress overview for <strong>${project.propertyName}</strong>:
-        </p>
-
-        <!-- High-Level Overview Cards -->
-        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-          <div style="flex: 1; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600;">Total Quoted</div>
-            <div style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 4px; font-family: monospace;">${totalQuoted.toLocaleString()}</div>
-          </div>
-          <div style="flex: 1; background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: #0369a1; font-weight: 600;">Installed to Date</div>
-            <div style="font-size: 20px; font-weight: 700; color: #0284c7; margin-top: 4px; font-family: monospace;">${totalInstalled.toLocaleString()}</div>
-          </div>
-          <div style="flex: 1; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: #047857; font-weight: 600;">Overall Progress</div>
-            <div style="font-size: 20px; font-weight: 700; color: #059669; margin-top: 4px; font-family: monospace;">${overallPct}%</div>
-          </div>
-        </div>
-
-        <!-- High-Level Category Breakdown -->
-        <div style="margin-bottom: 24px;">
-          <h4 style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">Hardware Category Breakdown</h4>
-          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-            <thead>
-              <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Category</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Quoted</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Installed</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">% Done</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${catRowsHtml}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Individual Line Item View (No internal notes) -->
-        <div style="margin-bottom: 20px;">
-          <h4 style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">Individual Hardware Line Items</h4>
-          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-            <thead>
-              <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Hardware / Model</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Category</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Location</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Quoted</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: right;">Installed</th>
-                <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0; text-align: center;">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lineItemRowsHtml}
-            </tbody>
-          </table>
-        </div>
-
-        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-          Best regards,<br/>
-          <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations (${project.assignedPM?.email || 'pm@onequext.com'})
-        </p>
-      </div>
-    `;
+    const cardDigest = buildDigestibleMilestoneCardEmailContent({
+      project,
+      cadence:
+        (project.emailOverviewCadence === 'none'
+          ? 'weekly'
+          : project.emailOverviewCadence) || 'weekly',
+      aiTone: project.commsTunnelAiTone || 'executive',
+      customAiSummary: project.commsTunnelAiCustomSummary,
+      commsConfig: {
+        ...(project.commsTunnelConfig || {
+          includeInstalledBomCard: true,
+          selectedBomItemIds: [],
+          includeShippingDockCard: true,
+          selectedShippingDockIds: [],
+          includeInstallerLogsCard: true,
+          selectedInstallLogIds: [],
+          includeProjectNotesCard: true,
+          selectedProjectNoteIds: [],
+          includePmPersonalMessageCard: false,
+          pmPersonalMessageHeadline: '',
+          pmPersonalMessageBody: '',
+        }),
+        includeInstalledBomCard: true,
+      },
+    });
 
     setGmailModalPayload({
-      title: 'Confirm & Send BOM Progress Deployment Overview via Gmail',
+      title: 'Confirm & Send Card-Based BOM Deployment Overview via Gmail',
       defaultRecipients: customerEmailRecipient,
-      subject: `[Deployment Overview] Hardware Installation Progress: ${project.propertyName} (${overallPct}% Complete)`,
-      htmlBody,
+      subject: cardDigest.subject,
+      htmlBody: cardDigest.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         const nowStr = new Date().toLocaleDateString('en-US', {
           month: 'short',
@@ -1796,43 +1755,16 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
   // Portal Buildout Active & Kickoff Incomplete: Send Kickoff Document to customer
   const handleSendKickoffDocumentEmail = () => {
-    const portalUrl = buildCustomerKickoffPortalUrl(project.id);
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #f59e0b; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #d97706; font-weight: bold; text-transform: uppercase; line-height: 28px;">Kickoff Walkthrough Document</span>
-        </div>
-        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-        <p style="margin: 0 0 14px 0; font-size: 13px; color: #334155;">
-          Please continue filling out your official <strong>Quext Smart Community Kickoff Document &amp; Intake Form</strong> for <strong>${project.propertyName}</strong> (${project.unitsCount} units):
-        </p>
-        <div style="text-align: center; margin: 24px 0;">
-          <a href="${portalUrl}" style="background-color: #f59e0b; color: #ffffff; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            Continue Kickoff Document
-          </a>
-        </div>
-        <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 12px; color: #92400e;">
-          <strong>Information required to finalize Portal Buildout:</strong>
-          <ul style="margin: 6px 0 0 16px; padding: 0;">
-            <li>Property Management Software (PMS) integration credentials (${project.customerIntake?.pmsSoftware || 'Yardi / RealPage / Entrata'})</li>
-            <li>On-site staff directory &amp; administrative roles</li>
-            <li>Common area access door schedule &amp; perimeter gates</li>
-            <li>Site plan &amp; gateway placement confirmations</li>
-          </ul>
-        </div>
-        <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
-          Best regards,<br/>
-          <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations (${project.assignedPM?.email || 'pm@onequext.com'})
-        </p>
-      </div>
-    `;
+    const cardEmail = buildKickoffWalkthroughCardEmail({
+      project,
+      isReminder: true,
+    });
 
     setGmailModalPayload({
-      title: 'Confirm & Send Kickoff Document to Customer via Gmail',
+      title: 'Confirm & Send Card-Based Kickoff Document to Customer via Gmail',
       defaultRecipients: customerEmailRecipient,
-      subject: `[Action Required] Quext Kickoff Document & Intake Form: ${project.propertyName}`,
-      htmlBody,
+      subject: cardEmail.subject,
+      htmlBody: cardEmail.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         const nowStr = new Date().toLocaleDateString('en-US', {
           month: 'short',
@@ -1866,66 +1798,22 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
   // Portal Buildout Active & Kickoff Complete: Send touch base check-in email giving overview of completed items
   const handleSendTouchBaseCheckinEmail = () => {
-    const intake = project.customerIntake;
-    const submittedDateStr = intake?.submittedAt
-      ? new Date(intake.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : 'Confirmed & Verified';
-
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #059669; font-weight: bold; text-transform: uppercase; line-height: 28px;">Project Check-In &amp; Milestone Update</span>
-        </div>
-        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-        <p style="margin: 0 0 14px 0; font-size: 13px; color: #334155;">
-          We are touching base to provide a status update on your smart community deployment for <strong>${project.propertyName}</strong> (${project.unitsCount} units).
-        </p>
-        <p style="margin: 0 0 16px 0; font-size: 13px; color: #334155;">
-          Your kickoff document and intake details have been completed in their entirety and verified by our engineering team. Here is an overview of what has currently been completed for the project up to this point:
-        </p>
-
-        <!-- Completed Items Summary Cards -->
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-          <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
-            <span style="font-size: 13px; color: #1e293b;"><strong>Kickoff Intake Document:</strong> Completed and verified (${submittedDateStr})</span>
-          </div>
-          <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
-            <span style="font-size: 13px; color: #1e293b;"><strong>PMS Software Integration:</strong> Configured for <strong>${intake?.pmsSoftware || 'Selected PMS'}</strong></span>
-          </div>
-          <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
-            <span style="font-size: 13px; color: #1e293b;"><strong>Staff Roles &amp; User Directory:</strong> <strong>${intake?.staffRoles?.length || staffMembers.length || 0} Staff roles</strong> confirmed</span>
-          </div>
-          <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
-            <span style="font-size: 13px; color: #1e293b;"><strong>Common Area Door Tree:</strong> <strong>${intake?.commonAreaDoors?.length || commonDoors.length || 0} Common area doors &amp; access points</strong> mapped</span>
-          </div>
-          <div style="display: flex; align-items: center;">
-            <span style="color: #059669; font-weight: bold; margin-right: 8px;">✓</span>
-            <span style="font-size: 13px; color: #1e293b;"><strong>Bill of Materials &amp; Lock Finishes:</strong> All <strong>${project.bomItems.length} line items</strong> verified</span>
-          </div>
-        </div>
-
-        <!-- Milestone Ahead Reassurance -->
-        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 13px; color: #065f46;">
-          <strong>Next Milestone Ahead:</strong> Everything is on track and progressing smoothly! You are on your way to the next Project Milestone — <strong>Product Acquisition</strong> — very soon, where your hardware batches and integrator shipments will be prepared at the shipping dock.
-        </div>
-
-        <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
-          Best regards,<br/>
-          <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations (${project.assignedPM?.email || 'pm@onequext.com'})
-        </p>
-      </div>
-    `;
+    const cardDigest = buildDigestibleMilestoneCardEmailContent({
+      project,
+      cadence:
+        (project.emailOverviewCadence === 'none'
+          ? 'weekly'
+          : project.emailOverviewCadence) || 'weekly',
+      aiTone: project.commsTunnelAiTone || 'executive',
+      customAiSummary: project.commsTunnelAiCustomSummary,
+      commsConfig: project.commsTunnelConfig,
+    });
 
     setGmailModalPayload({
-      title: 'Confirm & Send Touch Base Check-In Email via Gmail',
+      title: 'Confirm & Send Card-Based Touch Base Check-In Email via Gmail',
       defaultRecipients: customerEmailRecipient,
       subject: `Project Check-In & Completed Milestones Overview: ${project.propertyName}`,
-      htmlBody,
+      htmlBody: cardDigest.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         const nowStr = new Date().toLocaleDateString('en-US', {
           month: 'short',
@@ -3072,49 +2960,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     project.customerIntake?.staffRoles?.[0]?.email ||
                     project.assignedPM?.email ||
                     '';
-                  const allCsmLinksHtml = CSM_CALENDAR_BOOKING_DIRECTORY.map(
-                    (csm) => `
-                      <li style="margin-bottom: 10px;">
-                        <strong>${csm.name}</strong> (${csm.title}) — <em>"${csm.quote}"</em><br/>
-                        👉 <a href="${csm.bookingUrl}" style="color: #0284c7; font-weight: bold;">Click Here to Book a Session with ${csm.name}</a>
-                      </li>
-                    `
-                  ).join('');
-                  const htmlBody = `
-                    <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-                      <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-                        <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-                        <span style="float: right; font-size: 11px; color: #0284c7; text-transform: uppercase; line-height: 28px; font-weight: bold;">CSM Intro • Pre-Implementation</span>
-                      </div>
-                      <p>Hello <strong>${project.clientName}</strong> Team,</p>
-                      <p><strong>${project.propertyName}</strong> has reached the <strong>CSM Intro - Pre-implementation</strong> milestone! You can now schedule your 1-on-1 training and pre-implementation review session directly with your designated Customer Success Manager below.</p>
-                      <div style="background-color: #f0fdf4; padding: 16px; border-radius: 10px; border: 1px solid #bbf7d0; margin: 16px 0;">
-                        <div style="font-size: 11px; text-transform: uppercase; color: #047857; font-weight: bold; margin-bottom: 4px;">Your Designated Customer Success Manager</div>
-                        <div style="font-size: 16px; font-weight: bold; color: #0f172a;">${csmBookingProfile.name} — ${csmBookingProfile.title}</div>
-                        <p style="font-style: italic; color: #334155; margin: 6px 0 12px 0;">"${csmBookingProfile.quote}"</p>
-                        <p style="margin: 0;">
-                          👉 <a href="${csmBookingProfile.bookingUrl}" style="display: inline-block; background-color: #01C38D; color: #191E29; font-weight: bold; padding: 10px 16px; border-radius: 8px; text-decoration: none;">Click Here to Book a Session with ${csmBookingProfile.name}</a>
-                        </p>
-                      </div>
-                      <p style="font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 18px;">Full Quext CSM Booking Directory (<a href="${QUEXT_TRAINING_HELP_ARTICLE_URL}" style="color: #0284c7;">help.quext.io</a>):</p>
-                      <ul style="font-size: 12px; color: #334155; padding-left: 18px;">
-                        ${allCsmLinksHtml}
-                      </ul>
-                      <div style="background-color: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 12px; margin-top: 16px;">
-                        <strong>Pre-Implementation Review &amp; Training Template:</strong> <a href="https://docs.google.com/email-layouts/d/19VypdKoiZlpv3HMQ1qymXwmCqArZsRzYlHbtD3fW4Fs/edit" style="color: #0284c7; font-weight: bold;">Open Pre-Implementation Review Email Layout Template</a><br/>
-                        <strong>Related Guides:</strong> <a href="https://help.quext.io/en/articles/10297981-staff-create-a-quext-pass">Staff - Create a Quext Pass</a> | <a href="https://help.quext.io/en/articles/13622261-residents-how-to-set-up-and-use-wallet-access">Residents - How to Set Up and Use Wallet Access</a>
-                      </div>
-                      <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-                        Best regards,<br/>
-                        <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-                      </p>
-                    </div>
-                  `;
+                  const cardEmail = buildCsmIntroBookingCardEmail({ project });
                   setGmailModalPayload({
-                    title: `Send CSM Calendar Link & Directory to Customer (${csmBookingProfile.name})`,
+                    title: `Send Card-Based CSM Calendar Link & Directory to Customer (${csmBookingProfile.name})`,
                     defaultRecipients: defaultRecip,
-                    subject: `[CSM Intro - Pre-Implementation] Schedule Your Training Session with ${csmBookingProfile.name} — ${project.propertyName}`,
-                    htmlBody,
+                    subject: cardEmail.subject,
+                    htmlBody: cardEmail.htmlBody,
                     onDispatched: ({ recipients, subject, gmailMessageId }) => {
                       const newLog: CustomerCommsLog = {
                         id: `log-csm-booking-${Date.now()}`,

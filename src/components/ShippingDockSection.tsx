@@ -47,6 +47,7 @@ import {
 import { LiveGmailConfirmModal, LiveGmailModalPayload } from './LiveGmailConfirmModal';
 import { ConfirmProductAcceptanceModal } from './ConfirmProductAcceptanceModal';
 import { ProductAcceptanceQRCode } from './ProductAcceptanceQRCode';
+import { buildShippingAndAcceptanceCardEmail } from '../services/portfolioEmailService';
 
 interface ShippingDockSectionProps {
   project: OperationProject;
@@ -1190,9 +1191,9 @@ export function buildFullShippingUpdatePayload(
     project.customerIntake?.subscriberEmail ||
     project.customerIntake?.communityEmail ||
     project.customerIntake?.staffRoles?.[0]?.email ||
-    'RFRleasing@gmail.com';
+    project.assignedPM?.email ||
+    '';
 
-  const portalLink = buildProductAcceptancePortalUrl(project.id);
   const summaryText = dockItems
     .map(
       (d) =>
@@ -1200,30 +1201,16 @@ export function buildFullShippingUpdatePayload(
     )
     .join('; ');
 
-  const tableHtml = buildShippingEmailTableHtmlHelper(dockItems, bomItems);
-
-  const htmlBody = `
-    <div style="font-family: Inter, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-      <div style="border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
-        <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-        <span style="float: right; font-size: 11px; color: #0284c7; font-weight: bold; text-transform: uppercase; line-height: 28px;">Shipping Dock Update</span>
-      </div>
-      <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-      <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Here is the hardware shipping summary for <strong>${project.propertyName}</strong>:</p>
-      ${tableHtml}
-      <p style="margin-top: 16px; font-size: 13px; color: #334155;">Once received on site, please confirm delivery in the <a href="${portalLink}" style="color: #0284c7; font-weight: 600;">Product Acceptance Portal</a>.</p>
-      <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-        Best regards,<br/>
-        <strong>${project.assignedPM?.name || 'Quext Project Manager'}</strong> • Quext Implementation Operations
-      </p>
-    </div>
-  `;
+  const cardEmail = buildShippingAndAcceptanceCardEmail({
+    project,
+    items: dockItems,
+  });
 
   return {
-    title: 'Confirm & Send Full Shipping Dock Update via Gmail',
+    title: 'Confirm & Send Card-Based Shipping Dock Update via Gmail',
     defaultRecipients: defaultRecipient,
-    subject: `Shipping Dock Update (All Batches): ${project.propertyName}`,
-    htmlBody,
+    subject: cardEmail.subject,
+    htmlBody: cardEmail.htmlBody,
     onDispatched: ({ recipients, subject, gmailMessageId }) => {
       const nowStr = new Date().toLocaleDateString('en-US', {
         month: 'short',
@@ -1837,32 +1824,18 @@ export const ShippingDockSection: React.FC<ShippingDockSectionProps> = ({
 
   // Send a single line item shipment update to the customer via Gmail
   const handleSendSingleLineItemUpdate = (item: ShippingDockItem) => {
-    const portalLink = buildProductAcceptancePortalUrl(project.id);
     const breakdownStr = formatDockItem1To1Breakdown(item);
-    const tableHtml = buildShippingEmailTableHtml([item]);
-
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
-          <img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />
-          <span style="float: right; font-size: 11px; color: #0284c7; font-weight: bold; text-transform: uppercase; line-height: 28px;">Shipment Update</span>
-        </div>
-        <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-        <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Here is a hardware shipment update for <strong>${project.propertyName}</strong>:</p>
-        ${tableHtml}
-        <p style="margin-top: 16px; font-size: 13px; color: #334155;">Once received on site, please confirm delivery in the <a href="${portalLink}" style="color: #0284c7; font-weight: 600;">Product Acceptance Portal</a>.</p>
-        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-          Best regards,<br/>
-          <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-        </p>
-      </div>
-    `;
+    const cardEmail = buildShippingAndAcceptanceCardEmail({
+      project,
+      items: [item],
+      isSingleBatch: true,
+    });
 
     setGmailModalPayload({
-      title: `Confirm & Send Batch Update (${item.bomItemName}) via Gmail`,
+      title: `Confirm & Send Card-Based Batch Update (${item.bomItemName}) via Gmail`,
       defaultRecipients: defaultRecipient,
-      subject: `Shipment Update (${item.bomItemName}): ${project.propertyName}`,
-      htmlBody,
+      subject: cardEmail.subject,
+      htmlBody: cardEmail.htmlBody,
       onDispatched: ({ recipients, subject, gmailMessageId }) => {
         const nowStr = new Date().toLocaleDateString('en-US', {
           month: 'short',

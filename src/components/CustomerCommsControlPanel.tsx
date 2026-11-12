@@ -62,6 +62,10 @@ import {
   getUnifiedGenuineProjectsPool,
   buildPortfolioUpdateEmailContent,
   buildDigestibleMilestoneCardEmailContent,
+  buildKickoffWalkthroughCardEmail,
+  buildCsmIntroBookingCardEmail,
+  buildCsmHandoffCardEmail,
+  buildSowForecasterCardEmail,
   logPortfolioDispatchAcrossProjects,
   consumeOneTimePmMessageConfig,
 } from '../services/portfolioEmailService';
@@ -442,38 +446,14 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   const buildEmailContent = (
     modalType: 'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast'
   ): { subject: string; summary: string; htmlBody: string; logType: CustomerCommsLog['type'] } => {
-    const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 28px; width: auto; display: inline-block; vertical-align: middle;" />`;
-
     if (modalType === 'kickoff') {
-      const subject = `[Action Required] Quext Smart Community Kickoff Walkthrough & Hardware Guide — ${project.propertyName}`;
-      const summary = `Dispatched interactive Customer Kickoff Walkthrough packet (${progressPercent}% milestone progress).`;
-      const htmlBody = `
-        <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-          <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-            ${logoImgTag}
-            <span style="float: right; font-size: 11px; color: #64748b; text-transform: uppercase; line-height: 28px;">Customer Kickoff Walkthrough</span>
-          </div>
-          <p>Hello <strong>${project.clientName}</strong> Team,</p>
-          <p>Welcome to your Quext Smart Community deployment for <strong>${project.propertyName}</strong> (${project.unitsCount} units). Below is your interactive <strong>Customer Kickoff Walkthrough &amp; Hardware Guide</strong> link:</p>
-          <p style="margin: 20px 0;">
-            <a href="${clientPortalUrl}" style="background-color: #01C38D; color: #0f172a; font-weight: bold; padding: 10px 18px; border-radius: 8px; text-decoration: none; display: inline-block;">Open Interactive Customer Kickoff Portal</a>
-          </p>
-          <div style="background-color: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px;">
-            <strong>Included in your Kickoff Walkthrough:</strong>
-            <ul>
-              <li>End-to-End 7-Stage Deployment Roadmap &amp; Responsibilities</li>
-              <li>Portal Build-Out, PMS Integration (${project.customerIntake?.pmsSoftware || 'Yardi'}) &amp; Common Area Door Tree</li>
-              <li>QR Intercom Logo Upload &amp; NFC Wallet Upgrade Card Art Intake</li>
-              <li>Site Maps Gateway Location Confirmation PDF Intake</li>
-            </ul>
-          </div>
-          <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-            Best regards,<br/>
-            <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations (${project.assignedPM.email})
-          </p>
-        </div>
-      `;
-      return { subject, summary, htmlBody, logType: 'kickoff_submission' };
+      const cardEmail = buildKickoffWalkthroughCardEmail({ project });
+      return {
+        subject: cardEmail.subject,
+        summary: cardEmail.summary,
+        htmlBody: cardEmail.htmlBody,
+        logType: 'kickoff_submission',
+      };
     }
 
     if (modalType === 'digest') {
@@ -493,166 +473,32 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     }
 
     if (modalType === 'csm_calendar') {
-      const subject = `[CSM Intro - Pre-Implementation] Schedule a Training Session with ${csmBookingProfile.name} — ${project.propertyName}`;
-      const summary = `Dispatched CSM Intro - Pre-implementation Calendar Booking Link for ${csmBookingProfile.name} (${csmBookingProfile.bookingUrl}) and Quext CSM Training Directory.`;
-      const allCsmDirectoryRows = CSM_CALENDAR_BOOKING_DIRECTORY.map(
-        (csm) => `
-          <li style="margin-bottom: 8px;">
-            <strong>${csm.name}</strong> (${csm.title}) — <em>"${csm.quote}"</em><br/>
-            <a href="${csm.bookingUrl}" style="color: #0284c7; font-weight: bold;">Book time with ${csm.name.split(' ')[0]} here</a>
-          </li>
-        `
-      ).join('');
-      const htmlBody = `
-        <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-          <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-            ${logoImgTag}
-            <span style="float: right; font-size: 11px; color: #01C38D; text-transform: uppercase; font-weight: bold; line-height: 28px;">CSM Intro • Pre-Implementation</span>
-          </div>
-          <p>Hello <strong>${project.clientName}</strong> Team,</p>
-          <p><strong>${project.propertyName}</strong> has entered the <strong>CSM Intro - Pre-implementation</strong> milestone! You can now schedule a personalized 1-on-1 training session directly with your designated Customer Success Manager.</p>
-          <div style="background-color: #f0fdf4; padding: 16px; border-radius: 10px; border: 1px solid #bbf7d0; margin: 16px 0;">
-            <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Your Designated CSM: ${csmBookingProfile.name}</strong> (${csmBookingProfile.title})</p>
-            <p style="margin: 0 0 12px 0; font-style: italic; color: #166534;">"${csmBookingProfile.quote}"</p>
-            <a href="${csmBookingProfile.bookingUrl}" style="background-color: #01C38D; color: #0f172a; font-weight: bold; padding: 10px 18px; border-radius: 8px; text-decoration: none; display: inline-block;">Book time with ${csmBookingProfile.name.split(' ')[0]} here</a>
-          </div>
-          <div style="background-color: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 12px; margin: 16px 0;">
-            <p style="margin: 0 0 8px 0;"><strong>Schedule a Training Session — Full Quext CSM Directory (<a href="${QUEXT_TRAINING_HELP_ARTICLE_URL}" style="color: #0284c7;">help.quext.io</a>):</strong></p>
-            <ul style="padding-left: 18px; margin: 0;">${allCsmDirectoryRows}</ul>
-          </div>
-          <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-            Best regards,<br/>
-            <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-          </p>
-        </div>
-      `;
-      return { subject, summary, htmlBody, logType: 'csm_handoff_email' };
+      const cardEmail = buildCsmIntroBookingCardEmail({ project });
+      return {
+        subject: cardEmail.subject,
+        summary: cardEmail.summary,
+        htmlBody: cardEmail.htmlBody,
+        logType: 'csm_handoff_email',
+      };
     }
 
     if (modalType === 'sow_forecast') {
-      const subject = `[Installation Scope Summary] ${project.propertyName} (${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Cadence)`;
-      const summary = `Dispatched SOW Forecaster installer scope overview matched against BOM line items (${sowItems.length} scope items) on ${cadence} cadence.`;
-      const tableRowsHtml = sowItems
-        .map((item) => {
-          const rowBomIds =
-            item.bomItemIds && item.bomItemIds.length > 0
-              ? item.bomItemIds
-              : [item.bomItemId];
-          const matchedBoms = project.bomItems.filter((b) => rowBomIds.includes(b.id));
-          const qtyMap = item.bomItemQuantities || {};
-
-          const installedHtml =
-            matchedBoms.length > 0
-              ? matchedBoms
-                  .map(
-                    (b) =>
-                      `<div style="margin-bottom: 3px; font-weight: 600; color: #0f172a;">${b.name}</div>`
-                  )
-                  .join('')
-              : `<div style="font-weight: 600; color: #0f172a;">${item.bomItemName}</div>`;
-
-          const qtyHtml =
-            matchedBoms.length > 0
-              ? matchedBoms
-                  .map((b) => {
-                    const q =
-                      qtyMap[b.id] !== undefined
-                        ? qtyMap[b.id]
-                        : matchedBoms.length === 1
-                        ? item.forecastedQuantity
-                        : b.quantity;
-                    return `<div style="margin-bottom: 3px; font-family: monospace; font-weight: 700; color: #312e81;">${q} units</div>`;
-                  })
-                  .join('')
-              : `<div style="font-family: monospace; font-weight: 700; color: #312e81;">${item.forecastedQuantity} units</div>`;
-
-          const dateDisplay =
-            !item.scheduledEndDate || item.scheduledStartDate === item.scheduledEndDate
-              ? item.scheduledStartDate
-              : `${item.scheduledStartDate} – ${item.scheduledEndDate}`;
-
-          return `
-            <tr>
-              <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px;">
-                ${installedHtml}
-              </td>
-              <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px; white-space: nowrap;">
-                ${qtyHtml}
-              </td>
-              <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 12px; color: #334155; white-space: nowrap;">
-                ${dateDisplay}
-              </td>
-              <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13px;">
-                <div style="color: #1e293b; font-weight: 500; line-height: 1.4;">${item.workDescription}</div>
-                ${
-                  item.buildingOrArea
-                    ? `<div style="font-size: 11px; color: #64748b; margin-top: 3px;">Location: ${item.buildingOrArea}</div>`
-                    : ''
-                }
-              </td>
-            </tr>
-          `;
-        })
-        .join('');
-
-      const tableSectionHtml =
-        sowItems.length > 0
-          ? `
-            <table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-              <thead>
-                <tr style="background-color: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569;">
-                  <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">What Was Installed</th>
-                  <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Quantity</th>
-                  <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Date</th>
-                  <th style="padding: 10px; border-bottom: 2px solid #e2e8f0;">Scope of Work Summary</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRowsHtml}
-              </tbody>
-            </table>
-          `
-          : `<p style="font-size: 13px; color: #64748b; margin: 12px 0;">Initial installation scope alignment in progress.</p>`;
-
-      const htmlBody = `
-        <div style="font-family: Inter, Arial, sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-          <div style="border-bottom: 2px solid #4f46e5; padding-bottom: 12px; margin-bottom: 16px;">
-            ${logoImgTag}
-            <span style="float: right; font-size: 11px; color: #4f46e5; font-weight: bold; text-transform: uppercase; line-height: 28px;">Installation Scope Summary</span>
-          </div>
-          <p style="margin: 0 0 8px 0;">Hello <strong>${project.clientName}</strong> Team,</p>
-          <p style="margin: 0 0 12px 0; font-size: 13px; color: #334155;">Here is the scheduled <strong>Installation &amp; Scope of Work Summary</strong> for <strong>${project.propertyName}</strong>:</p>
-          ${tableSectionHtml}
-          <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-            Best regards,<br/>
-            <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-          </p>
-        </div>
-      `;
-      return { subject, summary, htmlBody, logType: 'sow_forecast_email' };
+      const cardEmail = buildSowForecasterCardEmail({ project, items: sowItems });
+      return {
+        subject: cardEmail.subject,
+        summary: cardEmail.summary,
+        htmlBody: cardEmail.htmlBody,
+        logType: 'sow_forecast_email',
+      };
     }
 
-    const subject = `[Milestone Reached: CSM Handoff] Meet Your Quext Customer Success Manager — ${project.propertyName}`;
-    const summary = `Dispatched CSM Handoff introduction for ${project.assignedCSM || 'Nicole Franklin'} (handoff details only, 7-day auto-close armed).`;
-    const htmlBody = `
-      <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-        <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-          ${logoImgTag}
-          <span style="float: right; font-size: 11px; color: #64748b; text-transform: uppercase; line-height: 28px;">CSM Handoff</span>
-        </div>
-        <p>Hello <strong>${project.clientName}</strong> Team,</p>
-        <p>Congratulations! <strong>${project.propertyName}</strong> has reached the <strong>CSM Handoff</strong> milestone. We are transitioning your property from Implementation Engineering to Customer Success.</p>
-        <div style="background-color: #f0fdf4; padding: 14px; border-radius: 8px; border: 1px solid #bbf7d0; font-size: 13px; margin: 16px 0;">
-          <p style="margin: 0 0 6px 0;"><strong>Your Dedicated CSM:</strong> ${project.assignedCSM || 'Nicole Franklin'}</p>
-          <p style="margin: 0;">Note: Your implementation project record will automatically transition to Closed status 7 days following CSM Handoff initiation.</p>
-        </div>
-        <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-          Best regards,<br/>
-          <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-        </p>
-      </div>
-    `;
-    return { subject, summary, htmlBody, logType: 'csm_handoff_email' };
+    const cardEmail = buildCsmHandoffCardEmail({ project });
+    return {
+      subject: cardEmail.subject,
+      summary: cardEmail.summary,
+      htmlBody: cardEmail.htmlBody,
+      logType: 'csm_handoff_email',
+    };
   };
 
   const effectivePortfolioProjects = useMemo(() => {

@@ -5,8 +5,13 @@ import {
   formatCustomerEmailCadenceLabel,
   CommsTunnelConfiguration,
   InstallLogEntry,
+  ShippingDockItem,
+  SOWForecastItem,
   buildCustomerKickoffPortalUrl,
+  buildProductAcceptancePortalUrl,
   getCSMCalendarBookingProfile,
+  CSM_CALENDAR_BOOKING_DIRECTORY,
+  QUEXT_TRAINING_HELP_ARTICLE_URL,
   isLockBOMItem,
   getLockFinishSummaryTag,
   getDockItemTrackingNumbers,
@@ -1084,9 +1089,22 @@ export function buildPortfolioUpdateEmailContent({
   else if (communicationType === 'sow_forecast') logType = 'sow_forecast_email';
   else if (communicationType === 'csm') logType = 'csm_handoff_email';
 
-  const summary = `Dispatched consolidated Portfolio Update covering ${allProjects.length} properties (${allProjects.map((p) => p.propertyName).join(', ')}). ${originalSummary}`;
+  const cardPortfolioEmail = buildRecipientPortfolioWideCardEmail({
+    recipientEmail: matchedContacts[0]?.email || '',
+    recipientName: matchedContacts[0]?.contactName,
+    sharedProjects: allProjects,
+    primaryProject,
+    cadence: cadence === 'none' ? 'biweekly' : cadence,
+    aiTone: primaryProject.commsTunnelAiTone || 'executive',
+    customNote,
+    senderName,
+    senderEmail,
+    commsConfig: primaryProject.commsTunnelConfig,
+  });
 
-  return { subject, summary, htmlBody, logType };
+  const summary = `Dispatched consolidated Card-Based Portfolio Update covering ${allProjects.length} properties (${allProjects.map((p) => p.propertyName).join(', ')}). ${originalSummary}`;
+
+  return { subject, summary, htmlBody: cardPortfolioEmail.htmlBody, logType };
 }
 
 /**
@@ -3006,4 +3024,1086 @@ export function buildRecipientPortfolioWideCardEmail({
     logType: 'deployment_overview_email',
   };
 }
+
+function escapeHtmlForCard(value?: string | number | null): string {
+  const str = String(value ?? '');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Shared helper to render an optional PM Personal Message Card inside any customer email.
+ */
+function renderInlinePmNoteCard(
+  project: OperationProject,
+  customNote?: string,
+  headline?: string,
+  badgeLabel: string = 'NOTE FROM YOUR PROJECT MANAGER'
+): string {
+  const cleanNote = (customNote || '').trim();
+  const configHtml = buildPmPersonalMessageCardHtml(project, project.commsTunnelConfig);
+  if (!cleanNote) {
+    return configHtml;
+  }
+  const pmName = project.assignedPM?.name || 'Quext Project Manager';
+  const pmRole = project.assignedPM?.role || 'Implementation Project Manager';
+  const pmEmail = project.assignedPM?.email || 'pm@onequext.com';
+  const pmPhone = project.assignedPM?.phone || '(806) 555-0100';
+  const initials = pmName
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  const formattedParagraphs = cleanNote
+    .split(/\n+/)
+    .filter(Boolean)
+    .map(
+      (p) =>
+        `<p style="margin: 0 0 8px 0; font-size: 13px; color: #1e293b; line-height: 1.55;">${escapeHtmlForCard(
+          p
+        )}</p>`
+    )
+    .join('');
+
+  return `
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border: 1.5px solid #6ee7b7; border-left: 5px solid #01C38D; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(1, 195, 141, 0.08);">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+          <td style="width: 38px; vertical-align: middle;">
+            <div style="width: 34px; height: 34px; border-radius: 10px; background-color: #0f172a; color: #01C38D; font-size: 12px; font-weight: 900; text-align: center; line-height: 34px; border: 1px solid #01C38D;">
+              ${initials}
+            </div>
+          </td>
+          <td style="vertical-align: middle; padding-left: 6px;">
+            <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #047857;">
+              💬 ${escapeHtmlForCard(badgeLabel)}
+            </div>
+            <div style="font-size: 14px; font-weight: 900; color: #0f172a; margin-top: 1px;">
+              ${escapeHtmlForCard(headline || `Direct Update from ${pmName}`)}
+            </div>
+          </td>
+        </tr>
+      </table>
+      <div style="background-color: #ffffff; border: 1px solid #d1fae5; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;">
+        ${formattedParagraphs}
+      </div>
+      <div style="font-size: 11px; color: #475569;">
+        <strong style="color: #0f172a;">${escapeHtmlForCard(pmName)}</strong> • ${escapeHtmlForCard(pmRole)} • <span style="color: #0284c7;">${escapeHtmlForCard(pmEmail)}</span> • ${escapeHtmlForCard(pmPhone)}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 1. CARD-BASED PROJECT CLOSURE & FINAL CSM HANDOVER EMAIL
+ */
+export function buildProjectClosureCardEmail({
+  project,
+  customPmNote,
+  customHeadline,
+  aiTone = 'executive',
+}: {
+  project: OperationProject;
+  customPmNote?: string;
+  customHeadline?: string;
+  aiTone?: AiEmailTone;
+}): {
+  subject: string;
+  summary: string;
+  aiHeadline: string;
+  htmlBody: string;
+} {
+  const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 26px; width: auto; display: inline-block; vertical-align: middle;" />`;
+  const csmProfile = getCSMCalendarBookingProfile(project.assignedCSM || 'Nicole Franklin');
+  const totalQuoted = project.bomItems.reduce((acc, i) => acc + (Number(i.quantity) || 0), 0);
+  const totalInstalled = project.bomItems.reduce((acc, i) => acc + (Number(i.installedCount) || 0), 0);
+  const displayInstalled = totalInstalled > 0 ? totalInstalled : totalQuoted;
+  const doorsCount = project.customerIntake?.commonAreaDoors?.length || 0;
+  const pmsName = project.customerIntake?.pmsSoftware || 'Yardi';
+  const clientPortalUrl = buildCustomerKickoffPortalUrl(project.id);
+
+  const defaultHeadline =
+    aiTone === 'technical'
+      ? `${project.propertyName} (${project.unitsCount} units) has completed all 7 deployment stages — ${displayInstalled.toLocaleString()} IoT devices, LoRaWAN gateways, and ${pmsName} bi-directional sync verified online.`
+      : aiTone === 'action_oriented'
+      ? `${project.propertyName} implementation is 100% complete and officially closed — transitioning ongoing operations to your dedicated CSM, ${csmProfile.name}.`
+      : `Congratulations! Physical deployment, network commissioning, and Quext Portal setup for ${project.propertyName} (${project.unitsCount} units) are 100% complete and officially closed.`;
+
+  const aiHeadline = (customHeadline || '').trim() || defaultHeadline;
+
+  const milestonePillsHtml = project.milestones
+    .map(
+      (m) => `
+        <div style="display: inline-block; margin: 3px 4px 3px 0; padding: 5px 9px; border-radius: 8px; background-color: #ecfdf5; color: #047857; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 800; line-height: 1.2;">
+          <span>✓ ${escapeHtmlForCard(m.title)}</span>
+        </div>
+      `
+    )
+    .join('');
+
+  const bomCardsHtml = project.bomItems
+    .map((item) => {
+      const inst = (Number(item.installedCount) || 0) > 0 ? item.installedCount : item.quantity;
+      const finishTag = isLockBOMItem(item) ? getLockFinishSummaryTag(item.lockFinishConfig) : null;
+      return `
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="vertical-align: top;">
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a;">
+                  ${escapeHtmlForCard(item.name)}
+                </div>
+                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+                  Model: <strong>${escapeHtmlForCard(item.model)}</strong> • ${escapeHtmlForCard(item.category)} • ${escapeHtmlForCard(item.location)}
+                  ${finishTag ? ` • <span style="color: #b45309; font-weight: 700;">Finish: ${escapeHtmlForCard(finishTag)}</span>` : ''}
+                </div>
+              </td>
+              <td style="text-align: right; vertical-align: middle; white-space: nowrap;">
+                <span style="display: inline-block; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 10px; font-weight: 900; padding: 4px 9px; border-radius: 999px;">
+                  ✓ ${inst} / ${item.quantity} Verified
+                </span>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+    })
+    .join('');
+
+  const pmCardHtml = renderInlinePmNoteCard(
+    project,
+    customPmNote,
+    `Thank You from ${project.assignedPM?.name || 'Your Quext PM'}`,
+    'PROJECT CLOSURE NOTE FROM YOUR PM'
+  );
+
+  const htmlBody = `
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 660px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
+      <!-- TOP HEADER CARD -->
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #064e3b 100%); color: #ffffff; padding: 20px; border-radius: 14px; margin-bottom: 14px; border-bottom: 3px solid #01C38D;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              ${logoImgTag}
+              <span style="margin-left: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background-color: rgba(1, 195, 141, 0.22); color: #01C38D; border: 1px solid rgba(1, 195, 141, 0.45); padding: 3px 8px; border-radius: 999px;">
+                Official Closure Certificate
+              </span>
+            </td>
+            <td style="text-align: right; vertical-align: middle;">
+              <span style="font-size: 11px; font-weight: 900; background-color: #01C38D; color: #0f172a; padding: 4px 10px; border-radius: 8px;">
+                ✓ 100% CLOSED
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 20px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em;">
+            ${escapeHtmlForCard(project.propertyName)}
+          </div>
+          <div style="font-size: 12px; color: #a7f3d0; margin-top: 3px;">
+            ${escapeHtmlForCard(project.clientName)} • ${escapeHtmlForCard(project.city)}, ${escapeHtmlForCard(project.state)} • <strong>${project.unitsCount} Residential Units</strong> • Quote #${escapeHtmlForCard(project.quoteNumber)}
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px 14px; background-color: rgba(255, 255, 255, 0.09); border-left: 3px solid #01C38D; border-radius: 8px; font-size: 12px; color: #ecfdf5; line-height: 1.5;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #01C38D; display: block; margin-bottom: 3px;">
+            ✨ AI Executive Handover Summary
+          </span>
+          ${escapeHtmlForCard(aiHeadline)}
+        </div>
+      </div>
+
+      ${pmCardHtml}
+
+      <!-- CARD 1: 7-STAGE COMPLETION & FINAL METRICS CARD -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+          <tr>
+            <td>
+              <span style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b;">
+                CARD 1 • IMPLEMENTATION COMPLETION CERTIFICATE
+              </span>
+              <div style="font-size: 16px; font-weight: 900; color: #0f172a; margin-top: 2px;">
+                All 7 Deployment Milestones Completed
+              </div>
+            </td>
+            <td style="text-align: right;">
+              <span style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 5px 10px; border-radius: 10px; font-size: 13px; font-weight: 900; color: #047857;">
+                7/7 Done (100%)
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div style="background-color: #f1f5f9; border-radius: 999px; height: 8px; overflow: hidden; margin-bottom: 12px;">
+          <div style="background-color: #01C38D; height: 8px; width: 100%; border-radius: 999px;"></div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          ${milestonePillsHtml}
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 25%; padding: 4px;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total Scope</div>
+                <div style="font-size: 14px; font-weight: 900; color: #0f172a; margin-top: 3px;">${project.unitsCount} Units</div>
+              </div>
+            </td>
+            <td style="width: 25%; padding: 4px;">
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #047857; text-transform: uppercase;">Hardware Verified</div>
+                <div style="font-size: 14px; font-weight: 900; color: #065f46; margin-top: 3px;">${displayInstalled} / ${totalQuoted}</div>
+              </div>
+            </td>
+            <td style="width: 25%; padding: 4px;">
+              <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #0369a1; text-transform: uppercase;">PMS Sync</div>
+                <div style="font-size: 14px; font-weight: 900; color: #0c4a6e; margin-top: 3px;">${escapeHtmlForCard(pmsName)}</div>
+              </div>
+            </td>
+            <td style="width: 25%; padding: 4px;">
+              <div style="background-color: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #6b21a8; text-transform: uppercase;">Common Doors</div>
+                <div style="font-size: 14px; font-weight: 900; color: #581c87; margin-top: 3px;">${doorsCount} Doors</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- CARD 2: DEDICATED CUSTOMER SUCCESS MANAGER (CSM) HANDOVER CARD -->
+      <div style="background-color: #ffffff; border: 1.5px solid #c4b5fd; border-left: 5px solid #7c3aed; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #6d28d9; margin-bottom: 6px;">
+          CARD 2 • OFFICIAL CUSTOMER SUCCESS (CSM) HANDOVER
+        </div>
+        <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-bottom: 4px;">
+          Primary Contact Moving Forward: ${escapeHtmlForCard(csmProfile.name)} (${escapeHtmlForCard(csmProfile.title)})
+        </div>
+        <div style="font-size: 12px; color: #475569; line-height: 1.45; margin-bottom: 12px;">
+          Your deployment has transitioned from Implementation Engineering to Customer Success. <strong>${escapeHtmlForCard(csmProfile.name)}</strong> is your dedicated point of contact for staff onboarding, resident mobile key workflows, and portal support.
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+          <tr>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 10px 12px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #6d28d9;">Dedicated CSM Direct Line</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 3px;">${escapeHtmlForCard(csmProfile.email)}</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 1px;">Phone: ${escapeHtmlForCard(csmProfile.phone)}</div>
+              </div>
+            </td>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #475569;">24/7 Quext Support Desk</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 3px;">support@onequext.com</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 1px;">Help Center: help.quext.io</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <div>
+          <a href="${csmProfile.bookingUrl}" style="display: inline-block; background-color: #7c3aed; color: #ffffff; font-weight: 800; font-size: 12px; padding: 9px 16px; border-radius: 8px; text-decoration: none; margin-right: 8px;">
+            Book 1-on-1 Session with ${escapeHtmlForCard(csmProfile.name.split(' ')[0])} →
+          </a>
+          <a href="${clientPortalUrl}" style="display: inline-block; background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; font-weight: 800; font-size: 12px; padding: 9px 14px; border-radius: 8px; text-decoration: none;">
+            View Property Portal Summary
+          </a>
+        </div>
+      </div>
+
+      <!-- CARD 3: VERIFIED HARDWARE & BOM LINE ITEM CARDS -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 3 • COMMISSIONED BILL OF MATERIALS (${project.bomItems.length} LINE ITEMS)
+        </div>
+        ${bomCardsHtml}
+      </div>
+
+      <!-- FOOTER -->
+      <div style="text-align: center; font-size: 11px; color: #64748b; padding: 6px 12px;">
+        Official Project Closure &amp; Handover Certificate • Dispatched by <strong>${escapeHtmlForCard(project.assignedPM?.name || 'Quext PM')}</strong> (${escapeHtmlForCard(project.assignedPM?.email || 'pm@onequext.com')})
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: `Project Closure & Implementation Handover Certificate - ${project.propertyName}`,
+    summary: `Dispatched card-based Project Closure Certificate & CSM Handover (${csmProfile.name}) for ${project.propertyName}.`,
+    aiHeadline,
+    htmlBody,
+  };
+}
+
+/**
+ * 2. CARD-BASED CUSTOMER KICKOFF WALKTHROUGH & INTAKE EMAIL
+ */
+export function buildKickoffWalkthroughCardEmail({
+  project,
+  customPmNote,
+  isReminder = false,
+}: {
+  project: OperationProject;
+  customPmNote?: string;
+  isReminder?: boolean;
+}): {
+  subject: string;
+  summary: string;
+  htmlBody: string;
+} {
+  const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 26px; width: auto; display: inline-block; vertical-align: middle;" />`;
+  const clientPortalUrl = buildCustomerKickoffPortalUrl(project.id);
+  const pmsName = project.customerIntake?.pmsSoftware || 'Yardi / RealPage / Entrata';
+  const stage1And2CardHtml = buildStage1And2CustomerActionCardHtml(
+    project,
+    project.commsTunnelConfig,
+    project.assignedPM?.email
+  );
+  const pmCardHtml = renderInlinePmNoteCard(project, customPmNote);
+
+  const milestonePillsHtml = project.milestones
+    .map((m, idx) => {
+      const isDone = m.status === 'Completed';
+      const isCurrent = m.status === 'In Progress' || (!isDone && idx === 0);
+      const bg = isDone ? '#ecfdf5' : isCurrent ? '#0f172a' : '#f8fafc';
+      const color = isDone ? '#047857' : isCurrent ? '#01C38D' : '#64748b';
+      const border = isDone ? '#6ee7b7' : isCurrent ? '#01C38D' : '#e2e8f0';
+      return `
+        <div style="display: inline-block; margin: 3px 4px 3px 0; padding: 5px 9px; border-radius: 8px; background-color: ${bg}; color: ${color}; border: 1px solid ${border}; font-size: 10px; font-weight: 800;">
+          <span>${isDone ? '✓' : idx + 1}. ${escapeHtmlForCard(m.title)}</span>
+        </div>
+      `;
+    })
+    .join('');
+
+  const htmlBody = `
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 660px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
+      <!-- TOP HEADER CARD -->
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 20px; border-radius: 14px; margin-bottom: 14px; border-bottom: 3px solid #01C38D;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              ${logoImgTag}
+              <span style="margin-left: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background-color: rgba(1, 195, 141, 0.18); color: #01C38D; border: 1px solid rgba(1, 195, 141, 0.4); padding: 3px 8px; border-radius: 999px;">
+                ${isReminder ? 'Kickoff Intake Reminder' : 'Customer Kickoff Walkthrough'}
+              </span>
+            </td>
+            <td style="text-align: right; vertical-align: middle;">
+              <span style="font-size: 11px; font-weight: 800; background-color: rgba(255,255,255,0.12); color: #f8fafc; padding: 4px 10px; border-radius: 8px;">
+                Stage 1 • Kickoff
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 20px; font-weight: 900; color: #ffffff;">
+            ${escapeHtmlForCard(project.propertyName)}
+          </div>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 3px;">
+            ${escapeHtmlForCard(project.clientName)} • ${escapeHtmlForCard(project.city)}, ${escapeHtmlForCard(project.state)} • <strong>${project.unitsCount} Residential Units</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px 14px; background-color: rgba(255, 255, 255, 0.07); border-left: 3px solid #01C38D; border-radius: 8px; font-size: 12px; color: #e2e8f0; line-height: 1.5;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #01C38D; display: block; margin-bottom: 3px;">
+            ✨ Welcome to Quext Smart Communities
+          </span>
+          Complete your interactive Kickoff Walkthrough &amp; Intake Checklist below (or reply directly to this email) so our engineering team can configure your portal, PMS sync, and hardware shipment schedule.
+        </div>
+      </div>
+
+      ${pmCardHtml}
+
+      ${stage1And2CardHtml}
+
+      <!-- CARD 1: INTERACTIVE KICKOFF PORTAL & 4 INTAKE PILLARS -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 1 • INTERACTIVE KICKOFF PORTAL &amp; INTAKE MODULES
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+          <tr>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 11px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #0284c7;">1 • PMS Integration</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">${escapeHtmlForCard(pmsName)} Sync</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 2px;">Confirm property code &amp; bi-directional resident sync credentials.</div>
+              </div>
+            </td>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 11px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #059669;">2 • Staff &amp; Permissions</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">On-Site Team Roster</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 2px;">Designate Manager, Maintenance, and Leasing portal roles.</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 11px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #7c3aed;">3 • Common Area Doors</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">Access Schedule &amp; Tree</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 2px;">Verify perimeter gates, clubhouse entries, and amenity doors.</div>
+              </div>
+            </td>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 11px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #d97706;">4 • Site Map &amp; Branding</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">Gateway PDF &amp; Wallet Art</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 2px;">Upload gateway placement map, QR Intercom logo &amp; NFC card art.</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <div style="text-align: center; padding-top: 6px;">
+          <a href="${clientPortalUrl}" style="display: inline-block; background-color: #01C38D; color: #0f172a; font-weight: 900; font-size: 13px; padding: 11px 22px; border-radius: 10px; text-decoration: none;">
+            Open Interactive Customer Kickoff Portal →
+          </a>
+        </div>
+      </div>
+
+      <!-- CARD 2: 7-STAGE ROADMAP PREVIEW -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 2 • YOUR 7-STAGE DEPLOYMENT ROADMAP (TARGET: ${escapeHtmlForCard(project.targetCompletionDate)})
+        </div>
+        <div>${milestonePillsHtml}</div>
+      </div>
+
+      <div style="text-align: center; font-size: 11px; color: #64748b; padding: 6px 12px;">
+        Dispatched by <strong>${escapeHtmlForCard(project.assignedPM?.name || 'Quext PM')}</strong> (${escapeHtmlForCard(project.assignedPM?.email || 'pm@onequext.com')}) • Quext Implementation Operations
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: isReminder
+      ? `[Action Required] Quext Kickoff Document & Intake Form: ${project.propertyName}`
+      : `[Action Required] Quext Smart Community Kickoff Walkthrough & Hardware Guide — ${project.propertyName}`,
+    summary: `Dispatched card-based Customer Kickoff Walkthrough packet for ${project.propertyName}.`,
+    htmlBody,
+  };
+}
+
+/**
+ * 3. CARD-BASED CSM INTRO & PRE-IMPLEMENTATION CALENDAR BOOKING EMAIL
+ */
+export function buildCsmIntroBookingCardEmail({
+  project,
+  customPmNote,
+}: {
+  project: OperationProject;
+  customPmNote?: string;
+}): {
+  subject: string;
+  summary: string;
+  htmlBody: string;
+} {
+  const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 26px; width: auto; display: inline-block; vertical-align: middle;" />`;
+  const csmProfile = getCSMCalendarBookingProfile(project.assignedCSM || 'Nicole Franklin');
+  const pmCardHtml = renderInlinePmNoteCard(project, customPmNote);
+
+  const directoryCardsHtml = CSM_CALENDAR_BOOKING_DIRECTORY.map(
+    (csm) => `
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              <div style="font-size: 12px; font-weight: 800; color: #0f172a;">
+                ${escapeHtmlForCard(csm.name)} <span style="font-weight: 600; color: #64748b;">• ${escapeHtmlForCard(csm.title)}</span>
+              </div>
+              <div style="font-size: 11px; font-style: italic; color: #475569; margin-top: 2px;">
+                "${escapeHtmlForCard(csm.quote)}"
+              </div>
+            </td>
+            <td style="text-align: right; vertical-align: middle; white-space: nowrap; padding-left: 8px;">
+              <a href="${csm.bookingUrl}" style="display: inline-block; background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10px; font-weight: 800; padding: 6px 10px; border-radius: 8px; text-decoration: none;">
+                Book ${escapeHtmlForCard(csm.name.split(' ')[0])} →
+              </a>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `
+  ).join('');
+
+  const htmlBody = `
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 660px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
+      <!-- TOP HEADER CARD -->
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 20px; border-radius: 14px; margin-bottom: 14px; border-bottom: 3px solid #01C38D;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              ${logoImgTag}
+              <span style="margin-left: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background-color: rgba(1, 195, 141, 0.18); color: #01C38D; border: 1px solid rgba(1, 195, 141, 0.4); padding: 3px 8px; border-radius: 999px;">
+                CSM Intro • Pre-Implementation
+              </span>
+            </td>
+            <td style="text-align: right; vertical-align: middle;">
+              <span style="font-size: 11px; font-weight: 800; background-color: rgba(255,255,255,0.12); color: #f8fafc; padding: 4px 10px; border-radius: 8px;">
+                Stage 4 • CSM Intro
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 20px; font-weight: 900; color: #ffffff;">
+            ${escapeHtmlForCard(project.propertyName)}
+          </div>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 3px;">
+            ${escapeHtmlForCard(project.clientName)} • <strong>${project.unitsCount} Units</strong> • Designated CSM: <strong>${escapeHtmlForCard(csmProfile.name)}</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px 14px; background-color: rgba(255, 255, 255, 0.07); border-left: 3px solid #01C38D; border-radius: 8px; font-size: 12px; color: #e2e8f0; line-height: 1.5;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #01C38D; display: block; margin-bottom: 3px;">
+            ✨ Schedule Your 1-on-1 Portal &amp; Operations Training
+          </span>
+          <strong>${escapeHtmlForCard(project.propertyName)}</strong> has reached the <strong>CSM Intro - Pre-implementation</strong> milestone. Book your live training session with <strong>${escapeHtmlForCard(csmProfile.name)}</strong> below to prepare your on-site staff prior to field installation completion.
+        </div>
+      </div>
+
+      ${pmCardHtml}
+
+      <!-- CARD 1: DESIGNATED CSM SPOTLIGHT & 1-CLICK BOOKING CARD -->
+      <div style="background-color: #ffffff; border: 1.5px solid #6ee7b7; border-left: 5px solid #01C38D; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #047857; margin-bottom: 6px;">
+          CARD 1 • YOUR DESIGNATED CUSTOMER SUCCESS MANAGER
+        </div>
+        <div style="font-size: 17px; font-weight: 900; color: #0f172a;">
+          ${escapeHtmlForCard(csmProfile.name)} — ${escapeHtmlForCard(csmProfile.title)}
+        </div>
+        <div style="font-size: 12px; font-style: italic; color: #166534; margin: 6px 0 12px 0;">
+          "${escapeHtmlForCard(csmProfile.quote)}"
+        </div>
+        <div style="margin-bottom: 10px; font-size: 11px; color: #475569;">
+          Direct Email: <strong>${escapeHtmlForCard(csmProfile.email)}</strong> • Phone: <strong>${escapeHtmlForCard(csmProfile.phone)}</strong>
+        </div>
+        <a href="${csmProfile.bookingUrl}" style="display: inline-block; background-color: #01C38D; color: #0f172a; font-weight: 900; font-size: 12px; padding: 10px 18px; border-radius: 9px; text-decoration: none;">
+          📅 Book 1-on-1 Session with ${escapeHtmlForCard(csmProfile.name)} →
+        </a>
+      </div>
+
+      <!-- CARD 2: TRAINING SESSION FOCUS & SELF-SERVICE GUIDES -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 2 • PRE-IMPLEMENTATION TRAINING MODULES &amp; GUIDES
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 11px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #0284c7;">Staff Onboarding</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">Staff Quext Pass &amp; Portal</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 3px;">
+                  <a href="https://help.quext.io/en/articles/10297981-staff-create-a-quext-pass" style="color: #0284c7; font-weight: 700; text-decoration: none;">Open Staff Pass Guide →</a>
+                </div>
+              </div>
+            </td>
+            <td style="width: 50%; padding: 4px; vertical-align: top;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 11px;">
+                <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #059669;">Resident Onboarding</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">Apple &amp; Google Wallet Keys</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 3px;">
+                  <a href="https://help.quext.io/en/articles/13622261-residents-how-to-set-up-and-use-wallet-access" style="color: #059669; font-weight: 700; text-decoration: none;">Open Resident Wallet Guide →</a>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- CARD 3: FULL QUEXT CSM CALENDAR DIRECTORY -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 3 • QUEXT CUSTOMER SUCCESS BOOKING DIRECTORY (<a href="${QUEXT_TRAINING_HELP_ARTICLE_URL}" style="color: #0284c7; text-decoration: none;">HELP.QUEXT.IO</a>)
+        </div>
+        ${directoryCardsHtml}
+      </div>
+
+      <div style="text-align: center; font-size: 11px; color: #64748b; padding: 6px 12px;">
+        Dispatched by <strong>${escapeHtmlForCard(project.assignedPM?.name || 'Quext PM')}</strong> (${escapeHtmlForCard(project.assignedPM?.email || 'pm@onequext.com')}) • Quext Implementation Operations
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: `[CSM Intro - Pre-Implementation] Schedule Your Training Session with ${csmProfile.name} — ${project.propertyName}`,
+    summary: `Dispatched card-based CSM Intro Calendar Booking Link (${csmProfile.name}) and directory for ${project.propertyName}.`,
+    htmlBody,
+  };
+}
+
+/**
+ * 4. CARD-BASED CSM HANDOFF MILESTONE EMAIL
+ */
+export function buildCsmHandoffCardEmail({
+  project,
+  customPmNote,
+}: {
+  project: OperationProject;
+  customPmNote?: string;
+}): {
+  subject: string;
+  summary: string;
+  htmlBody: string;
+} {
+  const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 26px; width: auto; display: inline-block; vertical-align: middle;" />`;
+  const csmProfile = getCSMCalendarBookingProfile(project.assignedCSM || 'Nicole Franklin');
+  const pmCardHtml = renderInlinePmNoteCard(project, customPmNote, `Handoff Note from ${project.assignedPM?.name || 'Your PM'}`);
+
+  const htmlBody = `
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 660px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
+      <!-- TOP HEADER CARD -->
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #3b0764 100%); color: #ffffff; padding: 20px; border-radius: 14px; margin-bottom: 14px; border-bottom: 3px solid #01C38D;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              ${logoImgTag}
+              <span style="margin-left: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background-color: rgba(1, 195, 141, 0.2); color: #01C38D; border: 1px solid rgba(1, 195, 141, 0.45); padding: 3px 8px; border-radius: 999px;">
+                Stage 6 • CSM Handoff
+              </span>
+            </td>
+            <td style="text-align: right; vertical-align: middle;">
+              <span style="font-size: 11px; font-weight: 800; background-color: rgba(255,255,255,0.14); color: #f8fafc; padding: 4px 10px; border-radius: 8px;">
+                7-Day Auto-Close Active
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 20px; font-weight: 900; color: #ffffff;">
+            ${escapeHtmlForCard(project.propertyName)}
+          </div>
+          <div style="font-size: 12px; color: #e9d5ff; margin-top: 3px;">
+            ${escapeHtmlForCard(project.clientName)} • <strong>${project.unitsCount} Units</strong> • Transitioning to Customer Success
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px 14px; background-color: rgba(255, 255, 255, 0.08); border-left: 3px solid #01C38D; border-radius: 8px; font-size: 12px; color: #f3e8ff; line-height: 1.5;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #01C38D; display: block; margin-bottom: 3px;">
+            ✨ Welcome to Quext Customer Success
+          </span>
+          Congratulations! <strong>${escapeHtmlForCard(project.propertyName)}</strong> has reached the <strong>CSM Handoff</strong> milestone. Your property is transitioning from Implementation Engineering to your dedicated Customer Success Manager, <strong>${escapeHtmlForCard(csmProfile.name)}</strong>.
+        </div>
+      </div>
+
+      ${pmCardHtml}
+
+      <!-- CARD 1: CSM HANDOFF & TRANSITION DETAILS -->
+      <div style="background-color: #ffffff; border: 1.5px solid #c4b5fd; border-left: 5px solid #7c3aed; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #6d28d9; margin-bottom: 8px;">
+          CARD 1 • YOUR DEDICATED CUSTOMER SUCCESS MANAGER
+        </div>
+        <div style="font-size: 16px; font-weight: 900; color: #0f172a;">
+          ${escapeHtmlForCard(csmProfile.name)} (${escapeHtmlForCard(csmProfile.title)})
+        </div>
+        <div style="font-size: 12px; color: #475569; margin: 4px 0 12px 0;">
+          Email: <strong>${escapeHtmlForCard(csmProfile.email)}</strong> • Phone: <strong>${escapeHtmlForCard(csmProfile.phone)}</strong>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+          <tr>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #6b21a8; text-transform: uppercase;">Active Milestone</div>
+                <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 3px;">CSM Handoff</div>
+              </div>
+            </td>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #047857; text-transform: uppercase;">Auto-Close Window</div>
+                <div style="font-size: 13px; font-weight: 900; color: #065f46; margin-top: 3px;">7 Days Post-Handoff</div>
+              </div>
+            </td>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #0369a1; text-transform: uppercase;">24/7 Support</div>
+                <div style="font-size: 13px; font-weight: 900; color: #0c4a6e; margin-top: 3px;">support@onequext.com</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <a href="${csmProfile.bookingUrl}" style="display: inline-block; background-color: #01C38D; color: #0f172a; font-weight: 900; font-size: 12px; padding: 9px 16px; border-radius: 8px; text-decoration: none;">
+          Schedule Handoff Call with ${escapeHtmlForCard(csmProfile.name.split(' ')[0])} →
+        </a>
+      </div>
+
+      <div style="text-align: center; font-size: 11px; color: #64748b; padding: 6px 12px;">
+        Dispatched by <strong>${escapeHtmlForCard(project.assignedPM?.name || 'Quext PM')}</strong> (${escapeHtmlForCard(project.assignedPM?.email || 'pm@onequext.com')}) • Quext Implementation Operations
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: `[Milestone Reached: CSM Handoff] Meet Your Quext Customer Success Manager — ${project.propertyName}`,
+    summary: `Dispatched card-based CSM Handoff introduction for ${csmProfile.name} on ${project.propertyName}.`,
+    htmlBody,
+  };
+}
+
+/**
+ * 5. CARD-BASED SOW FORECASTER / INSTALLATION SCOPE EMAIL
+ */
+export function buildSowForecasterCardEmail({
+  project,
+  items,
+  customPmNote,
+  isSingleItem = false,
+}: {
+  project: OperationProject;
+  items?: SOWForecastItem[];
+  customPmNote?: string;
+  isSingleItem?: boolean;
+}): {
+  subject: string;
+  summary: string;
+  htmlBody: string;
+} {
+  const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 26px; width: auto; display: inline-block; vertical-align: middle;" />`;
+  const sowList = items || project.sowForecastItems || [];
+  const totalForecastedUnits = sowList.reduce((acc, s) => acc + (Number(s.forecastedQuantity) || 0), 0);
+  const integratorName = project.integratorPartners?.[0] || 'Assigned Field Crew';
+  const pmCardHtml = renderInlinePmNoteCard(project, customPmNote);
+
+  const sowCardsHtml =
+    sowList.length > 0
+      ? sowList
+          .map((item, idx) => {
+            const rowBomIds =
+              item.bomItemIds && item.bomItemIds.length > 0 ? item.bomItemIds : [item.bomItemId];
+            const matchedBoms = project.bomItems.filter((b) => rowBomIds.includes(b.id));
+            const titleText =
+              matchedBoms.length > 0
+                ? matchedBoms.map((b) => b.name).join(' + ')
+                : item.bomItemName || 'Scheduled Installation Scope';
+            const dateDisplay =
+              !item.scheduledEndDate || item.scheduledStartDate === item.scheduledEndDate
+                ? item.scheduledStartDate
+                : `${item.scheduledStartDate} – ${item.scheduledEndDate}`;
+
+            return `
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #4f46e5; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
+                  <tr>
+                    <td style="vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #4f46e5;">
+                        SCOPE CARD ${idx + 1} • ${escapeHtmlForCard(item.status || 'Forecasted')}
+                      </div>
+                      <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 2px;">
+                        ${escapeHtmlForCard(titleText)}
+                      </div>
+                    </td>
+                    <td style="text-align: right; vertical-align: top; white-space: nowrap;">
+                      <span style="display: inline-block; background-color: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; font-size: 11px; font-weight: 900; padding: 3px 9px; border-radius: 999px;">
+                        ${item.forecastedQuantity} Units
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+                <div style="font-size: 12px; color: #1e293b; line-height: 1.45; margin-bottom: 6px;">
+                  ${escapeHtmlForCard(item.workDescription)}
+                </div>
+                <div style="font-size: 11px; color: #475569;">
+                  📅 <strong>Schedule:</strong> ${escapeHtmlForCard(dateDisplay || 'TBD')}
+                  ${item.buildingOrArea ? ` • 📍 <strong>Area:</strong> ${escapeHtmlForCard(item.buildingOrArea)}` : ''}
+                  ${item.assignedInstaller ? ` • 🔧 <strong>Crew:</strong> ${escapeHtmlForCard(item.assignedInstaller)}` : ''}
+                </div>
+              </div>
+            `;
+          })
+          .join('')
+      : `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; font-size: 12px; color: #64748b;">Initial installation scope alignment in progress.</div>`;
+
+  const htmlBody = `
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 660px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
+      <!-- TOP HEADER CARD -->
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #312e81 100%); color: #ffffff; padding: 20px; border-radius: 14px; margin-bottom: 14px; border-bottom: 3px solid #01C38D;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              ${logoImgTag}
+              <span style="margin-left: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background-color: rgba(1, 195, 141, 0.2); color: #01C38D; border: 1px solid rgba(1, 195, 141, 0.45); padding: 3px 8px; border-radius: 999px;">
+                ${isSingleItem ? 'SOW Scope Line Update' : 'Installation Scope Forecast'}
+              </span>
+            </td>
+            <td style="text-align: right; vertical-align: middle;">
+              <span style="font-size: 11px; font-weight: 800; background-color: rgba(255,255,255,0.14); color: #f8fafc; padding: 4px 10px; border-radius: 8px;">
+                ${sowList.length} Scope ${sowList.length === 1 ? 'Card' : 'Cards'}
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 20px; font-weight: 900; color: #ffffff;">
+            ${escapeHtmlForCard(project.propertyName)}
+          </div>
+          <div style="font-size: 12px; color: #c7d2fe; margin-top: 3px;">
+            ${escapeHtmlForCard(project.clientName)} • <strong>${totalForecastedUnits} Forecasted Units</strong> • Integrator: <strong>${escapeHtmlForCard(integratorName)}</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px 14px; background-color: rgba(255, 255, 255, 0.08); border-left: 3px solid #01C38D; border-radius: 8px; font-size: 12px; color: #e0e7ff; line-height: 1.5;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #01C38D; display: block; margin-bottom: 3px;">
+            ✨ Scheduled Field Installation &amp; Scope of Work Digest
+          </span>
+          Below are the scheduled installation scope cards for <strong>${escapeHtmlForCard(project.propertyName)}</strong>, matched directly to your approved Bill of Materials.
+        </div>
+      </div>
+
+      ${pmCardHtml}
+
+      <!-- CARD 1: SOW SCOPE SUMMARY METRICS -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 1 • SCHEDULED SCOPE SNAPSHOT
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+          <tr>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #4338ca; text-transform: uppercase;">Scope Items</div>
+                <div style="font-size: 15px; font-weight: 900; color: #1e1b4b; margin-top: 2px;">${sowList.length}</div>
+              </div>
+            </td>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #047857; text-transform: uppercase;">Forecasted Qty</div>
+                <div style="font-size: 15px; font-weight: 900; color: #065f46; margin-top: 2px;">${totalForecastedUnits} Units</div>
+              </div>
+            </td>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #475569; text-transform: uppercase;">Assigned Partner</div>
+                <div style="font-size: 14px; font-weight: 900; color: #0f172a; margin-top: 2px;">${escapeHtmlForCard(integratorName)}</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- EMBEDDED SOW CARDS -->
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 2 • INSTALLATION WORK CARDS
+        </div>
+        ${sowCardsHtml}
+      </div>
+
+      <div style="text-align: center; font-size: 11px; color: #64748b; padding: 6px 12px;">
+        Dispatched by <strong>${escapeHtmlForCard(project.assignedPM?.name || 'Quext PM')}</strong> (${escapeHtmlForCard(project.assignedPM?.email || 'pm@onequext.com')}) • Quext Implementation Operations
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: isSingleItem && sowList[0]
+      ? `Installation Scope Update (${sowList[0].bomItemName}): ${project.propertyName}`
+      : `Installation Scope Summary: ${project.propertyName}`,
+    summary: `Dispatched card-based SOW Forecaster summary (${sowList.length} items, ${totalForecastedUnits} units) for ${project.propertyName}.`,
+    htmlBody,
+  };
+}
+
+/**
+ * 6. CARD-BASED SHIPPING DOCK & PRODUCT ACCEPTANCE PORTAL EMAIL
+ */
+export function buildShippingAndAcceptanceCardEmail({
+  project,
+  items,
+  includeQrCode = false,
+  customPmNote,
+  isSingleBatch = false,
+}: {
+  project: OperationProject;
+  items?: ShippingDockItem[];
+  includeQrCode?: boolean;
+  customPmNote?: string;
+  isSingleBatch?: boolean;
+}): {
+  subject: string;
+  summary: string;
+  htmlBody: string;
+} {
+  const logoImgTag = `<img src="/assets/aistudio/Quext_Logo_Black_ba76e58b.png" alt="Quext" style="height: 26px; width: auto; display: inline-block; vertical-align: middle;" />`;
+  const dockList = items || project.shippingDockItems || [];
+  const totalShippedUnits = dockList.reduce((acc, d) => acc + (Number(d.shippedQuantity) || 0), 0);
+  const acceptedCount = dockList.filter((d) => d.customerAccepted || d.status === 'Accepted by Customer').length;
+  const portalLink = buildProductAcceptancePortalUrl(project.id);
+  const pmCardHtml = renderInlinePmNoteCard(project, customPmNote);
+
+  const shipmentCardsHtml =
+    dockList.length > 0
+      ? dockList
+          .map((d, idx) => {
+            const tracks = getDockItemTrackingNumbers(d);
+            const trackDisplay = tracks.length > 0 ? tracks.join(', ') : d.trackingNumber || 'Pending Carrier Assignment';
+            const isAccepted = d.customerAccepted || d.status === 'Accepted by Customer';
+            const badgeBg = isAccepted ? '#ecfdf5' : '#f0f9ff';
+            const badgeColor = isAccepted ? '#047857' : '#0369a1';
+            const badgeBorder = isAccepted ? '#a7f3d0' : '#bae6fd';
+
+            return `
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid ${isAccepted ? '#059669' : '#0284c7'}; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
+                  <tr>
+                    <td style="vertical-align: top;">
+                      <div style="font-size: 9px; font-weight: 900; text-transform: uppercase; color: #64748b;">
+                        SHIPMENT CARD ${idx + 1} • ${escapeHtmlForCard(d.shipmentBatchLabel || `Batch #${idx + 1}`)}
+                      </div>
+                      <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 2px;">
+                        ${escapeHtmlForCard(d.bomItemName)} <span style="font-weight: 600; color: #64748b;">(${escapeHtmlForCard(d.bomItemModel)})</span>
+                      </div>
+                    </td>
+                    <td style="text-align: right; vertical-align: top; white-space: nowrap;">
+                      <span style="display: inline-block; background-color: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; font-size: 10px; font-weight: 900; padding: 3px 9px; border-radius: 999px;">
+                        ${d.shippedQuantity} Units • ${escapeHtmlForCard(d.status)}
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+                <div style="font-size: 11px; color: #334155; margin-bottom: 4px;">
+                  🚚 <strong>Carrier:</strong> ${escapeHtmlForCard(d.carrier || 'Freight')} • <strong>Tracking #:</strong> <span style="font-family: monospace; background-color: #ffffff; border: 1px solid #cbd5e1; padding: 1px 6px; border-radius: 4px; font-weight: 700;">${escapeHtmlForCard(trackDisplay)}</span>
+                </div>
+                <div style="font-size: 11px; color: #64748b;">
+                  📅 <strong>Shipped:</strong> ${escapeHtmlForCard(d.shippedDate || 'TBD')} • <strong>Est. Arrival:</strong> ${escapeHtmlForCard(d.estimatedArrivalDate || 'TBD')}
+                  ${d.integratorName ? ` • <strong>Integrator:</strong> ${escapeHtmlForCard(d.integratorName)}` : ''}
+                </div>
+                ${
+                  d.customerScenarioNotes
+                    ? `<div style="margin-top: 6px; padding: 6px 10px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 11px; color: #0f172a;"><strong>On-Site Delivery Note:</strong> ${escapeHtmlForCard(d.customerScenarioNotes)}</div>`
+                    : ''
+                }
+              </div>
+            `;
+          })
+          .join('')
+      : `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; font-size: 12px; color: #64748b;">Shipment batches are being staged at the warehouse.</div>`;
+
+  const qrCodeCardHtml = includeQrCode
+    ? `
+      <!-- ON-SITE MOBILE QR CODE CARD -->
+      <div style="background-color: #ffffff; border: 1.5px dashed #059669; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; text-align: center;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #047857; margin-bottom: 4px;">
+          📱 ON-SITE PROPERTY STAFF MOBILE QR CODE CARD
+        </div>
+        <div style="font-size: 12px; color: #334155; margin-bottom: 12px;">
+          Scan with your smartphone camera on the shipping dock to inspect pallets, note damaged boxes, and sign digitally.
+        </div>
+        <div style="display: inline-block; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #a7f3d0;">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=8&data=${encodeURIComponent(portalLink)}" alt="Product Acceptance Portal QR Code" width="150" height="150" style="display: block; margin: 0 auto;" />
+        </div>
+      </div>
+    `
+    : '';
+
+  const htmlBody = `
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 660px; margin: 0 auto; padding: 20px; background-color: #f1f5f9; border-radius: 16px; color: #0f172a;">
+      <!-- TOP HEADER CARD -->
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 100%); color: #ffffff; padding: 20px; border-radius: 14px; margin-bottom: 14px; border-bottom: 3px solid #01C38D;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="vertical-align: middle;">
+              ${logoImgTag}
+              <span style="margin-left: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background-color: rgba(1, 195, 141, 0.2); color: #01C38D; border: 1px solid rgba(1, 195, 141, 0.45); padding: 3px 8px; border-radius: 999px;">
+                ${includeQrCode ? 'Product Acceptance Portal' : 'Shipping Dock Update'}
+              </span>
+            </td>
+            <td style="text-align: right; vertical-align: middle;">
+              <span style="font-size: 11px; font-weight: 800; background-color: rgba(255,255,255,0.14); color: #f8fafc; padding: 4px 10px; border-radius: 8px;">
+                ${dockList.length} ${dockList.length === 1 ? 'Batch' : 'Batches'} • ${totalShippedUnits} Units
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 14px;">
+          <div style="font-size: 20px; font-weight: 900; color: #ffffff;">
+            ${escapeHtmlForCard(project.propertyName)}
+          </div>
+          <div style="font-size: 12px; color: #bae6fd; margin-top: 3px;">
+            ${escapeHtmlForCard(project.clientName)} • Quote #${escapeHtmlForCard(project.quoteNumber)} • ${escapeHtmlForCard(project.city)}, ${escapeHtmlForCard(project.state)}
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px 14px; background-color: rgba(255, 255, 255, 0.08); border-left: 3px solid #01C38D; border-radius: 8px; font-size: 12px; color: #e0f2fe; line-height: 1.5;">
+          <span style="font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #01C38D; display: block; margin-bottom: 3px;">
+            ✨ Hardware Delivery &amp; Digital Acceptance Digest
+          </span>
+          Review your hardware shipment cards below and use the <strong>Product Acceptance Portal</strong> button to verify received inventory, log delivery notes, and submit your digital acceptance signature.
+        </div>
+      </div>
+
+      ${pmCardHtml}
+
+      <!-- CARD 1: SHIPMENT METRICS & ACCEPTANCE PORTAL CTA -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;">
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 1 • SHIPPING DOCK TELEMETRY &amp; DIGITAL SIGN-OFF
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+          <tr>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #0369a1; text-transform: uppercase;">Shipment Batches</div>
+                <div style="font-size: 15px; font-weight: 900; color: #0c4a6e; margin-top: 2px;">${dockList.length}</div>
+              </div>
+            </td>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #475569; text-transform: uppercase;">Total Units Shipped</div>
+                <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 2px;">${totalShippedUnits}</div>
+              </div>
+            </td>
+            <td style="width: 33.33%; padding: 4px;">
+              <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px; text-align: center;">
+                <div style="font-size: 9px; font-weight: 800; color: #047857; text-transform: uppercase;">Accepted on Site</div>
+                <div style="font-size: 15px; font-weight: 900; color: #065f46; margin-top: 2px;">${acceptedCount} / ${dockList.length}</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <div style="text-align: center; padding: 4px 0 12px 0;">
+          <a href="${portalLink}" style="display: inline-block; background-color: #01C38D; color: #0f172a; font-weight: 900; font-size: 13px; padding: 11px 22px; border-radius: 10px; text-decoration: none;">
+            Open &amp; Sign Product Acceptance Portal →
+          </a>
+        </div>
+
+        <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 8px;">
+          CARD 2 • HARDWARE SHIPMENT BATCH CARDS
+        </div>
+        ${shipmentCardsHtml}
+      </div>
+
+      ${qrCodeCardHtml}
+
+      <div style="text-align: center; font-size: 11px; color: #64748b; padding: 6px 12px;">
+        Dispatched by <strong>${escapeHtmlForCard(project.assignedPM?.name || 'Quext PM')}</strong> (${escapeHtmlForCard(project.assignedPM?.email || 'pm@onequext.com')}) • Quext Implementation Operations
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: includeQrCode
+      ? `Action Required: Confirm & Sign Product Acceptance Portal - ${project.propertyName}`
+      : isSingleBatch && dockList[0]
+      ? `Shipment Update (${dockList[0].bomItemName}): ${project.propertyName}`
+      : `Shipping Dock Update (All Batches): ${project.propertyName}`,
+    summary: `Dispatched card-based Shipping Dock & Product Acceptance email (${dockList.length} batches, ${totalShippedUnits} units) for ${project.propertyName}.`,
+    htmlBody,
+  };
+}
+
 
