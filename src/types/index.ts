@@ -1343,6 +1343,9 @@ export interface OperationProject {
   emailOverviewCadence?: CustomerEmailCadence;
   emailCadenceStartDate?: string; // Fillable start date for weekly/biweekly overview cadence
   additionalCustomerEmails?: string[]; // PM manually added customer emails for automated digests & manual dispatches
+  portfolioConsolidatedEmails?: string[]; // Recipients opted into receiving a single consolidated Portfolio-Wide Update across shared projects
+  commsTunnelAiCustomSummary?: string; // Optional AI-generated or PM-customized executive summary for milestone cadence emails
+  commsTunnelAiTone?: 'executive' | 'action_oriented' | 'technical';
   sowForecastCadenceEnabled?: boolean; // Automated weekly/biweekly SOW Forecast overview dispatch when on CSM Intro - Pre-implementation
   useNfcWallet?: boolean; // PM Checkbox: NFC Wallet Upgrade
   useQrIntercom?: boolean; // PM Checkbox: QR Intercom Feature

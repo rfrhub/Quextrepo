@@ -62,6 +62,7 @@ import { PMPMitigationPlanPanel } from './PMPMitigationPlanPanel';
 import { RMATicketingSection } from './RMATicketingSection';
 import { ChangeOrderSection } from './ChangeOrderSection';
 import { ResetMilestonesModal } from './ResetMilestonesModal';
+import { CommunicationsTunnelModal } from './CommunicationsTunnelModal';
 import {
   Building2,
   Mail,
@@ -110,6 +111,7 @@ import {
   Download,
   Upload,
   RotateCcw,
+  Radio,
 } from 'lucide-react';
 import { exportSingleProject, openImportModal } from '../utils/projectBackupService';
 import { formatShortDate } from '../utils/generateOmarDashboardPdf';
@@ -154,6 +156,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
   );
   const [academySyncTick, setAcademySyncTick] = useState<number>(0);
   const [copiedPartnerAcademyLink, setCopiedPartnerAcademyLink] = useState<boolean>(false);
+  const [isCommsTunnelModalOpen, setIsCommsTunnelModalOpen] = useState<boolean>(false);
 
   const handleCopyPartnerAcademyLink = (partnerName?: string) => {
     const url = buildPartnerAcademyPortalUrl(partnerName, project.id);
@@ -3544,12 +3547,13 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCopyKickoffLink();
+                          setIsCommsDropdownOpen(false);
+                          setIsCommsTunnelModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer border border-slate-200"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-[#191E29] bg-[#01C38D] hover:bg-[#00b07f] rounded-lg transition-colors cursor-pointer shadow-2xs"
                       >
-                        {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                        <span>{copiedLink ? 'Kickoff Link Copied!' : 'Copy Direct Client Link'}</span>
+                        <Radio className="w-3.5 h-3.5" />
+                        <span>Communications Tunnel</span>
                       </button>
 
                       <button
@@ -3568,6 +3572,17 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Direct 1-Tap Communications Tunnel Button */}
+            <button
+              type="button"
+              onClick={() => setIsCommsTunnelModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-black rounded-lg transition-all duration-150 ease-in-out active:scale-95 whitespace-nowrap cursor-pointer bg-gradient-to-r from-[#01C38D] to-teal-400 hover:from-[#00b07f] hover:to-teal-300 text-[#191E29] shadow-xs"
+              title="Open Communications Tunnel: Multi-Recipient Bi-Weekly AI Card Digest & Cross-Project Portfolio Consolidation"
+            >
+              <Radio className="w-3.5 h-3.5 shrink-0" />
+              <span>Communications Tunnel</span>
+            </button>
 
             {/* Direct 1-Tap Kickoff Walkthrough Button */}
             <button
@@ -4920,6 +4935,15 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           onConfirmReset={handleConfirmResetMilestones}
         />
       )}
+
+      {/* Communications Tunnel Modal */}
+      <CommunicationsTunnelModal
+        isOpen={isCommsTunnelModalOpen}
+        onClose={() => setIsCommsTunnelModalOpen(false)}
+        project={project}
+        allProjects={allProjects}
+        onUpdateProject={onUpdateProject}
+      />
 
     </div>
   );

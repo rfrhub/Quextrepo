@@ -46,13 +46,16 @@ import {
   Square,
   ChevronDown,
   ChevronUp,
+  Radio,
 } from 'lucide-react';
 import { loadStoredProjects } from '../data/initialData';
 import {
   detectPortfolioContacts,
   buildPortfolioUpdateEmailContent,
+  buildDigestibleMilestoneCardEmailContent,
   logPortfolioDispatchAcrossProjects,
 } from '../services/portfolioEmailService';
+import { CommunicationsTunnelModal } from './CommunicationsTunnelModal';
 
 interface CustomerCommsControlPanelProps {
   project: OperationProject;
@@ -60,6 +63,7 @@ interface CustomerCommsControlPanelProps {
   onUpdateProject: (project: OperationProject) => void;
   onOpenKickoffWalkthrough: () => void;
   onOpenCSMPortal: (mode?: 'csm-intro-booking' | 'csm-handoff') => void;
+  initialOpenTunnel?: boolean;
 }
 
 export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps> = ({
@@ -68,7 +72,9 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
   onUpdateProject,
   onOpenKickoffWalkthrough,
   onOpenCSMPortal,
+  initialOpenTunnel = false,
 }) => {
+  const [isCommsTunnelOpen, setIsCommsTunnelOpen] = useState<boolean>(initialOpenTunnel);
   const [showEmailPreviewModal, setShowEmailPreviewModal] = useState<
     'kickoff' | 'digest' | 'csm' | 'csm_calendar' | 'sow_forecast' | 'stress_test' | null
   >(null);
@@ -377,28 +383,18 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
     }
 
     if (modalType === 'digest') {
-      const subject = `[${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Status Digest] ${project.propertyName} Deployment Progress (${progressPercent}% Complete)`;
-      const summary = `Sent ${cadence} deployment progress overview at stage "${currentMilestone?.title || 'Kickoff'}" (${progressPercent}% complete).`;
-      const htmlBody = `
-        <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-          <div style="border-bottom: 2px solid #01C38D; padding-bottom: 12px; margin-bottom: 16px;">
-            ${logoImgTag}
-            <span style="float: right; font-size: 11px; color: #64748b; text-transform: uppercase; line-height: 28px;">Deployment Progress Digest</span>
-          </div>
-          <p>Hello <strong>${project.clientName}</strong> Team,</p>
-          <p>Here is your <strong>${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Deployment Progress Digest</strong> for <strong>${project.propertyName}</strong>.</p>
-          <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 16px 0;">
-            <p style="margin: 0 0 8px 0;"><strong>Overall Milestone Completion:</strong> ${completedMilestones} of ${totalMilestones} Milestones (${progressPercent}%)</p>
-            <p style="margin: 0 0 8px 0;"><strong>Current Active Stage:</strong> ${currentMilestone?.title || 'In Progress'}</p>
-            <p style="margin: 0;"><strong>Target Completion Date:</strong> ${project.targetCompletionDate}</p>
-          </div>
-          <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-            Best regards,<br/>
-            <strong>${project.assignedPM.name}</strong> • Quext Implementation Operations
-          </p>
-        </div>
-      `;
-      return { subject, summary, htmlBody, logType: 'deployment_overview_email' };
+      const aiDigest = buildDigestibleMilestoneCardEmailContent({
+        project,
+        cadence: cadence === 'none' ? 'biweekly' : cadence,
+        aiTone: project.commsTunnelAiTone || 'executive',
+        customAiSummary: project.commsTunnelAiCustomSummary,
+      });
+      return {
+        subject: aiDigest.subject,
+        summary: aiDigest.summary,
+        htmlBody: aiDigest.htmlBody,
+        logType: aiDigest.logType,
+      };
     }
 
     if (modalType === 'csm_calendar') {
@@ -904,6 +900,16 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
+            type="button"
+            data-testid="open-communications-tunnel-btn"
+            onClick={() => setIsCommsTunnelOpen(true)}
+            className="inline-flex items-center px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#01C38D] to-teal-400 hover:from-[#00b07f] hover:to-teal-500 text-[#0f172a] text-xs font-black transition-all cursor-pointer shadow-md ring-2 ring-[#01C38D]/40"
+            title="Open Communications Tunnel to enter multiple recipients, preview AI card-based bi-weekly milestone updates, and consolidate shared portfolio contacts"
+          >
+            <Radio className="w-3.5 h-3.5 mr-1.5 text-[#0f172a]" />
+            <span>Communications Tunnel</span>
+          </button>
+          <button
             onClick={onOpenKickoffWalkthrough}
             className="inline-flex items-center px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 transition-colors cursor-pointer"
           >
@@ -1110,26 +1116,70 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           )}
         </div>
 
-        {/* Add Customer Email Form */}
-        <form onSubmit={handleAddCustomerEmail} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-xl">
-          <div className="relative flex-1">
-            <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={newCustomerEmailInput}
-              onChange={(e) => setNewCustomerEmailInput(e.target.value)}
-              placeholder="Add customer email (e.g. owner@property.com, assetmgr@equity.com)"
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-            />
-          </div>
+        {/* Add Customer Email Form + Communications Tunnel Launcher */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <form onSubmit={handleAddCustomerEmail} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-xl">
+            <div className="relative flex-1">
+              <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={newCustomerEmailInput}
+                onChange={(e) => setNewCustomerEmailInput(e.target.value)}
+                placeholder="Add customer email(s) (comma-separated, e.g. owner@property.com, assetmgr@equity.com)"
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs shrink-0 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Customer Email</span>
+            </button>
+          </form>
+
           <button
-            type="submit"
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs shrink-0 cursor-pointer"
+            type="button"
+            onClick={() => setIsCommsTunnelOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black transition-all shadow-xs cursor-pointer shrink-0"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Customer Email</span>
+            <Radio className="w-3.5 h-3.5 text-[#01C38D]" />
+            <span>Communications Tunnel (Multi-Recipient &amp; AI Card Preview)</span>
           </button>
-        </form>
+        </div>
+
+        {/* Inline Portfolio-Wide Suggestion when any configured recipient is found on other projects */}
+        {(() => {
+          const allCheck = detectPortfolioContacts(allConfiguredCustomerRecipients, project.id, projectsPool);
+          if (!allCheck.hasMatches) return null;
+          return (
+            <div className="mt-3.5 p-3.5 rounded-xl bg-gradient-to-r from-teal-50 via-emerald-50 to-sky-50 border border-teal-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-start gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <Layers className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xs">
+                  <span className="font-black text-teal-950">
+                    💡 Shared Portfolio Recipient Suggestion:{' '}
+                  </span>
+                  <span className="text-slate-700">
+                    <strong>{allCheck.matchedContacts.map((c) => c.email).join(', ')}</strong> is also subscribed on{' '}
+                    <strong>{allCheck.allTiedProjects.map((p) => p.propertyName).join(', ')}</strong>. You can send a separate{' '}
+                    <strong>Portfolio-Wide Update</strong> covering all shared projects in one card-based email.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCommsTunnelOpen(true)}
+                className="px-3.5 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-extrabold shrink-0 cursor-pointer flex items-center gap-1.5 self-start sm:self-center"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Open in Communications Tunnel →</span>
+              </button>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Toast Notification */}
@@ -1306,25 +1356,35 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
             <button
               type="button"
-              onClick={handleTriggerCadenceNow}
-              disabled={cadence === 'none' || isSendingLiveEmail}
-              className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-40"
-              title={`Trigger automated ${cadence} cadence email dispatch right now`}
+              onClick={() => setIsCommsTunnelOpen(true)}
+              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#01C38D] to-teal-400 hover:from-[#00b07f] hover:to-teal-300 text-[#191E29] text-xs font-black flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-sm"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>
-                {cadence === 'none'
-                  ? 'Cadence Paused'
-                  : `Trigger ${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'} Cadence Now`}
-              </span>
+              <Radio className="w-3.5 h-3.5" />
+              <span>Communications Tunnel (Multi-Recipient &amp; AI Cards)</span>
             </button>
-            <button
-              onClick={() => openModalWithRecipients('digest')}
-              className="w-full py-2.5 px-3 rounded-xl bg-[#01C38D] hover:bg-[#00b07f] text-[#191E29] text-xs font-black flex items-center justify-center space-x-1.5 transition-colors cursor-pointer shadow-sm"
-            >
-              <Mail className="w-3.5 h-3.5" />
-              <span>Preview &amp; Send Status Digest Now</span>
-            </button>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={handleTriggerCadenceNow}
+                disabled={cadence === 'none' || isSendingLiveEmail}
+                className="py-2 px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer shadow-xs disabled:opacity-40"
+                title={`Trigger automated ${cadence} cadence email dispatch right now`}
+              >
+                <Zap className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="truncate">
+                  {cadence === 'none'
+                    ? 'Cadence Paused'
+                    : `Trigger ${cadence === 'biweekly' ? 'Bi-Weekly' : 'Weekly'}`}
+                </span>
+              </button>
+              <button
+                onClick={() => openModalWithRecipients('digest')}
+                className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-[11px] font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer"
+              >
+                <Mail className="w-3 h-3 text-emerald-600 shrink-0" />
+                <span className="truncate">Quick Digest</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1867,6 +1927,15 @@ export const CustomerCommsControlPanel: React.FC<CustomerCommsControlPanelProps>
           </div>
         </div>
       )}
+
+      {/* Communications Tunnel Modal (Multi-Recipient Bi-Weekly AI Card Digest & Cross-Project Portfolio Updates) */}
+      <CommunicationsTunnelModal
+        isOpen={isCommsTunnelOpen}
+        onClose={() => setIsCommsTunnelOpen(false)}
+        project={project}
+        allProjects={projectsPool}
+        onUpdateProject={onUpdateProject}
+      />
     </div>
   );
 };
