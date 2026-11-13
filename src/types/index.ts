@@ -198,6 +198,12 @@ export const AVAILABLE_PMS: ProjectManagerInfo[] = [
     phone: '(806) 555-0188',
   },
   {
+    name: 'Paige Hawes',
+    email: 'paige.hawes@onequext.com',
+    role: 'Project Manager',
+    phone: '(806) 555-0182',
+  },
+  {
     name: 'Megan Rossman',
     email: 'megan.rossman@onequext.com',
     role: 'Director of Operations',
@@ -280,6 +286,16 @@ export const ALL_SYSTEM_USERS: AppUserDirectoryEntry[] = [
     roleLabel: 'PROJECT MANAGER',
     avatarInitial: 'B',
     phone: '(806) 555-0188',
+  },
+  {
+    id: 'user-paige-hawes',
+    name: 'Paige Hawes',
+    email: 'paige.hawes@onequext.com',
+    roleCategory: 'pm',
+    roleTitle: 'Project Manager',
+    roleLabel: 'PROJECT MANAGER',
+    avatarInitial: 'P',
+    phone: '(806) 555-0182',
   },
   {
     id: 'user-megan-rossman',
@@ -404,6 +420,8 @@ export const REAL_TEAM_MEMBERS: readonly string[] = [
   'sean gates',
   'hector lopez',
   'bethany condon',
+  'paige hawes',
+  'paige',
   'nicole franklin',
   'jasmine hunt',
   'branden girman',

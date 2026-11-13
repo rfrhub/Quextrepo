@@ -85,6 +85,14 @@ export const FIELD_TECH_PROFILES: Record<string, FieldTechAccountProfile> = {
     region: 'Eastern & Midwest Region',
     initials: 'BC',
   },
+  'Paige Hawes': {
+    name: 'Paige Hawes',
+    email: 'paige.hawes@onequext.com',
+    role: 'Project Manager',
+    badgeCode: 'QXT-PM-106',
+    region: 'Southern & Central Region',
+    initials: 'PH',
+  },
   'Megan Rossman': {
     name: 'Megan Rossman',
     email: 'megan.rossman@onequext.com',

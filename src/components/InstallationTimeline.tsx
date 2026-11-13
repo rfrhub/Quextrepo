@@ -4,6 +4,7 @@ import {
   ProjectStatusTag,
   BOMCategory,
   InstallLogEntry,
+  AVAILABLE_PMS,
   calculateProjectScheduleHealth,
   normalizeFieldTech,
   getProjectIntegratorPartners,
@@ -1284,9 +1285,11 @@ export const InstallationTimeline: React.FC<InstallationTimelineProps> = ({
                 className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Project Managers</option>
-                <option value="Raul Recalde">Raul Recalde</option>
-                <option value="Bethany Condon">Bethany Condon</option>
-                <option value="Megan Rossman">Megan Rossman (Director of Ops)</option>
+                {AVAILABLE_PMS.map((pm) => (
+                  <option key={pm.name} value={pm.name}>
+                    {pm.name} {pm.role.includes('Director') ? `(${pm.role})` : ''}
+                  </option>
+                ))}
               </select>
             </div>
 

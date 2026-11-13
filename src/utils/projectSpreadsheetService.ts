@@ -128,7 +128,7 @@ export const TEMPLATE_REFERENCE_GUIDE = [
   ['State', 'Optional', '2-Letter State Code (e.g. TX, UT, MO)', 'TX', 'Property US state.'],
   ['Target Completion Date (YYYY-MM-DD)', 'Optional', 'YYYY-MM-DD or MM/DD/YYYY', '45 days out', 'Scheduled go-live / installation signoff date.'],
   ['Status Tag', 'Optional', 'On Track | Behind Schedule | High Risk | Not Started | Completed', 'On Track', 'Initial project milestone delivery health.'],
-  ['Assigned PM', 'Optional', 'Raul Recalde | Bethany Condon | Megan Rossman | Ian Robertson', 'Raul Recalde', 'Quext Project Manager in charge of delivery.'],
+  ['Assigned PM', 'Optional', 'Raul Recalde | Bethany Condon | Paige Hawes | Megan Rossman | Ian Robertson', 'Raul Recalde', 'Quext Project Manager in charge of delivery.'],
   ['Assigned CSM', 'Optional', 'Nicole Franklin | Jasmine Hunt | Tessa Peshke', 'Nicole Franklin', 'Quext Customer Success Manager assigned.'],
   ['Assigned Field Tech', 'Optional', 'Hector Lopez | Sean Gates', 'Hector Lopez', 'Quext Field Engineer assigned for onsite hardware audits.'],
   ['Integrator Partner', 'Optional', 'SKBM | ATB | SBH | Everbase | JTS', 'SKBM', 'Certified subcontractor integrator / installer crew.'],

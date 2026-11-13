@@ -67,6 +67,17 @@ export function resolveEmailToMyQuextUser(rawEmail: string): MyQuextSignedInUser
     };
   }
 
+  if (email.includes('paige') || email.includes('hawes')) {
+    return {
+      name: 'Paige Hawes',
+      email: 'paige.hawes@onequext.com',
+      roleLabel: 'PROJECT MANAGER',
+      avatarInitial: 'P',
+      accountType: 'team_member',
+      fieldTechDefault: null,
+    };
+  }
+
   if (email.includes('megan') || email.includes('rossman')) {
     return {
       name: 'Megan Rossman',
@@ -469,6 +480,13 @@ export const MyQuextLoginPage: React.FC<MyQuextLoginPageProps> = ({
                   className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
                 >
                   Bethany Condon (PM)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('paige.hawes@onequext.com')}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 cursor-pointer"
+                >
+                  Paige Hawes (PM)
                 </button>
                 <button
                   type="button"
