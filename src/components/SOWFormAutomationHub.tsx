@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { OperationProject, isDiyPartner } from '../types';
 import { IntegratorPartnerSelector } from './IntegratorPartnerSelector';
-import { GoogleFormSubmission, FieldTechContact } from '../types/sowForm';
+import { GoogleFormSubmission, FieldTechContact, SOWCustomTable } from '../types/sowForm';
 import {
   loadSubmissions,
   saveSubmissions,
@@ -47,6 +47,7 @@ import {
   ChevronUp,
   Pencil,
   Edit3,
+  Table2,
 } from 'lucide-react';
 
 interface SOWFormAutomationHubProps {
@@ -187,6 +188,93 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     'Ground'
   );
 
+  // ── Custom Tables (Part 5 of the SOW form) ───────────────────────────────
+  const [customTables, setCustomTables] = useState<SOWCustomTable[]>([]);
+
+  const addCustomTable = () => {
+    const id = `tbl-${Date.now()}`;
+    setCustomTables((prev) => [
+      ...prev,
+      { id, title: '', columns: ['Column 1', 'Column 2'], rows: [['', '']] },
+    ]);
+  };
+
+  const removeCustomTable = (tableId: string) => {
+    setCustomTables((prev) => prev.filter((t) => t.id !== tableId));
+  };
+
+  const updateTableTitle = (tableId: string, title: string) => {
+    setCustomTables((prev) =>
+      prev.map((t) => (t.id === tableId ? { ...t, title } : t))
+    );
+  };
+
+  const updateColumnName = (tableId: string, colIdx: number, name: string) => {
+    setCustomTables((prev) =>
+      prev.map((t) => {
+        if (t.id !== tableId) return t;
+        const cols = [...t.columns];
+        cols[colIdx] = name;
+        return { ...t, columns: cols };
+      })
+    );
+  };
+
+  const addColumn = (tableId: string) => {
+    setCustomTables((prev) =>
+      prev.map((t) => {
+        if (t.id !== tableId) return t;
+        const cols = [...t.columns, `Column ${t.columns.length + 1}`];
+        const rows = t.rows.map((r) => [...r, '']);
+        return { ...t, columns: cols, rows };
+      })
+    );
+  };
+
+  const removeColumn = (tableId: string, colIdx: number) => {
+    setCustomTables((prev) =>
+      prev.map((t) => {
+        if (t.id !== tableId) return t;
+        if (t.columns.length <= 1) return t; // keep at least 1
+        const cols = t.columns.filter((_, i) => i !== colIdx);
+        const rows = t.rows.map((r) => r.filter((_, i) => i !== colIdx));
+        return { ...t, columns: cols, rows };
+      })
+    );
+  };
+
+  const addRow = (tableId: string) => {
+    setCustomTables((prev) =>
+      prev.map((t) => {
+        if (t.id !== tableId) return t;
+        const newRow = Array(t.columns.length).fill('');
+        return { ...t, rows: [...t.rows, newRow] };
+      })
+    );
+  };
+
+  const removeRow = (tableId: string, rowIdx: number) => {
+    setCustomTables((prev) =>
+      prev.map((t) => {
+        if (t.id !== tableId) return t;
+        const rows = t.rows.filter((_, i) => i !== rowIdx);
+        return { ...t, rows };
+      })
+    );
+  };
+
+  const updateCell = (tableId: string, rowIdx: number, colIdx: number, value: string) => {
+    setCustomTables((prev) =>
+      prev.map((t) => {
+        if (t.id !== tableId) return t;
+        const rows = t.rows.map((r, ri) =>
+          ri === rowIdx ? r.map((c, ci) => (ci === colIdx ? value : c)) : r
+        );
+        return { ...t, rows };
+      })
+    );
+  };
+
   // Populate form from a Property when selected
   const applyPropertyToForm = (prop: OperationProject | null) => {
     if (!prop) {
@@ -299,6 +387,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     setQ21ShippingPhone(sub.shippingPhone || '');
     setQ22ShippingEmail(sub.shippingEmail || '');
     setQ23ShippingMethod((sub.shippingMethod as any) || 'Ground');
+    setCustomTables(sub.customTables ? sub.customTables.map((t) => ({ ...t, rows: t.rows.map((r) => [...r]) })) : []);
 
     if (sub.propertyId) {
       setSelectedPropertyId(sub.propertyId);
@@ -520,6 +609,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
     setQ21ShippingPhone('');
     setQ22ShippingEmail('');
     setQ23ShippingMethod('Ground');
+    setCustomTables([]);
   };
 
   const handleCreateSowSubmit = (e: React.FormEvent) => {
@@ -564,6 +654,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
             ? q22ShippingEmail.trim() || q8PocEmail.trim()
             : '',
         shippingMethod: q18NeedsShipping === 'Yes' ? q23ShippingMethod : 'Ground',
+        customTables: customTables.length > 0 ? customTables : undefined,
       });
 
       if (updated) {
@@ -637,6 +728,7 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
             ? q22ShippingEmail.trim() || q8PocEmail.trim()
             : '',
         shippingMethod: q18NeedsShipping === 'Yes' ? q23ShippingMethod : 'Ground',
+        customTables: customTables.length > 0 ? customTables : undefined,
       });
 
       // Save/Sync directly to Property
@@ -1628,6 +1720,143 @@ export const SOWFormAutomationHub: React.FC<SOWFormAutomationHubProps> = ({
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* ================================================================
+                    PART 5 — CUSTOM DATA TABLES (optional, user-defined)
+                ================================================================ */}
+                <div className="space-y-4 pt-4 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-black uppercase tracking-wider text-teal-800 bg-teal-50/70 border border-teal-200/80 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                      <Table2 className="w-3.5 h-3.5 text-teal-600" />
+                      Part 5 — Custom Data Tables (Optional)
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addCustomTable}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Table
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 -mt-1">
+                    Add one or more custom tables to your SOW. Name each column anything you like, then fill in the rows. Each table renders as a formatted grid in the PDF.
+                  </p>
+
+                  {customTables.length === 0 && (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-xs text-slate-500">
+                      No custom tables added yet. Click <strong>Add Table</strong> to include structured data (e.g. device lists, unit schedules, pricing) in your SOW PDF.
+                    </div>
+                  )}
+
+                  {customTables.map((table, tIdx) => (
+                    <div key={table.id} className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+                      {/* Table header bar */}
+                      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Table {tIdx + 1} — Title:</span>
+                          <input
+                            type="text"
+                            placeholder="e.g. Device Schedule, Unit List, Pricing..."
+                            value={table.title}
+                            onChange={(e) => updateTableTitle(table.id, e.target.value)}
+                            className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-900 font-semibold focus:outline-teal-600 bg-white"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeCustomTable(table.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                          title="Remove this table"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Column name editors */}
+                      <div className="px-4 pt-3 pb-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                          Columns
+                          <button
+                            type="button"
+                            onClick={() => addColumn(table.id)}
+                            className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-teal-100 text-slate-700 hover:text-teal-800 text-[10px] font-bold border border-slate-200 transition cursor-pointer"
+                          >
+                            <Plus className="w-2.5 h-2.5" /> Add Column
+                          </button>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {table.columns.map((col, ci) => (
+                            <div key={ci} className="flex items-center gap-1 group">
+                              <input
+                                type="text"
+                                value={col}
+                                onChange={(e) => updateColumnName(table.id, ci, e.target.value)}
+                                className="px-2.5 py-1.5 text-[11px] font-bold border border-slate-300 rounded-lg text-slate-800 focus:outline-teal-600 bg-slate-50 w-32"
+                                placeholder={`Col ${ci + 1}`}
+                              />
+                              {table.columns.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeColumn(table.id, ci)}
+                                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-400 hover:text-rose-500 transition cursor-pointer"
+                                  title="Remove column"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Data rows */}
+                      <div className="px-4 pb-3">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                          Rows
+                          <button
+                            type="button"
+                            onClick={() => addRow(table.id)}
+                            className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-teal-100 text-slate-700 hover:text-teal-800 text-[10px] font-bold border border-slate-200 transition cursor-pointer"
+                          >
+                            <Plus className="w-2.5 h-2.5" /> Add Row
+                          </button>
+                        </div>
+
+                        {table.rows.length === 0 && (
+                          <p className="text-[11px] text-slate-400 italic">No rows yet — click Add Row.</p>
+                        )}
+
+                        <div className="space-y-1.5">
+                          {table.rows.map((row, ri) => (
+                            <div key={ri} className="flex items-start gap-1.5 group">
+                              <span className="mt-2 text-[10px] font-mono text-slate-400 w-5 shrink-0 text-right">{ri + 1}</span>
+                              {table.columns.map((_, ci) => (
+                                <input
+                                  key={ci}
+                                  type="text"
+                                  value={row[ci] ?? ''}
+                                  onChange={(e) => updateCell(table.id, ri, ci, e.target.value)}
+                                  className="flex-1 min-w-0 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-900 focus:outline-teal-600 bg-white"
+                                  placeholder={table.columns[ci] || `Col ${ci + 1}`}
+                                />
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => removeRow(table.id, ri)}
+                                className="mt-1.5 opacity-0 group-hover:opacity-100 p-1 rounded text-slate-400 hover:text-rose-500 transition cursor-pointer shrink-0"
+                                title="Remove row"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Form Submit Footer */}

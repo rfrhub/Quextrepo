@@ -1,5 +1,13 @@
 export type SOWOrderStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Draft';
 
+/** A single custom data table that can be added to an SOW */
+export interface SOWCustomTable {
+  id: string;
+  title: string;
+  columns: string[]; // column header names
+  rows: string[][];  // each inner array matches columns length
+}
+
 export interface GoogleFormSubmission {
   id: string;
   submittedAt: string;
@@ -55,6 +63,9 @@ export interface GoogleFormSubmission {
   assignedTechEmail?: string;
   dispatchedAt?: string;
   dispatchedMessageId?: string;
+
+  // Custom user-defined data tables
+  customTables?: SOWCustomTable[];
 }
 
 export interface FieldTechContact {

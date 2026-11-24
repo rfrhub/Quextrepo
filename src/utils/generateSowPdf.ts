@@ -2,8 +2,8 @@ import { jsPDF } from 'jspdf';
 import { GoogleFormSubmission } from '../types/sowForm';
 
 /**
- * Generates a pixel-perfect 2-page PDF document matching the OneQuext SOW template
- * exactly as attached.
+ * Generates a pixel-perfect PDF document matching the OneQuext SOW template.
+ * Text never clips — cells auto-expand and new pages are added as needed.
  */
 export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF => {
   const doc = new jsPDF({
@@ -16,78 +16,174 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
   const pageHeight = 792;
   const margin = 36;
   const contentWidth = pageWidth - margin * 2; // 540 pt
+  const footerHeight = 28; // reserve space for footer
+  const safeBottom = pageHeight - footerHeight - margin; // last printable y per page
 
   // Color constants matching the provided PDF
-  const NAVY = [27, 54, 93]; // Primary deep navy: #1B365D
-  const LIGHT_HEADER_BG = [224, 233, 243]; // Table header light gray-blue: #E0E9F3
-  const BORDER_COLOR = [188, 202, 219]; // Table line border: #BCCADB
-  const DARK_TEXT = [30, 41, 59]; // Body text: #1E293B
-  const SECTION_LINE = [30, 41, 59]; // Section divider line
+  const NAVY = [27, 54, 93] as const;          // #1B365D
+  const LIGHT_HEADER_BG = [224, 233, 243] as const; // #E0E9F3
+  const BORDER_COLOR = [188, 202, 219] as const;    // #BCCADB
+  const DARK_TEXT = [30, 41, 59] as const;          // #1E293B
+  const SECTION_LINE = [30, 41, 59] as const;
 
-  // Helper: Draw 2-column table
+  let currentPage = 1;
+
+  // ── Draw footer on a given page ──────────────────────────────────────────
+  const drawFooter = (page: number, totalHint = '?') => {
+    const savedPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
+    doc.setPage(page);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(140, 150, 165);
+    doc.text(
+      'OneQuext Technical Scope of Work  |  Confidential & Proprietary',
+      margin,
+      pageHeight - 20
+    );
+    doc.text(`Page ${page} of ${totalHint}`, pageWidth - margin - 40, pageHeight - 20);
+    doc.setPage(savedPage);
+  };
+
+  // ── Ensure there is enough room on the current page; add a page if not ──
+  const ensureSpace = (y: number, needed: number): number => {
+    if (y + needed > safeBottom) {
+      drawFooter(currentPage, '?');
+      doc.addPage();
+      currentPage++;
+      // Minimal top margin on continuation pages
+      return margin + 10;
+    }
+    return y;
+  };
+
+  // ── Draw 2-column table (auto-grows cells, adds pages as needed) ─────────
   const drawTwoColumnTable = (
     startY: number,
     rows: { label: string; value: string; minHeight?: number }[],
     col1Width = 140
   ): number => {
-    let currentY = startY;
+    let y = startY;
     const col2Width = contentWidth - col1Width;
 
     rows.forEach((row) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
 
-      // Calculate wrapped lines for value
       const valText = row.value || '—';
+      // Split value into lines that fit col2 (with 7pt left+right padding each side)
       const lines = doc.splitTextToSize(valText, col2Width - 14);
-      const calculatedHeight = Math.max(row.minHeight || 17, lines.length * 10 + 7);
+      const cellHeight = Math.max(row.minHeight || 17, lines.length * 11 + 7);
 
-      // Background for Col 1
+      // Page break before this row if it won't fit
+      y = ensureSpace(y, cellHeight);
+
+      // Col 1 background
       doc.setFillColor(LIGHT_HEADER_BG[0], LIGHT_HEADER_BG[1], LIGHT_HEADER_BG[2]);
-      doc.rect(margin, currentY, col1Width, calculatedHeight, 'F');
+      doc.rect(margin, y, col1Width, cellHeight, 'F');
 
-      // Col 1 Border
+      // Borders
       doc.setDrawColor(BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2]);
       doc.setLineWidth(0.75);
-      doc.rect(margin, currentY, col1Width, calculatedHeight, 'S');
+      doc.rect(margin, y, col1Width, cellHeight, 'S');
+      doc.rect(margin + col1Width, y, col2Width, cellHeight, 'S');
 
-      // Col 2 Border
-      doc.rect(margin + col1Width, currentY, col2Width, calculatedHeight, 'S');
-
-      // Col 1 Label
+      // Col 1 label
       doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
-      doc.text(row.label, margin + 7, currentY + 11.5);
+      // If label is long, wrap it too
+      const labelLines = doc.splitTextToSize(row.label, col1Width - 10);
+      doc.text(labelLines, margin + 7, y + 11.5);
 
-      // Col 2 Value
+      // Col 2 value (all wrapped lines)
       doc.setTextColor(DARK_TEXT[0], DARK_TEXT[1], DARK_TEXT[2]);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text(lines, margin + col1Width + 7, currentY + 11.5);
+      doc.text(lines, margin + col1Width + 7, y + 11.5);
 
-      currentY += calculatedHeight;
+      y += cellHeight;
     });
 
-    return currentY;
+    return y;
   };
 
-  // Helper: Draw Section Header with Underline
+  // ── Draw Section Header with underline ───────────────────────────────────
   const drawSectionHeader = (title: string, yPos: number): number => {
+    yPos = ensureSpace(yPos, 20);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.text(title, margin, yPos);
-
-    // Solid line underneath
     doc.setDrawColor(SECTION_LINE[0], SECTION_LINE[1], SECTION_LINE[2]);
     doc.setLineWidth(0.75);
     doc.line(margin, yPos + 3, margin + contentWidth, yPos + 3);
-
     return yPos + 10;
   };
 
-  // Derive products list from issues
+  // ── Draw a fully custom column table (user-defined columns & rows) ────────
+  const drawCustomTable = (
+    title: string,
+    columns: string[],
+    rows: string[][],
+    startY: number
+  ): number => {
+    let y = drawSectionHeader(title, startY);
+
+    if (columns.length === 0) return y;
+
+    const colWidth = contentWidth / columns.length;
+    const headerHeight = 20;
+
+    // Header row
+    y = ensureSpace(y, headerHeight);
+    columns.forEach((col, ci) => {
+      const x = margin + ci * colWidth;
+      doc.setFillColor(LIGHT_HEADER_BG[0], LIGHT_HEADER_BG[1], LIGHT_HEADER_BG[2]);
+      doc.rect(x, y, colWidth, headerHeight, 'F');
+      doc.setDrawColor(BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2]);
+      doc.setLineWidth(0.75);
+      doc.rect(x, y, colWidth, headerHeight, 'S');
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      const headerLines = doc.splitTextToSize(col, colWidth - 10);
+      doc.text(headerLines, x + 5, y + 13);
+    });
+    y += headerHeight;
+
+    // Data rows
+    rows.forEach((row) => {
+      // Calculate tallest cell in this row to get uniform row height
+      let rowHeight = 17;
+      const cellLinesList = columns.map((_, ci) => {
+        const cellVal = row[ci] ?? '';
+        const cellLines = doc.splitTextToSize(cellVal, colWidth - 10);
+        const h = cellLines.length * 11 + 7;
+        rowHeight = Math.max(rowHeight, h);
+        return cellLines;
+      });
+
+      y = ensureSpace(y, rowHeight);
+
+      columns.forEach((_, ci) => {
+        const x = margin + ci * colWidth;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(x, y, colWidth, rowHeight, 'F');
+        doc.setDrawColor(BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2]);
+        doc.setLineWidth(0.5);
+        doc.rect(x, y, colWidth, rowHeight, 'S');
+        doc.setTextColor(DARK_TEXT[0], DARK_TEXT[1], DARK_TEXT[2]);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(cellLinesList[ci], x + 5, y + 11);
+      });
+      y += rowHeight;
+    });
+
+    return y;
+  };
+
+  // ── Derive products list from issues ─────────────────────────────────────
   const products: string[] = [];
   if (submission.unitLocksIssue) products.push('Unit Locks');
   if (submission.accessControlIssue) products.push('Access Control');
@@ -173,6 +269,7 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
   }. The certified field technician will conduct targeted onsite diagnostics, hardware installation, firmware provisioning, and cloud gateway verification for reported systems.`;
 
   const overviewLines = doc.splitTextToSize(overviewText, contentWidth);
+  y = ensureSpace(y, overviewLines.length * 9.5 + 16);
   doc.text(overviewLines, margin, y + 5);
   y += overviewLines.length * 9.5 + 8;
 
@@ -180,6 +277,7 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+  y = ensureSpace(y, 14);
   doc.text('Equipment:', margin, y);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(DARK_TEXT[0], DARK_TEXT[1], DARK_TEXT[2]);
@@ -190,7 +288,6 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
   // 6. EQUIPMENT OVERVIEW & SCOPE OF WORK
   y = drawSectionHeader('EQUIPMENT OVERVIEW & SCOPE OF WORK', y);
 
-  // Group issue items into clean structured items
   const scopeRows: { label: string; value: string }[] = [];
 
   if (submission.unitLocksIssue) {
@@ -218,7 +315,6 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
     scopeRows.push({ label: 'Leak Sensors Scope:', value: submission.leakSensorsIssue });
   }
 
-  // If equipment shipping was specified
   if (submission.equipmentNeedsShipping === 'Yes') {
     const equipDetails =
       submission.equipmentQuantityAndLocation ||
@@ -240,17 +336,10 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
 
   y = drawTwoColumnTable(y, scopeRows, 140);
 
-  // Bottom footer page 1
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(140, 150, 165);
-  doc.text('OneQuext Technical Scope of Work  |  Confidential & Proprietary', margin, pageHeight - 20);
-  doc.text('Page 1 of 2', pageWidth - margin - 40, pageHeight - 20);
-
-  // ==========================================
-  // PAGE 2
-  // ==========================================
+  // ── PAGE 2 (Communication / Documentation / Sign-off) ────────────────────
+  drawFooter(currentPage, '?');
   doc.addPage();
+  currentPage++;
 
   let y2 = 44;
 
@@ -329,11 +418,22 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
 
   docRequirements.forEach((req) => {
     const lines = doc.splitTextToSize(req, contentWidth);
+    const blockH = lines.length * 9.5 + 4;
+    y2 = ensureSpace(y2, blockH);
     doc.text(lines, margin, y2 + 5);
-    y2 += lines.length * 9.5 + 4;
+    y2 += blockH;
   });
 
   y2 += 18;
+
+  // ── Custom Tables (user-defined) ─────────────────────────────────────────
+  if (submission.customTables && submission.customTables.length > 0) {
+    submission.customTables.forEach((table) => {
+      y2 += 10;
+      y2 = drawCustomTable(table.title || 'Custom Table', table.columns, table.rows, y2);
+      y2 += 10;
+    });
+  }
 
   // 3. APPROVAL / SIGN-OFF
   y2 = drawSectionHeader('APPROVAL / SIGN-OFF', y2);
@@ -346,12 +446,11 @@ export const createSowPdfDocument = (submission: GoogleFormSubmission): jsPDF =>
   ];
   y2 = drawTwoColumnTable(y2, signoffRows, 160);
 
-  // Bottom footer page 2
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(140, 150, 165);
-  doc.text('OneQuext Technical Scope of Work  |  Confidential & Proprietary', margin, pageHeight - 20);
-  doc.text('Page 2 of 2', pageWidth - margin - 40, pageHeight - 20);
+  // ── Finalize footers with accurate total page count ───────────────────────
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    drawFooter(p, String(totalPages));
+  }
 
   return doc;
 };
